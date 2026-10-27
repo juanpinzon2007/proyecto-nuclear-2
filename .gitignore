@@ -1,0 +1,31 @@
+# IDEs y Editores
+.idea/
+.vscode/
+*.swp
+*.swo
+*.iml
+*.iws
+*.ipr
+
+# Java / Maven / Gradle
+target/
+build/
+.gradle/
+*.class
+*.jar
+*.war
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+env/
+venv/
+
+# Node / Web
+node_modules/
+npm-debug.log*
+
+# Sistema Operativo
+.DS_Store
+Thumbs.db
