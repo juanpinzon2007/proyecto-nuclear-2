@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 
 from app.core.config import get_settings
+from app.modules.cases.api.router import router as cases_router
 
 app = FastAPI(title=get_settings().app_name)
 
 # Incorporar aquí los routers públicos de los módulos cuando se implementen.
+app.include_router(cases_router)
 
 
 @app.get("/health", tags=["technical"])

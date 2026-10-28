@@ -35,5 +35,23 @@ services:
       timeout: 5s
       retries: 10
 
+  db-test:
+    image: postgres:17
+    profiles: ["test"]
+    environment:
+      POSTGRES_DB: sps_test
+      POSTGRES_USER: sps
+      POSTGRES_PASSWORD: test
+    ports:
+      - "127.0.0.1:5432:5432"
+    # Solo pruebas: datos en RAM y sin fsync; se pierden al detener el contenedor.
+    tmpfs:
+      - /var/lib/postgresql/data
+    command: ["postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sps -d sps_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
 volumes:
   postgres_data:
