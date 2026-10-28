@@ -1,7 +1,7 @@
 """Puertos que necesita Identity; no son adaptadores integrados de otros módulos.
 
-El UML confirma las responsabilidades. Los mapeos físicos, transacciones y firmas
-de integración con los compañeros aún requieren acuerdo (ver README del módulo).
+El DBML confirma el mapeo de acceso con un rol por usuario y permisos por rol.
+Las firmas académicas y su adaptación transaccional aún requieren acuerdo.
 """
 
 from collections.abc import Callable
@@ -10,7 +10,7 @@ from typing import Protocol, Self
 
 from app.modules.identity.domain.entities import (
     AccesoConvocatoria, AutorizacionRepeticion, AutorizacionesDocente,
-    CondicionesRepeticion, ContextoAcceso, DetalleParticipacion, FeedbackDocente,
+    CondicionesRepeticion, ContextoAcceso, DatosAltaDocente, DetalleParticipacion, FeedbackDocente,
     FilaReporte, ResumenCaso,
 )
 
@@ -18,7 +18,8 @@ from app.modules.identity.domain.entities import (
 class RepositorioUsuarios(Protocol):
     def obtener(self, id_usuario: str) -> ContextoAcceso | None: ...
     def permisos_existentes(self, permisos: frozenset[str]) -> bool: ...
-    def crear_docente(self, correo: str, autorizaciones: AutorizacionesDocente) -> ContextoAcceso: ...
+    def crear_docente(self, correo: str, autorizaciones: AutorizacionesDocente,
+                      *, datos: DatosAltaDocente | None = None) -> ContextoAcceso: ...
     def asignar_autorizaciones(self, id_docente: str, autorizaciones: AutorizacionesDocente) -> ContextoAcceso: ...
 
 
@@ -102,5 +103,6 @@ class IServicioExcepciones(Protocol):
 
 
 class IServicioAdministracion(Protocol):
-    def crear_docente(self, contexto: ContextoAcceso, correo: str, autorizaciones: AutorizacionesDocente) -> ContextoAcceso: ...
+    def crear_docente(self, contexto: ContextoAcceso, correo: str, autorizaciones: AutorizacionesDocente,
+                      *, nombre: str | None = None, clave: str | None = None) -> ContextoAcceso: ...
     def asignar_autorizaciones(self, contexto: ContextoAcceso, id_docente: str, autorizaciones: AutorizacionesDocente) -> ContextoAcceso: ...

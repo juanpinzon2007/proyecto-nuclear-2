@@ -39,6 +39,14 @@ class AutorizacionesDocenteSchema(EsquemaIdentity):
 
 class CrearDocente(AutorizacionesDocenteSchema):
     correo: Annotated[str, Field(strict=True, min_length=3, max_length=254)]
+    nombre: Annotated[str | None, Field(min_length=1, max_length=120)] = None
+    clave: Annotated[SecretStr | None, Field(min_length=1, max_length=1024)] = None
+
+    @model_validator(mode="after")
+    def validar_datos_alta(self):
+        if (self.nombre is None) != (self.clave is None):
+            raise ValueError("Nombre y clave deben proporcionarse juntos.")
+        return self
 
 
 class UsuarioPublico(EsquemaIdentity):

@@ -1,10 +1,11 @@
-"""Valores de aplicación; no representan columnas ni sustituyen el ER pendiente.
+"""Valores de aplicación; los modelos físicos del DBML viven en Infrastructure.
 
 Los identificadores públicos son cadenas opacas. Su adaptación a los tipos del ER
-corresponde a los futuros adaptadores, sin suponer UUID, INTEGER ni equivalencias.
+corresponde a los adaptadores. Usuario usa INTEGER según el DBML; no se deducen
+equivalencias entre usuario, membresía, participación, sesión y asignación.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
@@ -75,6 +76,12 @@ class AutorizacionesDocente:
             raise ReglaIdentidadInvalida()
         if Rol.DOCENTE not in self.roles or any(not isinstance(r, Rol) for r in self.roles):
             raise ReglaIdentidadInvalida()
+
+
+@dataclass(frozen=True)
+class DatosAltaDocente:
+    nombre: str
+    clave_hash: str = field(repr=False)
 
 
 @dataclass(frozen=True)

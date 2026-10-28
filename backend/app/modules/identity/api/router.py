@@ -49,6 +49,11 @@ def consultar_identidad(usuario: UsuarioActual) -> UsuarioPublico:
 
 @router.post("/docentes", response_model=UsuarioPublico, status_code=201)
 def crear_docente(solicitud: CrearDocente, usuario: UsuarioActual, proxy: Administracion) -> UsuarioPublico:
+    if solicitud.nombre is not None:
+        return UsuarioPublico.desde_contexto(proxy.crear_docente(
+            usuario, solicitud.correo, solicitud.a_dominio(), nombre=solicitud.nombre,
+            clave=solicitud.clave.get_secret_value() if solicitud.clave else None,
+        ))
     return UsuarioPublico.desde_contexto(proxy.crear_docente(usuario, solicitud.correo, solicitud.a_dominio()))
 
 

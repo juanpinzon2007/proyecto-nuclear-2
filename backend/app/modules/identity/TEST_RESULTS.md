@@ -2,6 +2,73 @@
 
 Fecha: 28 de octubre de 2026, America/Bogota.
 
+## Incremento DBML posterior al commit 351169b
+
+La rama inició limpia en `351169b`. Se conservaron los archivos de las pruebas
+originales sin cambios, verificado con git diff contra ese commit. No se hizo
+commit, push, Pull Request ni se alteró el commit base.
+
+Se ejecutó nuevamente la suite completa con `SPS_IDENTITY_TEST_URL` apuntando a
+un clúster local temporal independiente, base `sps_identity_test`, limitado a
+127.0.0.1. Las pruebas usan esquemas aleatorios y los eliminan al finalizar.
+El servidor informó PostgreSQL **18.4**; no se presenta como prueba de PostgreSQL
+17, que sigue siendo la versión de Compose del proyecto.
+
+Comando real, desde la raíz:
+
+```powershell
+.\.venv\Scripts\python.exe -B -m pytest backend/tests -c backend/pyproject.toml -q -p no:cacheprovider
+```
+
+Resultado:
+
+```text
+174 passed, 1 warning in 9.07s
+```
+
+Incluye las 109 pruebas originales, las pruebas de mapeo y las nuevas pruebas
+parametrizadas de persistencia sobre SQLite y PostgreSQL. La advertencia restante
+es la de Starlette/HTTPX ya documentada; no se ocultó mediante filtros.
+
+Se comprobaron:
+
+- Upgrade/downgrade de la migración real de las cuatro tablas de acceso.
+- Correspondencia de los seis mapeos con columnas, longitudes, nulabilidad y FK
+  del DBML conservado como fuente de prueba.
+- Unicidad de correo, PK compuesta, FK reales, defaults y rollback atómico.
+- Identidad y permisos por rol recuperados mediante el repositorio real.
+- Alta HTTP con proxy/servicio/UoW/repositorio reales y clave verificada con Argon2.
+- HTTP 403 del estudiante usando JWT y usuario leído de la BD, además de la prueba
+  original que utiliza dobles de persistencia.
+- Rechazo de multirrol y concesiones individuales no representadas en el ER,
+  sin modificar los permisos globales del rol.
+- Usuario inactivo pierde acceso con su JWT anterior.
+- Persistencia nativa de permiso_intento_extra, FK y rollback sin consumir intentos.
+- LEFT OUTER JOIN ejecutado en ambas BD, preservando NULL y resultados oficiales
+  sin calcular notas ni reclasificar ausencias.
+- Persistencia académica no integrada sigue respondiendo 503.
+
+La consulta final al catálogo del laboratorio mostró **0 esquemas temporales**
+restantes. No se conectó ni migró la BD del proyecto. Docker no estaba disponible;
+se utilizó la instalación local de PostgreSQL en un directorio temporal aislado.
+El clúster temporal se detuvo al terminar la verificación.
+La revisión automática rechazó eliminar su directorio temporal con el motivo
+`blocked by policy`; sus archivos permanecen en el directorio de laboratorio,
+sin servidor activo. No se intentó eludir esa restricción.
+
+`pip check`: `No broken requirements found.`
+`git diff --check`: sin errores. OpenAPI conserva 10 rutas.
+
+**Límites:** siguen sin comprobarse el padrón completo real, el mapeo académico de
+situacion, la concurrencia entre módulos y el feedback individual incompatible
+con el ER. Las tablas académicas de los fixtures se construyen exclusivamente en
+el laboratorio desde el DBML; no son implementación de módulos de compañeros.
+
+## Evidencia histórica del incremento anterior
+
+Lo que sigue corresponde a la entrega de 109 pruebas conservada en `351169b`;
+sus bloqueos históricos se actualizan en [PERSISTENCE_DBML.md](PERSISTENCE_DBML.md).
+
 ## Estado inicial y alcance de los cambios
 
 - Rama activa: `alejandro`. Árbol inicialmente limpio.

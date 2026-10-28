@@ -1,13 +1,17 @@
 """Composición cerrada por defecto, sin usuarios, códigos ni repositorios ficticios."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Generator
+from contextlib import ExitStack
 from dataclasses import replace
 from typing import Annotated
 
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.db.session import get_session_factory
 from app.modules.identity.application.authentication import ServicioAutenticacion
 from app.modules.identity.application.authorization import ServicioAutorizacion
 from app.modules.identity.application.ports import (
@@ -17,9 +21,13 @@ from app.modules.identity.application.ports import (
 from app.modules.identity.application.proxy_administracion import ProxyAdministracionUsuarios
 from app.modules.identity.application.proxy_excepciones import ProxyExcepciones
 from app.modules.identity.application.proxy_seguimiento import ProxySeguimiento
+from app.modules.identity.application.services import ServicioAdministracionUsuarios
 from app.modules.identity.domain.entities import ContextoAcceso, Rol
 from app.modules.identity.domain.errors import IntegracionPendiente, NoAutenticado
 from app.modules.identity.infrastructure.security import TokensJWT
+from app.modules.identity.infrastructure.credentials import obtener_hasheador
+from app.modules.identity.infrastructure.repositories import RepositorioUsuariosSQLAlchemy
+from app.modules.identity.infrastructure.unit_of_work import UnidadTrabajoIdentitySQLAlchemy
 
 
 bearer = HTTPBearer(auto_error=False)
@@ -37,9 +45,8 @@ def construir_tokens() -> TokensJWT:
         raise IntegracionPendiente() from None
 
 
-def construir_repositorio_usuarios() -> RepositorioUsuarios:
-    # Pendiente de ER. El adaptador futuro recibirá la Session común de app.db.
-    raise IntegracionPendiente()
+def construir_repositorio_usuarios(sesion: Session) -> RepositorioUsuarios:
+    return RepositorioUsuariosSQLAlchemy(sesion)
 
 
 def construir_validador_convocatoria() -> ValidadorConvocatoria:
@@ -62,15 +69,29 @@ def construir_excepciones() -> IServicioExcepciones:
 
 
 def construir_administracion() -> IServicioAdministracion:
-    raise IntegracionPendiente()
+    def unidad_trabajo() -> UnidadTrabajoIdentitySQLAlchemy:
+        try:
+            sesiones = get_session_factory()
+        except (ValueError, SQLAlchemyError):
+            raise IntegracionPendiente() from None
+        return UnidadTrabajoIdentitySQLAlchemy(usuarios=construir_repositorio_usuarios, sesiones=sesiones)
+    return ServicioAdministracionUsuarios(unidad_trabajo, obtener_hasheador().hash)
 
 
 def obtener_fabrica_tokens() -> Callable[[], TokensJWT]:
     return construir_tokens
 
 
-def obtener_fabrica_usuarios() -> Callable[[], RepositorioUsuarios]:
-    return construir_repositorio_usuarios
+def obtener_fabrica_usuarios() -> Generator[Callable[[], RepositorioUsuarios], None, None]:
+    # Apertura diferida: una solicitud sin Bearer sigue respondiendo 401 sin BD.
+    with ExitStack() as recursos:
+        def construir() -> RepositorioUsuarios:
+            try:
+                sesion = recursos.enter_context(get_session_factory()())
+                return construir_repositorio_usuarios(sesion)
+            except (ValueError, SQLAlchemyError):
+                raise IntegracionPendiente() from None
+        yield construir
 
 
 def obtener_usuario_actual(
@@ -90,10 +111,12 @@ def obtener_usuario_actual(
     return replace(usuario, id_convocatoria=identidad.id_convocatoria)
 
 
-def obtener_fabrica_autenticacion() -> Callable[[], ServicioAutenticacion]:
+def obtener_fabrica_autenticacion(
+    usuarios: Annotated[Callable[[], RepositorioUsuarios], Depends(obtener_fabrica_usuarios)],
+) -> Callable[[], ServicioAutenticacion]:
     def construir() -> ServicioAutenticacion:
         return ServicioAutenticacion(
-            construir_repositorio_usuarios(), construir_validador_convocatoria(),
+            usuarios(), construir_validador_convocatoria(),
             construir_tokens(), get_settings().identity_institutional_domains,
         )
     return construir

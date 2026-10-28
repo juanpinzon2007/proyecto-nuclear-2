@@ -5,9 +5,9 @@ registrar participaciones y evaluar estudiantes mediante rúbricas.
 
 **Estado: base arquitectónica e incremento de Identity.** Están disponibles
 `GET /health` y las rutas protegidas de Identity. La lógica JWT, los proxies y
-los servicios se verifican con pruebas aisladas; su conexión a datos reales
-permanece cerrada hasta confirmar el ER y los contratos académicos.
-No hay modelos ORM académicos ni migraciones de negocio. Consultar el
+los servicios se conservan y Identity incorpora persistencia basada en el DBML.
+Hay modelos de acceso, repositorios reales y una migración de las cuatro tablas
+de acceso; las integraciones académicas incompletas permanecen cerradas. Consultar el
 [alcance, bloqueos y resultados de Identity](backend/app/modules/identity/README.md).
 
 ## Arquitectura y tecnologías
@@ -28,7 +28,7 @@ repositorios o tablas privados de otros módulos. Los contratos se crearán cuan
 exista una necesidad real. No hay microservicios por desarrollador.
 
 Python 3.12 o superior (Docker usa 3.13), FastAPI, Uvicorn, SQLAlchemy 2.x,
-Psycopg 3 síncrono, PostgreSQL 17, Pydantic Settings, Alembic y PyJWT.
+Psycopg 3 síncrono, PostgreSQL 17, Pydantic Settings, Alembic, PyJWT y pwdlib/Argon2.
 Pytest y HTTPX se instalan con el extra `dev`. Angular está previsto, sin inicializar.
 Los rangos de versiones están en `backend/pyproject.toml`; aún no hay lockfile.
 
@@ -127,14 +127,17 @@ a la configuración de despliegue.
 
 ## Alembic compartido
 
-Existe un único historial en `backend/alembic/versions`, sin revisiones iniciales.
+Existe un único historial en `backend/alembic/versions`. La revisión
+`20261028_identity_access` crea únicamente rol, permiso, rol_permiso y usuario.
+No se aplica automáticamente ni crea tablas académicas de otros módulos.
 Se puede inspeccionar sin conexión a PostgreSQL:
 
 ```powershell
 .\.venv\Scripts\python.exe -m alembic -c backend/alembic.ini history
 ```
 
-Tras aprobar el ER, importar explícitamente los nuevos modelos en
+El DBML de Identity está conservado en su carpeta `reference/`. Importar
+explícitamente los nuevos modelos aprobados en
 `backend/alembic/env.py` para registrar su metadata. Solo entonces generar
 migraciones con `revision --autogenerate -m "descripcion"` y aplicarlas con
 `upgrade head`, usando el mismo prefijo de comando anterior. Autogenerate compara
@@ -196,7 +199,8 @@ componentes técnicos, sin colocar reglas de negocio en `core` o `db`.
 
 ## Decisiones pendientes
 
-- Validar documentos C4 y ER definitivo antes de crear entidades y tablas.
+- Resolver las incompatibilidades del DBML con feedback individual y con los
+  contratos actuales de repetición y convocatoria antes de integrar esas tablas.
 - Acordar propiedad y contratos de rúbricas entre Cases y Participation.
 - Definir integración de Identity y contratos públicos entre módulos.
 - Acordar ejecución y comunicación del Worker con Scheduling.

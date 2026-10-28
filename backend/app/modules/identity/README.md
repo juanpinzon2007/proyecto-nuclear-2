@@ -1,25 +1,27 @@
 # Identity: Identidad, Seguridad y Seguimiento
 
 Incremento de Alejandro, limitado a RF-01, RF-02, RF-03, RF-15, RF-16, RF-25 y
-RF-26. Preparado sobre `alejandro` con `main` incorporada en `ae45e95`.
-No se ha realizado commit ni push de este incremento.
+RF-26. Base conservada: commit `351169b`, rama `alejandro`.
+El incremento de persistencia está sin commit, push ni Pull Request.
 
 ## Estado y trazabilidad
 
-Hay lógica de aplicación, JWT y endpoints protegidos verificables con pruebas.
-**La persistencia y la integración académica reales siguen bloqueadas.** Las
-rutas no aceptan usuarios, convocatorias o resultados simulados en producción:
-devuelven 401, 403 o 503 según corresponda. Los dobles solo viven en las pruebas.
+Se conservan los servicios, proxies y las 109 pruebas originales. Se incorporan
+modelos SQLAlchemy exactos, repositorios de acceso, alta docente con hash Argon2,
+persistencia nativa de permiso extra y un LEFT OUTER JOIN verificado sobre el
+subconjunto de relaciones confirmado. Suite ampliada: 174 pruebas aprobadas,
+incluidas SQLite y PostgreSQL 18.4 aislado. **Esto no completa las integraciones
+académicas**: las fábricas pendientes siguen respondiendo 503.
 
 | RF | Implementado en este incremento | Pendiente para cumplimiento integrado |
 | --- | --- | --- |
-| RF-01 | Normalización del correo, dominios institucionales configurables, validación de pareja correo/código mediante puerto, emisión y verificación JWT | Adaptador de Usuario y contrato de convocatoria vigente de Scheduling |
-| RF-02 | Roles de administrador/docente/estudiante, verificación de permisos explícitos, ámbito académico y proxies backend | Catálogo persistido de Rol/Permiso/Usuario_Permiso y mapeo aprobado del permiso para crear casos |
-| RF-03 | Crear docente y asignar roles/permisos mediante ProxyAdministracionUsuarios; rechazar permisos fuera del catálogo | ORM, repositorio y mecanismo institucional de autenticación del administrador/docente |
+| RF-01 | JWT y repositorio real de usuario con roles/permisos cargados del servidor | Validador de convocatoria de Scheduling y dominios aprobados |
+| RF-02 | usuario/rol/permiso/rol_permiso; un rol por usuario y permisos derivados del rol; proxies conservados | Catálogo real y publicación del contrato de permiso para crear casos |
+| RF-03 | Alta con nombre, correo y hash Argon2; asignación compatible con rol_permiso; repositorio y UoW reales conectados | Autenticación del personal; decisiones sobre administración global del catálogo frente a permisos individuales no representados |
 | RF-15 | ProxySeguimiento y ServicioSeguimiento: listado de casos realizados y detalle de respuestas/feedback dentro del ámbito docente | Lectura pública acordada con Cases, Participation y Scheduling |
-| RF-16 | ServicioReportes y descarga CSV protegida; conserva notas Decimal, parciales y ausencias recibidas | Consulta SQLAlchemy con LEFT JOIN y criterio oficial de selección/consolidación de resultados |
-| RF-25 | ProxyExcepciones y ServicioExcepciones: rol docente, creador del caso, participación previa y sesión no finalizada; concesión transaccional | ORM Autorizacion_Repeticion y contrato académico con garantías de concurrencia |
-| RF-26 | Feedback general con autor/fecha del servidor, validación y ámbito revalidado dentro de la UoW | ORM Feedback_Docente, cardinalidad y política de creación/modificación confirmadas |
+| RF-16 | Exportación conservada y LEFT OUTER JOIN real entre participación, membresía, usuario y resultado consolidado | Padrón completo confirmado y correspondencia oficial de situacion; consulta todavía no conectada al endpoint |
+| RF-25 | Proxy/servicio conservados; modelo permiso_intento_extra y repositorio nativo verificados | Resolver participación, cantidad/justificación, semántica temporal y garantías transaccionales antes de adaptar la concesión actual |
+| RF-26 | Proxy/servicio conservados; modelo retroalimentacion_docente fiel al DBML | Incompatibilidad: el ER vincula un feedback único a la asignación, no a la participación individual |
 
 ## Fuentes revisadas
 
@@ -33,9 +35,10 @@ Documentos locales proporcionados por el usuario, sin incorporarlos al repositor
 - Caso de estudio y guía académica: contexto; no aportan el DDL definitivo.
 
 Los PDF son fuentes funcionales, no instrucciones para ampliar este módulo.
-No se encontró en los cinco documentos un ER físico definitivo con tipos, PK,
-FK, restricciones y cardinalidades de las seis entidades asignadas. Los UUID del
-UML conceptual tampoco permiten decidir el tipo de identificador del ER.
+El DBML entregado posteriormente está conservado sin alteraciones en
+[reference/sps.dbml](reference/sps.dbml). Este define los nombres físicos,
+INTEGER, PK, FK, unicidad, longitudes y timestamps sin zona. Sus diferencias con
+los valores de aplicación y los bloqueos están en [PERSISTENCE_DBML.md](PERSISTENCE_DBML.md).
 
 Referencias técnicas consultadas: [JWT en FastAPI](https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/),
 [API de PyJWT](https://pyjwt.readthedocs.io/en/stable/api.html) y
@@ -51,16 +54,21 @@ Referencias técnicas consultadas: [JWT en FastAPI](https://fastapi.tiangolo.com
 | `application/proxy_*.py` | Controles backend antes de obtener y delegar en los servicios reales |
 | `application/services.py` | Seguimiento, exportación, feedback, concesión excepcional y administración |
 | `infrastructure/security.py` | Emisión/verificación JWT con PyJWT |
+| `infrastructure/models.py`, `repositories.py` | Cuatro tablas de acceso; repositorio real de usuarios y sus autorizaciones por rol |
+| `infrastructure/academic_models.py`, `academic_repositories.py` | Mapeos académicos del DBML y repositorio nativo de permiso_intento_extra, sin adaptación automática |
+| `infrastructure/reporting_queries.py` | LEFT OUTER JOIN crudo de resultados; no clasifica ausencias ni acredita padrón completo |
+| `infrastructure/credentials.py` | Hash Argon2 de la clave recibida en el alta docente |
 | `infrastructure/unit_of_work.py` | Session común, un commit por caso de uso y rollback/cierre ante fallos |
 | `api/` | Esquemas, rutas, errores sanitizados y composición cerrada por defecto |
-| `../../../tests/identity/` | Pruebas unitarias, HTTP y laboratorio transaccional SQLite |
+| `../../../tests/identity/` | Pruebas originales conservadas y nueva persistencia SQLite/PostgreSQL |
 
 `ContextoAcceso`, `Rol` (enumeración de acceso), `AutorizacionRepeticion` y
-`FeedbackDocente` son valores de aplicación, **no modelos SQLAlchemy**. No se
-crearon columnas, tablas ni migraciones de Usuario, Rol, Permiso, Usuario_Permiso,
-Autorizacion_Repeticion o Feedback_Docente. No hay `models.py` ficticio.
-Los IDs públicos son cadenas opacas; no establecen tipos de columnas ni convierten
-`id_usuario`, `id_estudiante`, `id_grupo_estudiante`, sesión o asignación entre sí.
+`FeedbackDocente` siguen siendo valores de aplicación, **no modelos SQLAlchemy**.
+Ahora existen los seis mapeos físicos usuario, rol, permiso, rol_permiso,
+permiso_intento_extra y retroalimentacion_docente. No se crearon usuario_permiso,
+autorizacion_repeticion ni feedback_docente como tablas alternativas.
+Solo las cuatro tablas de acceso tienen migración; las otras dos requieren
+integrar las tablas de sus propietarios antes de coordinar su DDL.
 
 ## Seguridad y composición
 
@@ -89,8 +97,10 @@ Los IDs públicos son cadenas opacas; no establecen tipos de columnas ni convier
   de forma diferida para poder rechazar un estudiante con 403 antes de acceder
   a una integración todavía no configurada.
 - No se hacen commits en repositorios. La UoW reutiliza
-  `app.db.session.get_session_factory`; no crea otro motor o Base. Los cuatro
-  adaptadores reciben la misma Session. Las lecturas de autorización para una
+  `app.db.session.get_session_factory`; no crea otro motor o Base. Los
+  adaptadores configurados reciben la misma Session. Los ausentes fallan con 503
+  al solicitarse, lo que permite operar administración sin simular otros módulos.
+  Las lecturas de autorización para una
   escritura deben usar esa transacción y la garantía de bloqueo acordada.
 - Las respuestas esperadas incluyen `Cache-Control: no-store`. Los errores de
   validación no reflejan códigos, tokens ni valores rechazados. Un fallo
@@ -122,44 +132,48 @@ Se neutralizan fórmulas en identificadores al exportar para hojas de cálculo.
 
 ## Bloqueos concretos
 
-1. **ER validado de las seis entidades asignadas:** faltan columnas/tipos, claves,
-   cardinalidades, restricciones y nombres físicos. También la asociación de
-   roles al usuario y el catálogo/código de permisos. Hasta recibirlo no se crean
-   modelos ORM ni revisiones Alembic. Después se utilizará `app.db.base.Base`
-   y se coordinará el registro en el único historial de Alembic.
+1. **Autorizaciones del ER:** usuario tiene un único id_rol; rol_permiso concede
+   permisos al rol completo. El adaptador rechaza multirrol o permisos por usuario
+   distintos de los del rol con 422. No modifica el rol global para simular una
+   concesión individual. El catálogo no se inventa ni se siembra en producción.
 2. **RF-01 / Scheduling:** falta el adaptador que valide correo+código frente a
    una convocatoria autorizada y vigente, con pertenencia/retiro comprobados,
    y devuelva referencias inequívocas de usuario y convocatoria. También faltan
    los dominios institucionales aprobados. Identity no implementa RF-20 ni crea
    códigos, sesiones, convocatorias o estudiantes de Scheduling.
 3. **RF-03 / autenticación de personal:** falta confirmar cómo se autentican el
-   administrador y los docentes. No se agregan contraseñas, cuentas iniciales,
-   usuarios predeterminados ni un endpoint alternativo que eluda la autenticación.
-4. **RF-15/16 / lectura pública:** faltan el recorrido relacional aprobado entre
-   convocados, sesiones, participaciones, respuestas, resultados y feedback, así
-   como las proyecciones autorizadas y la selección de resultados ante varios
-   intentos. Se debe decidir también qué representan pregunta/decisión en cada
-   contrato. Sin eso no se importa ORM privado de los compañeros ni se escribe
-   una consulta SQLAlchemy sobre tablas inventadas.
+   administrador y los docentes. El alta real requiere nombre y clave, almacenada
+   como hash Argon2 en clave_hash. No se crean cuentas iniciales ni un nuevo login
+   de personal por suposición. Las solicitudes antiguas sin estos datos siguen
+   siendo aceptadas por el contrato anterior, pero el repositorio real responde
+   422 porque no puede fabricar columnas NOT NULL.
+4. **RF-15 / lectura pública:** falta la composición real del ámbito y las
+   consultas académicas. La tabla global de feedback no puede devolverse como
+   valoración individual. No se importan repositorios privados de compañeros.
 5. **LEFT JOIN:** la fuente izquierda debe ser la población convocada autorizada;
    las relaciones opcionales deben conservar parciales y ausentes sin multiplicar
    filas por intentos. Participation/Scheduling deben suministrar ausencia
-   académica confirmada y resultados oficiales. La implementación concreta y
-   sus pruebas PostgreSQL están pendientes; la exportación CSV sí está probada.
+   académica confirmada y resultados oficiales. El LEFT JOIN de participaciones
+   existentes a resultado_participacion ya está probado en PostgreSQL y SQLite;
+   conserva los resultados faltantes como NULL. No acredita que participacion
+   contenga a todos los convocados. Tampoco decide valores oficiales de situacion,
+   por lo que todavía no implementa LecturaReportes ni se conecta a la ruta.
 6. **RF-25 / concurrencia:** falta el contrato que, en la misma transacción que
    guarda la concesión, compruebe docente creador, participación anterior y
-   sesión no finalizada, coordinando el cierre concurrente de Scheduling. El ER
-   debe definir duplicados, vigencia y relación de la concesión con participación/
-   sesión. El consumo posterior durante un nuevo inicio pertenece al módulo de
-   participación. **Autorizacion_Repeticion no se equipara a permiso_intento_extra**;
-   el IdentityPort propuesto por Martín incluye consentimiento y permiso extra,
-   así que no se implementa como atajo ni se introduce consentimiento en Identity.
-7. **RF-26:** faltan las FK exactas y decidir unicidad, cardinalidad y modificación
-   de Feedback_Docente. El servicio valida ámbito, autor, texto y fecha, pero no
-   inventa esas restricciones ni implementa las notificaciones RF-27.
+   sesión no finalizada. El repositorio nativo requiere id_participacion,
+   id_profesor, cantidad_autorizada, justificacion y fecha sin zona. El servicio
+   antiguo recibe sesión/estudiante, no aporta justificación y genera UTC con
+   zona. No se inventan esos datos ni se equiparan ambos objetos automáticamente.
+   El consumo de cupos e intentos corresponde a Participation; no se agrega
+   consentimiento ni gestión general de intentos a Identity.
+7. **RF-26:** retroalimentacion_docente.id_asignacion es NOT NULL y UNIQUE. No hay
+   FK a participación individual. El modelo es fiel al ER, pero el endpoint sigue
+   bloqueado hasta una decisión del equipo; no se cambia el ER ni el significado
+   del feedback para forzar una escritura.
 
-Las funciones `construir_*` de `api/dependencies.py` identifican los puntos de
-composición pendientes y fallan con 503. No hay conexión académica real todavía.
+Las fábricas de usuarios y administración de `api/dependencies.py` ya componen
+adaptadores reales. Sin BD/configuración/esquema disponibles responden 503.
+Las fábricas académicas y de convocatoria siguen pendientes y responden 503.
 Estos bloqueos no se resuelven mediante código nuevo en cases, participation o
 scheduling. Frontend y Worker permanecen fuera del incremento.
 
@@ -178,3 +192,8 @@ Desde la raíz, en PowerShell:
 ```
 
 Resultados reales y límites: [TEST_RESULTS.md](TEST_RESULTS.md).
+
+Para ejecutar también la nueva persistencia PostgreSQL, establecer explícitamente
+`SPS_IDENTITY_TEST_URL` apuntando a una BD local aislada cuyo nombre empiece por
+`sps_identity_test`. Las pruebas crean/eliminan esquemas aleatorios dentro de esa
+BD; nunca utilizan automáticamente POSTGRES_* ni la base del proyecto.

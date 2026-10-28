@@ -1,4 +1,5 @@
 import csv
+from collections.abc import Callable
 from datetime import UTC, datetime
 from io import StringIO
 
@@ -7,9 +8,9 @@ from app.modules.identity.application.ports import (
 )
 from app.modules.identity.domain.entities import (
     AutorizacionRepeticion, AutorizacionesDocente, ContextoAcceso,
-    DetalleParticipacion, FeedbackDocente, ResumenCaso, Rol, normalizar_correo, validar_id,
+    DatosAltaDocente, DetalleParticipacion, FeedbackDocente, ResumenCaso, Rol, normalizar_correo, validar_id,
 )
-from app.modules.identity.domain.errors import AccesoDenegado, ConflictoIdentidad, RecursoNoDisponible, ReglaIdentidadInvalida
+from app.modules.identity.domain.errors import AccesoDenegado, ConflictoIdentidad, IntegracionPendiente, RecursoNoDisponible, ReglaIdentidadInvalida
 
 
 class ServicioReportes:
@@ -97,16 +98,28 @@ class ServicioExcepciones:
 
 
 class ServicioAdministracionUsuarios:
-    def __init__(self, uow: FabricaUnidadTrabajo) -> None:
+    def __init__(self, uow: FabricaUnidadTrabajo, hashear_clave: Callable[[str], str] | None = None) -> None:
         self.uow = uow
+        self.hashear_clave = hashear_clave
 
     def crear_docente(self, contexto: ContextoAcceso, correo: str,
-                      autorizaciones: AutorizacionesDocente) -> ContextoAcceso:
+                      autorizaciones: AutorizacionesDocente, *, nombre: str | None = None,
+                      clave: str | None = None) -> ContextoAcceso:
         correo = normalizar_correo(correo)
+        datos = None
+        if nombre is not None or clave is not None:
+            if nombre is None or clave is None or not nombre.strip() or len(nombre) > 120 or not clave:
+                raise ReglaIdentidadInvalida()
+            if self.hashear_clave is None:
+                raise IntegracionPendiente()
+            datos = DatosAltaDocente(nombre.strip(), self.hashear_clave(clave))
         with self.uow() as trabajo:
             if trabajo.usuarios.permisos_existentes(autorizaciones.permisos) is not True:
                 raise ReglaIdentidadInvalida()
-            docente = trabajo.usuarios.crear_docente(correo, autorizaciones)
+            if datos is None:
+                docente = trabajo.usuarios.crear_docente(correo, autorizaciones)
+            else:
+                docente = trabajo.usuarios.crear_docente(correo, autorizaciones, datos=datos)
             trabajo.commit()
         return docente
 
