@@ -7,6 +7,8 @@ from app.modules.identity.infrastructure import models as identity_models  # reg
 
 # Importar explícitamente aquí los futuros modelos ORM aprobados antes
 # de usar autogenerate. Todos deberán heredar de app.db.base.Base.
+import app.modules.cases.infrastructure.models  # noqa: F401  (registra modelos en Base.metadata)
+
 target_metadata = Base.metadata
 
 

@@ -1,0 +1,97 @@
+"""Contrato HTTP PROVISIONAL. No está registrado en la aplicación principal."""
+
+from datetime import datetime
+from typing import Annotated, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.modules.participation.domain.entities import EstadoIntento
+from app.modules.participation.domain.evaluation import ModalidadEvaluacion
+
+Identificador = Annotated[int, Field(strict=True, gt=0)]
+DecimalTexto = Annotated[str, Field(pattern=r"^\d+(?:\.\d+)?$")]
+
+
+class EsquemaHTTP(BaseModel):
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
+
+
+class InicioIntentoSolicitud(EsquemaHTTP):
+    id_consentimiento: Identificador
+    id_permiso_extra: Identificador | None = None
+
+
+class SeleccionSolicitud(EsquemaHTTP):
+    id_opcion: Identificador
+    reflexion_estudiante: Annotated[str, Field(strict=True)] | None = None
+
+
+class IntentoRespuesta(EsquemaHTTP):
+    id_intento: Identificador
+    id_participacion: Identificador
+    numero_intento: Identificador
+    estado: EstadoIntento
+    inicio: datetime
+    fin: datetime | None
+    vence_en: datetime
+
+
+class SeleccionRespuesta(EsquemaHTTP):
+    id_decision: Identificador
+    id_opcion: Identificador
+
+
+class ProgresoRespuesta(EsquemaHTTP):
+    intento: IntentoRespuesta
+    decisiones_aplicables: list[Identificador]
+    selecciones: list[SeleccionRespuesta]
+    pendientes: list[Identificador]
+    total_aplicable: Annotated[int, Field(ge=0)] | None
+    respondidas: Annotated[int, Field(ge=0)]
+
+
+class ReferenciaAcademicaRespuesta(EsquemaHTTP):
+    id_caso: Identificador
+    id_rubrica: Identificador
+    version: str
+
+
+class CriterioResultadoRespuesta(EsquemaHTTP):
+    id_criterio: Identificador
+    id_nivel: Identificador
+    puntaje_obtenido: DecimalTexto
+
+
+class ResultadoPendienteRespuesta(EsquemaHTTP):
+    estado: Literal["PENDIENTE"] = "PENDIENTE"
+    id_participacion: Identificador
+    id_intento: Identificador | None
+    codigo: Literal["EVALUACION_NO_CONFIRMADA"] = "EVALUACION_NO_CONFIRMADA"
+    mensaje: str = "Todavía no hay una evaluación persistida y confirmada."
+
+
+class ResultadoDefinitivoRespuesta(EsquemaHTTP):
+    estado: Literal["DEFINITIVA"] = "DEFINITIVA"
+    id_participacion: Identificador
+    id_intento: Identificador | None
+    modalidad: ModalidadEvaluacion
+    referencia: ReferenciaAcademicaRespuesta
+    nota_final: DecimalTexto
+    politica_calculo: str
+    criterios: list[CriterioResultadoRespuesta]
+
+
+ResultadoRespuesta = Annotated[
+    ResultadoPendienteRespuesta | ResultadoDefinitivoRespuesta,
+    Field(discriminator="estado"),
+]
+
+
+class DetalleErrorHTTP(EsquemaHTTP):
+    codigo: str
+    mensaje: str
+    campos: list[str] | None = None
+
+
+class ErrorHTTP(EsquemaHTTP):
+    detail: DetalleErrorHTTP
