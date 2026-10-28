@@ -39,3 +39,11 @@ Thumbs.db
 .coverage
 htmlcov/
 dist/
+
+# Documentos y bases locales
+/*.pdf
+/*.png
+/*.jpg
+*.db
+*.sqlite
+*.sqlite3
