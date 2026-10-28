@@ -1,0 +1,106 @@
+"""Puertos que necesita Identity; no son adaptadores integrados de otros módulos.
+
+El UML confirma las responsabilidades. Los mapeos físicos, transacciones y firmas
+de integración con los compañeros aún requieren acuerdo (ver README del módulo).
+"""
+
+from collections.abc import Callable
+from types import TracebackType
+from typing import Protocol, Self
+
+from app.modules.identity.domain.entities import (
+    AccesoConvocatoria, AutorizacionRepeticion, AutorizacionesDocente,
+    CondicionesRepeticion, ContextoAcceso, DetalleParticipacion, FeedbackDocente,
+    FilaReporte, ResumenCaso,
+)
+
+
+class RepositorioUsuarios(Protocol):
+    def obtener(self, id_usuario: str) -> ContextoAcceso | None: ...
+    def permisos_existentes(self, permisos: frozenset[str]) -> bool: ...
+    def crear_docente(self, correo: str, autorizaciones: AutorizacionesDocente) -> ContextoAcceso: ...
+    def asignar_autorizaciones(self, id_docente: str, autorizaciones: AutorizacionesDocente) -> ContextoAcceso: ...
+
+
+class ValidadorConvocatoria(Protocol):
+    def validar(self, correo: str, codigo: str) -> AccesoConvocatoria | None:
+        """Valida la pareja completa contra la convocatoria vigente y autorizada.
+
+        Debe comprobar pertenencia/retiro y no identificar solo por correo ni
+        generar códigos. Ninguna excepción o diagnóstico debe revelar el código.
+        """
+        ...
+
+
+class TokensAcceso(Protocol):
+    def emitir(self, id_usuario: str, id_convocatoria: str | None = None) -> str: ...
+
+
+class ConsultaAmbitoAcademico(Protocol):
+    def puede_consultar_participacion(self, id_docente: str, id_participacion: str) -> bool: ...
+    def puede_consultar_sesion(self, id_docente: str, id_sesion: str) -> bool: ...
+
+
+class LecturaSeguimiento(Protocol):
+    def listar_casos_realizados(self, id_docente: str) -> tuple[ResumenCaso, ...]: ...
+    def consultar_participacion(self, id_docente: str, id_participacion: str) -> DetalleParticipacion:
+        """Solo datos visibles en el ámbito del docente y de casos realizados."""
+        ...
+
+
+class LecturaReportes(Protocol):
+    def obtener_filas(self, id_docente: str, id_sesion: str) -> tuple[FilaReporte, ...]:
+        """Incluye convocados sin resultado mediante LEFT JOIN público acordado.
+
+        No calcula ni consolida notas. Estados, ausencia confirmada y nota deben
+        proceder de Participation/Scheduling; no inferir ausencia de filas vacías.
+        """
+        ...
+
+
+class ConsultaEscrituraAcademica(ConsultaAmbitoAcademico, Protocol):
+    def condiciones_repeticion(self, id_docente: str, id_sesion: str, id_estudiante: str) -> CondicionesRepeticion:
+        """Comprobar bajo la misma transacción/bloqueo que guarda la concesión."""
+        ...
+
+
+class RepositorioAutorizaciones(Protocol):
+    def guardar(self, autorizacion: AutorizacionRepeticion) -> None:
+        """Sin commit propio ni upsert implícito. No equivale a permiso_intento_extra."""
+        ...
+
+
+class RepositorioFeedback(Protocol):
+    def agregar(self, feedback: FeedbackDocente) -> None: ...
+
+
+class UnidadTrabajoIdentity(Protocol):
+    usuarios: RepositorioUsuarios
+    autorizaciones: RepositorioAutorizaciones
+    feedback: RepositorioFeedback
+    academia: ConsultaEscrituraAcademica
+
+    def __enter__(self) -> Self: ...
+    def __exit__(self, tipo: type[BaseException] | None, error: BaseException | None, traceback: TracebackType | None) -> None:
+        """Rollback y cierre al salir sin commit o ante un fallo."""
+        ...
+    def commit(self) -> None: ...
+
+
+FabricaUnidadTrabajo = Callable[[], UnidadTrabajoIdentity]
+
+
+class IServicioSeguimiento(Protocol):
+    def listar_casos_realizados(self, contexto: ContextoAcceso) -> tuple[ResumenCaso, ...]: ...
+    def consultar_participacion(self, contexto: ContextoAcceso, id_participacion: str) -> DetalleParticipacion: ...
+    def descargar_reporte(self, contexto: ContextoAcceso, id_sesion: str) -> str: ...
+    def registrar_feedback(self, contexto: ContextoAcceso, id_participacion: str, texto: str) -> FeedbackDocente: ...
+
+
+class IServicioExcepciones(Protocol):
+    def autorizar_repeticion(self, contexto: ContextoAcceso, id_sesion: str, id_estudiante: str) -> AutorizacionRepeticion: ...
+
+
+class IServicioAdministracion(Protocol):
+    def crear_docente(self, contexto: ContextoAcceso, correo: str, autorizaciones: AutorizacionesDocente) -> ContextoAcceso: ...
+    def asignar_autorizaciones(self, contexto: ContextoAcceso, id_docente: str, autorizaciones: AutorizacionesDocente) -> ContextoAcceso: ...

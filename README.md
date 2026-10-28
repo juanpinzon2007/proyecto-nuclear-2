@@ -3,10 +3,12 @@
 Plataforma académica del Proyecto Nuclear 2 para crear casos, programar actividades,
 registrar participaciones y evaluar estudiantes mediante rúbricas.
 
-**Estado: preparación arquitectónica.** Solo está implementado `GET /health`.
-No hay requisitos RF-01 a RF-27, autenticación, reglas de negocio, modelos ORM,
-tablas académicas ni migraciones de negocio. Los documentos de referencia y la
-imagen ER no estaban disponibles en esta entrega; su revisión conjunta queda pendiente.
+**Estado: base arquitectónica e incremento de Identity.** Están disponibles
+`GET /health` y las rutas protegidas de Identity. La lógica JWT, los proxies y
+los servicios se verifican con pruebas aisladas; su conexión a datos reales
+permanece cerrada hasta confirmar el ER y los contratos académicos.
+No hay modelos ORM académicos ni migraciones de negocio. Consultar el
+[alcance, bloqueos y resultados de Identity](backend/app/modules/identity/README.md).
 
 ## Arquitectura y tecnologías
 
@@ -26,7 +28,7 @@ repositorios o tablas privados de otros módulos. Los contratos se crearán cuan
 exista una necesidad real. No hay microservicios por desarrollador.
 
 Python 3.12 o superior (Docker usa 3.13), FastAPI, Uvicorn, SQLAlchemy 2.x,
-Psycopg 3 síncrono, PostgreSQL 17, Pydantic Settings y Alembic.
+Psycopg 3 síncrono, PostgreSQL 17, Pydantic Settings, Alembic y PyJWT.
 Pytest y HTTPX se instalan con el extra `dev`. Angular está previsto, sin inicializar.
 Los rangos de versiones están en `backend/pyproject.toml`; aún no hay lockfile.
 
@@ -64,15 +66,16 @@ proyecto-nuclear-2/
 ```
 
 Cada módulo contiene un `__init__.py` y las carpetas `api/`, `application/`,
-`domain/` e `infrastructure/`, cada una únicamente con su `__init__.py` vacío.
+`domain/` e `infrastructure/`. Identity incorpora su implementación en esas capas;
+los otros módulos conservan aquí su estructura inicial.
 
 ## Responsabilidades
 
-| Módulo | Responsable / rama | Alcance futuro | Patrones futuros, sin implementar |
+| Módulo | Responsable / rama | Alcance | Patrones previstos |
 | --- | --- | --- | --- |
 | `cases` | Juan Andrés / `juan` | Casos, escenas, decisiones, opciones y rúbricas | Builder, Chain of Responsibility |
 | `participation` | Martín / `martin` | Participaciones, intentos, decisiones registradas, progreso y evaluación con rúbricas | Facade, Strategy |
-| `identity` | Alejandro / `alejandro` | Identidad, roles, permisos, seguridad, seguimiento y autorizaciones excepcionales | Proxy |
+| `identity` | Alejandro / `alejandro` | Identidad, roles, permisos, seguridad, seguimiento y autorizaciones excepcionales | Proxy implementado; integración pendiente |
 | `scheduling` | Maicol / `maicol` | Asignaciones, programación académica, estados, notificaciones y coordinación con Worker | State, Observer |
 
 ## Instalación y ejecución local
@@ -90,7 +93,7 @@ No es necesario activar el entorno. La API responde en
 `http://127.0.0.1:8000/docs`. La instalación editable permite importar `app` desde
 la raíz sin modificar `PYTHONPATH`. En Linux/macOS usar `.venv/bin/python`.
 
-Ejecutar la única prueba técnica, sin base de datos ni `.env`:
+Ejecutar las pruebas técnicas y de Identity, sin PostgreSQL ni `.env`:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest backend/tests -c backend/pyproject.toml
