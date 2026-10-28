@@ -29,3 +29,13 @@ npm-debug.log*
 # Sistema Operativo
 .DS_Store
 Thumbs.db
+
+# Configuración privada y artefactos Python
+.env
+.env.*
+!.env.example
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
