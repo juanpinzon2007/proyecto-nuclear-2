@@ -1,8 +1,9 @@
-# Participación — dominio, Application y evaluación
+# Participación — dominio, Application, evaluación y API provisional
 
-Contiene dominio, Application con Facade y el tercer incremento con Strategy.
-No tiene API, ORM, migraciones, autenticación, calificación oficial ni adaptadores reales
-de persistencia o de otros módulos. Los fakes solo existen en `tests/`.
+Contiene dominio, Application con Facade, evaluación con Strategy y el cuarto
+incremento de API provisional. El router **no está registrado en main.py**.
+No tiene ORM, migraciones, autenticación real, calificación oficial ni adaptadores
+reales de persistencia o de otros módulos. Los fakes solo existen en `tests/`.
 Todos los archivos de estas entregas están dentro de `participation/`.
 
 ## Componentes
@@ -244,3 +245,19 @@ de cierre y ningún intento. Conserva ceros por decisión sin crear intentos; su
 persistencia definitiva está bloqueada hasta acordar el detalle ausente en el ER.
 
 No hay adaptadores reales ni políticas académicas oficiales configuradas.
+
+## Cuarto incremento: API y contratos HTTP
+
+El contrato para revisión del equipo está en [api/HTTP.md](api/HTTP.md).
+`api/router.py`, `schemas.py`, `dependencies.py`, `mappers.py` y `errors.py`
+preparan rutas provisionales, validación Pydantic, respuestas sin filtraciones y
+traducción local de errores. Las dependencias están cerradas por defecto y los
+únicos overrides están en `tests/test_api.py`, sobre una aplicación aislada.
+
+Se añade `EvaluacionNoConfirmada` en Application, compatible con su excepción base,
+para distinguir una evaluación pendiente de un recurso inexistente. Se lanza
+solo tras verificar autorización y cierre. No cambia el cálculo ni la persistencia.
+
+No se crea otro sistema de autenticación ni se acepta `student_id` del cliente.
+No se calculan notas en GET ni se expone una evaluación antes de su confirmación.
+El contrato sigue pendiente de aprobación de rutas y conexión real con el equipo.

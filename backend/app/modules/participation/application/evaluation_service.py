@@ -1,7 +1,7 @@
 from dataclasses import dataclass, replace
 
 from app.modules.participation.application.dto import EstadoEvaluacion, selecciones_de
-from app.modules.participation.application.errors import RecursoNoDisponible
+from app.modules.participation.application.errors import EvaluacionNoConfirmada
 from app.modules.participation.application.evaluation_ports import (
     AusenciasPort, CasesEvaluacionPort, FabricaUnidadTrabajoEvaluacion,
     PoliticaEvaluacionPort, UnidadTrabajoEvaluacion,
@@ -147,5 +147,5 @@ class ServicioEvaluacion:
                 raise EvaluacionInconsistente("No corresponde consultar una ausencia con intentos reales.")
             datos = self._existente(trabajo, id_participacion, id_intento)
             if datos is None:
-                raise RecursoNoDisponible("No existe una evaluación confirmada para consultar.")
+                raise EvaluacionNoConfirmada(id_participacion=id_participacion, id_intento=id_intento)
             return datos
