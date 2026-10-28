@@ -55,9 +55,8 @@ class RutaParticipacion(APIRoute):
                 respuesta = _error(422, "SOLICITUD_INVALIDA", "Revise los campos de la solicitud.", campos)
             except HTTPException as error:
                 respuesta = JSONResponse(status_code=error.status_code, content={"detail": error.detail}, headers=error.headers)
-            except Exception:
-                # Nunca exponer excepciones de adaptadores, SQL, credenciales o rúbricas.
-                respuesta = _error(500, "ERROR_INTERNO", "No se pudo completar la operación.")
+            # Los errores inesperados se propagan: TestClient debe detectarlos y
+            # el límite ASGI gestionará su 500 sin debug. No ocultar defectos aquí.
             respuesta.headers["Cache-Control"] = "no-store"
             return respuesta
 

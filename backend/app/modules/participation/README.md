@@ -1,9 +1,11 @@
-# Participación — dominio, Application, evaluación y API provisional
+# Participación — dominio, Application, evaluación, API y preparación de persistencia
 
 Contiene dominio, Application con Facade, evaluación con Strategy y el cuarto
 incremento de API provisional. El router **no está registrado en main.py**.
 No tiene ORM, migraciones, autenticación real, calificación oficial ni adaptadores
 reales de persistencia o de otros módulos. Los fakes solo existen en `tests/`.
+El quinto incremento añade consultas SQLAlchemy y una unidad de trabajo, todavía
+sin escritores académicos ni esquema compartido definitivo conectado.
 Todos los archivos de estas entregas están dentro de `participation/`.
 
 ## Componentes
@@ -261,3 +263,31 @@ solo tras verificar autorización y cierre. No cambia el cálculo ni la persiste
 No se crea otro sistema de autenticación ni se acepta `student_id` del cliente.
 No se calculan notas en GET ni se expone una evaluación antes de su confirmación.
 El contrato sigue pendiente de aprobación de rutas y conexión real con el equipo.
+
+## Quinto incremento: persistencia independiente y propuesta de mapeo
+
+La inspección, claves foráneas, restricciones propuestas, código disponible y
+limitaciones están en [infrastructure/PERSISTENCIA.md](infrastructure/PERSISTENCIA.md).
+No aparecieron modelos ORM ni migraciones compartidas; Alembic sigue sin revisiones.
+
+Se preparan `UnidadTrabajoSQLAlchemy`, `LecturasParticipacionSQLAlchemy`, codecs
+temporales/Decimal y `MapeoPersistenciaPendiente`. No se crean tablas ni otra Base.
+Las consultas reciben tablas existentes y mapeos explícitos; no implementan aún
+el puerto completo de escritura ni reconstruyen resultados académicos incompletos.
+
+El router sigue sin registrar y sus dependencias cerradas. Las pruebas PostgreSQL
+son opt-in y no crean tablas; sin conexión configurada quedan omitidas. Compilar
+SQL y usar Session sin conexión no equivale a verificar persistencia o concurrencia.
+
+## Evidencia de pruebas funcionales HTTP
+
+[QA_ENDPOINTS.md](QA_ENDPOINTS.md) registra la matriz ejecutada de los siete
+endpoints, el escenario completo, el defecto corregido, las omisiones y los
+comandos de reproducción. Se genera desde JUnit mediante
+`tests/generate_qa_report.py`. El entorno aislado está en `tests/http_support.py`;
+no hay fakes conectados a la aplicación principal.
+
+Los errores inesperados del router ya no se ocultan con una captura general:
+TestClient los propaga y el límite HTTP sin debug conserva un 500 genérico.
+Se mantienen todas las pruebas anteriores y se amplía la comprobación de estado,
+repositorios, rollback, seguridad y estrategias reales.

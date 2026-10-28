@@ -27,7 +27,7 @@ router = APIRouter(
         404: {"model": ErrorHTTP, "description": "Recurso no disponible"},
         409: {"model": ErrorHTTP, "description": "Estado incompatible o conflicto"},
         422: {"model": ErrorHTTP, "description": "Solicitud inválida o regla de dominio"},
-        500: {"model": ErrorHTTP, "description": "Fallo interno sin detalles privados"},
+        500: {"description": "Fallo inesperado gestionado por ASGI, sin detalles privados con debug desactivado"},
         503: {"model": ErrorHTTP, "description": "Integración o política pendiente"},
     },
 )

@@ -1,84 +1,26 @@
 """Pruebas HTTP aisladas: router provisional + fachada real + adaptadores falsos."""
 
-from dataclasses import dataclass
 from datetime import timedelta
 
-from fastapi import FastAPI, HTTPException
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 import pytest
 
 from app.modules.participation.api.dependencies import (
     EstudianteAutenticado, obtener_estudiante_actual, obtener_facade,
 )
-from app.modules.participation.api.router import router
-from app.modules.participation.application.evaluation_service import ServicioEvaluacion
 from app.modules.participation.application.facade import ParticipacionFacade
 from app.modules.participation.domain.entities import EstadoIntento
-from app.modules.participation.tests.evaluation_fakes import (
-    AlmacenEvaluacionFalso, AusenciasFalsas, CasesEvaluacionFalso, PoliticaEvaluacionFalsa,
+from app.modules.participation.tests.fakes import SchedulingFalso
+from app.modules.participation.tests.http_support import (
+    AUSENCIA_URL, DECISION_URL, FIN_URL, INICIO_URL, PROGRESO_URL, RESULTADO_URL, crear_entorno_http,
 )
-from app.modules.participation.tests.fakes import IdentityFalso, RelojFalso, SchedulingFalso
-
-INICIO_URL = "/api/v1/participations/20/attempts"
-DECISION_URL = "/api/v1/attempts/10/decisions/50"
-PROGRESO_URL = "/api/v1/attempts/10/progress"
-FIN_URL = "/api/v1/attempts/10/finish"
-RESULTADO_URL = "/api/v1/participations/20/attempts/10/result"
-AUSENCIA_URL = "/api/v1/participations/20/absence-result"
-
-
-@dataclass
-class EntornoHTTP:
-    app: FastAPI
-    client: TestClient
-    almacen: AlmacenEvaluacionFalso
-    reloj: RelojFalso
-    facade: ParticipacionFacade
-    cases: CasesEvaluacionFalso
-    identity: IdentityFalso
-    politica: PoliticaEvaluacionFalsa
-
-    def iniciar(self):
-        respuesta = self.client.post(INICIO_URL, json={"id_consentimiento": 30})
-        assert respuesta.status_code == 201, respuesta.text
-        return respuesta
-
-    def responder(self):
-        respuesta = self.client.post(DECISION_URL, json={"id_opcion": 60})
-        assert respuesta.status_code == 201, respuesta.text
-        return respuesta
-
-    def cerrar(self, *, completo=True):
-        self.iniciar()
-        self.responder()
-        if completo:
-            respuesta = self.client.post("/api/v1/attempts/10/decisions/51", json={"id_opcion": 63})
-            assert respuesta.status_code == 201
-        respuesta = self.client.post(FIN_URL)
-        assert respuesta.status_code == 200
-        return respuesta
 
 
 @pytest.fixture
 def entorno():
-    almacen, reloj = AlmacenEvaluacionFalso(), RelojFalso()
-    identity, scheduling = IdentityFalso(), SchedulingFalso()
-    cases, politica = CasesEvaluacionFalso(), PoliticaEvaluacionFalsa()
-    evaluacion = ServicioEvaluacion(
-        almacen.unidad_evaluacion, identity, scheduling, cases, politica, AusenciasFalsas(),
-    )
-    facade = ParticipacionFacade(
-        fabrica=almacen.unidad, identity=identity, scheduling=scheduling,
-        cases=cases, reloj=reloj, evaluacion=evaluacion,
-    )
-    app = FastAPI()
-    app.include_router(router)
-    # Solo dentro de la app aislada de esta prueba, nunca app.main.app.
-    app.dependency_overrides[obtener_estudiante_actual] = lambda: EstudianteAutenticado(id_estudiante=7)
-    app.dependency_overrides[obtener_facade] = lambda: facade
-    with TestClient(app) as client:
-        yield EntornoHTTP(app, client, almacen, reloj, facade, cases, identity, politica)
-    app.dependency_overrides.clear()
+    with crear_entorno_http() as actual:
+        yield actual
 
 
 def sin_datos_academicos(datos):
@@ -421,11 +363,13 @@ def test_error_tecnico_no_expone_mensajes_de_adaptadores(entorno, monkeypatch):
     def fallar(**datos):
         raise RuntimeError("password=SECRETO SQL es_correcta=True puntaje=5")
     monkeypatch.setattr(entorno.facade, "consultar_progreso", fallar)
-    respuesta = entorno.client.get(PROGRESO_URL)
+    # Solo este cliente deliberadamente observa el límite HTTP de un fallo.
+    # El cliente normal continúa propagando excepciones para detectar defectos.
+    with TestClient(entorno.app, raise_server_exceptions=False) as client:
+        respuesta = client.get(PROGRESO_URL)
     assert respuesta.status_code == 500
-    assert respuesta.json()["detail"]["codigo"] == "ERROR_INTERNO"
+    assert respuesta.text == "Internal Server Error"
     assert "SECRETO" not in respuesta.text and "SQL" not in respuesta.text
-    sin_datos_academicos(respuesta.json())
 
 
 def test_conflicto_de_persistencia_no_devuelve_exito(entorno):

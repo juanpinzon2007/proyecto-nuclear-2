@@ -175,13 +175,18 @@ handlers globales ni la lógica de negocio. El formato normal de error es:
 | 409 | `INTENTO_NO_EDITABLE`, `CONFLICTO_ACTUALIZACION`, `EVALUACION_NO_DISPONIBLE` u `OPERACION_NO_PERMITIDA` |
 | 422 | `SOLICITUD_INVALIDA` con lista de campos, o `REGLA_DOMINIO` |
 | 503 | Seguridad/integración no configurada o `INTEGRACION_O_POLITICA_PENDIENTE` |
-| 500 | `ERROR_INTERNO`, sin texto de excepciones, SQL ni secretos |
+| 500 | Error inesperado propagado al límite ASGI; cuerpo genérico con debug desactivado |
 
 La validación devuelve nombres de campos, no los valores rechazados. Los errores
 de dominio tampoco reenvían mensajes internos de adaptadores. Se aplica
-`Cache-Control: no-store` a éxitos y errores del router. La observabilidad de
-fallos y el contrato definitivo de errores de Identity deberán acordarse para
-despliegue, sin publicar detalles privados.
+`Cache-Control: no-store` a éxitos y errores esperados del router.
+
+La revisión funcional retiró la captura general de excepciones inesperadas:
+TestClient normal debe propagarlas para que la suite detecte defectos. Con
+`raise_server_exceptions=False` se observa el 500 genérico de ASGI sin debug,
+sin texto de SQL ni secretos. Ese fallo no promete el formato JSON de los errores
+esperados; el OpenAPI provisional lo indica. La observabilidad y el contrato
+definitivo de errores de Identity deberán acordarse para despliegue.
 
 ## Pruebas y límites comprobados
 
