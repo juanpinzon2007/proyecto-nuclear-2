@@ -7,6 +7,7 @@ from app.db.session import get_engine
 # Importar explícitamente aquí los futuros modelos ORM aprobados antes
 # de usar autogenerate. Todos deberán heredar de app.db.base.Base.
 import app.modules.cases.infrastructure.models  # noqa: F401  (registra modelos en Base.metadata)
+import app.modules.scheduling.infrastructure.models  # noqa: F401
 
 target_metadata = Base.metadata
 

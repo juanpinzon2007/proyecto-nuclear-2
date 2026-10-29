@@ -1,4 +1,4 @@
-
+from uuid import uuid4
 import asyncio
 from unittest.mock import AsyncMock
 
@@ -31,7 +31,7 @@ def test_evento_sin_observadores():
 
     evento = EventoAcademico(
         tipo="sesion.finalizada",
-        entidad_id=2,
+        entidad_id=uuid4(),
     )
 
     asyncio.run(gestor.publicar(evento))
@@ -52,7 +52,7 @@ def test_varios_observadores_reciben_evento():
 
     evento = EventoAcademico(
         tipo="sesion.programada",
-        entidad_id=3,
+        entidad_id=uuid4(),
     )
 
     asyncio.run(gestor.publicar(evento))
@@ -69,7 +69,7 @@ def test_observer_no_recibe_evento_diferente():
 
     evento = EventoAcademico(
         tipo="sesion.finalizada",
-        entidad_id=4,
+        entidad_id=uuid4(),
     )
 
     asyncio.run(gestor.publicar(evento))
@@ -89,7 +89,7 @@ def test_error_del_observador_se_propaga():
 
     evento = EventoAcademico(
         tipo="sesion.programada",
-        entidad_id=5,
+        entidad_id=uuid4(),
     )
 
     with pytest.raises(RuntimeError):

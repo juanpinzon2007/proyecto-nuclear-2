@@ -1,4 +1,4 @@
-
+from uuid import UUID
 import asyncio
 from collections import defaultdict
 from dataclasses import dataclass
@@ -8,7 +8,7 @@ from typing import Protocol
 @dataclass(frozen=True)
 class EventoAcademico:
     tipo: str
-    entidad_id: int
+    entidad_id: UUID
 
 
 class ObservadorAcademico(Protocol):

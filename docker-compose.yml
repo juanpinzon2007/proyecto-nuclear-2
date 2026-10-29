@@ -42,8 +42,7 @@ services:
       POSTGRES_DB: sps_test
       POSTGRES_USER: sps
       POSTGRES_PASSWORD: test
-    ports:
-      - "127.0.0.1:5432:5432"
+
     # Solo pruebas: datos en RAM y sin fsync; se pierden al detener el contenedor.
     tmpfs:
       - /var/lib/postgresql/data
@@ -53,5 +52,25 @@ services:
       interval: 3s
       timeout: 3s
       retries: 10
+  worker:
+    build:
+      context: ./backend
+    command:
+      - python
+      - -m
+      - app.modules.scheduling.infrastructure.worker_runner
+    profiles:
+      - worker
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres_data:
