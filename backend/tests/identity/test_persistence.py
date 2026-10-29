@@ -1,4 +1,5 @@
 from dataclasses import replace
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -39,9 +40,9 @@ def configuracion_alembic(conexion):
     return config
 
 
-@pytest.fixture(params=["sqlite", "postgresql"])
-def bd(request):
-    if request.param == "sqlite":
+@contextmanager
+def base_aislada(motor, revision="head"):
+    if motor == "sqlite":
         engine = create_engine("sqlite+pysqlite:///:memory:", poolclass=StaticPool,
                                connect_args={"check_same_thread": False})
         @event.listens_for(engine, "connect")
@@ -63,7 +64,7 @@ def bd(request):
         engine = create_engine(url, connect_args={"options": f"-csearch_path={esquema}"})
     try:
         with engine.begin() as conexion:
-            command.upgrade(configuracion_alembic(conexion), "head")
+            command.upgrade(configuracion_alembic(conexion), revision)
         yield engine
     finally:
         engine.dispose()
@@ -73,13 +74,27 @@ def bd(request):
             administrador.dispose()
 
 
+@pytest.fixture(params=["sqlite", "postgresql"])
+def bd(request):
+    # Integración real: siempre el head común, incluidos Identity y Cases.
+    with base_aislada(request.param) as engine:
+        yield engine
+
+
+@pytest.fixture
+def bd_dbml(bd):
+    # Laboratorio del contrato académico aún no integrado. No reutilizar caso
+    # UUID como si fuese caso.id_caso INTEGER ni crear un alias incompatible.
+    with base_aislada(bd.dialect.name, "20261028_identity_access") as engine:
+        yield engine
+
+
 @pytest.fixture(scope="session")
 def hash_prueba():
     return obtener_hasheador().hash("clave-exclusiva-del-laboratorio")
 
 
-@pytest.fixture
-def datos(bd, hash_prueba):
+def sembrar_usuarios(bd, hash_prueba):
     sesiones = sessionmaker(bind=bd, expire_on_commit=False)
     with sesiones.begin() as s:
         s.add_all([RolORM(id_rol=1, nombre="ADMINISTRADOR"), RolORM(id_rol=2, nombre="DOCENTE"),
@@ -96,12 +111,25 @@ def datos(bd, hash_prueba):
     return sesiones
 
 
+@pytest.fixture
+def datos(bd, hash_prueba):
+    return sembrar_usuarios(bd, hash_prueba)
+
+
+@pytest.fixture
+def datos_dbml(bd_dbml, hash_prueba):
+    return sembrar_usuarios(bd_dbml, hash_prueba)
+
+
 def autorizaciones(permisos=frozenset({"CREAR_CASOS"})):
     return AutorizacionesDocente(frozenset({Rol.DOCENTE}), permisos)
 
 
-def test_migracion_upgrade_downgrade_solo_crea_cuatro_tablas_de_acceso(bd):
-    assert set(inspect(bd).get_table_names()) == {"alembic_version", "usuario", "rol", "permiso", "rol_permiso"}
+def test_migraciones_integradas_upgrade_downgrade_crean_ambos_modulos(bd):
+    from app.db.models import registrar_modelos_integrados
+    esperadas = set(registrar_modelos_integrados().tables)
+    assert {"usuario", "rol", "permiso", "rol_permiso", "caso", "version_caso", "rubrica"} <= esperadas
+    assert set(inspect(bd).get_table_names()) == esperadas | {"alembic_version"}
     with bd.begin() as conexion:
         command.downgrade(configuracion_alembic(conexion), "base")
     assert set(inspect(bd).get_table_names()) == {"alembic_version"}
@@ -273,10 +301,10 @@ def test_http_adaptadores_academicos_siguen_cerrados(cliente_bd, tokens):
 
 
 @pytest.fixture
-def academia(bd, datos):
-    tablas = tablas_academicas_prueba(bd)
+def academia(bd_dbml, datos_dbml):
+    tablas = tablas_academicas_prueba(bd_dbml)
     fecha = datetime(2026, 10, 28, 12)
-    with bd.begin() as c:
+    with bd_dbml.begin() as c:
         c.execute(tablas["grupo_academico"].insert().values(id_grupo=1, id_profesor=2, nombre="Grupo", periodo="2026-2"))
         c.execute(tablas["grupo_estudiante"].insert().values(id_grupo_estudiante=1, id_grupo=1, id_estudiante=3, fecha_ingreso=fecha))
         c.execute(tablas["caso"].insert().values(id_caso=1, id_profesor=2, titulo="Caso", introduccion_teorica="Contexto", fecha_creacion=fecha))
@@ -286,7 +314,8 @@ def academia(bd, datos):
     return tablas
 
 
-def test_permiso_extra_persiste_columnas_reales_y_fk_sin_consumir_intentos(datos, academia):
+def test_permiso_extra_persiste_columnas_reales_y_fk_sin_consumir_intentos(datos_dbml, academia):
+    datos = datos_dbml
     nuevo = NuevoPermisoIntentoExtra(1, 2, 2, "Concesión documentada", datetime(2026, 10, 28, 12))
     with datos.begin() as s:
         identificador = RepositorioPermisosExtraSQLAlchemy(s).agregar(nuevo)
@@ -298,14 +327,16 @@ def test_permiso_extra_persiste_columnas_reales_y_fk_sin_consumir_intentos(datos
             RepositorioPermisosExtraSQLAlchemy(s).agregar(replace(nuevo, id_participacion=999))
 
 
-def test_permiso_extra_sin_commit_no_se_persiste(datos, academia):
+def test_permiso_extra_sin_commit_no_se_persiste(datos_dbml, academia):
+    datos = datos_dbml
     with datos() as s:
         RepositorioPermisosExtraSQLAlchemy(s).agregar(NuevoPermisoIntentoExtra(1, 2, 1, "Justificación", datetime(2026, 10, 28)))
     with datos() as s:
         assert s.scalars(select(PermisoIntentoExtraORM)).all() == []
 
 
-def test_permiso_extra_no_adapta_fechas_utc_a_timestamp_sin_acuerdo(datos, academia):
+def test_permiso_extra_no_adapta_fechas_utc_a_timestamp_sin_acuerdo(datos_dbml, academia):
+    datos = datos_dbml
     with datos() as s:
         with pytest.raises(ReglaIdentidadInvalida):
             RepositorioPermisosExtraSQLAlchemy(s).agregar(NuevoPermisoIntentoExtra(
@@ -318,7 +349,8 @@ def test_feedback_del_dbml_es_unico_por_asignacion_no_por_participacion():
     assert "id_participacion" not in tabla.c
 
 
-def test_left_join_real_conserva_fila_sin_resultado_sin_inventar_ausencia(datos, academia):
+def test_left_join_real_conserva_fila_sin_resultado_sin_inventar_ausencia(datos_dbml, academia):
+    datos = datos_dbml
     tablas = TablasLecturaReporte(*(academia[n] for n in ("participacion", "grupo_estudiante", "resultado_participacion")))
     with datos() as s:
         consulta = ConsultaResultadosReporteSQLAlchemy(s, tablas)
@@ -331,7 +363,8 @@ def test_left_join_real_conserva_fila_sin_resultado_sin_inventar_ausencia(datos,
 
 
 @pytest.mark.parametrize("situacion,nota", [("completa", "4.25"), ("parcial", "2.10"), ("ausencia", "0.00")])
-def test_left_join_preserva_resultado_oficial_sin_reclasificar(datos, academia, situacion, nota):
+def test_left_join_preserva_resultado_oficial_sin_reclasificar(datos_dbml, academia, situacion, nota):
+    datos = datos_dbml
     with datos.begin() as s:
         s.execute(academia["resultado_participacion"].insert().values(
             id_participacion=1, situacion=situacion, nota_definitiva=Decimal(nota), fecha_calculo=datetime(2026, 10, 28)))

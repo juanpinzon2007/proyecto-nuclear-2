@@ -1,15 +1,9 @@
 from alembic import context
 
 from app.core.config import get_settings
-from app.db.base import Base
+from app.db.models import registrar_modelos_integrados
 from app.db.session import get_engine
-from app.modules.identity.infrastructure import models as identity_models  # registra las cuatro tablas de acceso
-
-# Importar explícitamente aquí los futuros modelos ORM aprobados antes
-# de usar autogenerate. Todos deberán heredar de app.db.base.Base.
-import app.modules.cases.infrastructure.models  # noqa: F401  (registra modelos en Base.metadata)
-
-target_metadata = Base.metadata
+target_metadata = registrar_modelos_integrados()
 
 
 def run_migrations_offline() -> None:

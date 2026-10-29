@@ -1,8 +1,15 @@
 # Identity: Identidad, Seguridad y Seguimiento
 
 Incremento de Alejandro, limitado a RF-01, RF-02, RF-03, RF-15, RF-16, RF-25 y
-RF-26. Base conservada: commit `351169b`, rama `alejandro`.
-El incremento de persistencia está sin commit, push ni Pull Request.
+RF-26. La revisión de integración parte de `451583f`, rama `alejandro`, con
+Identity y develop ya publicados. Los cambios de esta revisión quedan locales,
+sin commit, push ni modificaciones al PR #3.
+
+La revisión conjunta terminó con 607 pruebas aprobadas y 0 errores, habilitando
+los laboratorios PostgreSQL existentes. Registro ORM, unión de heads, archivos
+modificados y bloqueos: [INTEGRATION_REVIEW.md](../../../INTEGRATION_REVIEW.md).
+Los modelos académicos pendientes comparten Base/registry, pero su metadata no
+se incluye en el esquema integrado hasta resolver sus dependencias reales.
 
 ## Estado y trazabilidad
 

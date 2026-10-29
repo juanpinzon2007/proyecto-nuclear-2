@@ -2,6 +2,22 @@
 
 Fecha: 28 de octubre de 2026, America/Bogota.
 
+## Integración después de incorporar develop
+
+Base conservada: `451583f`. Se añadieron una revisión merge sin DDL y regresiones
+conjuntas de registro/migraciones. La suite completa de Cases, Identity y
+Participation terminó con **607 aprobadas, 0 omitidas, 0 fallidas y 0 errores**,
+más la advertencia existente de Starlette/HTTPX. Incluye PostgreSQL 18.4 y SQLite.
+
+Sin las variables opt-in, la misma suite informó 569 aprobadas y 38 omitidas,
+sin fallos ni errores. Esas omisiones preexistentes se habilitaron para el
+resultado final. No se añadieron skips ni se eliminaron pruebas.
+
+La evidencia, el comando exacto, el aislamiento y los bloqueos que siguen en
+503 se documentan en [INTEGRATION_REVIEW.md](../../../INTEGRATION_REVIEW.md).
+Las secciones siguientes conservan los resultados históricos anteriores a la
+integración con develop.
+
 ## Incremento DBML posterior al commit 351169b
 
 La rama inició limpia en `351169b`. Se conservaron los archivos de las pruebas
