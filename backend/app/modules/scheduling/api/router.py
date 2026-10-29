@@ -35,6 +35,9 @@ from app.modules.scheduling.domain.state import (
 from app.modules.scheduling.infrastructure.models import (
     SesionProgramadaModel,
 )
+from app.modules.scheduling.application.crear_notificacion import (
+    crear_notificacion,
+)
 
 
 router = APIRouter(
@@ -187,12 +190,30 @@ def convocar_estudiante(
                 detail="No tienes permiso para convocar estudiantes.",
             )
 
+        
+        # Crear convocatoria y generar código seguro.
         resultado = crear_convocatoria(
             db,
             sesion_id=sesion_id,
             estudiante_id=datos.estudiante_id,
         )
 
+        # Registrar notificación interna para el estudiante.
+        crear_notificacion(
+            db,
+            destinatario_id=datos.estudiante_id,
+            convocatoria_id=resultado.convocatoria_id,
+            tipo="CONVOCATORIA",
+            canal="INTERNA",
+            mensaje=(
+                "Has sido convocado a una sesión académica. "
+                "Consulta los detalles de tu convocatoria "
+                "y solicita tu código mediante el canal "
+                "institucional autorizado."
+            ),
+        )
+
+        # Confirmar ambas operaciones juntas.
         db.commit()
 
         return ConvocatoriaResponse(
