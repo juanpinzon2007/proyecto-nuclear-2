@@ -60,3 +60,9 @@ class SesionResponse(BaseModel):
     mensaje_personalizado: str | None
     estado: str
     finalizado_en: datetime | None
+
+
+class ConvocatoriaResponse(BaseModel):
+    convocatoria_id: UUID
+    codigo_acceso: str
+

@@ -12,6 +12,12 @@ from app.modules.scheduling.api.schemas import (
     ProgramarSesionRequest,
     CambiarEstadoRequest,
     SesionResponse,
+    CrearConvocatoriaRequest,
+    ConvocatoriaResponse,  
+)
+from app.modules.scheduling.application.crear_convocatoria import (
+    ErrorConvocatoria,
+    crear_convocatoria,
 )
 from app.modules.scheduling.application.programar_sesion import (
     ErrorProgramacion,
@@ -147,3 +153,61 @@ async def actualizar_estado(
             status_code=409,
             detail=str(error),
         ) from error
+
+    
+@router.post(
+    "/sesiones/{sesion_id}/convocatorias",
+    response_model=ConvocatoriaResponse,
+    status_code=201,
+)
+def convocar_estudiante(
+    sesion_id: UUID,
+    datos: CrearConvocatoriaRequest,
+    docente_id: Docente,
+    db: BaseDatos,
+):
+    """Convoca a un estudiante a una sesión académica."""
+
+    try:
+        sesion = db.get(
+            SesionProgramadaModel,
+            sesion_id,
+            with_for_update=True,
+        )
+
+        if sesion is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Sesión no encontrada.",
+            )
+
+        if sesion.docente_id != docente_id:
+            raise HTTPException(
+                status_code=403,
+                detail="No tienes permiso para convocar estudiantes.",
+            )
+
+        resultado = crear_convocatoria(
+            db,
+            sesion_id=sesion_id,
+            estudiante_id=datos.estudiante_id,
+        )
+
+        db.commit()
+
+        return ConvocatoriaResponse(
+            convocatoria_id=resultado.convocatoria_id,
+            codigo_acceso=resultado.codigo_acceso,
+        )
+
+    except ErrorConvocatoria as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=422,
+            detail=str(error),
+        ) from error
+
+    except Exception:
+        db.rollback()
+        raise
+
