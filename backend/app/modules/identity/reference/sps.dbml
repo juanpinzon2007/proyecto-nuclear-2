@@ -1,0 +1,323 @@
+
+Project SimuladorPsicologiaSocial {
+  database_type: 'PostgreSQL'
+  Note: 'Modelo ER - Simulador de Psicologia Social'
+}
+
+// ==========================================
+// 1. USUARIOS, ROLES Y PERMISOS
+// ==========================================
+
+Table rol {
+  id_rol int [pk, increment]
+  nombre varchar(40) [not null, unique]
+  descripcion text
+}
+
+Table permiso {
+  id_permiso int [pk, increment]
+  codigo varchar(80) [not null, unique]
+  descripcion text [not null]
+}
+
+Table rol_permiso {
+  id_rol int [not null, ref: > rol.id_rol]
+  id_permiso int [not null, ref: > permiso.id_permiso]
+
+  indexes {
+    (id_rol, id_permiso) [pk]
+  }
+}
+
+Table usuario {
+  id_usuario int [pk, increment]
+  id_rol int [not null, ref: > rol.id_rol]
+  nombre varchar(120) [not null]
+  correo varchar(200) [not null, unique]
+  clave_hash varchar(255) [not null]
+  activo boolean [not null, default: true]
+}
+
+// ==========================================
+// 2. GRUPOS Y ESTUDIANTES
+// ==========================================
+
+Table grupo_academico {
+  id_grupo int [pk, increment]
+  id_profesor int [not null, ref: > usuario.id_usuario]
+  nombre varchar(120) [not null]
+  periodo varchar(30) [not null]
+}
+
+Table grupo_estudiante {
+  id_grupo_estudiante int [pk, increment]
+  id_grupo int [not null, ref: > grupo_academico.id_grupo]
+  id_estudiante int [not null, ref: > usuario.id_usuario]
+  fecha_ingreso timestamp [not null]
+  activo boolean [not null, default: true]
+
+  indexes {
+    (id_grupo, id_estudiante) [unique]
+  }
+}
+
+Table consentimiento {
+  id_consentimiento int [pk, increment]
+  id_estudiante int [not null, ref: > usuario.id_usuario]
+  version_texto varchar(30) [not null]
+  fecha_aceptacion timestamp [not null]
+  fecha_revocacion timestamp
+}
+
+// ==========================================
+// 3. CASOS Y CONTENIDO DEL SIMULADOR
+// ==========================================
+
+Table caso {
+  id_caso int [pk, increment]
+  id_profesor int [not null, ref: > usuario.id_usuario]
+  titulo varchar(160) [not null]
+  introduccion_teorica text [not null]
+  estado varchar(20) [not null, default: 'borrador']
+  fecha_creacion timestamp [not null]
+  fecha_validacion timestamp
+}
+
+Table objetivo_aprendizaje {
+  id_objetivo int [pk, increment]
+  id_caso int [not null, ref: > caso.id_caso]
+  descripcion text [not null]
+  orden int [not null]
+
+  indexes {
+    (id_caso, orden) [unique]
+  }
+}
+
+Table escena {
+  id_escena int [pk, increment]
+  id_caso int [not null, ref: > caso.id_caso]
+  titulo varchar(160) [not null]
+  contexto text [not null]
+  orden int [not null]
+  tipo varchar(30) [not null]
+
+  indexes {
+    (id_caso, orden) [unique]
+  }
+}
+
+Table personaje {
+  id_personaje int [pk, increment]
+  id_caso int [not null, ref: > caso.id_caso]
+  nombre varchar(100) [not null]
+  descripcion text
+}
+
+Table personaje_escena {
+  id_personaje int [not null, ref: > personaje.id_personaje]
+  id_escena int [not null, ref: > escena.id_escena]
+
+  indexes {
+    (id_personaje, id_escena) [pk]
+  }
+}
+
+Table decision {
+  id_decision int [pk, increment]
+  id_escena int [not null, ref: > escena.id_escena]
+  id_criterio int [not null, ref: > criterio_rubrica.id_criterio]
+  enunciado text [not null]
+  orden int [not null]
+
+  indexes {
+    (id_escena, orden) [unique]
+  }
+}
+
+Table opcion_respuesta {
+  id_opcion int [pk, increment]
+  id_decision int [not null, ref: > decision.id_decision]
+  id_escena_destino int [ref: > escena.id_escena]
+  texto text [not null]
+  es_correcta boolean [not null]
+  justificacion_teorica text [not null]
+  orden int [not null]
+
+  indexes {
+    (id_decision, orden) [unique]
+    (id_opcion, id_decision) [unique]
+  }
+}
+
+Table pista {
+  id_pista int [pk, increment]
+  id_decision int [not null, ref: > decision.id_decision]
+  texto text [not null]
+}
+
+// ==========================================
+// 4. RUBRICAS Y CRITERIOS
+// ==========================================
+
+Table rubrica {
+  id_rubrica int [pk, increment]
+  id_caso int [not null, unique, ref: > caso.id_caso]
+  nombre varchar(120) [not null]
+  nota_maxima decimal(4,2) [not null]
+}
+
+Table criterio_rubrica {
+  id_criterio int [pk, increment]
+  id_rubrica int [not null, ref: > rubrica.id_rubrica]
+  nombre varchar(120) [not null]
+  peso_porcentaje decimal(5,2) [not null]
+}
+
+Table nivel_criterio {
+  id_nivel int [pk, increment]
+  id_criterio int [not null, ref: > criterio_rubrica.id_criterio]
+  nombre varchar(80) [not null]
+  logro_porcentaje decimal(5,2) [not null]
+
+  indexes {
+    (id_nivel, id_criterio) [unique]
+    (id_criterio, nombre) [unique]
+  }
+}
+
+// ==========================================
+// 5. PROGRAMACION Y PARTICIPACION
+// ==========================================
+
+Table asignacion_caso {
+  id_asignacion int [pk, increment]
+  id_grupo int [not null, ref: > grupo_academico.id_grupo]
+  id_caso int [not null, ref: > caso.id_caso]
+  apertura timestamp [not null]
+  cierre timestamp [not null]
+  fecha_limite_ingreso timestamp [not null]
+  intentos_base int [not null, default: 1]
+  tiempo_maximo_min int [not null]
+  codigo_acceso_hash varchar(255) [not null]
+  estado varchar(20) [not null, default: 'programada']
+}
+
+Table participacion {
+  id_participacion int [pk, increment]
+  id_asignacion int [not null, ref: > asignacion_caso.id_asignacion]
+  id_grupo_estudiante int [not null, ref: > grupo_estudiante.id_grupo_estudiante]
+  estado varchar(20) [not null, default: 'pendiente']
+  fecha_registro timestamp [not null]
+
+  indexes {
+    (id_asignacion, id_grupo_estudiante) [unique]
+  }
+}
+
+Table permiso_intento_extra {
+  id_permiso_extra int [pk, increment]
+  id_participacion int [not null, ref: > participacion.id_participacion]
+  id_profesor int [not null, ref: > usuario.id_usuario]
+  cantidad_autorizada int [not null, default: 1]
+  justificacion text [not null]
+  fecha_autorizacion timestamp [not null]
+}
+
+Table intento {
+  id_intento int [pk, increment]
+  id_participacion int [not null, ref: > participacion.id_participacion]
+  id_consentimiento int [not null, ref: > consentimiento.id_consentimiento]
+  id_permiso_extra int [ref: > permiso_intento_extra.id_permiso_extra]
+  numero_intento int [not null]
+  estado varchar(20) [not null]
+  inicio timestamp [not null]
+  fin timestamp
+
+  indexes {
+    (id_participacion, numero_intento) [unique]
+  }
+}
+
+// ==========================================
+// 6. RESPUESTAS E HISTORIAL
+// ==========================================
+
+Table paso_simulacion {
+  id_paso int [pk, increment]
+  id_intento int [not null, ref: > intento.id_intento]
+  id_decision int [not null]
+  id_opcion int [not null]
+  numero_paso int [not null]
+  registrado_en timestamp [not null]
+  tiempo_segundos int [not null]
+  reflexion_estudiante text
+
+  indexes {
+    (id_intento, numero_paso) [unique]
+  }
+}
+
+// Garantiza que la opcion pertenezca
+// a la decision registrada.
+Ref: paso_simulacion.(id_opcion, id_decision) > opcion_respuesta.(id_opcion, id_decision)
+
+// ==========================================
+// 7. EVALUACION Y RESULTADOS
+// ==========================================
+
+Table resultado_intento {
+  id_resultado int [pk, increment]
+  id_intento int [not null, unique, ref: > intento.id_intento]
+  nota_final decimal(4,2) [not null]
+  fecha_calculo timestamp [not null]
+  comentario_automatico text
+}
+
+Table resultado_criterio {
+  id_resultado_criterio int [pk, increment]
+  id_resultado int [not null, ref: > resultado_intento.id_resultado]
+  id_criterio int [not null]
+  id_nivel int [not null]
+  puntaje_obtenido decimal(5,2) [not null]
+
+  indexes {
+    (id_resultado, id_criterio) [unique]
+  }
+}
+
+// Impide asociar un nivel con
+// un criterio al cual no pertenece.
+Ref: resultado_criterio.(id_nivel, id_criterio) > nivel_criterio.(id_nivel, id_criterio)
+
+Table resultado_participacion {
+  id_resultado_participacion int [pk, increment]
+  id_participacion int [not null, unique, ref: > participacion.id_participacion]
+  situacion varchar(20) [not null]
+  nota_definitiva decimal(4,2) [not null]
+  fecha_calculo timestamp [not null]
+  observacion text
+}
+
+// ==========================================
+// 8. RETROALIMENTACION Y NOTIFICACIONES
+// ==========================================
+
+Table retroalimentacion_docente {
+  id_retroalimentacion int [pk, increment]
+  id_asignacion int [not null, unique, ref: > asignacion_caso.id_asignacion]
+  id_profesor int [not null, ref: > usuario.id_usuario]
+  texto text [not null]
+  fecha_registro timestamp [not null]
+}
+
+Table notificacion {
+  id_notificacion int [pk, increment]
+  id_usuario int [not null, ref: > usuario.id_usuario]
+  id_asignacion int [ref: > asignacion_caso.id_asignacion]
+  tipo varchar(40) [not null]
+  mensaje text [not null]
+  fecha_creacion timestamp [not null]
+  fecha_envio timestamp
+  fecha_lectura timestamp
+}

@@ -73,12 +73,15 @@ def sql_ejecutado(sesion):
 
 
 def test_consulta_participacion_reconstruye_entidad_sin_escribir():
+    tablas_registradas = dict(Base.metadata.tables)
     sesion, repo = lector([[PARTICIPACION]])
     actual = repo.obtener_participacion(20)
     assert actual.id_asignacion == 100 and actual.id_grupo_estudiante == 200
     assert "FOR UPDATE" not in sql_ejecutado(sesion)[0]
     sesion.commit.assert_not_called()
-    assert len(Base.metadata.tables) == 0
+    # Otros módulos pueden estar integrados: la lectura no debe registrar ni
+    # sustituir tablas, independientemente del estado previo de la Base común.
+    assert dict(Base.metadata.tables) == tablas_registradas
 
 
 def test_lectura_participacion_no_necesita_inventar_estados_de_intento():
