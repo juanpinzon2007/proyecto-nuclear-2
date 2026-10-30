@@ -1,4 +1,3 @@
-
 """Worker para cerrar sesiones académicas vencidas (RF-19)."""
 
 from collections.abc import Callable
@@ -57,11 +56,15 @@ async def cerrar_sesiones_vencidas(
                 with_for_update=True,
             )
 
-            if (
-                sesion is None
-                or sesion.estado != "EN_CURSO"
-                or sesion.fecha_fin > limite
-            ):
+            if sesion is None or sesion.estado != "EN_CURSO":
+                db.rollback()
+                continue
+
+            fecha_fin = sesion.fecha_fin
+            if fecha_fin.tzinfo is None:
+                fecha_fin = fecha_fin.replace(tzinfo=timezone.utc)
+
+            if fecha_fin > limite:
                 db.rollback()
                 continue
 

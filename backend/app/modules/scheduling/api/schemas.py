@@ -1,4 +1,3 @@
-
 """Esquemas de entrada y salida del módulo scheduling."""
 
 from datetime import datetime
@@ -66,3 +65,47 @@ class ConvocatoriaResponse(BaseModel):
     convocatoria_id: UUID
     codigo_acceso: str
 
+
+class ConvocatoriaDetalleResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    sesion_id: UUID
+    estudiante_id: UUID
+    estado: str
+
+
+class EspacioAcademicoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    nombre: str
+
+
+class CrearEspacioAcademicoRequest(BaseModel):
+    nombre: str = Field(min_length=1, max_length=160)
+
+
+class ValidarIngresoRequest(BaseModel):
+    convocatoria_id: UUID
+    estudiante_id: UUID
+    codigo_acceso: str
+    tolerancia_minutos: int = Field(default=15, ge=0)
+
+
+class NotificacionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    convocatoria_id: UUID | None
+    destinatario_id: UUID
+    tipo: str
+    canal: str
+    mensaje: str
+    estado: str
+    creada_en: datetime
+
+
+class NotificarCalificacionRequest(BaseModel):
+    estudiante_id: UUID
+    participacion_id: UUID

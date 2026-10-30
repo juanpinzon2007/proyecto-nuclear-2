@@ -31,7 +31,7 @@ def datos_validos():
     }
 
 
-def crear_db_simulada():
+def crear_db_simulada(estado_version="PUBLICADO"):
     db = Mock()
 
     def buscar(modelo, identificador):
@@ -42,6 +42,7 @@ def crear_db_simulada():
             return SimpleNamespace(
                 id=identificador,
                 tiempo_estimado_min=45,
+                estado=estado_version,
             )
 
         return None
@@ -130,5 +131,25 @@ def test_rechazar_version_inexistente():
     with pytest.raises(
         ErrorProgramacion,
         match="version del caso no existe",
+    ):
+        programar_sesion(db, **datos_validos())
+
+
+def test_rechazar_version_no_publicada_borrador():
+    db = crear_db_simulada(estado_version="BORRADOR")
+
+    with pytest.raises(
+        ErrorProgramacion,
+        match="Solo se pueden programar versiones publicadas del caso",
+    ):
+        programar_sesion(db, **datos_validos())
+
+
+def test_rechazar_version_no_publicada_archivada():
+    db = crear_db_simulada(estado_version="ARCHIVADO")
+
+    with pytest.raises(
+        ErrorProgramacion,
+        match="Solo se pueden programar versiones publicadas del caso",
     ):
         programar_sesion(db, **datos_validos())

@@ -1,4 +1,3 @@
-
 """Validación de ingreso de estudiantes a sesiones académicas."""
 
 import hashlib
@@ -76,12 +75,20 @@ def validar_ingreso(
     if sesion.estado != "EN_CURSO":
         raise ErrorIngreso("La sesión no está en curso.")
 
-    if ahora < sesion.fecha_inicio:
+    fecha_inicio = sesion.fecha_inicio
+    if fecha_inicio.tzinfo is None:
+        fecha_inicio = fecha_inicio.replace(tzinfo=timezone.utc)
+
+    fecha_fin = sesion.fecha_fin
+    if fecha_fin.tzinfo is None:
+        fecha_fin = fecha_fin.replace(tzinfo=timezone.utc)
+
+    if ahora < fecha_inicio:
         raise ErrorIngreso("La sesión todavía no comienza.")
 
     limite_ingreso = min(
-        sesion.fecha_inicio + timedelta(minutes=tolerancia_minutos),
-        sesion.fecha_fin,
+        fecha_inicio + timedelta(minutes=tolerancia_minutos),
+        fecha_fin,
     )
 
     if ahora > limite_ingreso:
