@@ -414,7 +414,9 @@ def test_openapi_aislado_marca_contrato_provisional_y_separa_resultados(entorno)
 
 def test_router_no_registrado_en_aplicacion_principal():
     from app.main import app
-    assert not any(path.startswith("/api/v1/") for path in app.openapi()["paths"])
+    from app.modules.participation.api.router import router
+    rutas_participacion = {ruta.path for ruta in router.routes}
+    assert rutas_participacion.isdisjoint(app.openapi()["paths"])
     with TestClient(app) as client:
         assert client.get(PROGRESO_URL).status_code == 404
         assert client.get("/health").status_code == 200

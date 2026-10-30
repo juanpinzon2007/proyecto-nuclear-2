@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     postgres_db: str = "sps"
     postgres_user: str = "sps"
     postgres_password: SecretStr | None = None
+    identity_jwt_secret: SecretStr | None = None
+    identity_jwt_issuer: str = "sps-api"
+    identity_jwt_audience: str = "sps"
+    identity_jwt_minutes: int = Field(default=15, ge=1, le=60)
+    identity_institutional_domains: tuple[str, ...] = ()
 
     @property
     def database_url(self) -> URL:
