@@ -17,10 +17,13 @@ def validar_referencias(metadata: MetaData) -> None:
 
 
 def registrar_modelos_integrados() -> MetaData:
-    # Ambos conjuntos tienen revisiones publicadas; no registrar modelos de
-    # Participation/Scheduling mientras no exista su definición integrada real.
+    # Modulos con migraciones integradas:
+    # Identity, Cases y Scheduling.
+    # Participation permanece pendiente de integracion.
+
     from app.modules.identity.infrastructure import models as identity_models  # noqa: F401
     from app.modules.cases.infrastructure import models as cases_models  # noqa: F401
+    from app.modules.scheduling.infrastructure import models as scheduling_models  # noqa: F401
 
     validar_referencias(Base.metadata)
     return Base.metadata
