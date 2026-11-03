@@ -6,7 +6,7 @@ from typing import Callable, Protocol
 from app.modules.participation.application.dto import RecorridoAplicable, SeleccionDecision
 from app.modules.participation.application.ports import CasesPort, UnidadTrabajo
 from app.modules.participation.domain.calculador_rubrica import PlanCalculo
-from app.modules.participation.domain.entities import Intento
+from app.modules.participation.domain.entities import Intento, IdentificadorCases
 from app.modules.participation.domain.evaluation import (
     DatosEvaluacion, ModalidadEvaluacion, RubricaEvaluacion,
 )
@@ -29,7 +29,7 @@ class CasesEvaluacionPort(CasesPort, Protocol):
 
 class PoliticaEvaluacionPort(Protocol):
     def clasificar(
-        self, *, intento: Intento, decisiones_aplicables: tuple[int, ...]
+        self, *, intento: Intento, decisiones_aplicables: tuple[IdentificadorCases, ...]
     ) -> ModalidadEvaluacion:
         """Clasifica académicamente; no equipara sin regla estados y modalidades."""
         ...
@@ -40,6 +40,18 @@ class PoliticaEvaluacionPort(Protocol):
         Para parciales debe resolver expresamente las decisiones sin respuesta.
         Sin una regla suficiente lanza PoliticaEvaluacionPendiente. No consolidar
         aquí los resultados de múltiples intentos.
+        """
+        ...
+
+
+class PoliticaEvaluacionContextualPort(PoliticaEvaluacionPort, Protocol):
+    def preparar_calculo_para_intento(
+        self, *, datos: DatosEvaluacion, rubrica: RubricaEvaluacion, intento: Intento | None,
+    ) -> PlanCalculo:
+        """Contexto persistido/autorizado de la misma UoW; ceros sin selecciones.
+
+        Extensión optativa. Los proveedores históricos conservan su contrato.
+        Ausencia usa None solo después de su confirmación académica.
         """
         ...
 

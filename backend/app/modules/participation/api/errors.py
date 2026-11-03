@@ -12,7 +12,7 @@ from app.modules.participation.application.errors import (
     AccesoDenegado, ConflictoActualizacion, ErrorAplicacionParticipacion,
     EvaluacionNoConfirmada, RecursoNoDisponible, ReglaPendiente,
 )
-from app.modules.participation.domain.errors import ErrorDominioParticipacion, IntentoNoEditable
+from app.modules.participation.domain.errors import ErrorDominioParticipacion, IntentoNoEditable, RespuestaInmutable
 from app.modules.participation.domain.evaluation import EvaluacionInconsistente, PoliticaEvaluacionPendiente
 
 
@@ -39,6 +39,8 @@ class RutaParticipacion(APIRoute):
                 respuesta = _error(404, "RECURSO_NO_DISPONIBLE", "El recurso solicitado no está disponible.")
             except ConflictoActualizacion:
                 respuesta = _error(409, "CONFLICTO_ACTUALIZACION", "El recurso cambió; vuelva a consultarlo.")
+            except RespuestaInmutable:
+                respuesta = _error(409, "RESPUESTA_INMUTABLE", "La respuesta registrada no puede modificarse ni eliminarse.")
             except IntentoNoEditable:
                 respuesta = _error(409, "INTENTO_NO_EDITABLE", "El intento está cerrado o su tiempo se agotó.")
             except (ReglaPendiente, PoliticaEvaluacionPendiente):

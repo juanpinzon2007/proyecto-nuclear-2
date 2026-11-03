@@ -1,3 +1,5 @@
+from tests.unit.scheduling.ingress_support import politica_fixture
+from app.modules.scheduling.domain.ingress_policy import PoliticaTemporalNoDisponible
 
 """Pruebas de validación de ingreso RF-22."""
 
@@ -59,8 +61,8 @@ def preparar():
         "convocatoria_id": convocatoria_id,
         "estudiante_id": estudiante_id,
         "codigo_acceso": CODIGO,
-        "tolerancia_minutos": 15,
-        "ahora": AHORA,
+        "politica": politica_fixture(15),
+        "reloj": SimpleNamespace(ahora=lambda: AHORA),
     }
 
     return db, convocatoria, sesion, datos
@@ -103,17 +105,17 @@ def test_sesion_no_iniciada():
         validar_ingreso(db, **datos)
 
 
-def test_ingreso_fuera_de_tolerancia():
+def test_ingreso_fuera_de_ventana_sintetica():
     db, _, _, datos = preparar()
-    datos["tolerancia_minutos"] = 5
+    datos["politica"] = politica_fixture(5)
 
     with pytest.raises(ErrorIngreso):
         validar_ingreso(db, **datos)
 
 
-def test_tolerancia_invalida():
+def test_ventana_sintetica_invertida_rechazada():
     db, _, _, datos = preparar()
-    datos["tolerancia_minutos"] = -1
+    datos["politica"] = politica_fixture(-1)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(PoliticaTemporalNoDisponible):
         validar_ingreso(db, **datos)

@@ -2,11 +2,15 @@
 
 Contiene dominio, Application con Facade, evaluación con Strategy y el cuarto
 incremento de API provisional. El router **no está registrado en main.py**.
-No tiene ORM, migraciones, autenticación real, calificación oficial ni adaptadores
-reales de persistencia o de otros módulos. Los fakes solo existen en `tests/`.
+La fase [8A](INTEGRACION_8A.md) conecta su dependencia de identidad con JWT, roles
+y resolver SQL de Identity, y prepara una consulta interna de ingreso, versión
+asignada y referencia de su rúbrica. No tiene ORM, escritores SQL, calificación
+oficial ni composición real de la fachada. RF-22 y los vínculos del agregado
+siguen pendientes. Los fakes solo existen en pruebas.
 El quinto incremento añade consultas SQLAlchemy y una unidad de trabajo, todavía
 sin escritores académicos ni esquema compartido definitivo conectado.
-Todos los archivos de estas entregas están dentro de `participation/`.
+Las secciones siguientes conservan el historial de los incrementos; el estado
+vigente y los límites de integración están en INTEGRACION_8A.md.
 
 ## Componentes
 
@@ -37,7 +41,7 @@ Todos los archivos de estas entregas están dentro de `participation/`.
 - `tests/test_application.py` y `tests/fakes.py`: casos de uso y dobles aislados
   para los puertos. `tests/__init__.py` permite imports explícitos de esos dobles.
 
-Los objetos son dataclasses inmutables. Registrar, modificar o cerrar devuelve
+Los objetos son dataclasses inmutables. Registrar una nueva respuesta o cerrar devuelve
 otro `Intento`; el llamador debe utilizar el valor devuelto. El original conserva
 su contenido. Esto permite validar el nuevo estado antes de persistirlo en una
 futura transacción; no sustituye el control de concurrencia en PostgreSQL.
@@ -46,7 +50,7 @@ futura transacción; no sustituye el control de concurrencia en PostgreSQL.
 
 | Regla | Referencia revisada |
 | --- | --- |
-| Mantener una selección actual por decisión y permitir cambiarla antes del cierre | RF-10/RF-11; Software II, RN-10/RN-11 y UC-04 |
+| Mantener una selección inmutable por pregunta e intento; rechazar modificación y eliminación | Aclaración posterior de Diana Ma Valencia: «No puede modificar nada si responde una vez ya»; sustituye la edición anterior de RF-10/RN-10/RN-11 |
 | Guardar referencias, inicio y fin del intento | RF-12 y ER `intento`/`paso_simulacion` |
 | Usar tiempo individual desde el servidor y conservar selecciones al vencer | RF-23; Software II, RNF-05 y RN-14 |
 | Impedir edición después de finalizar o agotar el tiempo | RF-10/RF-23; UC-04 exige tiempo restante mayor que cero |

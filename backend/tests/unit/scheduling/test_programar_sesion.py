@@ -34,7 +34,7 @@ def datos_validos():
 def crear_db_simulada(estado_version="PUBLICADO"):
     db = Mock()
 
-    def buscar(modelo, identificador):
+    def buscar(modelo, identificador, **kwargs):
         if modelo is EspacioAcademicoModel:
             return SimpleNamespace(id=identificador)
 
@@ -62,6 +62,7 @@ def test_programacion_correcta():
 
     db.add.assert_called_once_with(sesion)
     db.flush.assert_called_once()
+    db.get.assert_any_call(VersionCasoModel, sesion.version_caso_id, populate_existing=True, with_for_update=True)
 
 
 def test_rechazar_fecha_final_anterior():
@@ -121,7 +122,7 @@ def test_rechazar_espacio_inexistente():
 def test_rechazar_version_inexistente():
     db = crear_db_simulada()
 
-    def buscar(modelo, identificador):
+    def buscar(modelo, identificador, **kwargs):
         if modelo is EspacioAcademicoModel:
             return SimpleNamespace(id=identificador)
         return None

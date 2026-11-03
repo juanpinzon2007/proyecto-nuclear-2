@@ -5,14 +5,18 @@ from datetime import UTC, datetime
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     DateTime,
     Enum,
     ForeignKey,
+    FetchedValue,
+    Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
     Uuid,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -27,8 +31,15 @@ def _utcnow() -> datetime:
 
 class CasoModel(Base):
     __tablename__ = "caso"
+    __table_args__ = (Index("uq_caso_id_caso_academico", "id_caso", unique=True),)
+    # El generador vive en PostgreSQL. No pedir RETURNING de una columna nueva
+    # permite usar los lectores/escritores históricos sobre revisiones anteriores.
+    __mapper_args__ = {"eager_defaults": False}
 
     id: Mapped[uuid.UUID] = uuid_pk()
+    id_caso: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, server_default=FetchedValue(), deferred=True,
+    )
     # Referencia lógica a identity; UUID suelto para no acoplar módulos.
     docente_creador_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), nullable=False, index=True
@@ -75,7 +86,12 @@ class VersionCasoModel(Base):
 
 class EscenarioModel(Base):
     __tablename__ = "escenario"
-    __table_args__ = (UniqueConstraint("version_caso_id", "orden", name="uq_escenario_orden"),)
+    __mapper_args__ = {"eager_defaults": False}
+    __table_args__ = (
+        UniqueConstraint("version_caso_id", "orden", name="uq_escenario_orden"),
+        Index("uq_8b_escena_inicial", "version_caso_id", unique=True,
+              postgresql_where=text("es_inicial"), sqlite_where=text("es_inicial = 1")),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     version_caso_id: Mapped[uuid.UUID] = mapped_column(
@@ -83,6 +99,7 @@ class EscenarioModel(Base):
     )
     orden: Mapped[int] = mapped_column(Integer, nullable=False)
     contexto_situacional: Mapped[str] = mapped_column(Text, nullable=False)
+    es_inicial: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"), deferred=True)
 
     version_caso: Mapped[VersionCasoModel] = relationship(back_populates="escenarios")
     preguntas: Mapped[list["PreguntaModel"]] = relationship(
@@ -111,7 +128,14 @@ class PreguntaModel(Base):
 
 class OpcionRespuestaModel(Base):
     __tablename__ = "opcion_respuesta"
-    __table_args__ = (UniqueConstraint("pregunta_id", "orden", name="uq_opcion_orden"),)
+    __mapper_args__ = {"eager_defaults": False}
+    __table_args__ = (
+        UniqueConstraint("pregunta_id", "orden", name="uq_opcion_orden"),
+        Index("uq_opcion_id_pregunta", "id", "pregunta_id", unique=True),
+        CheckConstraint("(tipo_transicion IS NULL AND escenario_destino_id IS NULL) OR "
+            "(tipo_transicion IS NOT NULL AND ((tipo_transicion = 'ESCENA' AND escenario_destino_id IS NOT NULL) "
+            "OR (tipo_transicion = 'FIN' AND escenario_destino_id IS NULL)))", name="ck_8b_transicion"),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     pregunta_id: Mapped[uuid.UUID] = mapped_column(
@@ -121,6 +145,10 @@ class OpcionRespuestaModel(Base):
     texto: Mapped[str] = mapped_column(Text, nullable=False)
     es_correcta: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     justificacion: Mapped[str] = mapped_column(Text, nullable=False)
+    escenario_destino_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("escenario.id", name="fk_8b_destino", deferrable=True, initially="DEFERRED"),
+        deferred=True, server_default=FetchedValue())
+    tipo_transicion: Mapped[str | None] = mapped_column(String(10), deferred=True, server_default=FetchedValue())
 
     pregunta: Mapped[PreguntaModel] = relationship(back_populates="opciones")
     valoraciones: Mapped[list["ValoracionOpcionModel"]] = relationship(

@@ -1,4 +1,4 @@
-"""Adaptador SQLAlchemy de SOLO LECTURA, pendiente de tablas compartidas aprobadas.
+"""Lecturas comunes del agregado sobre tablas explícitas, sin commits.
 
 No es aún el RepositorioParticipacion completo: no hay inserciones ni updates.
 Recibe Table ya existentes; no define metadatos, tablas ni otra Base declarativa.
@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from types import MappingProxyType
 
-from sqlalchemy import Integer, Table, select
+from sqlalchemy import Integer, Table, Uuid, select
 from sqlalchemy.orm import Session
 
 from app.modules.participation.application.errors import ConflictoActualizacion, RecursoNoDisponible
@@ -37,8 +37,35 @@ class TablasLecturaParticipacion:
             if not isinstance(tabla, Table) or tabla.name != nombre or not set(columnas).issubset(tabla.c.keys()):
                 raise MapeoPersistenciaPendiente(f"Falta la tabla/columnas compartidas de {nombre}.")
             for columna in columnas:
-                if columna.startswith("id_") and not isinstance(tabla.c[columna].type, Integer):
-                    raise MapeoPersistenciaPendiente("El mapeo de identificadores no coincide con el ER entero.")
+                tipos = (Integer, Uuid) if nombre == "paso_simulacion" and columna in {"id_decision", "id_opcion"} else (Integer,)
+                if columna.startswith("id_") and not isinstance(tabla.c[columna].type, tipos):
+                    raise MapeoPersistenciaPendiente("El mapeo de identificadores no coincide con los tipos aprobados.")
+
+
+def consultar_duracion_historica(sesion: Session, id_intento: int) -> timedelta:
+    """Fuente explícita BD2-07 para el callback de lecturas; nunca usa Scheduling.
+
+    No activa el repositorio completo: paso_simulacion y políticas aún pendientes.
+    Comparte la Session del llamador sin flush, commit ni cierre.
+    """
+    from decimal import Decimal
+    from app.modules.participation.infrastructure.models import IntentoModel
+
+    with sesion.no_autoflush:
+        valor = sesion.scalar(select(IntentoModel.duracion_concedida_segundos).where(
+            IntentoModel.id_intento == id_intento,
+        ))
+    if valor is None:
+        raise RecursoNoDisponible("Intento no disponible.")
+    if not isinstance(valor, Decimal) or not valor.is_finite() or valor <= 0:
+        raise MapeoPersistenciaPendiente("Duración histórica inválida.")
+    microsegundos = valor * Decimal(1000000)
+    if microsegundos != microsegundos.to_integral_value():
+        raise MapeoPersistenciaPendiente("La duración histórica perdería precisión.")
+    try:
+        return timedelta(microseconds=int(microsegundos))
+    except OverflowError:
+        raise MapeoPersistenciaPendiente("Duración histórica fuera del rango del dominio.") from None
 
 
 class LecturasParticipacionSQLAlchemy:

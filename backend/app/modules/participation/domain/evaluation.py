@@ -4,11 +4,16 @@ from dataclasses import dataclass
 from decimal import Decimal
 from enum import StrEnum
 
-from app.modules.participation.domain.entities import Intento, _entero_positivo
+from app.modules.participation.domain.entities import Intento, IdentificadorCases, es_referencia_cases, _entero_positivo
 from app.modules.participation.domain.errors import ErrorDominioParticipacion
 
 CALCULO_PENDIENTE = "calculo_pendiente"
 MAPEO_AUSENCIA_PENDIENTE = "mapeo_er_detalle_ausencia_pendiente"
+
+
+def _referencia_cases(valor: IdentificadorCases, nombre: str) -> None:
+    if not es_referencia_cases(valor):
+        raise EvaluacionInconsistente(f"{nombre} debe ser una referencia Cases válida.")
 
 
 class PoliticaEvaluacionPendiente(ErrorDominioParticipacion):
@@ -35,34 +40,34 @@ def decimal_valido(valor: Decimal, nombre: str, *, maximo: Decimal | None = None
 @dataclass(frozen=True)
 class ReferenciaAcademica:
     id_caso: int
-    id_rubrica: int
+    id_rubrica: IdentificadorCases
     version: str
 
     def __post_init__(self) -> None:
         _entero_positivo(self.id_caso, "id_caso")
-        _entero_positivo(self.id_rubrica, "id_rubrica")
+        _referencia_cases(self.id_rubrica, "id_rubrica")
         if not self.version.strip():
             raise EvaluacionInconsistente("Se requiere una referencia académica estable/versionada.")
 
 
 @dataclass(frozen=True)
 class NivelEvaluable:
-    id_nivel: int
+    id_nivel: IdentificadorCases
     logro_porcentaje: Decimal
 
     def __post_init__(self) -> None:
-        _entero_positivo(self.id_nivel, "id_nivel")
+        _referencia_cases(self.id_nivel, "id_nivel")
         decimal_valido(self.logro_porcentaje, "logro_porcentaje", maximo=Decimal(100))
 
 
 @dataclass(frozen=True)
 class CriterioEvaluable:
-    id_criterio: int
+    id_criterio: IdentificadorCases
     peso_porcentaje: Decimal
     niveles: tuple[NivelEvaluable, ...]
 
     def __post_init__(self) -> None:
-        _entero_positivo(self.id_criterio, "id_criterio")
+        _referencia_cases(self.id_criterio, "id_criterio")
         decimal_valido(self.peso_porcentaje, "peso_porcentaje", maximo=Decimal(100))
         if not isinstance(self.niveles, tuple) or not self.niveles:
             raise EvaluacionInconsistente("El criterio debe proporcionar sus niveles explícitos.")
@@ -91,24 +96,24 @@ class RubricaEvaluacion:
 
 @dataclass(frozen=True)
 class NivelObtenido:
-    id_criterio: int
-    id_nivel: int
+    id_criterio: IdentificadorCases
+    id_nivel: IdentificadorCases
 
     def __post_init__(self) -> None:
-        _entero_positivo(self.id_criterio, "id_criterio")
-        _entero_positivo(self.id_nivel, "id_nivel")
+        _referencia_cases(self.id_criterio, "id_criterio")
+        _referencia_cases(self.id_nivel, "id_nivel")
 
 
 @dataclass(frozen=True)
 class EvidenciaDecision:
-    id_decision: int
-    id_opcion: int | None
+    id_decision: IdentificadorCases
+    id_opcion: IdentificadorCases | None
     cero_por_ausencia: Decimal | None = None
 
     def __post_init__(self) -> None:
-        _entero_positivo(self.id_decision, "id_decision")
+        _referencia_cases(self.id_decision, "id_decision")
         if self.id_opcion is not None:
-            _entero_positivo(self.id_opcion, "id_opcion")
+            _referencia_cases(self.id_opcion, "id_opcion")
         if self.cero_por_ausencia is not None:
             decimal_valido(self.cero_por_ausencia, "cero_por_ausencia", maximo=Decimal(0))
             if self.id_opcion is not None:
@@ -117,13 +122,13 @@ class EvidenciaDecision:
 
 @dataclass(frozen=True)
 class ResultadoCriterio:
-    id_criterio: int
-    id_nivel: int
+    id_criterio: IdentificadorCases
+    id_nivel: IdentificadorCases
     puntaje_obtenido: Decimal
 
     def __post_init__(self) -> None:
-        _entero_positivo(self.id_criterio, "id_criterio")
-        _entero_positivo(self.id_nivel, "id_nivel")
+        _referencia_cases(self.id_criterio, "id_criterio")
+        _referencia_cases(self.id_nivel, "id_nivel")
         decimal_valido(self.puntaje_obtenido, "puntaje_obtenido")
 
 
@@ -132,7 +137,7 @@ class ContextoEvaluacion:
     referencia: ReferenciaAcademica
     id_participacion: int
     modalidad: ModalidadEvaluacion
-    decisiones_aplicables: tuple[int, ...]
+    decisiones_aplicables: tuple[IdentificadorCases, ...]
     intento: Intento | None
     ausencia_confirmada: bool = False
 
@@ -143,7 +148,7 @@ class ContextoEvaluacion:
         if not isinstance(self.decisiones_aplicables, tuple) or not self.decisiones_aplicables:
             raise EvaluacionInconsistente("Se requiere el recorrido académico explícito.")
         for identificador in self.decisiones_aplicables:
-            _entero_positivo(identificador, "id_decision")
+            _referencia_cases(identificador, "id_decision")
         if len(set(self.decisiones_aplicables)) != len(self.decisiones_aplicables):
             raise EvaluacionInconsistente("Decisiones duplicadas en el contexto.")
         if self.intento is not None and self.intento.id_participacion != self.id_participacion:

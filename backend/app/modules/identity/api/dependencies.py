@@ -5,7 +5,7 @@ from contextlib import ExitStack
 from dataclasses import replace
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -22,12 +22,16 @@ from app.modules.identity.application.proxy_administracion import ProxyAdministr
 from app.modules.identity.application.proxy_excepciones import ProxyExcepciones
 from app.modules.identity.application.proxy_seguimiento import ProxySeguimiento
 from app.modules.identity.application.services import ServicioAdministracionUsuarios
+from app.modules.identity.api.errors import ERRORES
 from app.modules.identity.domain.entities import ContextoAcceso, Rol
-from app.modules.identity.domain.errors import IntegracionPendiente, NoAutenticado
+from app.modules.identity.domain.errors import AccesoDenegado, IntegracionPendiente, NoAutenticado
 from app.modules.identity.infrastructure.security import TokensJWT
 from app.modules.identity.infrastructure.credentials import obtener_hasheador
 from app.modules.identity.infrastructure.repositories import RepositorioUsuariosSQLAlchemy
 from app.modules.identity.infrastructure.unit_of_work import UnidadTrabajoIdentitySQLAlchemy
+from app.modules.identity.application.academic_identity import ResolverIdentidadAcademica
+from app.modules.identity.infrastructure.academic_identity_repository import RepositorioIdentidadAcademicaSQLAlchemy
+from app.modules.identity.infrastructure.scheduling_access import ValidadorConvocatoriaScheduling
 
 
 bearer = HTTPBearer(auto_error=False)
@@ -49,9 +53,11 @@ def construir_repositorio_usuarios(sesion: Session) -> RepositorioUsuarios:
     return RepositorioUsuariosSQLAlchemy(sesion)
 
 
-def construir_validador_convocatoria() -> ValidadorConvocatoria:
-    # Pendiente de contrato RF-20 de Scheduling; Identity no genera convocatorias.
-    raise IntegracionPendiente()
+def construir_validador_convocatoria(sesion: Session) -> ValidadorConvocatoriaScheduling:
+    return ValidadorConvocatoriaScheduling(
+        sesion, RepositorioUsuariosSQLAlchemy(sesion),
+        ResolverIdentidadAcademica(RepositorioIdentidadAcademicaSQLAlchemy(sesion)),
+    )
 
 
 def construir_consulta_ambito() -> ConsultaAmbitoAcademico:
@@ -106,20 +112,87 @@ def obtener_usuario_actual(
     if usuario is None or not usuario.activo or usuario.id_usuario != identidad.id_usuario:
         raise NoAutenticado()
     # Roles/permisos actuales vienen del repositorio, nunca de claims del cliente.
-    if Rol.ESTUDIANTE in usuario.roles and identidad.id_convocatoria is None:
-        raise NoAutenticado()
+    # La cuenta puede consultar su identidad/avisos sin una sesión académica.
+    # Las operaciones de convocatoria exigen contexto y vigencia por separado.
     return replace(usuario, id_convocatoria=identidad.id_convocatoria)
 
 
-def obtener_fabrica_autenticacion(
+def _obtener_usuario_con_rol(
+    credenciales: HTTPAuthorizationCredentials | None,
+    tokens: Callable[[], TokensJWT],
+    usuarios: Callable[[], RepositorioUsuarios],
+    rol: Rol,
+) -> ContextoAcceso:
+    """Frontera HTTP común, sin duplicar JWT ni exigir RutaIdentity al consumidor."""
+    try:
+        usuario = obtener_usuario_actual(credenciales, tokens, usuarios)
+        ServicioAutorizacion(construir_consulta_ambito).exigir_rol(usuario, rol)
+        return usuario
+    except (NoAutenticado, AccesoDenegado, IntegracionPendiente) as error:
+        estado, codigo, mensaje = ERRORES[type(error)]
+        cabeceras = {"Cache-Control": "no-store"}
+        if estado == 401:
+            cabeceras["WWW-Authenticate"] = "Bearer"
+        raise HTTPException(
+            status_code=estado, detail={"codigo": codigo, "mensaje": mensaje}, headers=cabeceras,
+        ) from None
+
+
+def obtener_docente_actual(
+    credenciales: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+    tokens: Annotated[Callable[[], TokensJWT], Depends(obtener_fabrica_tokens)],
     usuarios: Annotated[Callable[[], RepositorioUsuarios], Depends(obtener_fabrica_usuarios)],
-) -> Callable[[], ServicioAutenticacion]:
-    def construir() -> ServicioAutenticacion:
-        return ServicioAutenticacion(
-            usuarios(), construir_validador_convocatoria(),
-            construir_tokens(), get_settings().identity_institutional_domains,
-        )
-    return construir
+) -> ContextoAcceso:
+    """Usuario activo con rol DOCENTE del servidor; no resuelve UUID académico."""
+    return _obtener_usuario_con_rol(credenciales, tokens, usuarios, Rol.DOCENTE)
+
+
+def obtener_estudiante_actual(
+    credenciales: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+    tokens: Annotated[Callable[[], TokensJWT], Depends(obtener_fabrica_tokens)],
+    usuarios: Annotated[Callable[[], RepositorioUsuarios], Depends(obtener_fabrica_usuarios)],
+) -> ContextoAcceso:
+    """Exige ESTUDIANTE vigente; no convierte contexto académico en identidad."""
+    return _obtener_usuario_con_rol(credenciales, tokens, usuarios, Rol.ESTUDIANTE)
+
+
+def obtener_fabrica_sesiones_login() -> Callable[[], Session]:
+    return lambda: get_session_factory()()
+
+
+def obtener_dominios_login() -> tuple[str, ...]:
+    return get_settings().identity_institutional_domains
+
+
+def obtener_fabrica_autenticacion(
+    sesiones: Annotated[Callable[[], Session], Depends(obtener_fabrica_sesiones_login)],
+    tokens: Annotated[Callable[[], TokensJWT], Depends(obtener_fabrica_tokens)],
+    dominios: Annotated[tuple[str, ...], Depends(obtener_dominios_login)],
+) -> Generator[Callable[[], ServicioAutenticacion], None, None]:
+    with ExitStack() as recursos:
+        def construir() -> ServicioAutenticacion:
+            if not dominios or not all(d.strip() for d in dominios):
+                raise IntegracionPendiente()
+            emisor = tokens()  # Validar configuración JWT antes de abrir Session.
+            try:
+                sesion = recursos.enter_context(sesiones())
+            except (ValueError, SQLAlchemyError):
+                raise IntegracionPendiente() from None
+            return ServicioAutenticacion(RepositorioUsuariosSQLAlchemy(sesion),
+                                         construir_validador_convocatoria(sesion), emisor, dominios)
+        yield construir
+
+
+def obtener_fabrica_validador_convocatoria(
+    sesiones: Annotated[Callable[[], Session], Depends(obtener_fabrica_sesiones_login)],
+) -> Generator[Callable[[], ValidadorConvocatoriaScheduling], None, None]:
+    with ExitStack() as recursos:
+        def construir() -> ValidadorConvocatoriaScheduling:
+            try:
+                return construir_validador_convocatoria(recursos.enter_context(sesiones()))
+            except (ValueError, SQLAlchemyError):
+                raise IntegracionPendiente() from None
+        yield construir
 
 
 def obtener_proxy_seguimiento() -> ProxySeguimiento:

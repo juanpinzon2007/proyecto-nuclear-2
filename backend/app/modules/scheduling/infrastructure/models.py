@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    Index,
     String,
     Text,
     UniqueConstraint,
@@ -112,6 +113,7 @@ class SesionProgramadaModel(Base):
     )
 
     __table_args__ = (
+        Index("uq_sesion_id_version_caso", "id", "version_caso_id", unique=True),
         CheckConstraint(
             "fecha_fin > fecha_inicio",
             name="ck_sesion_fechas",

@@ -48,9 +48,11 @@ async def test_worker_cierra_sesiones_vencidas_en_bd(
             desarrollo_situacional="Desarrollo",
             contexto_historia="Contexto",
             tiempo_estimado_min=60,
-            estado=EstadoCaso.PUBLICADO,
+            estado=EstadoCaso.BORRADOR,
         )
         db.add(version)
+        db.flush()
+        version.estado=EstadoCaso.PUBLICADO
         db.flush()
 
         # Sesión vencida (terminó hace 26 horas)

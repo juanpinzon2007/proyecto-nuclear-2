@@ -8,6 +8,7 @@ import re
 from uuid import uuid4
 
 from alembic import command
+from tests.identity.academic_identity_support import preparar_esquema_actual_aislado, retirar_ddl_resultados_sqlite
 from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -64,7 +65,10 @@ def base_aislada(motor, revision="head"):
         engine = create_engine(url, connect_args={"options": f"-csearch_path={esquema}"})
     try:
         with engine.begin() as conexion:
-            command.upgrade(configuracion_alembic(conexion), revision)
+            if motor == "sqlite" and revision == "head":
+                preparar_esquema_actual_aislado(conexion)
+            else:
+                command.upgrade(configuracion_alembic(conexion), revision)
         yield engine
     finally:
         engine.dispose()
@@ -131,6 +135,8 @@ def test_migraciones_integradas_upgrade_downgrade_crean_ambos_modulos(bd):
     assert {"usuario", "rol", "permiso", "rol_permiso", "caso", "version_caso", "rubrica"} <= esperadas
     assert set(inspect(bd).get_table_names()) == esperadas | {"alembic_version"}
     with bd.begin() as conexion:
+        if conexion.dialect.name=="sqlite":
+            retirar_ddl_resultados_sqlite(conexion)
         command.downgrade(configuracion_alembic(conexion), "base")
     assert set(inspect(bd).get_table_names()) == {"alembic_version"}
 
@@ -139,6 +145,11 @@ def test_migraciones_integradas_upgrade_downgrade_crean_ambos_modulos(bd):
 def test_mapeos_coinciden_con_columnas_tipos_nulabilidad_y_fk_del_dbml(modelo):
     tabla = modelo.__table__
     especificacion = columnas_dbml(tabla.name)
+    if modelo is RetroalimentacionDocenteORM:
+        # Adaptación individual autorizada: se preservan las columnas originales.
+        especificacion.append(("id_participacion", "int", "", "not null, ref: > participacion.id_participacion"))
+        assert tabla.c.id_participacion.unique is True
+        assert tabla.c.id_asignacion.unique is not True
     assert set(tabla.c.keys()) == {campo for campo, _, _, _ in especificacion}
     for campo, tipo, tamanio, flags in especificacion:
         columna = tabla.c[campo]
@@ -343,10 +354,14 @@ def test_permiso_extra_no_adapta_fechas_utc_a_timestamp_sin_acuerdo(datos_dbml, 
                 1, 2, 1, "Justificación", datetime(2026, 10, 28, tzinfo=UTC)))
 
 
-def test_feedback_del_dbml_es_unico_por_asignacion_no_por_participacion():
+def test_feedback_dbml_original_y_adaptacion_individual_autorizada():
     tabla = RetroalimentacionDocenteORM.__table__
-    assert tabla.c.id_asignacion.unique is True
-    assert "id_participacion" not in tabla.c
+    original=columnas_dbml("retroalimentacion_docente")
+    assert "unique" in next(flags for campo,_,_,flags in original if campo=="id_asignacion")
+    assert "id_participacion" not in {campo for campo,_,_,_ in original}
+    assert tabla.c.id_asignacion.unique is not True
+    assert tabla.c.id_participacion.unique is True
+    assert {f.target_fullname for f in tabla.c.id_participacion.foreign_keys}=={"participacion.id_participacion"}
 
 
 def test_left_join_real_conserva_fila_sin_resultado_sin_inventar_ausencia(datos_dbml, academia):

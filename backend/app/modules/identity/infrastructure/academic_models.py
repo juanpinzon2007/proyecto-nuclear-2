@@ -1,8 +1,8 @@
 """Tablas del DBML con FK externas; no crean ni duplican tablas de compañeros.
 
-Comparten Base y su registry, pero su metadata NO forma parte del esquema
-desplegable: participacion y asignacion_caso aún no existen como modelos
-integrados. No se eliminan FK ni se declara una tabla externa ficticia.
+Comparten Base y su registry. BD2-07 integró el permiso de intento; la aprobación
+académica posterior integra feedback individual, una valoración editable por
+participación. academic_metadata vacío se conserva por compatibilidad de imports.
 """
 
 from datetime import datetime
@@ -21,7 +21,8 @@ academic_metadata = MetaData(info={
 
 
 class PermisoIntentoExtraORM(Base):
-    metadata = academic_metadata
+    # Dependencia oficial de intento, integrada por BD2-07 sin duplicar la clase.
+    metadata = Base.metadata
     __tablename__ = "permiso_intento_extra"
 
     id_permiso_extra: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -33,11 +34,12 @@ class PermisoIntentoExtraORM(Base):
 
 
 class RetroalimentacionDocenteORM(Base):
-    metadata = academic_metadata
+    metadata = Base.metadata
     __tablename__ = "retroalimentacion_docente"
 
     id_retroalimentacion: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    id_asignacion: Mapped[int] = mapped_column(ForeignKey("asignacion_caso.id_asignacion"), nullable=False, unique=True)
+    id_asignacion: Mapped[int] = mapped_column(ForeignKey("asignacion_caso.id_asignacion"), nullable=False)
+    id_participacion: Mapped[int] = mapped_column(ForeignKey("participacion.id_participacion"), nullable=False, unique=True)
     id_profesor: Mapped[int] = mapped_column(ForeignKey(UsuarioORM.id_usuario), nullable=False)
     texto: Mapped[str] = mapped_column(Text, nullable=False)
     fecha_registro: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)

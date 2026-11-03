@@ -31,9 +31,11 @@ def _crear_caso_publicado(db: Session, docente_id: uuid.UUID) -> VersionCasoMode
         desarrollo_situacional="Experimento sobre la influencia de la autoridad.",
         contexto_historia="Contexto investigativo universitario.",
         tiempo_estimado_min=60,
-        estado=EstadoCaso.PUBLICADO,
+        estado=EstadoCaso.BORRADOR,
     )
     db.add(version)
+    db.flush()
+    version.estado=EstadoCaso.PUBLICADO
     db.flush()
     db.commit()
     return version
@@ -43,6 +45,7 @@ def test_flujo_completo_programacion_y_ciclo_vida(
     client: TestClient,
     db_session: Session,
     docente_id: uuid.UUID,
+    cabeceras_estudiante,
 ):
     # 1. Crear Espacio Académico
     espacio = EspacioAcademicoModel(nombre="Laboratorio de Psicología Social")
@@ -82,6 +85,7 @@ def test_flujo_completo_programacion_y_ciclo_vida(
 
     # 5. Convocar a un estudiante
     estudiante_id = uuid.uuid4()
+    headers_estudiante = cabeceras_estudiante(estudiante_id)
     resp_conv = client.post(
         f"/scheduling/sesiones/{sesion_id}/convocatorias",
         json={"estudiante_id": str(estudiante_id)},
@@ -127,11 +131,11 @@ def test_flujo_completo_programacion_y_ciclo_vida(
 
     resp_ingreso = client.post(
         "/scheduling/validar-ingreso",
+        headers=headers_estudiante,
         json={
             "convocatoria_id": str(convocatoria_id),
             "estudiante_id": str(estudiante_id),
             "codigo_acceso": codigo_acceso,
-            "tolerancia_minutos": 15,
         },
     )
     assert resp_ingreso.status_code == 200
@@ -140,11 +144,11 @@ def test_flujo_completo_programacion_y_ciclo_vida(
     # 8. Validar ingreso con código erróneo es rechazado
     resp_ingreso_malo = client.post(
         "/scheduling/validar-ingreso",
+        headers=headers_estudiante,
         json={
             "convocatoria_id": str(convocatoria_id),
             "estudiante_id": str(estudiante_id),
             "codigo_acceso": "codigo_completamente_falso",
-            "tolerancia_minutos": 15,
         },
     )
     assert resp_ingreso_malo.status_code == 403

@@ -3,11 +3,14 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.db.session import get_db, get_session_factory
+from app.modules.scheduling.api.dependencies import exigir_contexto_convocatoria
+from app.modules.identity.api.academic_dependencies import obtener_docente_scheduling, obtener_estudiante_scheduling
 from app.modules.scheduling.api.schemas import (
     ProgramarSesionRequest,
     CambiarEstadoRequest,
@@ -45,6 +48,9 @@ from app.modules.scheduling.application.notificar_calificacion import (
 from app.modules.scheduling.domain.state import (
     TransicionInvalidaError,
 )
+from app.modules.scheduling.domain.ingress_policy import (
+    PoliticaIngreso, PoliticaIngresoNoConfigurada, PoliticaTemporalNoDisponible, RelojIngreso, RelojServidor,
+)
 from app.modules.scheduling.infrastructure.models import (
     EspacioAcademicoModel,
     SesionProgramadaModel,
@@ -62,23 +68,28 @@ router = APIRouter(
 )
 
 
-def obtener_docente_autenticado() -> UUID:
-    """
-    Pendiente: conectar con el módulo de identidad.
-
-    Por seguridad, se bloquean las operaciones hasta que
-    exista una dependencia JWT real y validada.
-    """
-    raise HTTPException(
-        status_code=503,
-        detail="Autenticación docente pendiente de integración.",
-    )
+def obtener_docente_autenticado(
+    docente_id: Annotated[UUID, Depends(obtener_docente_scheduling)],
+) -> UUID:
+    """Sin resolver persistente real no se habilita ninguna operación docente."""
+    return docente_id
 
 
 Docente = Annotated[
     UUID,
     Depends(obtener_docente_autenticado),
 ]
+
+Estudiante = Annotated[UUID, Depends(obtener_estudiante_scheduling)]
+
+
+def exigir_politica_ingreso_configurada() -> PoliticaIngreso:
+    """Sin regla RF-22 aprobada: el servicio rechaza, sin un límite inventado."""
+    return PoliticaIngresoNoConfigurada()
+
+
+def obtener_reloj_ingreso() -> RelojIngreso:
+    return RelojServidor()
 
 BaseDatos = Annotated[
     Session,
@@ -99,7 +110,7 @@ FabricaSesion = Annotated[
     "/espacios",
     response_model=list[EspacioAcademicoResponse],
 )
-def listar_espacios(db: BaseDatos):
+def listar_espacios(docente_id: Docente, db: BaseDatos):
     """Lista todos los espacios académicos disponibles."""
     consulta = select(EspacioAcademicoModel).order_by(EspacioAcademicoModel.nombre)
     return db.scalars(consulta).all()
@@ -132,14 +143,17 @@ def crear_espacio(
     response_model=list[SesionResponse],
 )
 def listar_sesiones(
+    docente_autenticado: Docente,
     db: BaseDatos,
     docente_id: UUID | None = None,
     espacio_id: UUID | None = None,
 ):
     """Lista las sesiones programadas con filtros opcionales."""
-    consulta = select(SesionProgramadaModel)
-    if docente_id is not None:
-        consulta = consulta.where(SesionProgramadaModel.docente_id == docente_id)
+    if docente_id is not None and docente_id != docente_autenticado:
+        raise HTTPException(status_code=403, detail="No tienes permiso para consultar sesiones de otro docente.")
+    consulta = select(SesionProgramadaModel).where(
+        SesionProgramadaModel.docente_id == docente_autenticado,
+    )
     if espacio_id is not None:
         consulta = consulta.where(SesionProgramadaModel.espacio_academico_id == espacio_id)
     consulta = consulta.order_by(SesionProgramadaModel.fecha_inicio.desc())
@@ -152,6 +166,7 @@ def listar_sesiones(
 )
 def obtener_sesion(
     sesion_id: UUID,
+    docente_id: Docente,
     db: BaseDatos,
 ):
     """Obtiene el detalle de una sesión académica."""
@@ -161,6 +176,8 @@ def obtener_sesion(
             status_code=404,
             detail="Sesión no encontrada.",
         )
+    if sesion.docente_id != docente_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para consultar esta sesión.")
     return sesion
 
 
@@ -366,27 +383,33 @@ def convocar_estudiante(
 )
 def validar_ingreso_estudiante(
     datos: ValidarIngresoRequest,
+    estudiante_id: Estudiante,
+    politica: Annotated[PoliticaIngreso, Depends(exigir_politica_ingreso_configurada)],
+    contexto: Annotated[None, Depends(exigir_contexto_convocatoria)],
+    reloj: Annotated[RelojIngreso, Depends(obtener_reloj_ingreso)],
     db: BaseDatos,
+    respuesta: Response,
 ):
-    """Valida el ingreso de un estudiante mediante código, convocatoria y horario (RF-22)."""
+    """Requiere titular autenticado además de código, convocatoria y horario."""
+    if datos.estudiante_id != estudiante_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para validar el ingreso de otro estudiante.")
+    respuesta.headers["Cache-Control"] = "no-store"
     try:
         return validar_ingreso(
             db,
             convocatoria_id=datos.convocatoria_id,
-            estudiante_id=datos.estudiante_id,
+            estudiante_id=estudiante_id,
             codigo_acceso=datos.codigo_acceso,
-            tolerancia_minutos=datos.tolerancia_minutos,
+            politica=politica,
+            reloj=reloj,
         )
     except ErrorIngreso as error:
         raise HTTPException(
             status_code=403,
             detail=str(error),
         ) from error
-    except ValueError as error:
-        raise HTTPException(
-            status_code=422,
-            detail=str(error),
-        ) from error
+    except (PoliticaTemporalNoDisponible, SQLAlchemyError):
+        raise HTTPException(503, detail="Política temporal o infraestructura de ingreso no disponible.") from None
 
 
 # =========================================================================
@@ -399,12 +422,17 @@ def validar_ingreso_estudiante(
 )
 def listar_notificaciones(
     destinatario_id: UUID,
+    estudiante_id: Estudiante,
     db: BaseDatos,
+    respuesta: Response,
 ):
-    """Consulta las notificaciones de un usuario/estudiante (RF-21)."""
+    """Solo las notificaciones del estudiante resuelto por el servidor."""
+    if destinatario_id != estudiante_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para consultar notificaciones ajenas.")
+    respuesta.headers["Cache-Control"] = "no-store"
     consulta = (
         select(NotificacionModel)
-        .where(NotificacionModel.destinatario_id == destinatario_id)
+        .where(NotificacionModel.destinatario_id == estudiante_id)
         .order_by(NotificacionModel.creada_en.desc())
     )
     return db.scalars(consulta).all()

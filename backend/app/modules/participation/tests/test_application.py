@@ -116,13 +116,13 @@ def test_modificar_conserva_id_y_no_duplica_seleccion(entorno: Entorno) -> None:
     entorno.iniciar()
     entorno.responder()
     anterior = entorno.almacen.intentos[10]
-    entorno.facade.modificar_decision(
-        id_estudiante=7, id_intento=10, id_decision=50, id_opcion=61,
-    )
+    from app.modules.participation.domain.errors import RespuestaInmutable
+    with pytest.raises(RespuestaInmutable):
+        entorno.facade.modificar_decision(id_estudiante=7, id_intento=10, id_decision=50, id_opcion=61)
     actual = entorno.almacen.intentos[10]
     assert len(actual.pasos) == 1
     assert actual.pasos[0].id_paso == anterior.pasos[0].id_paso
-    assert actual.pasos[0].id_opcion == 61
+    assert actual == anterior
     assert anterior.pasos[0].id_opcion == 60
 
 
@@ -141,7 +141,8 @@ def test_politica_de_cambio_pendiente_no_sobrescribe_seleccion(entorno: Entorno)
     entorno.iniciar()
     entorno.responder()
     entorno.cases.regla_pendiente = True
-    with pytest.raises(ReglaPendiente):
+    from app.modules.participation.domain.errors import RespuestaInmutable
+    with pytest.raises(RespuestaInmutable):
         entorno.facade.modificar_decision(
             id_estudiante=7, id_intento=10, id_decision=50, id_opcion=61,
         )
@@ -155,7 +156,8 @@ def test_cambiar_rama_no_borra_pasos_posteriores_por_iniciativa_de_la_fachada(en
     entorno.responder()
     entorno.responder(id_decision=51, id_opcion=62)
     anterior = entorno.almacen.intentos[10]
-    with pytest.raises(ReglaPendiente):
+    from app.modules.participation.domain.errors import RespuestaInmutable
+    with pytest.raises(RespuestaInmutable):
         entorno.facade.modificar_decision(
             id_estudiante=7, id_intento=10, id_decision=50, id_opcion=61,
         )
@@ -309,9 +311,9 @@ def test_error_al_guardar_no_pierde_seleccion_confirmada(entorno: Entorno, depen
     anterior = entorno.almacen.intentos[10]
     getattr(entorno, dependencia).fallar_en.add(metodo)
     with pytest.raises(RuntimeError):
-        entorno.facade.modificar_decision(
-            id_estudiante=7, id_intento=10, id_decision=50, id_opcion=61,
-        )
+        # La reescritura se rechaza antes de dependencias. Probar el fallo real
+        # al añadir otra pregunta conserva la cobertura transaccional anterior.
+        entorno.responder(id_decision=51, id_opcion=62)
     assert entorno.almacen.intentos[10] == anterior
     assert entorno.almacen.commits == 2
 
@@ -396,9 +398,7 @@ def test_fallo_de_guardado_no_pierde_respuesta_previa(entorno: Entorno) -> None:
     anterior = entorno.almacen.intentos[10]
     entorno.almacen.fallo_guardado = True
     with pytest.raises(RuntimeError):
-        entorno.facade.modificar_decision(
-            id_estudiante=7, id_intento=10, id_decision=50, id_opcion=61,
-        )
+        entorno.responder(id_decision=51, id_opcion=62)
     assert entorno.almacen.intentos[10] == anterior
     assert entorno.almacen.commits == 2
 

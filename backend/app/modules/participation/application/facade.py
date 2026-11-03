@@ -8,6 +8,7 @@ from app.modules.participation.application.services import (
     ServicioCierre, ServicioDecisiones, ServicioInicio, ServicioProgreso,
 )
 from app.modules.participation.domain.clock import Reloj
+from app.modules.participation.domain.entities import IdentificadorCases
 from app.modules.participation.domain.evaluation import DatosEvaluacion
 
 
@@ -35,8 +36,8 @@ class ParticipacionFacade:
         )
 
     def registrar_decision(
-        self, *, id_estudiante: int, id_intento: int, id_decision: int,
-        id_opcion: int, reflexion_estudiante: str | None = None,
+        self, *, id_estudiante: int, id_intento: int, id_decision: IdentificadorCases,
+        id_opcion: IdentificadorCases, reflexion_estudiante: str | None = None,
     ) -> ResumenIntento:
         return self._decisiones.guardar(
             id_estudiante=id_estudiante, id_intento=id_intento, id_decision=id_decision,
@@ -44,8 +45,8 @@ class ParticipacionFacade:
         )
 
     def modificar_decision(
-        self, *, id_estudiante: int, id_intento: int, id_decision: int,
-        id_opcion: int, reflexion_estudiante: str | None = None,
+        self, *, id_estudiante: int, id_intento: int, id_decision: IdentificadorCases,
+        id_opcion: IdentificadorCases, reflexion_estudiante: str | None = None,
     ) -> ResumenIntento:
         return self._decisiones.guardar(
             id_estudiante=id_estudiante, id_intento=id_intento, id_decision=id_decision,

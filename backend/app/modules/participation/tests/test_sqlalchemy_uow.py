@@ -144,3 +144,16 @@ def test_fuera_de_contexto_no_hay_repositorio_activo():
         pass
     with pytest.raises(RuntimeError):
         _ = unidad.repositorio
+
+
+@pytest.mark.parametrize("codigo", ["23505", "40001", "40P01"])
+def test_conflicto_antes_de_commit_revierte_y_se_traduce(codigo):
+    sesion = Session()
+    original = RuntimeError("diagnóstico privado")
+    original.sqlstate = codigo
+    fallo = IntegrityError("sentencia", {}, original)
+    with pytest.raises(ConflictoActualizacion) as error:
+        with UnidadTrabajoSQLAlchemy(lambda s: SimpleNamespace(), crear_sesion=lambda: sesion):
+            raise fallo
+    assert not sesion.in_transaction()
+    assert "privado" not in str(error.value)

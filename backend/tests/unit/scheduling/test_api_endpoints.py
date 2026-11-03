@@ -1,3 +1,6 @@
+from tests.unit.scheduling.ingress_support import politica_fixture
+from app.modules.scheduling.api.dependencies import exigir_contexto_convocatoria
+from app.modules.scheduling.api.router import exigir_politica_ingreso_configurada
 """Pruebas unitarias de los endpoints de la API de Scheduling."""
 
 from datetime import datetime, timezone
@@ -8,6 +11,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
+from app.modules.identity.api.academic_dependencies import obtener_estudiante_scheduling
 from app.db.session import get_db
 from app.main import app
 from app.modules.scheduling.api.router import (
@@ -54,12 +58,23 @@ def entorno_publico():
         app.dependency_overrides.update(anteriores)
 
 
+@pytest.fixture
+def entorno_estudiante(entorno_publico):
+    # Fixture de router: autorización sustituida; la suite de seguridad prueba JWT.
+    client, db = entorno_publico
+    estudiante_id = uuid4()
+    app.dependency_overrides[obtener_estudiante_scheduling] = lambda: estudiante_id
+    app.dependency_overrides[exigir_politica_ingreso_configurada] = lambda: politica_fixture(15)
+    app.dependency_overrides[exigir_contexto_convocatoria] = lambda: None
+    yield client, db, estudiante_id
+
+
 # -------------------------------------------------------------------------
 # Espacios Académicos (RF-04 / RF-18)
 # -------------------------------------------------------------------------
 
-def test_listar_espacios_vacio(entorno_publico):
-    client, db = entorno_publico
+def test_listar_espacios_vacio(entorno_docente):
+    client, db, docente_id = entorno_docente
     db.scalars.return_value.all.return_value = []
 
     respuesta = client.get("/scheduling/espacios")
@@ -67,8 +82,8 @@ def test_listar_espacios_vacio(entorno_publico):
     assert respuesta.json() == []
 
 
-def test_listar_espacios_con_datos(entorno_publico):
-    client, db = entorno_publico
+def test_listar_espacios_con_datos(entorno_docente):
+    client, db, docente_id = entorno_docente
     espacio_id = uuid4()
     espacio = SimpleNamespace(id=espacio_id, nombre="Laboratorio 101")
     db.scalars.return_value.all.return_value = [espacio]
@@ -103,15 +118,15 @@ def test_crear_espacio_autorizado(entorno_docente):
 # Sesiones Académicas (RF-18, RF-19)
 # -------------------------------------------------------------------------
 
-def test_obtener_sesion_existente(entorno_publico):
-    client, db = entorno_publico
+def test_obtener_sesion_existente(entorno_docente):
+    client, db, docente_id = entorno_docente
     sesion_id = uuid4()
     ahora = datetime(2026, 11, 10, 10, 0, tzinfo=timezone.utc)
     sesion = SimpleNamespace(
         id=sesion_id,
         espacio_academico_id=uuid4(),
         version_caso_id=uuid4(),
-        docente_id=uuid4(),
+        docente_id=docente_id,
         fecha_inicio=ahora,
         fecha_fin=ahora,
         tiempo_maximo_minutos=40,
@@ -128,8 +143,8 @@ def test_obtener_sesion_existente(entorno_publico):
     assert respuesta.json()["estado"] == "EN_CURSO"
 
 
-def test_obtener_sesion_inexistente(entorno_publico):
-    client, db = entorno_publico
+def test_obtener_sesion_inexistente(entorno_docente):
+    client, db, docente_id = entorno_docente
     db.get.return_value = None
 
     respuesta = client.get(f"/scheduling/sesiones/{uuid4()}")
@@ -179,8 +194,8 @@ def test_listar_convocatorias_docente_no_propietario(entorno_docente):
 # Validación de Ingreso de Estudiantes (RF-22)
 # -------------------------------------------------------------------------
 
-def test_validar_ingreso_estudiante_exitoso(entorno_publico):
-    client, db = entorno_publico
+def test_validar_ingreso_estudiante_exitoso(entorno_estudiante):
+    client, db, estudiante_id = entorno_estudiante
 
     sesion_id = uuid4()
     ahora = datetime(2026, 11, 10, 10, 0, tzinfo=timezone.utc)
@@ -206,9 +221,8 @@ def test_validar_ingreso_estudiante_exitoso(entorno_publico):
             "/scheduling/validar-ingreso",
             json={
                 "convocatoria_id": str(uuid4()),
-                "estudiante_id": str(uuid4()),
+                "estudiante_id": str(estudiante_id),
                 "codigo_acceso": "codigo_correcto_123",
-                "tolerancia_minutos": 15,
             },
         )
         assert respuesta.status_code == 200
@@ -216,8 +230,8 @@ def test_validar_ingreso_estudiante_exitoso(entorno_publico):
         assert respuesta.json()["estado"] == "EN_CURSO"
 
 
-def test_validar_ingreso_estudiante_denegado(entorno_publico):
-    client, db = entorno_publico
+def test_validar_ingreso_estudiante_denegado(entorno_estudiante):
+    client, db, estudiante_id = entorno_estudiante
 
     with patch(
         "app.modules.scheduling.api.router.validar_ingreso",
@@ -227,9 +241,8 @@ def test_validar_ingreso_estudiante_denegado(entorno_publico):
             "/scheduling/validar-ingreso",
             json={
                 "convocatoria_id": str(uuid4()),
-                "estudiante_id": str(uuid4()),
+                "estudiante_id": str(estudiante_id),
                 "codigo_acceso": "codigo_incorrecto",
-                "tolerancia_minutos": 15,
             },
         )
         assert respuesta.status_code == 403
@@ -240,9 +253,9 @@ def test_validar_ingreso_estudiante_denegado(entorno_publico):
 # Notificaciones (RF-21, RF-27)
 # -------------------------------------------------------------------------
 
-def test_listar_notificaciones_estudiante(entorno_publico):
-    client, db = entorno_publico
-    destinatario_id = uuid4()
+def test_listar_notificaciones_estudiante(entorno_estudiante):
+    client, db, estudiante_id = entorno_estudiante
+    destinatario_id = estudiante_id
     notif = SimpleNamespace(
         id=uuid4(),
         convocatoria_id=uuid4(),

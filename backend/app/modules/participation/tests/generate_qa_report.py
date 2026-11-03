@@ -62,10 +62,10 @@ def generar(junit: Path, salida: Path) -> None:
         raise ValueError("JUnit no contiene evidencia funcional; ejecutar con -o junit_family=xunit1.")
     lineas += ["", f"Filas de evidencia HTTP registradas: {filas}.", "", "## Escenario completo y defectos", "",
         "`test_flujo_funcional_completo_http_con_trazabilidad` materializa la participación en el fake,",
-        "inicia por HTTP, registra dos decisiones, consulta progreso, modifica la primera conservando dos pasos,",
+        "inicia por HTTP, registra dos decisiones inmutables, consulta progreso y rechaza PUT conservando ambas,",
         "finaliza, rechaza edición, repite cierre sin escrituras y obtiene PENDIENTE antes de evaluar.",
         "Después solicita explícitamente la evaluación backend mediante Facade (no existe un endpoint que la dispare),",
-        "confirma el cálculo real con política ficticia y lee DEFINITIVA 2.50 por HTTP. No se duplica al reintentar.", "",
+        "confirma el cálculo real con política ficticia y lee DEFINITIVA 4.00 por HTTP. No se duplica al reintentar.", "",
         "Los espías de trazabilidad invocan los métodos originales: no reemplazan el dominio ni el cálculo.",
         "Secuencia registrada:", "", "```text", " → ".join(trazas), "```", "",
         "Defecto reproducido: la captura `except Exception` del router ocultaba RuntimeError al TestClient normal.",
