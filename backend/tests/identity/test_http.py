@@ -116,9 +116,9 @@ def test_usuario_eliminado_o_inactivo_pierde_acceso(cliente, escenario, cabecera
     assert cliente.get(BASE + "/me", headers=headers).status_code == 401
 
 
-def test_estudiante_necesita_contexto_convocatoria_en_su_jwt(cliente, tokens):
+def test_estudiante_consulta_su_identidad_sin_contexto_de_sesion(cliente, tokens):
     respuesta = cliente.get(BASE + "/me", headers={"Authorization": "Bearer " + tokens.emitir("estudiante-1")})
-    assert respuesta.status_code == 401
+    assert respuesta.status_code == 200
 
 
 def test_login_http_emite_jwt_tras_validar_correo_y_codigo(aplicacion, cliente, escenario, tokens):
@@ -144,9 +144,11 @@ def test_validacion_no_revela_codigo_ni_valores_rechazados(cliente):
     assert secreto not in respuesta.text and "ADMINISTRADOR" not in respuesta.text
 
 
-def test_produccion_sin_adaptadores_no_simula_login():
+def test_produccion_sin_configuracion_no_simula_login():
+    from app.modules.identity.api.dependencies import obtener_dominios_login
     app = FastAPI()
     app.include_router(router)
+    app.dependency_overrides[obtener_dominios_login] = lambda: ()
     with TestClient(app) as cliente:
         respuesta = cliente.post(BASE + "/auth/estudiantes", json={
             "correo": "alumno@universidad.test", "codigo_convocatoria": "inventado",

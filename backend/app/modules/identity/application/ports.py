@@ -7,6 +7,7 @@ Las firmas académicas y su adaptación transaccional aún requieren acuerdo.
 from collections.abc import Callable
 from types import TracebackType
 from typing import Protocol, Self
+from uuid import UUID
 
 from app.modules.identity.domain.entities import (
     AccesoConvocatoria, AutorizacionRepeticion, AutorizacionesDocente,
@@ -23,6 +24,12 @@ class RepositorioUsuarios(Protocol):
     def asignar_autorizaciones(self, id_docente: str, autorizaciones: AutorizacionesDocente) -> ContextoAcceso: ...
 
 
+class ConsultaCuentaPorCorreo(Protocol):
+    def obtener_por_correo(self, correo: str) -> ContextoAcceso | None:
+        """Cuenta existente única tras normalización; ambigüedad falla cerrada."""
+        ...
+
+
 class ValidadorConvocatoria(Protocol):
     def validar(self, correo: str, codigo: str) -> AccesoConvocatoria | None:
         """Valida la pareja completa contra la convocatoria vigente y autorizada.
@@ -30,6 +37,12 @@ class ValidadorConvocatoria(Protocol):
         Debe comprobar pertenencia/retiro y no identificar solo por correo ni
         generar códigos. Ninguna excepción o diagnóstico debe revelar el código.
         """
+        ...
+
+
+class ValidadorContextoConvocatoria(Protocol):
+    def validar_contexto(self, *, id_usuario: str, contexto: str | None, solicitada: UUID) -> None:
+        """Exige convocatoria del token, titularidad y vigencia actuales; no horario."""
         ...
 
 

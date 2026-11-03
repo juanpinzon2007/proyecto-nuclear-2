@@ -1,12 +1,12 @@
-"""Contratos de consumo propuestos; todavía no hay adaptadores ni autorización real."""
+"""Puertos de Application; los adaptadores 8B no habilitan el inicio productivo."""
 
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from types import TracebackType
 from typing import Callable, Protocol, Self
 
 from app.modules.participation.application.dto import RecorridoAplicable, SeleccionDecision
-from app.modules.participation.domain.entities import Intento, Participacion
+from app.modules.participation.domain.entities import Intento, Participacion, IdentificadorCases
 
 
 @dataclass(frozen=True)
@@ -18,7 +18,7 @@ class CondicionesIntento:
 
 
 class CasesPort(Protocol):
-    def validar_opcion(self, *, id_caso: int, id_decision: int, id_opcion: int) -> None:
+    def validar_opcion(self, *, id_caso: int, id_decision: IdentificadorCases, id_opcion: IdentificadorCases) -> None:
         """Rechaza decisiones/opciones ajenas al caso o a la decisión indicada.
 
         No devuelve aciertos, justificaciones ni puntajes durante el intento.
@@ -88,8 +88,16 @@ class SchedulingPort(Protocol):
         """
         ...
 
-    def validar_edicion(self, *, id_asignacion: int, id_grupo_estudiante: int) -> None:
+    def validar_edicion(self, *, id_asignacion: int, id_grupo_estudiante: int, operacion: str = "RESPONDER") -> None:
         """Rechaza edición si la asignación o la pertenencia ya no la permiten."""
+        ...
+
+    def validar_instante_registro(self, *, instante: datetime) -> None:
+        """Revalida la hora del paso sobre las condiciones bloqueadas de esta UoW.
+
+        Evita que una validación iniciada antes del cierre registre un paso fuera
+        de horario. No acepta una autorización de otra transacción.
+        """
         ...
 
     def obtener_id_caso(self, *, id_asignacion: int) -> int:

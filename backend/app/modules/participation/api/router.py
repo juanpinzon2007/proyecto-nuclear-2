@@ -1,6 +1,7 @@
 """Rutas PROVISIONALES, sin registrar en main.py hasta acordar contratos y seguridad."""
 
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path
 
@@ -16,6 +17,7 @@ from app.modules.participation.api.schemas import (
 from app.modules.participation.application.facade import ParticipacionFacade
 
 IdRuta = Annotated[int, Path(gt=0)]
+IdDecisionRuta = UUID | IdRuta
 Estudiante = Annotated[EstudianteAutenticado, Depends(obtener_estudiante_actual)]
 Facade = Annotated[ParticipacionFacade, Depends(obtener_facade)]
 
@@ -44,7 +46,7 @@ def iniciar_intento(participation_id: IdRuta, solicitud: InicioIntentoSolicitud,
 
 @router.post("/attempts/{attempt_id}/decisions/{decision_id}", response_model=IntentoRespuesta, status_code=201,
              summary="Provisional: registrar una selección nueva")
-def registrar_decision(attempt_id: IdRuta, decision_id: IdRuta, solicitud: SeleccionSolicitud, estudiante: Estudiante, facade: Facade):
+def registrar_decision(attempt_id: IdRuta, decision_id: IdDecisionRuta, solicitud: SeleccionSolicitud, estudiante: Estudiante, facade: Facade):
     return mapear_intento(facade.registrar_decision(
         id_estudiante=estudiante.id_estudiante, id_intento=attempt_id, id_decision=decision_id,
         id_opcion=solicitud.id_opcion, reflexion_estudiante=solicitud.reflexion_estudiante,
@@ -52,8 +54,8 @@ def registrar_decision(attempt_id: IdRuta, decision_id: IdRuta, solicitud: Selec
 
 
 @router.put("/attempts/{attempt_id}/decisions/{decision_id}", response_model=IntentoRespuesta,
-            summary="Provisional: reemplazar una selección ya registrada")
-def modificar_decision(attempt_id: IdRuta, decision_id: IdRuta, solicitud: SeleccionSolicitud, estudiante: Estudiante, facade: Facade):
+            deprecated=True, summary="Provisional: operación rechazada; respuestas inmutables")
+def modificar_decision(attempt_id: IdRuta, decision_id: IdDecisionRuta, solicitud: SeleccionSolicitud, estudiante: Estudiante, facade: Facade):
     return mapear_intento(facade.modificar_decision(
         id_estudiante=estudiante.id_estudiante, id_intento=attempt_id, id_decision=decision_id,
         id_opcion=solicitud.id_opcion, reflexion_estudiante=solicitud.reflexion_estudiante,

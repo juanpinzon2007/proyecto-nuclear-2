@@ -57,6 +57,27 @@ class RepositorioUsuariosSQLAlchemy:
         except SQLAlchemyError:
             raise IntegracionPendiente() from None
 
+    def obtener_por_correo(self, correo: str) -> ContextoAcceso | None:
+        normalizado = normalizar_correo(correo)
+        try:
+            # El UNIQUE actual no cubre strip/casefold. Leer solo IDs/correos y
+            # comparar con la misma normalización Python, también para Unicode.
+            # Un índice normalizado requerirá reconciliación/migración posterior.
+            candidatos = []
+            with self.sesion.no_autoflush:
+                for identificador, guardado in self.sesion.execute(select(UsuarioORM.id_usuario, UsuarioORM.correo)):
+                    try:
+                        coincide = normalizar_correo(guardado) == normalizado
+                    except ReglaIdentidadInvalida:
+                        continue
+                    if coincide:
+                        candidatos.append(identificador)
+            if len(candidatos) > 1:
+                raise IntegracionPendiente()
+            return self.obtener(str(candidatos[0])) if candidatos else None
+        except SQLAlchemyError:
+            raise IntegracionPendiente() from None
+
     def permisos_existentes(self, permisos: frozenset[str]) -> bool:
         if any(not p.strip() or len(p) > 80 for p in permisos):
             return False

@@ -112,11 +112,12 @@ def test_registro_modificacion_y_progreso_usan_fachada_real(entorno):
     entorno.iniciar()
     entorno.responder()
     respuesta = entorno.client.put(DECISION_URL, json={"id_opcion": 61, "reflexion_estudiante": "Revisé mi elección"})
-    assert respuesta.status_code == 200
-    assert entorno.almacen.intentos[10].pasos[0].reflexion_estudiante == "Revisé mi elección"
+    assert respuesta.status_code == 409
+    assert respuesta.json()["detail"]["codigo"] == "RESPUESTA_INMUTABLE"
+    assert entorno.almacen.intentos[10].pasos[0].reflexion_estudiante is None
     progreso = entorno.client.get(PROGRESO_URL)
     assert progreso.status_code == 200
-    assert progreso.json()["selecciones"] == [{"id_decision": 50, "id_opcion": 61}]
+    assert progreso.json()["selecciones"] == [{"id_decision": 50, "id_opcion": 60}]
     assert progreso.json()["respondidas"] == 1
     assert progreso.json()["pendientes"] == [51]
     assert progreso.json()["total_aplicable"] == 2
@@ -136,10 +137,10 @@ def test_progreso_no_inventa_total_en_ruta_ramificada(entorno):
 def test_post_duplicado_no_crea_otra_seleccion_y_put_no_es_upsert(entorno):
     entorno.iniciar()
     respuesta = entorno.client.put(DECISION_URL, json={"id_opcion": 60})
-    assert respuesta.status_code == 422
-    assert respuesta.json()["detail"]["codigo"] == "REGLA_DOMINIO"
+    assert respuesta.status_code == 409
+    assert respuesta.json()["detail"]["codigo"] == "RESPUESTA_INMUTABLE"
     entorno.responder()
-    assert entorno.client.post(DECISION_URL, json={"id_opcion": 61}).status_code == 422
+    assert entorno.client.post(DECISION_URL, json={"id_opcion": 61}).status_code == 409
     assert len(entorno.almacen.intentos[10].pasos) == 1
 
 
@@ -157,7 +158,7 @@ def test_cambio_de_ruta_pendiente_no_borra_respuestas(entorno):
     entorno.client.post("/api/v1/attempts/10/decisions/51", json={"id_opcion": 62})
     anteriores = entorno.almacen.intentos[10].pasos
     respuesta = entorno.client.put(DECISION_URL, json={"id_opcion": 61})
-    assert respuesta.status_code == 503
+    assert respuesta.status_code == 409
     assert entorno.almacen.intentos[10].pasos == anteriores
     sin_datos_academicos(respuesta.json())
 
@@ -305,15 +306,16 @@ def test_cerrados_por_defecto_aun_si_router_se_registrara_accidentalmente(entorn
     entorno.app.dependency_overrides.clear()
     datos = {"json": cuerpo} if cuerpo is not None else {}
     respuesta = entorno.client.request(metodo, ruta, **datos)
-    assert respuesta.status_code == 503
-    assert respuesta.json()["detail"]["codigo"] == "SEGURIDAD_NO_CONFIGURADA"
+    assert respuesta.status_code == 401
+    assert respuesta.json()["detail"]["codigo"] == "NO_AUTENTICADO"
+    assert respuesta.headers["www-authenticate"] == "Bearer"
     assert entorno.almacen.intentos == {}
 
 
 def test_override_facade_solo_no_elimina_exigencia_de_identidad(entorno):
     del entorno.app.dependency_overrides[obtener_estudiante_actual]
     respuesta = entorno.client.post(INICIO_URL, json={"id_consentimiento": 30})
-    assert respuesta.status_code == 503
+    assert respuesta.status_code == 401
     assert entorno.almacen.commits == 0
 
 
@@ -325,12 +327,17 @@ def test_identidad_sola_no_habilita_adaptadores_inexistentes(entorno):
 
 
 def test_headers_y_query_de_identidad_no_autentican(entorno):
+    from app.modules.identity.api.dependencies import obtener_fabrica_tokens
+    from app.modules.identity.infrastructure.security import TokensJWT
+
     entorno.app.dependency_overrides.clear()
+    tokens = TokensJWT("clave-solo-tests-participation-8a-" * 2, "tests", "tests")
+    entorno.app.dependency_overrides[obtener_fabrica_tokens] = lambda: lambda: tokens
     respuesta = entorno.client.post(
         INICIO_URL + "?student_id=7", json={"id_consentimiento": 30},
         headers={"X-Student-ID": "7", "Authorization": "Bearer token-inventado"},
     )
-    assert respuesta.status_code == 503
+    assert respuesta.status_code == 401
     assert entorno.almacen.intentos == {}
 
 

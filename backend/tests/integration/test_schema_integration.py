@@ -8,6 +8,7 @@ import sys
 from uuid import uuid4
 
 from alembic import command
+from tests.identity.academic_identity_support import preparar_esquema_actual_aislado, retirar_ddl_resultados_sqlite
 from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
@@ -28,6 +29,10 @@ from tests.identity.test_persistence import base_aislada, configuracion_alembic
 
 
 # Migracion final que unifica Identity, Cases y Scheduling.
+HEAD_IDENTIDADES = "20261031_academic_identity"
+HEAD_ER28 = "20261101_er28_base_academica"
+HEAD_CASES = "20261102_cases_history_guard"
+HEAD_BRIDGE = "20261102_steps_uuid"
 MERGE = "6867083574f6"
 
 # Merge anterior entre Identity y Cases.
@@ -60,6 +65,7 @@ IDENTITY_TABLES = {
     "rol",
     "permiso",
     "rol_permiso",
+    "identidad_academica",
 }
 
 SCHEDULING_TABLES = {
@@ -70,10 +76,16 @@ SCHEDULING_TABLES = {
     "evento_auditoria",
 }
 
+ER28_BASE_TABLES = {"grupo_academico", "grupo_estudiante", "consentimiento"}
+
 INTEGRATED_TABLES = (
     CASO_TABLES
     | IDENTITY_TABLES
     | SCHEDULING_TABLES
+    | ER28_BASE_TABLES
+    | {"asignacion_caso"}
+    | {"participacion", "intento", "permiso_intento_extra"}
+    | {"paso_simulacion", "resultado_intento", "resultado_criterio", "retroalimentacion_docente"}
 )
 
 
@@ -84,33 +96,30 @@ def test_registro_compartido_es_cerrado_y_no_crea_tablas_academicas_ficticias():
 
     # El esquema integrado contiene los tres modulos migrados.
     assert set(metadata.tables) == INTEGRATED_TABLES
-    assert len(metadata.tables) == 18
+    assert len(metadata.tables) == 30
 
     # Todas las tablas deben poder ordenarse resolviendo sus FK.
     assert {tabla.name for tabla in metadata.sorted_tables} == set(metadata.tables)
 
     # Participation y algunas entidades academicas siguen pendientes.
-    assert "participacion" not in metadata.tables
-    assert "asignacion_caso" not in metadata.tables
+    assert "participacion" in metadata.tables
+    assert "asignacion_caso" in metadata.tables
 
     # No deben registrarse tablas ficticias para resolver dependencias.
-    assert "permiso_intento_extra" not in metadata.tables
-    assert "retroalimentacion_docente" not in metadata.tables
+    assert "permiso_intento_extra" in metadata.tables
+    assert "retroalimentacion_docente" in metadata.tables
 
 
 def test_modelos_pendientes_conservan_base_registry_y_todas_las_fk():
-    assert set(academic_metadata.tables) == {
-        "permiso_intento_extra",
-        "retroalimentacion_docente",
-    }
+    assert set(academic_metadata.tables) == set()
 
     for modelo in (
-        PermisoIntentoExtraORM,
         RetroalimentacionDocenteORM,
     ):
         assert issubclass(modelo, Base)
         assert modelo.__mapper__.registry is Base.registry
-        assert modelo.__table__.metadata is academic_metadata
+        assert modelo.__table__.metadata is Base.metadata
+    assert PermisoIntentoExtraORM.__table__.metadata is Base.metadata
 
     assert {
         fk.target_fullname
@@ -125,13 +134,14 @@ def test_modelos_pendientes_conservan_base_registry_y_todas_las_fk():
         for fk in RetroalimentacionDocenteORM.__table__.foreign_keys
     } == {
         "asignacion_caso.id_asignacion",
+        "participacion.id_participacion",
         "usuario.id_usuario",
     }
 
     # El esquema pendiente tiene dependencias sin resolver.
     # No deben ocultarse mediante tablas ficticias.
-    with pytest.raises(NoReferencedTableError):
-        validar_referencias(academic_metadata)
+    validar_referencias(academic_metadata)
+    validar_referencias(Base.metadata)
 
 
 def test_registro_no_descarta_fk_desconocidas_para_ignorar_errores():
@@ -165,7 +175,9 @@ tablas = dict(metadata.tables)
 {despues}
 
 assert dict(registrar_modelos_integrados().tables) == tablas
-assert len(tablas) == 18
+assert len(tablas) == 30
+
+assert {{'grupo_academico', 'grupo_estudiante', 'consentimiento'}} <= set(tablas)
 
 assert 'espacio_academico' in tablas
 assert 'sesion_programada' in tablas
@@ -173,10 +185,10 @@ assert 'convocatoria' in tablas
 assert 'notificacion' in tablas
 assert 'evento_auditoria' in tablas
 
-assert 'permiso_intento_extra' not in tablas
-assert 'retroalimentacion_docente' not in tablas
-assert 'participacion' not in tablas
-assert 'asignacion_caso' not in tablas
+assert 'permiso_intento_extra' in tablas
+assert 'retroalimentacion_docente' in tablas
+assert 'participacion' in tablas
+assert 'asignacion_caso' in tablas
 """.format(
         primero=(
             "import app.modules.identity.infrastructure.academic_models"
@@ -216,7 +228,15 @@ def test_merge_desde_base_cada_rama_y_dos_ramas_preserva_datos(iniciales):
             script = ScriptDirectory.from_config(config)
 
             # Debe existir una sola cabeza final.
-            assert script.get_heads() == [MERGE]
+            assert script.get_heads() == ["20261102_immutable_answers"]
+            assert script.get_revision("20261102_academic_policy").down_revision == "20261102_evaluation_results"
+            assert script.get_revision("20261102_evaluation_results").down_revision == HEAD_BRIDGE
+            assert script.get_revision(HEAD_BRIDGE).down_revision == "20261102_participation_history"
+            assert script.get_revision("20261102_participation_history").down_revision == "20261102_assignment_bridge"
+            assert script.get_revision("20261102_assignment_bridge").down_revision == HEAD_CASES
+            assert script.get_revision(HEAD_CASES).down_revision == HEAD_ER28
+            assert script.get_revision(HEAD_ER28).down_revision == HEAD_IDENTIDADES
+            assert script.get_revision(HEAD_IDENTIDADES).down_revision == MERGE
 
             # El merge final une Identity/Cases con Scheduling.
             assert set(
@@ -271,15 +291,15 @@ def test_merge_desde_base_cada_rama_y_dos_ramas_preserva_datos(iniciales):
                 )
 
             # Aplicar todas las migraciones hasta la cabeza final.
-            command.upgrade(config, "head")
+            preparar_esquema_actual_aislado(conexion)
 
             assert set(
                 conexion.scalars(
                     text("SELECT version_num FROM alembic_version")
                 )
-            ) == {MERGE}
+            ) == {HEAD_BRIDGE}
 
-            # Verificar las 18 tablas integradas.
+            # Verificar las 19 anteriores y las tres tablas autorizadas del ER.
             assert set(
                 inspect(conexion).get_table_names()
             ) == INTEGRATED_TABLES | {"alembic_version"}
@@ -303,6 +323,7 @@ def test_merge_desde_base_cada_rama_y_dos_ramas_preserva_datos(iniciales):
 
             # Verificar que todas las migraciones pueden revertirse.
             # Esta operacion se realiza sobre una BD SQLite aislada.
+            retirar_ddl_resultados_sqlite(conexion)
             command.downgrade(config, "base")
 
             assert set(

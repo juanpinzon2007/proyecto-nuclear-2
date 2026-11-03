@@ -1,8 +1,13 @@
 # Cuarto incremento: contrato HTTP PROVISIONAL
 
 Estas rutas están preparadas para revisión del equipo. **No son un contrato
-público definitivo ni están registradas en `app/main.py`.** No hay autenticación
-real, adaptadores de otros módulos ni persistencia PostgreSQL conectados.
+público definitivo ni están registradas en `app/main.py`.** La fase 8A conecta la
+dependencia de autenticación a Identity real. 8B incorpora composición interna
+SQL por operación; la dependencia HTTP sigue cerrada con 503.
+`crear_dependencia_facade_8b` permite composición explícita para intentos existentes,
+con Identity/JWT, horario de respuesta confirmado y grafo SQL reales; no está
+instalada en la app principal. No habilita inicio ni resultados oficiales.
+Ver [INTEGRACION_8A.md](../INTEGRACION_8A.md).
 No iniciar Angular contra ellas como si el backend completo estuviera operativo.
 
 ## Correspondencia con el ER y las rutas propuestas
@@ -16,8 +21,10 @@ No iniciar Angular contra ellas como si el backend completo estuviera operativo.
 
 El PDF propone `/participations/start` y `/answers/{questionId}`. Aquí el inicio
 crea un **intento de una participación ya existente**, porque eso es lo que
-implementa Application. No crea convocatorias ni participaciones nuevas. No se
-declara que `questionId` y `decision_id` sean equivalentes ni se crean aliases.
+implementa Application. No crea convocatorias ni participaciones nuevas.
+La autorización UUID posterior de 8B establece que `decision_id` referencia
+físicamente `pregunta.id` y `id_opcion` referencia `opcion_respuesta.id`; ambos UUID
+reales. Esto no equipara la pregunta a toda la entidad académica decisión/criterio.
 Estos nombres, la separación POST/PUT y los cuerpos deben acordarse antes de
 integrar Angular o habilitar el router. No se modifican contratos de otros módulos.
 
@@ -30,7 +37,7 @@ Prefijo común: `/api/v1`.
 | --- | --- | --- | --- |
 | POST | `/participations/{participation_id}/attempts` | `id_consentimiento`, `id_permiso_extra` opcional | 201, resumen del intento |
 | POST | `/attempts/{attempt_id}/decisions/{decision_id}` | `id_opcion`, `reflexion_estudiante` opcional | 201, selección nueva confirmada y resumen del intento |
-| PUT | `/attempts/{attempt_id}/decisions/{decision_id}` | Mismo cuerpo | 200, selección existente reemplazada y resumen |
+| PUT (obsoleto) | `/attempts/{attempt_id}/decisions/{decision_id}` | Mismo cuerpo | 409, `RESPUESTA_INMUTABLE` para intento activo autorizado; nunca crea ni reemplaza |
 | GET | `/attempts/{attempt_id}/progress` | Sin cuerpo | 200, progreso del recorrido aplicable |
 | POST | `/attempts/{attempt_id}/finish` | Sin cuerpo | 200, cierre confirmado, sin nota |
 | GET | `/participations/{participation_id}/attempts/{attempt_id}/result` | Sin cuerpo | 200, evaluación pendiente o definitiva confirmada |
@@ -42,17 +49,29 @@ La relación entre participación e intento se valida en Application al consulta
 el resultado. Un ID presente en la URL no constituye autorización.
 
 POST de decisión registra una selección nueva. Repetirlo para una decisión ya
-registrada no crea otra fila: devuelve error de dominio. PUT modifica una selección
-existente, **no es un upsert**. La reflexión se reemplaza con el valor enviado;
-si se omite, se transmite `None`, conforme al caso de uso existente. No hay PATCH.
+registrada devuelve 409 `RESPUESTA_INMUTABLE`, incluso con la misma opción.
+La aclaración posterior de la profesora prohíbe modificar cualquier respuesta.
+PUT conserva validación/autenticación/autorización y se rechaza: no es un upsert.
+Tampoco se permite cambiar la reflexión ni eliminar una selección. No hay PATCH.
+El cierre/vencimiento mantiene su error 409 `INTENTO_NO_EDITABLE`; la dependencia
+productiva sigue cerrada con 503 mientras falta composición autorizada.
 
 Los cuerpos de inicio y selección rechazan campos adicionales. IDs del cuerpo
-deben ser enteros positivos reales: no se convierten `true`, floats o cadenas.
-Los IDs de URL se interpretan como enteros positivos. No hay campos para que el
+de participación/intento siguen siendo enteros positivos reales. Las referencias
+a Cases usan UUID. Se conservan INTEGER en esquemas de pruebas antiguas, pero el
+adaptador SQL real los rechaza; nunca se convierten entre INTEGER y UUID.
+No se convierten `true`, floats o cadenas numéricas del cuerpo a IDs enteros.
+No hay campos para que el
 cliente establezca el inicio, el límite de tiempo, estado, nivel o calificación.
 El servidor obtiene todos esos datos mediante sus componentes existentes.
 
 ## Ejemplos de solicitudes y progreso
+
+Los ejemplos INTEGER de decisiones que siguen son antecedentes de los dobles de
+prueba del cuarto incremento; no identifican preguntas UUID reales de Cases.
+En 8B los clientes deben utilizar los UUID recibidos de Cases. Si no existe un
+contrato de recorrido, `decisiones_aplicables`, `pendientes` y `total_aplicable`
+son `null`: las selecciones y `respondidas` siguen procediendo de PostgreSQL.
 
 Inicio de un intento para la participación 20:
 
@@ -94,17 +113,21 @@ Angular un contrato de lectura si necesita recuperarla para editarla.
 
 ## Identidad y composición cerradas por defecto
 
-`obtener_estudiante_actual` debe conectarse al mecanismo que implemente Alejandro
-y producir `EstudianteAutenticado` desde credenciales/sesión verificadas. No se
+`obtener_estudiante_actual` utiliza las dependencias de Alejandro para JWT, cuenta
+activa, rol ESTUDIANTE vigente y UUID académico Scheduling inequívoco. Produce
+`EstudianteAutenticado` desde credenciales/sesión verificadas. No se
 recibe ese modelo como cuerpo ni se obtiene de `student_id`, correo, query o
-`X-Student-ID`. No hay JWT alternativo. En este incremento la dependencia devuelve
-503 `SEGURIDAD_NO_CONFIGURADA`, incluso si el cliente presenta un token inventado.
+`X-Student-ID`. No hay JWT alternativo. Sin Bearer responde 401; token inválido
+responde 401 cuando JWT está configurado; sin infraestructura/configuración
+requerida responde 503. Cuenta sin vínculo: 403; vínculo ambiguo: 503.
+Su campo interno `id_estudiante` conserva el INTEGER de la cuenta, separado de
+`id_estudiante_scheduling` UUID y del contexto de convocatoria firmado.
 
 `obtener_facade` también depende de la identidad y devuelve 503
 `INTEGRACION_NO_CONFIGURADA` hasta componer adaptadores reales. Cada endpoint
 exige además su propia dependencia de identidad; sustituir únicamente la fachada
-no elimina ese requisito. Identity sigue verificando propiedad y permisos en
-Application, además de obtener la identidad HTTP.
+no elimina ese requisito. La autorización del agregado mediante IdentityPort
+sigue pendiente: autenticar la cuenta no demuestra titularidad de una participación.
 
 Los únicos overrides están en `tests/test_api.py`, sobre una aplicación aislada.
 Las pruebas utilizan `ParticipacionFacade` real y los repositorios/servicios falsos
@@ -208,9 +231,8 @@ Desde la raíz:
 - **Juan Andrés:** aprobar `decision_id` frente a `questionId`; entregar contenido
   autorizado sin corrección anticipada, recorrido y cambios válidos; proporcionar
   rúbrica/referencia histórica y mapeo académico aprobado para evaluar.
-- **Alejandro:** implementar la dependencia de identidad verificada, comprobar
-  propiedad/consentimiento/permisos en los ports y acordar respuestas 401/403.
-  Decidir el mecanismo de autenticación institucional sin aceptar IDs del cliente.
+- **Alejandro:** mantener JWT y resolver ya reutilizados; completar el contrato
+  de propiedad/consentimiento/permisos del agregado sin equiparar UUID y membresía.
 - **Maicol:** materializar participaciones vinculadas a convocados, proporcionar
   estado/ventanas/duración, controlar repeticiones y confirmar condiciones de
   ausencia. Acordar quién solicita evaluación después de un cierre confirmado.

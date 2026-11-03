@@ -108,16 +108,12 @@ def test_registrar_conserva_datos_er_y_usa_tiempo_servidor(intento: Intento, rel
 
 
 def test_modificar_reemplaza_seleccion_sin_duplicar(intento: Intento, reloj: RelojFijo) -> None:
+    # Contrato sustituido por la aclaración académica: ya no existe reemplazo.
     anterior = con_respuesta(intento, reloj)
     reloj.instante += timedelta(seconds=30)
-    actual = anterior.modificar_decision(
-        id_decision=50, id_opcion=61, reflexion_estudiante="Nueva elección", reloj=reloj
-    )
-    assert len(actual.pasos) == 1
-    paso = actual.pasos[0]
-    assert (paso.id_paso, paso.numero_paso, paso.id_opcion) == (40, 1, 61)
-    assert paso.reflexion_estudiante == "Nueva elección"
-    assert paso.registrado_en == reloj.instante
+    from app.modules.participation.domain.errors import RespuestaInmutable
+    with pytest.raises(RespuestaInmutable):
+        anterior.modificar_decision(id_decision=50, id_opcion=61, reflexion_estudiante="Nueva elección", reloj=reloj)
     assert anterior.pasos[0].id_opcion == 60
 
 

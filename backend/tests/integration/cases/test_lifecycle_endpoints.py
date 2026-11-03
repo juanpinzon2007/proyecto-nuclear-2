@@ -45,11 +45,12 @@ def _estado(session: Session, version_id: str) -> EstadoCaso:
 
 
 def test_listar_devuelve_solo_casos_del_docente(
+    otro_docente_headers,
     client: TestClient, payload_valido: dict[str, Any], headers: dict[str, str]
 ) -> None:
     propio_1 = _crear(client, payload_valido, headers)
     propio_2 = _crear(client, payload_valido, headers)
-    _crear(client, payload_valido, {"X-Docente-Id": str(uuid.uuid4())})
+    _crear(client, payload_valido, otro_docente_headers)
 
     respuesta = client.get(URL, headers=headers)
 
@@ -93,10 +94,11 @@ def test_detalle_incluye_escenarios_preguntas_opciones_y_rubrica(
 
 
 def test_detalle_de_otro_docente_o_inexistente_devuelve_404(
+    otro_docente_headers,
     client: TestClient, payload_valido: dict[str, Any], headers: dict[str, str]
 ) -> None:
     version_id = _crear(client, payload_valido, headers)
-    otro = {"X-Docente-Id": str(uuid.uuid4())}
+    otro = otro_docente_headers
 
     assert client.get(f"{URL}/{version_id}", headers=otro).status_code == 404
     assert client.get(f"{URL}/{uuid.uuid4()}", headers=headers).status_code == 404
@@ -196,10 +198,11 @@ def test_editar_publicado_o_archivado_devuelve_400(
 
 
 def test_editar_inexistente_o_de_otro_docente_devuelve_404(
+    otro_docente_headers,
     client: TestClient, payload_valido: dict[str, Any], headers: dict[str, str]
 ) -> None:
     version_id = _crear(client, payload_valido, headers)
-    otro = {"X-Docente-Id": str(uuid.uuid4())}
+    otro = otro_docente_headers
 
     assert client.put(f"{URL}/{version_id}", json=payload_valido, headers=otro).status_code == 404
     assert client.put(f"{URL}/{uuid.uuid4()}", json=payload_valido, headers=headers).status_code == 404
@@ -260,11 +263,12 @@ def test_archivado_no_puede_republicarse(
 
 
 def test_archivar_inexistente_o_de_otro_docente_devuelve_404(
+    otro_docente_headers,
     client: TestClient, payload_valido: dict[str, Any], headers: dict[str, str]
 ) -> None:
     version_id = _crear(client, payload_valido, headers)
     _publicar(client, version_id, headers)
-    otro = {"X-Docente-Id": str(uuid.uuid4())}
+    otro = otro_docente_headers
 
     assert client.post(f"{URL}/{version_id}/archive", headers=otro).status_code == 404
     assert client.post(f"{URL}/{uuid.uuid4()}/archive", headers=headers).status_code == 404

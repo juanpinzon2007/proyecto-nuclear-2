@@ -1,12 +1,13 @@
 """Repositorio SQLAlchemy del agregado Caso."""
 
 import uuid
+from dataclasses import asdict
 from collections.abc import Iterator
 from contextlib import contextmanager
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session, contains_eager
+from sqlalchemy.orm import Session, contains_eager, selectinload
 
 from app.modules.cases.domain.entities.caso import (
     CriterioRubrica,
@@ -19,7 +20,9 @@ from app.modules.cases.domain.entities.caso import (
     VersionCaso,
 )
 from app.modules.cases.domain.exceptions import ErrorPersistenciaCaso
+from app.modules.cases.domain.enums import EstadoCaso
 from app.modules.cases.domain.repositories import ICasoRepository
+from app.modules.cases.domain.validators.eslabones import construir_cadena_publicacion
 from app.modules.cases.infrastructure.models import (
     CasoModel,
     CriterioRubricaModel,
@@ -74,9 +77,12 @@ class CasoRepository(ICasoRepository):
 
     def reemplazar(self, version: VersionCaso) -> None:
         with self._transaccion():
-            modelo = self._session.get(VersionCasoModel, version.id)
-            if modelo is None:
-                raise ErrorPersistenciaCaso("La versión a reemplazar no existe.")
+            modelo = self._para_escritura(version)
+            self._a_dominio(modelo).asegurar_editable()
+            version.asegurar_editable()
+            from app.modules.cases.infrastructure.repositories.graph_repository import RepositorioGrafoSQLAlchemy
+            if RepositorioGrafoSQLAlchemy(self._session).configurado(version.id):
+                raise ErrorPersistenciaCaso("El reemplazo de contenido descartaría el grafo; edite el borrador antes de configurarlo.")
             # Borra la estructura anterior y la confirma en la BD antes de insertar la nueva
             # (las restricciones únicas de orden y de rúbrica lo exigen).
             modelo.escenarios.clear()
@@ -92,16 +98,60 @@ class CasoRepository(ICasoRepository):
 
     def actualizar_estado(self, version: VersionCaso) -> None:
         with self._transaccion():
-            modelo = self._session.get(VersionCasoModel, version.id)
-            if modelo is None:
-                raise ErrorPersistenciaCaso("La versión a actualizar no existe.")
-            modelo.estado = version.estado
+            modelo = self._para_escritura(version)
+            actual = self._a_dominio(modelo)
+            if self._contenido(actual) != self._contenido(version):
+                raise ErrorPersistenciaCaso("El contenido cambió desde su lectura; vuelva a consultar la versión.")
+            if version.estado == EstadoCaso.PUBLICADO:
+                # Mismas reglas del dominio, ahora sobre el grafo fresco y bloqueado.
+                actual.publicar(construir_cadena_publicacion())
+            elif version.estado == EstadoCaso.ARCHIVADO:
+                actual.archivar()
+            else:
+                raise ErrorPersistenciaCaso("Transición de estado no permitida.")
+            modelo.estado = actual.estado
+
+    def _para_escritura(self, version: VersionCaso) -> VersionCasoModel:
+        # Serializa escritores de este repositorio sobre la misma fila raíz.
+        # populate_existing evita confiar en el identity map de una lectura anterior.
+        modelo = self._session.scalar(
+            select(VersionCasoModel).where(VersionCasoModel.id == version.id)
+            .with_for_update().execution_options(populate_existing=True)
+            .options(
+                selectinload(VersionCasoModel.escenarios).selectinload(EscenarioModel.preguntas)
+                .selectinload(PreguntaModel.opciones).selectinload(OpcionRespuestaModel.valoraciones),
+                selectinload(VersionCasoModel.rubrica).selectinload(RubricaModel.criterios)
+                .selectinload(CriterioRubricaModel.niveles),
+            )
+        )
+        if modelo is None:
+            raise ErrorPersistenciaCaso("La versión a modificar no existe.")
+        propietario = self._session.scalar(select(CasoModel.docente_creador_id).where(CasoModel.id == modelo.caso_id))
+        if (modelo.caso_id != version.caso_id or modelo.numero != version.numero
+                or propietario != version.docente_creador_id):
+            raise ErrorPersistenciaCaso("La identidad de la versión no corresponde a la almacenada.")
+        return modelo
+
+    @staticmethod
+    def _contenido(version: VersionCaso):
+        # Comparación estructural, sin estado; orden lógico conservado en `orden`.
+        # El orden físico de criterios/niveles sin ORDER BY no crea conflictos falsos.
+        def normalizar(valor):
+            if isinstance(valor, dict):
+                return tuple(sorted((str(k), normalizar(v)) for k, v in valor.items()))
+            if isinstance(valor, list):
+                return tuple(sorted((normalizar(v) for v in valor), key=repr))
+            return valor
+        datos = asdict(version)
+        datos.pop("estado")
+        return normalizar(datos)
 
     @contextmanager
     def _transaccion(self) -> Iterator[None]:
         """Commit al salir sin errores; rollback ante cualquier excepción."""
         try:
-            yield
+            with self._session.no_autoflush:
+                yield
             self._session.commit()
         except SQLAlchemyError as exc:
             self._session.rollback()
@@ -243,4 +293,3 @@ class CasoRepository(ICasoRepository):
                 for c in rubrica.criterios
             ],
         )
-

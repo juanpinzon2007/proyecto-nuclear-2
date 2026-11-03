@@ -1,3 +1,4 @@
+from app.modules.cases.api.dependencies import exigir_permiso_creacion_configurado
 """Fixtures de integración: TestClient con base de datos temporal.
 
 Usa PostgreSQL si ``TEST_DATABASE_URL`` está definida; si no, SQLite en memoria.
@@ -18,6 +19,7 @@ Diseño anti-bloqueos en PostgreSQL:
 import os
 import uuid
 from collections.abc import Generator
+from unittest.mock import Mock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -30,6 +32,12 @@ import app.modules.cases.infrastructure.models  # noqa: F401
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.modules.identity.api.dependencies import obtener_fabrica_tokens, obtener_fabrica_usuarios
+from app.modules.identity.api.academic_dependencies import obtener_fabrica_resolver_academico
+from app.modules.identity.application.academic_identity import ResolverIdentidadAcademica, VinculoAcademico, SistemaAcademico
+from app.modules.identity.application.ports import RepositorioUsuarios
+from app.modules.identity.domain.entities import ContextoAcceso, Rol
+from app.modules.identity.infrastructure.security import TokensJWT
 
 _CONNECT_TIMEOUT_S = 3
 _LOCK_TIMEOUT_MS = 5_000
@@ -92,6 +100,8 @@ def engine(_engine_con_esquema: Engine) -> Generator[Engine, None, None]:
     que sus sesiones ya están cerradas cuando se ejecuta la limpieza.
     """
     yield _engine_con_esquema
+    if _engine_con_esquema.dialect.name == "postgresql":
+        return  # session_factory revierte la transacción externa; no borra historia.
     _terminar_sesiones_huerfanas(_engine_con_esquema)
     with _engine_con_esquema.begin() as conn:
         for tabla in reversed(Base.metadata.sorted_tables):
@@ -99,8 +109,17 @@ def engine(_engine_con_esquema: Engine) -> Generator[Engine, None, None]:
 
 
 @pytest.fixture
-def session_factory(engine: Engine) -> sessionmaker[Session]:
-    return sessionmaker(bind=engine, expire_on_commit=False)
+def session_factory(engine: Engine):
+    if engine.dialect.name != "postgresql":
+        yield sessionmaker(bind=engine, expire_on_commit=False)
+        return
+    # Commit de aplicación libera savepoint, no la transacción externa de prueba.
+    with engine.connect() as conexion:
+        exterior=conexion.begin()
+        try:
+            yield sessionmaker(bind=conexion,expire_on_commit=False,join_transaction_mode="create_savepoint")
+        finally:
+            exterior.rollback()
 
 
 @pytest.fixture
@@ -115,7 +134,7 @@ def db_session(session_factory: sessionmaker[Session]) -> Generator[Session, Non
 
 
 @pytest.fixture
-def client(session_factory: sessionmaker[Session]) -> Generator[TestClient, None, None]:
+def client(session_factory: sessionmaker[Session], seguridad_docente) -> Generator[TestClient, None, None]:
     def _get_db() -> Generator[Session, None, None]:
         session = session_factory()
         try:
@@ -125,6 +144,12 @@ def client(session_factory: sessionmaker[Session]) -> Generator[TestClient, None
             session.close()
 
     app.dependency_overrides[get_db] = _get_db
+    # Contrato de negocio aislado; la suite SQL prueba que producción sigue cerrada.
+    app.dependency_overrides[exigir_permiso_creacion_configurado] = lambda: None
+    tokens, usuarios, resolver = seguridad_docente
+    app.dependency_overrides[obtener_fabrica_tokens] = lambda: lambda: tokens
+    app.dependency_overrides[obtener_fabrica_usuarios] = lambda: lambda: usuarios
+    app.dependency_overrides[obtener_fabrica_resolver_academico] = lambda: lambda: resolver
     try:
         with TestClient(app) as test_client:
             yield test_client
@@ -133,8 +158,36 @@ def client(session_factory: sessionmaker[Session]) -> Generator[TestClient, None
 
 
 @pytest.fixture
-def headers() -> dict[str, str]:
-    return {"X-Docente-Id": str(uuid.uuid4())}
+def docente_id():
+    return uuid.UUID("d988b0f5-a0d1-4b4d-b909-9c8be80397ca")
+
+
+@pytest.fixture
+def seguridad_docente(docente_id):
+    # Solo fixtures: JWT real, cuentas y asociaciones explícitas en memoria.
+    tokens = TokensJWT("clave-pruebas-cases-seguridad-" * 2, "cases-test", "cases-client")
+    ids = {"7": docente_id, "8": uuid.UUID("a199b9f7-051e-40df-b1f8-9a7fb321bac2")}
+    usuarios = Mock(spec=RepositorioUsuarios)
+    usuarios.obtener.side_effect = lambda identificador: ContextoAcceso(
+        identificador, "docente@universidad.test", frozenset({Rol.DOCENTE}),
+    ) if identificador in ids else None
+    from app.modules.identity.application.academic_identity import ConsultaVinculosAcademicos
+    consulta = Mock(spec=ConsultaVinculosAcademicos)
+    consulta.obtener.side_effect = lambda *, id_usuario, sistema: (
+        (VinculoAcademico(id_usuario, sistema, ids[id_usuario]),)
+        if sistema == SistemaAcademico.CASES and id_usuario in ids else ()
+    )
+    return tokens, usuarios, ResolverIdentidadAcademica(consulta)
+
+
+@pytest.fixture
+def headers(seguridad_docente) -> dict[str, str]:
+    return {"Authorization": "Bearer " + seguridad_docente[0].emitir("7")}
+
+
+@pytest.fixture
+def otro_docente_headers(seguridad_docente) -> dict[str, str]:
+    return {"Authorization": "Bearer " + seguridad_docente[0].emitir("8")}
 
 
 @pytest.fixture

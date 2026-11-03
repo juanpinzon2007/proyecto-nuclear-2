@@ -50,6 +50,7 @@ def _estado_en_bd(session: Session, version_id: str) -> EstadoCaso:
 
 
 def test_crear_borrador_completo_persiste_jerarquia_en_borrador(
+    docente_id,
     client: TestClient,
     db_session: Session,
     payload_valido: dict[str, Any],
@@ -63,7 +64,7 @@ def test_crear_borrador_completo_persiste_jerarquia_en_borrador(
     version = db_session.get(VersionCasoModel, uuid.UUID(cuerpo["version_id"]))
     assert version is not None
     assert version.estado is EstadoCaso.BORRADOR
-    assert version.caso.docente_creador_id == uuid.UUID(headers["X-Docente-Id"])
+    assert version.caso.docente_creador_id == docente_id
     assert len(version.escenarios[0].preguntas[0].opciones) == 2
     assert version.rubrica is not None
     assert db_session.scalar(select(func.count()).select_from(ValoracionOpcionModel)) == 2
@@ -103,12 +104,12 @@ def test_crear_borrador_con_orden_duplicado_devuelve_400_sin_registros(
     assert _filas_totales(db_session) == 0
 
 
-def test_crear_borrador_rechaza_campo_desconocido_y_falta_de_cabecera(
+def test_crear_borrador_rechaza_campo_desconocido_y_falta_de_token(
     client: TestClient, payload_valido: dict[str, Any], headers: dict[str, str]
 ) -> None:
     con_extra = {**payload_valido, "x": 1}
     assert client.post(URL_CREAR, json=con_extra, headers=headers).status_code == 422
-    assert client.post(URL_CREAR, json=payload_valido).status_code == 422
+    assert client.post(URL_CREAR, json=payload_valido).status_code == 401
 
 
 # --- POST /api/v1/cases/{id}/publish -----------------------------------------
@@ -168,13 +169,14 @@ def test_publicar_version_inexistente_devuelve_404(
 
 
 def test_publicar_borrador_de_otro_docente_devuelve_404(
+    otro_docente_headers,
     client: TestClient,
     db_session: Session,
     payload_valido: dict[str, Any],
     headers: dict[str, str],
 ) -> None:
     version_id = client.post(URL_CREAR, json=payload_valido, headers=headers).json()["version_id"]
-    otro = {"X-Docente-Id": str(uuid.uuid4())}
+    otro = otro_docente_headers
 
     assert client.post(_url_publicar(version_id), headers=otro).status_code == 404
     assert _estado_en_bd(db_session, version_id) is EstadoCaso.BORRADOR
@@ -205,6 +207,7 @@ def test_repositorio_hace_rollback_si_falla_a_mitad(db_session: Session) -> None
 
 
 def test_repositorio_roundtrip_conserva_valoraciones(
+    docente_id,
     client: TestClient,
     db_session: Session,
     payload_valido: dict[str, Any],
@@ -213,7 +216,7 @@ def test_repositorio_roundtrip_conserva_valoraciones(
     cuerpo = client.post(URL_CREAR, json=payload_valido, headers=headers).json()
 
     version = CasoRepository(db_session).obtener_version(
-        uuid.UUID(cuerpo["version_id"]), uuid.UUID(headers["X-Docente-Id"])
+        uuid.UUID(cuerpo["version_id"]), docente_id
     )
 
     assert version is not None

@@ -27,9 +27,8 @@ def test_programar_sesion_sin_autenticacion():
         json=datos,
     )
 
-    # La autenticación real aún no está integrada.
-    # La API debe rechazar la operación con 503.
-    assert respuesta.status_code == 503
+    # Identity exige Bearer antes de resolver la identidad académica.
+    assert respuesta.status_code == 401
 
 
 def test_cambiar_estado_sin_autenticacion():
@@ -40,7 +39,7 @@ def test_cambiar_estado_sin_autenticacion():
         json={"accion": "iniciar"},
     )
 
-    assert respuesta.status_code == 503
+    assert respuesta.status_code == 401
 
 
 def test_convocar_estudiante_sin_autenticacion():
@@ -51,7 +50,7 @@ def test_convocar_estudiante_sin_autenticacion():
         json={"estudiante_id": str(uuid4())},
     )
 
-    assert respuesta.status_code == 503
+    assert respuesta.status_code == 401
 
 
 def test_crear_espacio_sin_autenticacion():
@@ -60,7 +59,7 @@ def test_crear_espacio_sin_autenticacion():
         json={"nombre": "Laboratorio de Psicología Social"},
     )
 
-    assert respuesta.status_code == 503
+    assert respuesta.status_code == 401
 
 
 def test_listar_convocatorias_sin_autenticacion():
@@ -70,7 +69,7 @@ def test_listar_convocatorias_sin_autenticacion():
         f"/scheduling/sesiones/{sesion_id}/convocatorias",
     )
 
-    assert respuesta.status_code == 503
+    assert respuesta.status_code == 401
 
 
 def test_notificar_calificacion_sin_autenticacion():
@@ -82,4 +81,4 @@ def test_notificar_calificacion_sin_autenticacion():
         },
     )
 
-    assert respuesta.status_code == 503
+    assert respuesta.status_code == 401

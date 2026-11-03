@@ -56,7 +56,9 @@ def programar_sesion(
         )
 
     # Comprobar que existe la version del caso
-    version = db.get(VersionCasoModel, version_caso_id)
+    # Mismo bloqueo raíz que publicación/archivo; releer incluso si estaba en caché.
+    # La transacción del llamador mantiene el bloqueo hasta commit/rollback.
+    version = db.get(VersionCasoModel, version_caso_id, populate_existing=True, with_for_update=True)
 
     if version is None:
         raise ErrorProgramacion(

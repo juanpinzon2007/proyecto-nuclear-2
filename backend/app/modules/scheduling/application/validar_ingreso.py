@@ -1,12 +1,13 @@
 """Validación de ingreso de estudiantes a sesiones académicas."""
 
-import hashlib
-import hmac
+from app.modules.scheduling.domain.access_codes import coincide_codigo
 
-from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from sqlalchemy.orm import Session
+from app.modules.scheduling.domain.ingress_policy import (
+    PoliticaIngreso, PoliticaTemporalNoDisponible, RelojIngreso, VentanaIngreso, fecha_utc,
+)
 
 from app.modules.scheduling.infrastructure.models import (
     ConvocatoriaModel,
@@ -25,19 +26,10 @@ def validar_ingreso(
     convocatoria_id: UUID,
     estudiante_id: UUID,
     codigo_acceso: str,
-    tolerancia_minutos: int,
-    ahora: datetime | None = None,
+    politica: PoliticaIngreso,
+    reloj: RelojIngreso,
 ) -> SesionProgramadaModel:
     """Verifica código, convocatoria, estado y horario."""
-
-    if type(tolerancia_minutos) is not int or tolerancia_minutos < 0:
-        raise ValueError("La tolerancia de ingreso es inválida.")
-
-    if ahora is None:
-        ahora = datetime.now(timezone.utc)
-
-    if ahora.utcoffset() is None:
-        raise ValueError("La fecha debe incluir zona horaria.")
 
     # Validar la convocatoria.
     convocatoria = db.get(
@@ -53,14 +45,7 @@ def validar_ingreso(
         raise ErrorIngreso("Acceso no autorizado.")
 
     # Verificar el código generado durante la convocatoria.
-    codigo_hash = hashlib.sha256(
-        codigo_acceso.encode("utf-8")
-    ).hexdigest()
-
-    if not hmac.compare_digest(
-        codigo_hash,
-        convocatoria.codigo_hash,
-    ):
+    if not coincide_codigo(codigo_acceso, convocatoria.codigo_hash):
         raise ErrorIngreso("Acceso no autorizado.")
 
     # Comprobar la sesión académica.
@@ -75,25 +60,15 @@ def validar_ingreso(
     if sesion.estado != "EN_CURSO":
         raise ErrorIngreso("La sesión no está en curso.")
 
-    fecha_inicio = sesion.fecha_inicio
-    if fecha_inicio.tzinfo is None:
-        fecha_inicio = fecha_inicio.replace(tzinfo=timezone.utc)
-
-    fecha_fin = sesion.fecha_fin
-    if fecha_fin.tzinfo is None:
-        fecha_fin = fecha_fin.replace(tzinfo=timezone.utc)
-
-    if ahora < fecha_inicio:
-        raise ErrorIngreso("La sesión todavía no comienza.")
-
-    limite_ingreso = min(
-        fecha_inicio + timedelta(minutes=tolerancia_minutos),
-        fecha_fin,
-    )
-
-    if ahora > limite_ingreso:
-        raise ErrorIngreso(
-            "Se superó el tiempo permitido de ingreso."
-        )
+    inicio, fin = fecha_utc(sesion.fecha_inicio), fecha_utc(sesion.fecha_fin)
+    if fin <= inicio:
+        raise PoliticaTemporalNoDisponible()
+    ventana = politica.obtener_ventana(id_sesion=sesion.id, inicio=inicio, fin=fin)
+    if (not isinstance(ventana, VentanaIngreso) or ventana.apertura < inicio
+            or ventana.cierre > fin):
+        raise PoliticaTemporalNoDisponible()
+    # Una sola lectura, después de consultar los datos y la política del servidor.
+    if not ventana.contiene(reloj.ahora()):
+        raise ErrorIngreso("El ingreso no está dentro de la ventana autorizada.")
 
     return sesion

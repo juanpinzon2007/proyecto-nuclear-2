@@ -1,0 +1,700 @@
+// ANTECEDENTE NO APROBADO - NO VIGENTE COMO MODELO OBJETIVO.
+// Propuesta historica BD-1.1 de 40 tablas / 73 FK. NO implementar ni generar migraciones desde este archivo.
+// BD-1.2 la sustituye como objetivo por ER_OBJETIVO_APROBADO_28_TABLAS.dbml.
+// Se conserva el contenido siguiente solo para trazabilidad; no representa autorizacion de ampliar el ER.
+// BORRADOR BD-1.1. NO ESQUEMA APROBADO NI MIGRACION. 2026-11-01.
+// Corrige H01-H08: 40 tablas, 73 FK; H06 conserva FK directa sesion/version durante expand.
+// D02: matriculas por episodio propuestas, sin autorizar reingreso. D07: UNIQUE convocatoria es alternativa P1 pendiente.
+// Se preservan las 19 tablas integradas y sus PK actuales; 21 tablas nuevas propuestas.
+// D01..D09 y K01..K10 se detallan en B y D. No insertar politicas ni asociaciones inventadas.
+// Todas las FK propuestas usan RESTRICT (NO CASCADE historico); revisar transicion en C.
+// UUID nuevos: generacion por modulo propietario y persistencia unica; ningun UUID historico se deriva de INTEGER.
+// Identificadores propios de Participation INTEGER; referencias a Cases/Scheduling UUID: requiere evolucion explicita de puertos.
+// DBML expresa PK/FK/UQ/indices. CHECK, indices parciales y triggers obligatorios en documento B.
+// Orden de columnas = compatibilidad documental, no orden de migracion.
+// NOT NULL nuevos describen objetivo final; expandir con NULL y validar backfill antes de exigirlos.
+Project ProyectoNuclear_BD11_BORRADOR {
+  database_type: 'PostgreSQL'
+  Note: 'Propuesta sujeta a aprobacion de equipo y politicas academicas. No desplegar directamente.'
+}
+
+Table rol {
+  id_rol integer [pk, increment]
+  nombre varchar(40) [not null, unique]
+  descripcion text
+}
+
+Table permiso {
+  id_permiso integer [pk, increment]
+  codigo varchar(80) [not null, unique]
+  descripcion text [not null]
+}
+
+Table rol_permiso {
+  id_rol integer [not null]
+  id_permiso integer [not null]
+  indexes {
+    (id_rol, id_permiso) [pk]
+  }
+}
+
+Table usuario {
+  id_usuario integer [pk, increment]
+  id_rol integer [not null]
+  nombre varchar(120) [not null]
+  correo varchar(200) [not null, unique]
+  clave_hash varchar(255) [not null]
+  activo boolean [not null, default: true]
+  indexes {
+    id_rol
+  }
+}
+
+Table identidad_academica {
+  sistema varchar(16) [not null]
+  id_academico uuid [not null]
+  id_usuario integer [not null]
+  indexes {
+    (sistema, id_academico) [pk]
+    (sistema, id_academico, id_usuario) [unique]
+    (id_usuario, sistema)
+  }
+  Note: 'Se conserva 0..N por usuario/sistema. Resolver: exactamente una. K01.'
+}
+
+Table politica_academica {
+  id uuid [pk]
+  tipo varchar(20) [not null]
+  codigo varchar(80) [not null]
+  version varchar(30) [not null]
+  parametros jsonb [not null]
+  hash_contenido varchar(64) [not null]
+  referencia_aprobacion text [not null]
+  registrada_por integer [not null]
+  aprobada_en timestamptz [not null]
+  creada_en timestamptz [not null]
+  indexes {
+    (tipo, codigo, version) [unique]
+    (id, tipo) [unique]
+  }
+  Note: 'D05/D06: solo versiones aprobadas e inmutables; ningun valor academico predeterminado. JSON validado por contrato tipado, no codigo ejecutable.'
+}
+
+Table espacio_academico {
+  id uuid [pk]
+  nombre varchar(160) [not null]
+}
+
+Table grupo_academico {
+  id_grupo integer [pk, increment]
+  id_profesor integer [not null]
+  espacio_academico_id uuid [not null]
+  nombre varchar(120) [not null]
+  periodo varchar(30) [not null]
+  indexes {
+    (id_grupo, espacio_academico_id) [unique]
+    (id_profesor, periodo)
+    espacio_academico_id
+  }
+  Note: 'D02: grupo no equivale a espacio. No se impone unicidad de nombre o periodo.'
+}
+
+Table grupo_estudiante {
+  id_grupo_estudiante integer [pk, increment]
+  id_grupo integer [not null]
+  id_estudiante integer [not null]
+  fecha_ingreso timestamptz [not null]
+  fecha_retiro timestamptz
+  activo boolean [not null, note: 'Derivado de fecha_retiro IS NULL; GENERATED STORED propuesto en K05/H07.']
+  indexes {
+    (id_grupo, id_estudiante, fecha_ingreso)
+    (id_grupo_estudiante, id_grupo, id_estudiante) [unique]
+    id_estudiante
+  }
+  Note: 'H02/H07: episodio propuesto con identidad propia; D02 no aprobado. Sin UNIQUE historico grupo/usuario. Reingreso y solapes no autorizados por este esquema; K05.'
+}
+
+Table consentimiento {
+  id_consentimiento integer [pk, increment]
+  id_estudiante integer [not null]
+  version_texto varchar(30) [not null]
+  hash_texto varchar(64) [not null]
+  fecha_aceptacion timestamptz [not null]
+  fecha_revocacion timestamptz
+  indexes {
+    (id_consentimiento, id_estudiante) [unique]
+    (id_estudiante, fecha_aceptacion)
+  }
+  Note: 'D03: texto y aplicabilidad aprobados; no simular aceptaciones.'
+}
+
+Table caso {
+  id uuid [pk]
+  docente_creador_id uuid [not null]
+  creado_en timestamptz [not null]
+  docente_usuario_id integer [not null]
+  sistema_docente varchar(16) [not null, default: 'CASES']
+  indexes {
+    docente_creador_id
+    docente_usuario_id
+  }
+  Note: 'Conserva UUID existente. FK compuesta exige propietario verificado; K01. La FK no acredita rol.'
+}
+
+Table version_caso {
+  id uuid [pk]
+  caso_id uuid [not null]
+  numero integer [not null]
+  nombre varchar(160) [not null]
+  desarrollo_situacional text [not null]
+  contexto_historia text [not null]
+  tiempo_estimado_min integer [not null]
+  estado varchar(20) [not null]
+  introduccion_teorica text
+  validado_en timestamptz
+  publicado_en timestamptz
+  archivado_en timestamptz
+  hash_publicacion varchar(64)
+  indexes {
+    (caso_id, numero) [unique]
+    caso_id
+    estado
+  }
+  Note: 'K02: BORRADOR/PUBLICADO/ARCHIVADO; no inventar contenido historico. D04 controla enriquecimiento y congelacion.'
+}
+
+Table escenario {
+  id uuid [pk]
+  version_caso_id uuid [not null]
+  orden integer [not null]
+  contexto_situacional text [not null]
+  titulo varchar(160)
+  tipo varchar(30)
+  indexes {
+    (version_caso_id, orden) [unique]
+    (id, version_caso_id) [unique]
+    version_caso_id
+  }
+  Note: 'Equivalencia parcial con escena. Catalogo tipo pendiente, sin valor ficticio.'
+}
+
+Table pregunta {
+  id uuid [pk]
+  escenario_id uuid [not null]
+  orden integer [not null]
+  enunciado text [not null]
+  version_caso_id uuid [not null]
+  indexes {
+    (escenario_id, orden) [unique]
+    (id, version_caso_id) [unique]
+    version_caso_id
+  }
+  Note: 'decision del ER equivale parcialmente a pregunta. No se inventa un unico criterio por pregunta.'
+}
+
+Table opcion_respuesta {
+  id uuid [pk]
+  pregunta_id uuid [not null]
+  orden integer [not null]
+  texto text [not null]
+  es_correcta boolean [not null]
+  justificacion text [not null]
+  version_caso_id uuid [not null]
+  escenario_destino_id uuid
+  indexes {
+    (pregunta_id, orden) [unique]
+    (id, pregunta_id, version_caso_id) [unique]
+    (id, version_caso_id) [unique]
+    version_caso_id
+    escenario_destino_id
+  }
+  Note: 'D04: FK destino dentro de la misma version; NULL no define por si solo fin de recorrido.'
+}
+
+Table objetivo_aprendizaje {
+  id uuid [pk]
+  version_caso_id uuid [not null]
+  descripcion text [not null]
+  orden integer [not null]
+  indexes {
+    (version_caso_id, orden) [unique]
+  }
+}
+
+Table personaje {
+  id uuid [pk]
+  version_caso_id uuid [not null]
+  nombre varchar(100) [not null]
+  descripcion text
+  indexes {
+    (id, version_caso_id) [unique]
+    version_caso_id
+  }
+}
+
+Table personaje_escena {
+  personaje_id uuid [not null]
+  escenario_id uuid [not null]
+  version_caso_id uuid [not null]
+  indexes {
+    (personaje_id, escenario_id) [pk]
+    (escenario_id, version_caso_id)
+  }
+}
+
+Table pista {
+  id uuid [pk]
+  pregunta_id uuid [not null]
+  version_caso_id uuid [not null]
+  texto text [not null]
+  indexes {
+    (pregunta_id, version_caso_id)
+  }
+  Note: 'Visibilidad y efecto academico no definidos por esta tabla.'
+}
+
+Table rubrica {
+  id uuid [pk]
+  version_caso_id uuid [not null, unique]
+  nombre varchar(120) [not null]
+  version_regla varchar(20) [not null]
+  nota_maxima numeric
+  politica_evaluacion_id uuid
+  tipo_politica varchar(20)
+  indexes {
+    (id, version_caso_id) [unique]
+    (id, version_caso_id, politica_evaluacion_id) [unique]
+  }
+  Note: 'K03/D06: campos nuevos opcionales para legado, imprescindibles para calificacion oficial. Tipo EVALUACION o ambos campos de politica NULL.'
+}
+
+Table criterio_rubrica {
+  id uuid [pk]
+  rubrica_id uuid [not null]
+  nombre varchar(120) [not null]
+  peso numeric(5,2) [not null]
+  version_caso_id uuid [not null]
+  peso_porcentaje numeric
+  indexes {
+    (id, version_caso_id) [unique]
+    (id, rubrica_id, version_caso_id) [unique]
+    rubrica_id
+  }
+  Note: 'peso se preserva; peso_porcentaje solo con equivalencia academica certificada. No copiar ni normalizar automaticamente.'
+}
+
+Table nivel_rubrica {
+  id uuid [pk]
+  criterio_id uuid [not null]
+  nombre varchar(80) [not null]
+  puntaje numeric(5,2) [not null]
+  descriptor text [not null]
+  version_caso_id uuid [not null]
+  logro_porcentaje numeric
+  indexes {
+    (id, criterio_id, version_caso_id) [unique]
+    criterio_id
+  }
+  Note: 'No convertir puntaje a porcentaje ni inventar un nivel cero. Unicidad criterio/nombre del ER: revision historica D06 antes de imponer.'
+}
+
+Table valoracion_opcion {
+  opcion_id uuid [not null]
+  criterio_id uuid [not null]
+  puntaje numeric(5,2) [not null]
+  version_caso_id uuid [not null]
+  indexes {
+    (opcion_id, criterio_id) [pk]
+    (criterio_id, version_caso_id)
+  }
+  Note: 'K03: ambas FK incluyen la version; una valoracion no demuestra una escala o formula aprobada.'
+}
+
+Table sesion_programada {
+  id uuid [pk]
+  espacio_academico_id uuid [not null]
+  version_caso_id uuid [not null]
+  docente_id uuid [not null]
+  fecha_inicio timestamptz [not null]
+  fecha_fin timestamptz [not null]
+  tiempo_maximo_minutos integer [not null]
+  lugar varchar(255)
+  mensaje_personalizado text
+  estado varchar(20) [not null, default: 'SIN_INICIAR']
+  finalizado_en timestamptz
+  docente_usuario_id integer [not null]
+  sistema_docente varchar(16) [not null, default: 'SCHEDULING']
+  rubrica_id uuid [not null]
+  politica_ingreso_id uuid
+  tipo_politica_ingreso varchar(20)
+  ingreso_desde timestamptz
+  ingreso_hasta timestamptz
+  incluye_desde boolean
+  incluye_hasta boolean
+  indexes {
+    (id, espacio_academico_id) [unique]
+    (id, version_caso_id, rubrica_id) [unique]
+    espacio_academico_id
+    version_caso_id
+    docente_id
+    docente_usuario_id
+  }
+  Note: 'H06/K04: version_caso_id conserva FK directa NOT NULL. rubrica_id NOT NULL solo objetivo final; expand usa NULL mas FK compuesta MATCH SIMPLE. RF22 ausente mantiene ingreso cerrado.'
+}
+
+Table sesion_grupo {
+  sesion_id uuid [not null]
+  id_grupo integer [not null]
+  espacio_academico_id uuid [not null]
+  indexes {
+    (sesion_id, id_grupo) [pk]
+    (id_grupo, espacio_academico_id)
+  }
+  Note: 'D02: puente N:M propuesto; misma asignacion de espacio. No convertir automaticamente un espacio en grupo.'
+}
+
+Table convocatoria {
+  id uuid [pk]
+  sesion_id uuid [not null]
+  estudiante_id uuid [not null]
+  codigo_hash varchar(255) [not null]
+  estado varchar(20) [not null, default: 'ACTIVA']
+  estudiante_usuario_id integer [not null]
+  sistema_estudiante varchar(16) [not null, default: 'SCHEDULING']
+  id_grupo integer
+  id_grupo_estudiante integer
+  indexes {
+    (sesion_id, estudiante_id) [unique]
+    (id, sesion_id, estudiante_usuario_id) [unique]
+    (id, estudiante_usuario_id) [unique]
+    sesion_id
+    estudiante_id
+    estudiante_usuario_id
+  }
+  Note: 'K05: grupo y membresia juntos o ambos NULL. UQ sesion/usuario adicional pendiente D01, no impuesta aqui.'
+}
+
+Table participacion {
+  id_participacion integer [pk, increment]
+  convocatoria_id uuid [not null, unique]
+  sesion_id uuid [not null]
+  id_estudiante integer [not null]
+  version_caso_id uuid [not null]
+  rubrica_id uuid [not null]
+  estado varchar(20) [note: 'H03/D07: clasificacion opcional, sin estado inicial ni default; no autoriza acceso.']
+  fecha_registro timestamptz [not null]
+  indexes {
+    (id_participacion, id_estudiante, version_caso_id, rubrica_id) [unique]
+    (id_participacion, version_caso_id, rubrica_id) [unique]
+    (id_participacion, sesion_id) [unique]
+    (id_estudiante, sesion_id)
+  }
+  Note: 'H03/D07: alternativa P1 propuesta, 0..1 por convocatoria por UNIQUE; no impone materializacion obligatoria. Estado NULL significa sin clasificacion, no ausencia. Contratos actuales requieren evolucion aprobada.'
+}
+
+Table permiso_intento_extra {
+  id_permiso_extra integer [pk, increment]
+  id_participacion integer [not null]
+  id_profesor integer [not null]
+  cantidad_autorizada integer [not null]
+  justificacion text [not null]
+  fecha_autorizacion timestamptz [not null]
+  indexes {
+    (id_permiso_extra, id_participacion) [unique]
+    id_participacion
+  }
+  Note: 'RF25: creador del caso verifica y concede. Cantidad explicita, sin autorizar repeticiones automaticas. Consumo atomico K06.'
+}
+
+Table intento {
+  id_intento integer [pk, increment]
+  id_participacion integer [not null]
+  id_estudiante integer [not null]
+  version_caso_id uuid [not null]
+  rubrica_id uuid [not null]
+  id_consentimiento integer [note: 'H01/D03: opcional en esquema. NULL no acredita exencion; aplicabilidad desconocida impide inicio.']
+  id_permiso_extra integer
+  numero_intento integer [not null]
+  estado varchar(20) [not null]
+  inicio timestamptz [not null]
+  vence_en timestamptz [not null]
+  fin timestamptz
+  indexes {
+    (id_participacion, numero_intento) [unique]
+    (id_intento, version_caso_id) [unique]
+    (id_intento, id_participacion, version_caso_id, rubrica_id) [unique]
+    id_consentimiento
+    id_permiso_extra
+  }
+  Note: 'K06/K07: consentimiento condicional D03, FK compuesta MATCH SIMPLE si existe. Activo unico parcial y reloj inyectado. VENCIDO no equivale a INCOMPLETA.'
+}
+
+Table paso_simulacion {
+  id_paso integer [pk, increment]
+  id_intento integer [not null]
+  version_caso_id uuid [not null]
+  id_decision uuid [not null]
+  id_opcion uuid [not null]
+  numero_paso integer [not null]
+  registrado_en timestamptz [not null]
+  tiempo_segundos integer [not null]
+  reflexion_estudiante text
+  indexes {
+    (id_intento, id_decision) [unique]
+    (id_intento, numero_paso) [unique]
+    (id_paso, id_intento, id_decision, version_caso_id) [unique]
+  }
+  Note: 'Ultima seleccion por pregunta. Cambio requiere historial en misma transaccion; D04 sobre cambios de ruta.'
+}
+
+Table historial_decision {
+  id_historial integer [pk, increment]
+  id_paso integer [not null]
+  id_intento integer [not null]
+  id_decision uuid [not null]
+  version_caso_id uuid [not null]
+  id_opcion uuid [not null]
+  revision integer [not null]
+  registrado_en timestamptz [not null]
+  tiempo_segundos integer [not null]
+  reflexion_estudiante text
+  indexes {
+    (id_paso, revision) [unique]
+    (id_intento, registrado_en)
+  }
+  Note: 'Append-only: conservar primera seleccion y cada cambio, sin reconstruir historia inexistente. K07.'
+}
+
+Table resultado_intento {
+  id_resultado integer [pk, increment]
+  id_intento integer [not null, unique]
+  id_participacion integer [not null]
+  version_caso_id uuid [not null]
+  rubrica_id uuid [not null]
+  politica_evaluacion_id uuid [not null]
+  modalidad varchar(20) [not null]
+  nota_final numeric [not null]
+  fecha_calculo timestamptz [not null]
+  comentario_automatico text
+  indexes {
+    (id_resultado, id_participacion, version_caso_id, rubrica_id) [unique]
+    (id_resultado, id_participacion) [unique]
+  }
+  Note: 'Solo definitivo persistido: COMPLETA/PARCIAL; ausencia no crea intento ficticio. K08.'
+}
+
+Table resultado_participacion {
+  id_resultado_participacion integer [pk, increment]
+  id_participacion integer [not null, unique]
+  version_caso_id uuid [not null]
+  rubrica_id uuid [not null]
+  politica_evaluacion_id uuid [not null]
+  situacion varchar(20) [not null]
+  nota_definitiva numeric [not null]
+  fecha_calculo timestamptz [not null]
+  observacion text
+  origen varchar(20) [not null]
+  politica_id uuid [not null]
+  tipo_politica varchar(20) [not null]
+  indexes {
+    (id_resultado_participacion, id_participacion, version_caso_id, rubrica_id) [unique]
+    (id_resultado_participacion, id_participacion) [unique]
+  }
+  Note: 'K08: origen AUSENCIA o CONSOLIDACION; tipo de politica correspondiente. No se elige mejor/ultima/promedio sin aprobacion.'
+}
+
+Table resultado_participacion_fuente {
+  id_resultado_participacion integer [not null]
+  id_resultado integer [not null]
+  id_participacion integer [not null]
+  indexes {
+    (id_resultado_participacion, id_resultado) [pk]
+    id_resultado
+  }
+  Note: 'Trazabilidad de resultados de intento usados para consolidar. Ausencia: cero fuentes, comprobado bajo bloqueo.'
+}
+
+Table resultado_criterio {
+  id_resultado_criterio integer [pk, increment]
+  id_resultado integer
+  id_resultado_participacion integer
+  id_participacion integer [not null]
+  version_caso_id uuid [not null]
+  rubrica_id uuid [not null]
+  id_criterio uuid [not null]
+  id_nivel uuid
+  puntaje_obtenido numeric [not null]
+  indexes {
+    (id_resultado, id_criterio) [unique]
+    (id_resultado_participacion, id_criterio) [unique]
+    (id_criterio, rubrica_id, version_caso_id)
+  }
+  Note: 'K09: XOR propietario intento/ausencia. Ausencia: nivel NULL y puntaje cero, no inventar nivel. DatosEvaluacion exige criterios explicitos para nota calculada.'
+}
+
+Table resultado_decision {
+  id_resultado_decision integer [pk, increment]
+  id_resultado integer
+  id_resultado_participacion integer
+  id_participacion integer [not null]
+  version_caso_id uuid [not null]
+  rubrica_id uuid [not null]
+  id_decision uuid [not null]
+  id_opcion uuid
+  puntaje numeric [not null]
+  es_correcta boolean
+  justificacion_snapshot text
+  indexes {
+    (id_resultado, id_decision) [unique]
+    (id_resultado_participacion, id_decision) [unique]
+    (id_decision, version_caso_id)
+  }
+  Note: 'K09: XOR propietario; evidencia por pregunta de RF12/RF24. En ausencia: opcion/correccion NULL y puntaje cero. No visible en progreso.'
+}
+
+Table feedback_participacion {
+  id_feedback integer [pk, increment]
+  id_participacion integer [not null]
+  id_profesor integer [not null]
+  texto text [not null]
+  fecha_registro timestamptz [not null]
+  indexes {
+    (id_participacion, fecha_registro)
+  }
+  Note: 'D08: RF26 individual; 0..N comentarios propuesta. No distribuir automaticamente un feedback historico de asignacion.'
+}
+
+Table evento_auditoria {
+  id uuid [pk]
+  sesion_id uuid [not null]
+  tipo varchar(80) [not null]
+  estado_anterior varchar(20)
+  estado_nuevo varchar(20)
+  origen varchar(30) [not null]
+  descripcion text
+  creado_en timestamptz [not null]
+  actor_usuario_id integer
+  id_participacion integer
+  indexes {
+    sesion_id
+    (id_participacion, creado_en)
+  }
+  Note: 'H08: auditoria con sesion real obligatoria; admite Participation/Evaluation ligadas a esa sesion. No cubre cuentas Identity o contenido Cases sin sesion; no fabricar contexto.'
+}
+
+Table evento_salida {
+  id uuid [pk]
+  evento_auditoria_id uuid [not null]
+  tipo varchar(80) [not null]
+  payload jsonb [not null]
+  creado_en timestamptz [not null]
+  estado varchar(20) [not null]
+  intentos_envio integer [not null, default: 0]
+  proximo_intento_en timestamptz
+  publicado_en timestamptz
+  ultimo_error_codigo varchar(80)
+  secreto_cifrado bytea
+  clave_cifrado_ref varchar(120)
+  indexes {
+    (evento_auditoria_id, tipo) [unique]
+    (estado, proximo_intento_en)
+  }
+  Note: 'H08/D09/K10: outbox limitado al ciclo de sesion por FK a auditoria. No bus global. Payload sin secretos en claro; entrega RF21 requiere cifrado y clave externa aprobados.'
+}
+
+Table notificacion {
+  id uuid [pk]
+  convocatoria_id uuid
+  destinatario_id uuid [not null]
+  tipo varchar(60) [not null]
+  canal varchar(20) [not null]
+  mensaje text [not null]
+  estado varchar(20) [not null, default: 'PENDIENTE']
+  creada_en timestamptz [not null]
+  destinatario_usuario_id integer [not null]
+  sistema_destinatario varchar(16) [not null, default: 'SCHEDULING']
+  evento_salida_id uuid
+  fecha_envio timestamptz
+  fecha_lectura timestamptz
+  indexes {
+    (evento_salida_id, destinatario_usuario_id, canal) [unique]
+    convocatoria_id
+    destinatario_id
+    destinatario_usuario_id
+  }
+  Note: 'K10: destinatario de Identity verificado. UQ deduplica solo eventos nuevos con evento_salida_id. No convertir logs de envio en entrega comprobada.'
+}
+
+Ref: rol_permiso.id_rol > rol.id_rol [delete: restrict, update: restrict]
+Ref: rol_permiso.id_permiso > permiso.id_permiso [delete: restrict, update: restrict]
+Ref: usuario.id_rol > rol.id_rol [delete: restrict, update: restrict]
+Ref: identidad_academica.id_usuario > usuario.id_usuario [delete: restrict, update: restrict]
+Ref: politica_academica.registrada_por > usuario.id_usuario [delete: restrict, update: restrict]
+Ref: grupo_academico.id_profesor > usuario.id_usuario [delete: restrict, update: restrict]
+Ref: grupo_academico.espacio_academico_id > espacio_academico.id [delete: restrict, update: restrict]
+Ref: grupo_estudiante.id_grupo > grupo_academico.id_grupo [delete: restrict, update: restrict]
+Ref: grupo_estudiante.id_estudiante > usuario.id_usuario [delete: restrict, update: restrict]
+Ref: consentimiento.id_estudiante > usuario.id_usuario [delete: restrict, update: restrict]
+Ref: caso.(sistema_docente, docente_creador_id, docente_usuario_id) > identidad_academica.(sistema, id_academico, id_usuario) [delete: restrict, update: restrict]
+Ref: version_caso.caso_id > caso.id [delete: restrict, update: restrict]
+Ref: escenario.version_caso_id > version_caso.id [delete: restrict, update: restrict]
+Ref: pregunta.(escenario_id, version_caso_id) > escenario.(id, version_caso_id) [delete: restrict, update: restrict]
+Ref: opcion_respuesta.(pregunta_id, version_caso_id) > pregunta.(id, version_caso_id) [delete: restrict, update: restrict]
+Ref: opcion_respuesta.(escenario_destino_id, version_caso_id) > escenario.(id, version_caso_id) [delete: restrict, update: restrict]
+Ref: objetivo_aprendizaje.version_caso_id > version_caso.id [delete: restrict, update: restrict]
+Ref: personaje.version_caso_id > version_caso.id [delete: restrict, update: restrict]
+Ref: personaje_escena.(personaje_id, version_caso_id) > personaje.(id, version_caso_id) [delete: restrict, update: restrict]
+Ref: personaje_escena.(escenario_id, version_caso_id) > escenario.(id, version_caso_id) [delete: restrict, update: restrict]
+Ref: pista.(pregunta_id, version_caso_id) > pregunta.(id, version_caso_id) [delete: restrict, update: restrict]
+Ref: rubrica.version_caso_id > version_caso.id [delete: restrict, update: restrict]
+Ref: rubrica.(politica_evaluacion_id, tipo_politica) > politica_academica.(id, tipo) [delete: restrict, update: restrict]
+Ref: criterio_rubrica.(rubrica_id, version_caso_id) > rubrica.(id, version_caso_id) [delete: restrict, update: restrict]
+Ref: nivel_rubrica.(criterio_id, version_caso_id) > criterio_rubrica.(id, version_caso_id) [delete: restrict, update: restrict]
+Ref: valoracion_opcion.(opcion_id, version_caso_id) > opcion_respuesta.(id, version_caso_id) [delete: restrict, update: restrict]
+Ref: valoracion_opcion.(criterio_id, version_caso_id) > criterio_rubrica.(id, version_caso_id) [delete: restrict, update: restrict]
+Ref: sesion_programada.espacio_academico_id > espacio_academico.id [delete: restrict, update: restrict]
+Ref: sesion_programada.version_caso_id > version_caso.id [delete: restrict, update: restrict]
+Ref: sesion_programada.(rubrica_id, version_caso_id) > rubrica.(id, version_caso_id) [delete: restrict, update: restrict]
+Ref: sesion_programada.(sistema_docente, docente_id, docente_usuario_id) > identidad_academica.(sistema, id_academico, id_usuario) [delete: restrict, update: restrict]
+Ref: sesion_programada.(politica_ingreso_id, tipo_politica_ingreso) > politica_academica.(id, tipo) [delete: restrict, update: restrict]
+Ref: sesion_grupo.(sesion_id, espacio_academico_id) > sesion_programada.(id, espacio_academico_id) [delete: restrict, update: restrict]
+Ref: sesion_grupo.(id_grupo, espacio_academico_id) > grupo_academico.(id_grupo, espacio_academico_id) [delete: restrict, update: restrict]
+Ref: convocatoria.sesion_id > sesion_programada.id [delete: restrict, update: restrict]
+Ref: convocatoria.(sistema_estudiante, estudiante_id, estudiante_usuario_id) > identidad_academica.(sistema, id_academico, id_usuario) [delete: restrict, update: restrict]
+Ref: convocatoria.(sesion_id, id_grupo) > sesion_grupo.(sesion_id, id_grupo) [delete: restrict, update: restrict]
+Ref: convocatoria.(id_grupo_estudiante, id_grupo, estudiante_usuario_id) > grupo_estudiante.(id_grupo_estudiante, id_grupo, id_estudiante) [delete: restrict, update: restrict]
+Ref: participacion.(convocatoria_id, sesion_id, id_estudiante) > convocatoria.(id, sesion_id, estudiante_usuario_id) [delete: restrict, update: restrict]
+Ref: participacion.(sesion_id, version_caso_id, rubrica_id) > sesion_programada.(id, version_caso_id, rubrica_id) [delete: restrict, update: restrict]
+Ref: permiso_intento_extra.id_participacion > participacion.id_participacion [delete: restrict, update: restrict]
+Ref: permiso_intento_extra.id_profesor > usuario.id_usuario [delete: restrict, update: restrict]
+Ref: intento.(id_participacion, id_estudiante, version_caso_id, rubrica_id) > participacion.(id_participacion, id_estudiante, version_caso_id, rubrica_id) [delete: restrict, update: restrict]
+Ref: intento.(id_consentimiento, id_estudiante) > consentimiento.(id_consentimiento, id_estudiante) [delete: restrict, update: restrict]
+Ref: intento.(id_permiso_extra, id_participacion) > permiso_intento_extra.(id_permiso_extra, id_participacion) [delete: restrict, update: restrict]
+Ref: paso_simulacion.(id_intento, version_caso_id) > intento.(id_intento, version_caso_id) [delete: restrict, update: restrict]
+Ref: paso_simulacion.(id_opcion, id_decision, version_caso_id) > opcion_respuesta.(id, pregunta_id, version_caso_id) [delete: restrict, update: restrict]
+Ref: historial_decision.(id_paso, id_intento, id_decision, version_caso_id) > paso_simulacion.(id_paso, id_intento, id_decision, version_caso_id) [delete: restrict, update: restrict]
+Ref: historial_decision.(id_opcion, id_decision, version_caso_id) > opcion_respuesta.(id, pregunta_id, version_caso_id) [delete: restrict, update: restrict]
+Ref: resultado_intento.(id_intento, id_participacion, version_caso_id, rubrica_id) > intento.(id_intento, id_participacion, version_caso_id, rubrica_id) [delete: restrict, update: restrict]
+Ref: resultado_intento.(rubrica_id, version_caso_id, politica_evaluacion_id) > rubrica.(id, version_caso_id, politica_evaluacion_id) [delete: restrict, update: restrict]
+Ref: resultado_participacion.(id_participacion, version_caso_id, rubrica_id) > participacion.(id_participacion, version_caso_id, rubrica_id) [delete: restrict, update: restrict]
+Ref: resultado_participacion.(politica_id, tipo_politica) > politica_academica.(id, tipo) [delete: restrict, update: restrict]
+Ref: resultado_participacion.(rubrica_id, version_caso_id, politica_evaluacion_id) > rubrica.(id, version_caso_id, politica_evaluacion_id) [delete: restrict, update: restrict]
+Ref: resultado_participacion_fuente.(id_resultado_participacion, id_participacion) > resultado_participacion.(id_resultado_participacion, id_participacion) [delete: restrict, update: restrict]
+Ref: resultado_participacion_fuente.(id_resultado, id_participacion) > resultado_intento.(id_resultado, id_participacion) [delete: restrict, update: restrict]
+Ref: resultado_criterio.(id_resultado, id_participacion, version_caso_id, rubrica_id) > resultado_intento.(id_resultado, id_participacion, version_caso_id, rubrica_id) [delete: restrict, update: restrict]
+Ref: resultado_criterio.(id_resultado_participacion, id_participacion, version_caso_id, rubrica_id) > resultado_participacion.(id_resultado_participacion, id_participacion, version_caso_id, rubrica_id) [delete: restrict, update: restrict]
+Ref: resultado_decision.(id_resultado, id_participacion, version_caso_id, rubrica_id) > resultado_intento.(id_resultado, id_participacion, version_caso_id, rubrica_id) [delete: restrict, update: restrict]
+Ref: resultado_decision.(id_resultado_participacion, id_participacion, version_caso_id, rubrica_id) > resultado_participacion.(id_resultado_participacion, id_participacion, version_caso_id, rubrica_id) [delete: restrict, update: restrict]
+Ref: resultado_criterio.(id_criterio, rubrica_id, version_caso_id) > criterio_rubrica.(id, rubrica_id, version_caso_id) [delete: restrict, update: restrict]
+Ref: resultado_criterio.(id_nivel, id_criterio, version_caso_id) > nivel_rubrica.(id, criterio_id, version_caso_id) [delete: restrict, update: restrict]
+Ref: resultado_decision.(id_decision, version_caso_id) > pregunta.(id, version_caso_id) [delete: restrict, update: restrict]
+Ref: resultado_decision.(id_opcion, id_decision, version_caso_id) > opcion_respuesta.(id, pregunta_id, version_caso_id) [delete: restrict, update: restrict]
+Ref: feedback_participacion.id_participacion > participacion.id_participacion [delete: restrict, update: restrict]
+Ref: feedback_participacion.id_profesor > usuario.id_usuario [delete: restrict, update: restrict]
+Ref: evento_auditoria.sesion_id > sesion_programada.id [delete: restrict, update: restrict]
+Ref: evento_auditoria.actor_usuario_id > usuario.id_usuario [delete: restrict, update: restrict]
+Ref: evento_auditoria.(id_participacion, sesion_id) > participacion.(id_participacion, sesion_id) [delete: restrict, update: restrict]
+Ref: evento_salida.evento_auditoria_id > evento_auditoria.id [delete: restrict, update: restrict]
+Ref: notificacion.(sistema_destinatario, destinatario_id, destinatario_usuario_id) > identidad_academica.(sistema, id_academico, id_usuario) [delete: restrict, update: restrict]
+Ref: notificacion.(convocatoria_id, destinatario_usuario_id) > convocatoria.(id, estudiante_usuario_id) [delete: restrict, update: restrict]
+Ref: notificacion.evento_salida_id > evento_salida.id [delete: restrict, update: restrict]

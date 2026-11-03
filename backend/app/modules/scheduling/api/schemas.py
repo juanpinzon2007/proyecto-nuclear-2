@@ -87,10 +87,10 @@ class CrearEspacioAcademicoRequest(BaseModel):
 
 
 class ValidarIngresoRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     convocatoria_id: UUID
     estudiante_id: UUID
     codigo_acceso: str
-    tolerancia_minutos: int = Field(default=15, ge=0)
 
 
 class NotificacionResponse(BaseModel):

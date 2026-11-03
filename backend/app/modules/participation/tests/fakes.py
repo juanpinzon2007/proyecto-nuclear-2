@@ -170,6 +170,10 @@ class SchedulingFalso:
         if not self.permitir_edicion:
             raise AccesoDenegado("Asignación cerrada.")
 
+    def validar_instante_registro(self, *, instante) -> None:
+        # Política explícita de este doble, nunca composición productiva.
+        self.validar_edicion()
+
     def obtener_id_caso(self, **datos) -> int:
         self._comprobar_fallo("caso")
         return 300

@@ -9,7 +9,7 @@ from app.modules.participation.application.evaluation_ports import (
 from app.modules.participation.application.ports import IdentityPort, SchedulingPort
 from app.modules.participation.application.services import _cargar_autorizado
 from app.modules.participation.domain.calculador_rubrica import CalculadorRubrica
-from app.modules.participation.domain.entities import EstadoIntento, Intento
+from app.modules.participation.domain.entities import EstadoIntento, Intento, Participacion, IdentificadorCases
 from app.modules.participation.domain.estrategias_evaluacion import (
     EvaluacionAusenciaStrategy, EvaluacionCompletaStrategy, EvaluacionParcialStrategy,
     IEstrategiaEvaluacion,
@@ -60,7 +60,7 @@ class ServicioEvaluacion:
 
     def _marco(
         self, id_asignacion: int, id_participacion: int, intento: Intento | None,
-    ) -> tuple[RubricaEvaluacion, tuple[int, ...]]:
+    ) -> tuple[RubricaEvaluacion, tuple[IdentificadorCases, ...]]:
         id_caso = self.scheduling.obtener_id_caso(id_asignacion=id_asignacion)
         selecciones = selecciones_de(intento) if intento is not None else ()
         rubrica, ruta = self.cases.obtener_marco_evaluacion(
@@ -70,13 +70,15 @@ class ServicioEvaluacion:
         )
         if rubrica.referencia.id_caso != id_caso:
             raise EvaluacionInconsistente("La rúbrica corresponde a otro caso.")
-        if not ruta.total_conocido:
+        if not ruta.disponible or not ruta.total_conocido:
             raise PoliticaEvaluacionPendiente("Cases no ha definido el recorrido completo evaluable.")
         return rubrica, ruta.decisiones
 
-    def _calcular(self, datos: DatosEvaluacion, rubrica: RubricaEvaluacion) -> DatosEvaluacion:
+    def _calcular(self, datos: DatosEvaluacion, rubrica: RubricaEvaluacion, intento: Intento | None = None) -> DatosEvaluacion:
         try:
-            plan = self.politica.preparar_calculo(datos=datos, rubrica=rubrica)
+            contextual=getattr(self.politica,"preparar_calculo_para_intento",None)
+            plan = (contextual(datos=datos,rubrica=rubrica,intento=intento) if contextual is not None
+                    else self.politica.preparar_calculo(datos=datos, rubrica=rubrica))
             calculo = CalculadorRubrica().calcular(rubrica, plan.niveles, plan.politica)
         except PoliticaEvaluacionPendiente as error:
             return replace(datos, pendientes=(*datos.pendientes, str(error)))
@@ -94,6 +96,29 @@ class ServicioEvaluacion:
         # Se devuelve confirmación sin nota; la lectura académica es independiente.
         return _estado(datos, confirmada=True)
 
+    def _preparar_intento(self, intento: Intento, participacion: Participacion) -> DatosEvaluacion:
+        if intento.estado == EstadoIntento.EN_CURSO:
+            raise EvaluacionInconsistente("Primero debe confirmarse el cierre del intento.")
+        rubrica, decisiones = self._marco(participacion.id_asignacion, participacion.id_participacion, intento)
+        modalidad = self.politica.clasificar(intento=intento, decisiones_aplicables=decisiones)
+        contexto = ContextoEvaluacion(
+            rubrica.referencia, participacion.id_participacion, modalidad, decisiones, intento,
+        )
+        datos = seleccionar_estrategia(modalidad).preparar(contexto)
+        return self._calcular(datos, rubrica, intento)
+
+    def previsualizar_intento(self, *, id_estudiante: int, id_intento: int) -> DatosEvaluacion:
+        """Candidato interno autorizado; sin consultar/escribir resultados ni commit.
+
+        No es una nota oficial ni se publica mediante los endpoints existentes.
+        El cierre y las políticas se exigen igual que al preparar una definitiva.
+        """
+        with self.fabrica() as trabajo:
+            intento, participacion = _cargar_autorizado(
+                trabajo.repositorio, self.identity, id_estudiante, id_intento,
+            )
+            return self._preparar_intento(intento, participacion)
+
     def evaluar_intento(self, *, id_estudiante: int, id_intento: int) -> EstadoEvaluacion:
         with self.fabrica() as trabajo:
             intento, participacion = _cargar_autorizado(
@@ -104,13 +129,7 @@ class ServicioEvaluacion:
             existente = self._existente(trabajo, participacion.id_participacion, id_intento)
             if existente is not None:
                 return _estado(existente, confirmada=True)
-            rubrica, decisiones = self._marco(participacion.id_asignacion, participacion.id_participacion, intento)
-            modalidad = self.politica.clasificar(intento=intento, decisiones_aplicables=decisiones)
-            contexto = ContextoEvaluacion(
-                rubrica.referencia, participacion.id_participacion, modalidad, decisiones, intento,
-            )
-            datos = seleccionar_estrategia(modalidad).preparar(contexto)
-            return self._confirmar(trabajo, self._calcular(datos, rubrica))
+            return self._confirmar(trabajo, self._preparar_intento(intento, participacion))
 
     def evaluar_ausencia(self, *, id_estudiante: int, id_participacion: int) -> EstadoEvaluacion:
         with self.fabrica() as trabajo:

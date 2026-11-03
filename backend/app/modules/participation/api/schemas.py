@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import Annotated, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -9,6 +10,7 @@ from app.modules.participation.domain.entities import EstadoIntento
 from app.modules.participation.domain.evaluation import ModalidadEvaluacion
 
 Identificador = Annotated[int, Field(strict=True, gt=0)]
+ReferenciaCases = UUID | Identificador
 DecimalTexto = Annotated[str, Field(pattern=r"^\d+(?:\.\d+)?$")]
 
 
@@ -22,7 +24,7 @@ class InicioIntentoSolicitud(EsquemaHTTP):
 
 
 class SeleccionSolicitud(EsquemaHTTP):
-    id_opcion: Identificador
+    id_opcion: ReferenciaCases
     reflexion_estudiante: Annotated[str, Field(strict=True)] | None = None
 
 
@@ -37,15 +39,15 @@ class IntentoRespuesta(EsquemaHTTP):
 
 
 class SeleccionRespuesta(EsquemaHTTP):
-    id_decision: Identificador
-    id_opcion: Identificador
+    id_decision: ReferenciaCases
+    id_opcion: ReferenciaCases
 
 
 class ProgresoRespuesta(EsquemaHTTP):
     intento: IntentoRespuesta
-    decisiones_aplicables: list[Identificador]
+    decisiones_aplicables: list[ReferenciaCases] | None
     selecciones: list[SeleccionRespuesta]
-    pendientes: list[Identificador]
+    pendientes: list[ReferenciaCases] | None
     total_aplicable: Annotated[int, Field(ge=0)] | None
     respondidas: Annotated[int, Field(ge=0)]
 

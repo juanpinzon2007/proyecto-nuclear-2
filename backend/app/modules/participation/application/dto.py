@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from app.modules.participation.domain.entities import EstadoIntento, Intento
+from app.modules.participation.domain.entities import EstadoIntento, Intento, IdentificadorCases, es_referencia_cases
 from app.modules.participation.domain.evaluation import ModalidadEvaluacion
 
 
 @dataclass(frozen=True)
 class SeleccionDecision:
-    id_decision: int
-    id_opcion: int
+    id_decision: IdentificadorCases
+    id_opcion: IdentificadorCases
 
 
 def selecciones_de(intento: Intento) -> tuple[SeleccionDecision, ...]:
@@ -19,19 +19,22 @@ def selecciones_de(intento: Intento) -> tuple[SeleccionDecision, ...]:
 class RecorridoAplicable:
     """Cases determina las decisiones aplicables y si conoce el total de la ruta."""
 
-    decisiones: tuple[int, ...]
+    decisiones: tuple[IdentificadorCases, ...]
     total_conocido: bool
+    disponible: bool = True
 
     def __post_init__(self) -> None:
         if not isinstance(self.decisiones, tuple) or any(
-            type(identificador) is not int or identificador <= 0
+            not es_referencia_cases(identificador)
             for identificador in self.decisiones
         ):
-            raise ValueError("El recorrido debe contener una tupla de IDs enteros positivos.")
+            raise ValueError("El recorrido debe contener una tupla de referencias válidas de Cases.")
         if len(set(self.decisiones)) != len(self.decisiones):
             raise ValueError("Cases devolvió decisiones duplicadas en el recorrido.")
         if type(self.total_conocido) is not bool:
             raise ValueError("Cases debe indicar si conoce el total del recorrido.")
+        if type(self.disponible) is not bool or (not self.disponible and (self.decisiones or self.total_conocido)):
+            raise ValueError("Un recorrido no disponible no declara decisiones ni total.")
 
 
 @dataclass(frozen=True)
@@ -55,9 +58,9 @@ class ResumenIntento:
 @dataclass(frozen=True)
 class ProgresoIntento:
     intento: ResumenIntento
-    decisiones_aplicables: tuple[int, ...]
+    decisiones_aplicables: tuple[IdentificadorCases, ...] | None
     selecciones: tuple[SeleccionDecision, ...]
-    pendientes: tuple[int, ...]
+    pendientes: tuple[IdentificadorCases, ...] | None
     total_aplicable: int | None
 
     @property

@@ -3,9 +3,10 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
+from app.modules.identity.api.academic_dependencies import obtener_docente_cases
 
-from app.modules.cases.api.dependencies import get_caso_service
+from app.modules.cases.api.dependencies import get_caso_service, exigir_permiso_creacion_configurado
 from app.modules.cases.api.schemas.caso_responses import (
     CasoDetalleResponse,
     CasoResumenResponse,
@@ -25,8 +26,8 @@ from app.modules.cases.domain.exceptions import (
 router = APIRouter(prefix="/api/v1/cases", tags=["cases"])
 
 ServicioDep = Annotated[CasoService, Depends(get_caso_service)]
-# Temporal hasta integrar Identity: el docente llega como UUID en cabecera.
-DocenteDep = Annotated[uuid.UUID, Header(alias="X-Docente-Id")]
+# Identidad del servidor, sin cabecera alternativa. Cerrado sin resolver real.
+DocenteDep = Annotated[uuid.UUID, Depends(obtener_docente_cases)]
 
 
 def _traducir(exc: ErrorDominioCaso) -> HTTPException:
@@ -50,7 +51,8 @@ def _respuesta(version: VersionCaso) -> VersionResponse:
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=VersionResponse)
 def crear_borrador(
-    payload: CasoPayload, service: ServicioDep, docente_id: DocenteDep
+    payload: CasoPayload, docente_id: DocenteDep,
+    permiso: Annotated[None, Depends(exigir_permiso_creacion_configurado)], service: ServicioDep,
 ) -> VersionResponse:
     """Guarda un caso en BORRADOR, incluso incompleto."""
     try:
@@ -60,14 +62,14 @@ def crear_borrador(
 
 
 @router.get("", response_model=list[CasoResumenResponse])
-def listar_casos(service: ServicioDep, docente_id: DocenteDep) -> list[CasoResumenResponse]:
+def listar_casos(docente_id: DocenteDep, service: ServicioDep) -> list[CasoResumenResponse]:
     """Lista resumida de los casos del docente."""
     return [CasoResumenResponse.model_validate(r) for r in service.listar(docente_id)]
 
 
 @router.get("/{version_id}", response_model=CasoDetalleResponse)
 def obtener_caso(
-    version_id: uuid.UUID, service: ServicioDep, docente_id: DocenteDep
+    version_id: uuid.UUID, docente_id: DocenteDep, service: ServicioDep
 ) -> CasoDetalleResponse:
     """Detalle completo: escenarios, preguntas, opciones y rúbrica."""
     try:
@@ -78,7 +80,7 @@ def obtener_caso(
 
 @router.put("/{version_id}", response_model=VersionResponse)
 def editar_borrador(
-    version_id: uuid.UUID, payload: CasoPayload, service: ServicioDep, docente_id: DocenteDep
+    version_id: uuid.UUID, payload: CasoPayload, docente_id: DocenteDep, service: ServicioDep
 ) -> VersionResponse:
     """Reemplaza la estructura de un BORRADOR (400 si está PUBLICADO o ARCHIVADO)."""
     try:
@@ -89,7 +91,7 @@ def editar_borrador(
 
 @router.post("/{version_id}/publish", response_model=VersionResponse)
 def publicar_caso(
-    version_id: uuid.UUID, service: ServicioDep, docente_id: DocenteDep
+    version_id: uuid.UUID, docente_id: DocenteDep, service: ServicioDep
 ) -> VersionResponse:
     """Valida el borrador con el Chain of Responsibility y lo publica."""
     try:
@@ -100,7 +102,7 @@ def publicar_caso(
 
 @router.post("/{version_id}/archive", response_model=VersionResponse)
 def archivar_caso(
-    version_id: uuid.UUID, service: ServicioDep, docente_id: DocenteDep
+    version_id: uuid.UUID, docente_id: DocenteDep, service: ServicioDep
 ) -> VersionResponse:
     """Archiva un caso PUBLICADO para evitar nuevas programaciones."""
     try:

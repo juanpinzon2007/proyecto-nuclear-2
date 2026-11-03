@@ -60,6 +60,11 @@ class UnidadTrabajoSQLAlchemy:
         return self._sesion
 
     @property
+    def sesion(self) -> Session:
+        """Session activa para componer autorizadores de la misma operación."""
+        return self._activa()
+
+    @property
     def repositorio(self) -> RepositorioParticipacion:
         self._activa()
         if self._repositorio is None:
@@ -104,3 +109,9 @@ class UnidadTrabajoSQLAlchemy:
                 self._repositorio = None
                 self._resultados = None
                 self._terminada = True
+        # Constraints inmediatas y SELECT FOR UPDATE pueden fallar antes de
+        # commit. Mantener el mismo contrato de conflicto, después del rollback.
+        if isinstance(error, DBAPIError):
+            codigo = getattr(error.orig, "sqlstate", None) or getattr(error.orig, "pgcode", None)
+            if codigo in {"23505", "40001", "40P01"}:
+                raise ConflictoActualizacion("Conflicto transaccional; vuelva a leer antes de reintentar.") from error

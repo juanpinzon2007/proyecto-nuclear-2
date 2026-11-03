@@ -1,8 +1,8 @@
 
 """Servicio para convocar estudiantes a sesiones académicas."""
 
-import hashlib
 import secrets
+from app.modules.scheduling.domain.access_codes import hash_codigo
 
 from dataclasses import dataclass
 from uuid import UUID
@@ -66,9 +66,7 @@ def crear_convocatoria(
     codigo_acceso = secrets.token_urlsafe(32)
 
     # 5. Guardar únicamente el hash del código.
-    codigo_hash = hashlib.sha256(
-        codigo_acceso.encode("utf-8")
-    ).hexdigest()
+    codigo_hash = hash_codigo(codigo_acceso)
 
     # 6. Crear la convocatoria.
     convocatoria = ConvocatoriaModel(

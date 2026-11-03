@@ -50,7 +50,7 @@ class CasoEndpoint:
 CASOS = (
     CasoEndpoint("inicio", "POST", INICIO_URL, {"id_consentimiento": 30}, 201),
     CasoEndpoint("registro", "POST", DECISION_URL, {"id_opcion": 60}, 201),
-    CasoEndpoint("modificacion", "PUT", DECISION_URL, {"id_opcion": 61}, 200),
+    CasoEndpoint("modificacion", "PUT", DECISION_URL, {"id_opcion": 61}, 409),
     CasoEndpoint("progreso", "GET", PROGRESO_URL, None, 200),
     CasoEndpoint("finalizacion", "POST", FIN_URL, None, 200),
     CasoEndpoint("resultado", "GET", RESULTADO_URL, None, 200),
@@ -126,7 +126,7 @@ def test_matriz_funcional_siete_endpoints(entorno, caso, escenario, record_prope
             esperado = 403
         else:
             entorno.app.dependency_overrides.clear()
-            esperado = 503
+            esperado = 401  # Identity real exige JWT antes de cualquier adaptador.
         respuesta = solicitar(entorno.client, caso)
         assert respuesta.status_code == esperado
         ErrorHTTP.model_validate(respuesta.json())
@@ -149,7 +149,11 @@ def test_matriz_funcional_siete_endpoints(entorno, caso, escenario, record_prope
     respuesta = solicitar(entorno.client, caso)
     assert respuesta.status_code == caso.exito, respuesta.text
     datos = respuesta.json()
-    if caso.nombre in ("resultado", "ausencia"):
+    if caso.nombre == "modificacion":
+        assert datos["detail"]["codigo"] == "RESPUESTA_INMUTABLE"
+        assert instantanea(entorno.almacen) == antes
+        assert entorno.almacen.intentos[10].pasos[0].id_opcion == 60
+    elif caso.nombre in ("resultado", "ausencia"):
         TypeAdapter(ResultadoRespuesta).validate_python(datos)
         assert instantanea(entorno.almacen) == antes
         if caso.nombre == "resultado":
@@ -184,12 +188,13 @@ def test_matriz_funcional_siete_endpoints(entorno, caso, escenario, record_prope
         confirmado = instantanea(entorno.almacen)
         politica_llamadas = entorno.politica.llamadas
         repetida = solicitar(entorno.client, caso)
-        esperado = {"inicio": 409, "registro": 422}.get(caso.nombre, 200)
+        esperado = {"inicio": 409, "registro": 409, "modificacion": 409}.get(caso.nombre, 200)
         assert repetida.status_code == esperado
         if caso.nombre == "modificacion":
             assert len(entorno.almacen.intentos[10].pasos) == 1
             assert entorno.almacen.intentos[10].pasos[0].id_paso == 40
-            assert entorno.almacen.intentos[10].pasos[0].id_opcion == 61
+            assert entorno.almacen.intentos[10].pasos[0].id_opcion == 60
+            assert instantanea(entorno.almacen) == confirmado
         else:
             assert instantanea(entorno.almacen) == confirmado
         if caso.nombre in ("resultado", "ausencia", "progreso", "finalizacion"):
@@ -207,6 +212,12 @@ def test_matriz_funcional_siete_endpoints(entorno, caso, escenario, record_prope
 def test_fallo_dependencia_especifica_no_corrompe_estado(entorno, caso, monkeypatch, record_property):
     preparar(entorno, caso)
     antes = instantanea(entorno.almacen)
+    if caso.nombre == "modificacion":
+        # La política definitiva se aplica antes de Cases/Scheduling/repositorio.
+        entorno.cases.fallar_en.add("cambio")
+        assert solicitar(entorno.client, caso).status_code == 409
+        assert instantanea(entorno.almacen) == antes
+        return
     if caso.nombre == "inicio":
         entorno.scheduling.fallar_en.add("condiciones")
     elif caso.nombre in ("registro", "modificacion", "progreso"):
@@ -283,11 +294,11 @@ def test_flujo_funcional_completo_http_con_trazabilidad(entorno, monkeypatch, re
     anterior = entorno.almacen.intentos[10]
     entorno.reloj.instante += timedelta(seconds=10)
     cambio = entorno.client.put(DECISION_URL, json={"id_opcion": 61})
-    assert cambio.status_code == 200
+    assert cambio.status_code == 409
     actual = entorno.almacen.intentos[10]
     assert len(actual.pasos) == 2
     assert actual.pasos[0].id_paso == anterior.pasos[0].id_paso
-    assert anterior.pasos[0].id_opcion == 60 and actual.pasos[0].id_opcion == 61
+    assert anterior == actual and actual.pasos[0].id_opcion == 60
     assert actual.pasos[1] == anterior.pasos[1]
     fin = entorno.client.post(FIN_URL)
     assert fin.status_code == 200
@@ -307,19 +318,20 @@ def test_flujo_funcional_completo_http_con_trazabilidad(entorno, monkeypatch, re
     resultado = entorno.client.get(RESULTADO_URL)
     TypeAdapter(ResultadoRespuesta).validate_python(resultado.json())
     assert resultado.json()["estado"] == "DEFINITIVA"
-    # Fixture explícita: 5*.60*.50 + 5*.40*.50 = 2.50, calculado por código real.
-    assert resultado.json()["nota_final"] == "2.50"
-    assert [c.puntaje_obtenido for c in entorno.almacen.evaluaciones[(20, 10)].criterios] == [Decimal("1.5"), Decimal("1")]
+    # Misma fórmula de laboratorio: se evalúa la opción ORIGINAL, no la rechazada.
+    assert resultado.json()["nota_final"] == "4.00"
+    assert [c.puntaje_obtenido for c in entorno.almacen.evaluaciones[(20, 10)].criterios] == [Decimal("3"), Decimal("1")]
     commits = entorno.almacen.commits
     assert entorno.facade.evaluar_intento(id_estudiante=7, id_intento=10).confirmada
     assert entorno.client.get(RESULTADO_URL).json() == resultado.json()
     assert entorno.almacen.inserciones_evaluacion == 1 and entorno.almacen.commits == commits
-    for requerido in ("Servicio.guardar", "Dominio.registrar", "Dominio.modificar", "Servicio.progreso",
+    assert "Dominio.modificar" not in trazas  # Aplicación rechaza antes de mutar.
+    for requerido in ("Servicio.guardar", "Dominio.registrar", "Servicio.progreso",
                       "Dominio.finalizar", "Repositorio.guardar", "Calculador.real", "Resultados.insertar"):
         assert requerido in trazas
     assert trazas.index("Servicio.guardar") < trazas.index("Dominio.registrar") < trazas.index("Repositorio.guardar")
     record_property("traza_capas", json.dumps(trazas))
-    evidencia(record_property, CASOS[5], "flujo_completo", "Flujo HTTP con 2 selecciones, cierre único y nota ficticia 2.50 confirmada", "Todas las etapas verificadas; dominio real; un resultado definitivo; 2.50")
+    evidencia(record_property, CASOS[5], "flujo_completo", "Dos selecciones inmutables y nota de laboratorio 4.00", "PUT rechazado; cierre único y evaluación de las selecciones originales")
 
 
 def test_parcial_pendiente_y_politica_explicita_por_http(entorno, record_property):

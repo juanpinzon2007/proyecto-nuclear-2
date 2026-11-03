@@ -1,12 +1,22 @@
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from enum import StrEnum
+from uuid import UUID
 
 from app.modules.participation.domain.clock import Reloj
 from app.modules.participation.domain.errors import (
     ErrorDominioParticipacion,
     IntentoNoEditable,
+    RespuestaInmutable,
 )
+
+# Los INTEGER antiguos siguen siendo válidos en dobles/contratos históricos;
+# el adaptador real exige UUID existentes, nunca convierte entre ambos.
+IdentificadorCases = int | UUID
+
+
+def es_referencia_cases(valor: object) -> bool:
+    return (type(valor) is int and valor > 0) or (isinstance(valor, UUID) and valor.int != 0)
 
 
 def _entero_positivo(valor: int, nombre: str) -> None:
@@ -48,20 +58,23 @@ class Participacion:
 
 @dataclass(frozen=True)
 class PasoSimulacion:
-    """Selección actual de una decisión; no contiene corrección ni puntajes."""
+    """Selección registrada inmutable; no contiene corrección ni puntajes."""
 
     id_paso: int
     id_intento: int
-    id_decision: int
-    id_opcion: int
+    id_decision: IdentificadorCases
+    id_opcion: IdentificadorCases
     numero_paso: int
     registrado_en: datetime
     tiempo_segundos: int
     reflexion_estudiante: str | None = None
 
     def __post_init__(self) -> None:
-        for nombre in ("id_paso", "id_intento", "id_decision", "id_opcion", "numero_paso"):
+        for nombre in ("id_paso", "id_intento", "numero_paso"):
             _entero_positivo(getattr(self, nombre), nombre)
+        for nombre in ("id_decision", "id_opcion"):
+            if not es_referencia_cases(getattr(self, nombre)):
+                raise ErrorDominioParticipacion(f"{nombre} debe ser una referencia válida de Cases.")
         object.__setattr__(self, "registrado_en", _utc(self.registrado_en))
         if type(self.tiempo_segundos) is not int or self.tiempo_segundos < 0:
             raise ErrorDominioParticipacion("tiempo_segundos debe ser un entero no negativo.")
@@ -170,14 +183,14 @@ class Intento:
         self,
         *,
         id_paso: int,
-        id_decision: int,
-        id_opcion: int,
+        id_decision: IdentificadorCases,
+        id_opcion: IdentificadorCases,
         reloj: Reloj,
         reflexion_estudiante: str | None = None,
     ) -> "Intento":
         ahora = self._exigir_editable(reloj)
         if any(paso.id_decision == id_decision for paso in self.pasos):
-            raise ErrorDominioParticipacion("La decisión ya está registrada; utilice modificar_decision.")
+            raise RespuestaInmutable("La respuesta ya está registrada y es inmutable.")
         paso = PasoSimulacion(
             id_paso=id_paso,
             id_intento=self.id_intento,
@@ -193,23 +206,14 @@ class Intento:
     def modificar_decision(
         self,
         *,
-        id_decision: int,
-        id_opcion: int,
+        id_decision: IdentificadorCases,
+        id_opcion: IdentificadorCases,
         reloj: Reloj,
         reflexion_estudiante: str | None = None,
     ) -> "Intento":
-        ahora = self._exigir_editable(reloj)
-        anterior = next((p for p in self.pasos if p.id_decision == id_decision), None)
-        if anterior is None:
-            raise ErrorDominioParticipacion("La decisión no ha sido registrada.")
-        actual = replace(
-            anterior,
-            id_opcion=id_opcion,
-            registrado_en=ahora,
-            tiempo_segundos=int((ahora - self.inicio).total_seconds()),
-            reflexion_estudiante=reflexion_estudiante,
-        )
-        return replace(self, pasos=tuple(actual if p == anterior else p for p in self.pasos))
+        self._exigir_editable(reloj)
+        # Firma conservada para rechazar clientes antiguos, nunca para crear por PUT.
+        raise RespuestaInmutable("No se permite modificar una respuesta, ni sustituir su reflexión.")
 
     def actualizar_vencimiento(self, reloj: Reloj) -> "Intento":
         if self.estado != EstadoIntento.EN_CURSO:
