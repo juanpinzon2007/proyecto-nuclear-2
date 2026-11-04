@@ -6,6 +6,9 @@ pendiente, sin prohibiciones estructurales permanentes.
 """
 from dataclasses import dataclass
 from uuid import UUID
+from typing import Protocol
+
+from app.modules.cases.domain.entities.caso import VersionCaso
 
 
 class GrafoNoDisponible(ValueError):
@@ -111,3 +114,14 @@ class GrafoVersion:
         if not set(respuestas).issubset(preguntas):
             raise SeleccionFueraDeRecorrido("Hay respuestas fuera de la ruta seleccionada.")
         return RecorridoGrafo(tuple(escenas), tuple(preguntas), actual, actual is None)
+
+
+class AutoriaRecorridoPort(Protocol):
+    """Autoría transaccional; el adaptador reutiliza el repositorio de grafo."""
+
+    def obtener_recorrido(self, version: VersionCaso) -> GrafoVersion: ...
+
+    def configurar_recorrido(self, version: VersionCaso, *, inicial_id: UUID,
+                            transiciones: tuple[tuple[UUID, str, UUID | None], ...]) -> GrafoVersion: ...
+
+    def publicar_ejecutable(self, version: VersionCaso) -> None: ...

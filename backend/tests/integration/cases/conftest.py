@@ -233,3 +233,20 @@ def payload_valido() -> dict[str, object]:
             ],
         },
     }
+
+
+def configurar_final_unica_escena(client, version_id, headers):
+    """Fixture explícita: el caso editorial de estas pruebas termina en su escena.
+
+    Publicar por API ahora exige un grafo; no se elude ese nuevo contrato.
+    """
+    detalle = client.get(f"/api/v1/cases/{version_id}", headers=headers).json()
+    assert len(detalle["escenarios"]) == 1
+    escena = detalle["escenarios"][0]
+    assert len(escena["preguntas"]) == 1
+    respuesta = client.put(f"/api/v1/cases/{version_id}/graph", headers=headers, json={
+        "escenario_inicial_id": escena["id"],
+        "transiciones": [{"opcion_id": o["id"], "tipo": "FIN"}
+                         for o in escena["preguntas"][0]["opciones"]],
+    })
+    assert respuesta.status_code == 200, respuesta.text

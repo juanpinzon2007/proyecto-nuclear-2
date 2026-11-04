@@ -98,18 +98,50 @@ class CasoRepository(ICasoRepository):
 
     def actualizar_estado(self, version: VersionCaso) -> None:
         with self._transaccion():
+            self._aplicar_estado(version)
+
+    def publicar_ejecutable(self, version: VersionCaso) -> None:
+        with self._transaccion():
+            self._aplicar_estado(version, exigir_recorrido=True)
+
+    def _aplicar_estado(self, version: VersionCaso, *, exigir_recorrido=False) -> None:
+        modelo = self._para_escritura(version)
+        actual = self._a_dominio(modelo)
+        if self._contenido(actual) != self._contenido(version):
+            raise ErrorPersistenciaCaso("El contenido cambió desde su lectura; vuelva a consultar la versión.")
+        if version.estado == EstadoCaso.PUBLICADO:
+            actual.publicar(construir_cadena_publicacion())
+            if exigir_recorrido:
+                # Mismo lock raíz que configurar y los guards históricos.
+                self.obtener_recorrido(version).validar_ejecutable()
+        elif version.estado == EstadoCaso.ARCHIVADO and not exigir_recorrido:
+            actual.archivar()
+        else:
+            raise ErrorPersistenciaCaso("Transición de estado no permitida.")
+        modelo.estado = actual.estado
+
+    def obtener_recorrido(self, version: VersionCaso):
+        from app.modules.cases.infrastructure.repositories.graph_repository import RepositorioGrafoSQLAlchemy
+        return RepositorioGrafoSQLAlchemy(self._session).leer(version.id, solo_publicada=False)
+
+    def configurar_recorrido(self, version: VersionCaso, *, inicial_id, transiciones):
+        from app.modules.cases.infrastructure.repositories.graph_repository import RepositorioGrafoSQLAlchemy
+        with self._transaccion():
             modelo = self._para_escritura(version)
-            actual = self._a_dominio(modelo)
-            if self._contenido(actual) != self._contenido(version):
-                raise ErrorPersistenciaCaso("El contenido cambió desde su lectura; vuelva a consultar la versión.")
-            if version.estado == EstadoCaso.PUBLICADO:
-                # Mismas reglas del dominio, ahora sobre el grafo fresco y bloqueado.
-                actual.publicar(construir_cadena_publicacion())
-            elif version.estado == EstadoCaso.ARCHIVADO:
-                actual.archivar()
-            else:
-                raise ErrorPersistenciaCaso("Transición de estado no permitida.")
-            modelo.estado = actual.estado
+            self._a_dominio(modelo).asegurar_editable()
+            grafo = RepositorioGrafoSQLAlchemy(self._session)
+            previo = grafo.leer(version.id, solo_publicada=False)
+            configuradas = {opcion for opcion, _, _ in transiciones}
+            # PUT representa una configuración completa: lo omitido queda sin
+            # configurar, nunca se conservan aristas antiguas silenciosamente.
+            omitidas = tuple((o.opcion_id, None, None) for e in previo.escenas
+                             for p in e.preguntas for o in p.opciones
+                             if o.opcion_id not in configuradas)
+            grafo.configurar(version_id=version.id, docente_id=version.docente_creador_id,
+                            inicial_id=inicial_id, transiciones=(*transiciones, *omitidas))
+            resultado = grafo.leer(version.id, solo_publicada=False)
+            resultado.validar_ejecutable()
+        return resultado
 
     def _para_escritura(self, version: VersionCaso) -> VersionCasoModel:
         # Serializa escritores de este repositorio sobre la misma fila raíz.

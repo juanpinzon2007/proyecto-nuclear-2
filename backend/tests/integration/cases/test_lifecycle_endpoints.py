@@ -1,6 +1,7 @@
 """Pruebas de integración: consulta, edición y archivo de casos."""
 
 import copy
+from tests.integration.cases.conftest import configurar_final_unica_escena
 import uuid
 from typing import Any
 
@@ -26,6 +27,7 @@ def _crear(client: TestClient, payload: dict[str, Any], headers: dict[str, str])
 
 
 def _publicar(client: TestClient, version_id: str, headers: dict[str, str]) -> None:
+    configurar_final_unica_escena(client, version_id, headers)
     assert client.post(f"{URL}/{version_id}/publish", headers=headers).status_code == 200
 
 

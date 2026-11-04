@@ -1,5 +1,89 @@
 # 8B — Grafo persistente de Cases
 
+## Continuación: autoría HTTP protegida (3 de noviembre de 2026, Bogotá)
+
+Worktree `C:\SPS\consolidacion`, rama `codex/consolidacion-backend`, base
+`3e09defb608b3162b728f8b73b50dc772dd43693`, cambios locales sin commit.
+Este apartado sustituye la limitación anterior de autoría exclusivamente interna.
+Los antecedentes y sus resultados históricos se conservan abajo.
+
+### Contrato y recorrido probado
+
+1. `POST /api/v1/cases` conserva el DSL editorial y crea un BORRADOR.
+2. `GET /api/v1/cases/{version_id}` proporciona los UUID reales de escenas,
+   preguntas y opciones. No se transforman órdenes en identidades.
+3. `PUT /api/v1/cases/{version_id}/graph` recibe `escenario_inicial_id` y
+   `transiciones`, cada una con `opcion_id`, `tipo` (`ESCENA` o `FIN`) y
+   `destino_id` (obligatorio para ESCENA y nulo para FIN).
+4. `GET /api/v1/cases/{version_id}/graph` recupera la configuración propia.
+5. `POST /api/v1/cases/{version_id}/publish` exige tanto la cadena editorial
+   existente como un grafo ejecutable, revalidados bajo el lock de la versión.
+
+PUT sustituye la configuración completa: las opciones omitidas quedan sin
+configurar; si una es necesaria en el recorrido alcanzable, se rechaza y revierte
+toda la escritura. No se mezclan silenciosamente aristas antiguas con nuevas.
+La entrada debe ser única y válida. Se conservan las reglas existentes: una
+pregunta por escena alcanzable, todas sus alternativas definidas, destinos de
+la misma versión, FIN explícito y ausencia de ciclos alcanzables. No se inventa
+navegación para varias preguntas, escenas vacías o revisitas.
+
+El DSL editorial no cambia. Su reemplazo integral sigue rechazándose si borraría
+un grafo ya configurado; se conserva la secuencia contenido → grafo → publicación.
+
+### Seguridad y transacción
+
+Se reutilizan JWT, cuenta activa, rol DOCENTE, permisos vigentes del repositorio
+Identity y resolver persistente CASES. `CREAR_CASOS`, código ya usado por el
+contrato de Identity, debe existir y estar asignado al rol; no se siembran permisos
+ni se concede autoría por el simple rol. Se exige en creación, edición, escritura
+de grafo, publicación y archivo. Su ausencia devuelve 403 (antes era un guard
+503 pendiente). Las lecturas siguen exigiendo identidad docente y titularidad.
+Las cabeceras de identidad no sustituyen esas comprobaciones.
+
+CasoService consume un puerto mínimo de autoría implementado por CasoRepository.
+Este coordina la transacción reutilizando RepositorioGrafoSQLAlchemy, sin crear
+otro repositorio de grafos. Configuración y publicación bloquean la misma versión;
+una configuración inválida revierte entrada y aristas. PUBLICADO/ARCHIVADO no
+son editables y se conservan literalmente los guards PostgreSQL existentes.
+
+La exigencia de ejecutabilidad es del flujo HTTP conectado. Los consumidores
+editoriales internos anteriores conservan su contrato; no se añade un trigger que
+obligue a tener grafo para cualquier publicación por SQL directo. Una versión sin
+recorrido válido sigue siendo no ejecutable para Participation. No se modifican
+tablas, ORM, migraciones, DBML, main.py, Participation ni Evaluation.
+
+### Aceptación y regresión reales
+
+`backend/tests/integration/test_cases_graph_authoring.py`: 20 casos nuevos con
+PostgreSQL desechable, JWT y repositorios/resolver reales. Solo se siembran las
+cuentas, roles, permiso y asociaciones sintéticas; el caso y todas las relaciones
+del grafo se crean por API. La prueba positiva recupera el mismo grafo desde otra
+Session mediante RecorridoCasesSQLAlchemy y recorre una rama hasta FIN.
+
+También cubre acceso sin JWT/inválido/estudiante/sin permiso/sin asociación,
+docente ajeno, referencias inexistentes/cruzadas, coherencia tipo/destino,
+duplicados, ramas incompletas, ciclos, múltiples preguntas, rollback, publicación
+sin grafo, conservación histórica y dos configuraciones HTTP concurrentes.
+
+Las pruebas editoriales anteriores ahora configuran una escena terminal por HTTP
+antes de publicar. No se desactiva la nueva validación. La prueba Identity sin
+permiso específico pasa de esperar 503 a exigir 403; conserva la denegación.
+
+- Focalizada: 265 aprobadas, 0 omitidas/fallos/errores, 1 advertencia; 79.39 s.
+- General: 1834 aprobadas, 38 omitidas, 0 fallos/errores, 53 advertencias; 458.48 s.
+- La general incluye las focalizadas; no se suman. Las 38 omitidas corresponden
+  a conexiones externas no habilitadas; no se consideran aprobadas.
+- Se usan SQLite aislado y PostgreSQL 17 desechable; no bases permanentes.
+- Logs, JUnit y comandos: `C:\SPSBackups\8B-autoria-grafo-20261104T015852Z`.
+- Sin cambios de fuente durante pytest. Una prueba genera su evidencia BD2-04.
+- Sin laboratorios remanentes, sin commit/merge/push y referencias originales
+  martin/feature y stash conservadas. Cabeza Alembic sin cambios.
+
+RF cubiertos: RF-02, RF-05, RF-06, RF-07 y RF-09; soporte de RF-10/11 y referencias
+históricas para RF-13/17. 8B sigue abierta: falta componer las operaciones de
+provisión/inicio con políticas autorizadas de ingreso, consentimiento, estado y
+cupos. No se registra Participation en main, no se habilitan RF-22 ni notas.
+
 Actualización posterior: [respuestas inmutables confirmadas](FASE_8B_RESPUESTAS_INMUTABLES.md).
 La modificación de respuestas dejó de ser una decisión pendiente; se prohíbe.
 Los resultados y límites de este informe se conservan como evidencia de su entrega.

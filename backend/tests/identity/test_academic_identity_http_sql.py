@@ -156,7 +156,8 @@ def test_fabrica_sesion_falla_cerrada_sin_conectar_equipo(http_sql):
 
 def test_no_habilita_creacion_sin_permiso_especifico(http_sql):
     c = http_sql
-    assert c.cliente.post("/api/v1/cases", json={}, headers=headers(c)).status_code == 503
+    # El guard ya está integrado: tener asociación docente no concede CREAR_CASOS.
+    assert c.cliente.post("/api/v1/cases", json={}, headers=headers(c)).status_code == 403
 
 
 def test_no_habilita_ingreso_con_tolerancia_cliente(http_sql):
