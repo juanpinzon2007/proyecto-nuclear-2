@@ -304,9 +304,11 @@ def test_http_usuario_inactivo_en_bd_pierde_acceso_con_jwt_existente(cliente_bd,
     assert cliente_bd.get("/api/v1/identity/me", headers=headers).status_code == 401
 
 
-def test_http_adaptadores_academicos_siguen_cerrados(cliente_bd, tokens):
+def test_http_sin_asociaciones_no_abre_seguimiento_ni_excepciones(cliente_bd, tokens):
     headers = {"Authorization": "Bearer " + tokens.emitir("2")}
-    assert cliente_bd.get("/api/v1/identity/seguimiento/casos", headers=headers).status_code == 503
+    # Seguimiento ya está conectado: cuenta sin asociación académica => 403.
+    # Las excepciones siguen sin composición y conservan su 503.
+    assert cliente_bd.get("/api/v1/identity/seguimiento/casos", headers=headers).status_code == 403
     assert cliente_bd.post("/api/v1/identity/excepciones/repeticiones", headers=headers,
                            json={"id_sesion": "1", "id_estudiante": "3"}).status_code == 503
 

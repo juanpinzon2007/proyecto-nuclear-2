@@ -16,6 +16,10 @@ class ProxySeguimiento:
         self._autorizacion.exigir_rol(contexto, Rol.DOCENTE)
         return self._real().listar_casos_realizados(contexto)
 
+    def listar_participaciones(self, contexto: ContextoAcceso, id_caso: str):
+        self._autorizacion.exigir_rol(contexto, Rol.DOCENTE)
+        return self._real().listar_participaciones(contexto, id_caso)
+
     def consultar_participacion(self, contexto: ContextoAcceso, id_participacion: str) -> DetalleParticipacion:
         self._autorizacion.exigir_participacion(contexto, id_participacion)
         return self._real().consultar_participacion(contexto, id_participacion)
