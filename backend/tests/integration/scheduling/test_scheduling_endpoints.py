@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.cases.domain.enums import EstadoCaso
 from app.modules.cases.infrastructure.models.caso import CasoModel, VersionCasoModel
+from app.modules.cases.infrastructure.models.rubrica import RubricaModel
 from app.modules.scheduling.infrastructure.models import (
     EspacioAcademicoModel,
     SesionProgramadaModel,
@@ -20,7 +21,7 @@ from app.modules.scheduling.infrastructure.models import (
 
 
 def _crear_caso_publicado(db: Session, docente_id: uuid.UUID) -> VersionCasoModel:
-    caso = CasoModel(docente_creador_id=docente_id)
+    caso = CasoModel(docente_creador_id=docente_id,id_caso=1)
     db.add(caso)
     db.flush()
 
@@ -35,6 +36,10 @@ def _crear_caso_publicado(db: Session, docente_id: uuid.UUID) -> VersionCasoMode
     )
     db.add(version)
     db.flush()
+    # La asignación real exige una rúbrica de esta versión. Crear en borrador:
+    # los guards históricos impiden añadirla después de publicar.
+    db.add(RubricaModel(version_caso_id=version.id,nombre='Rúbrica técnica LAB',version_regla='laboratorio'))
+    db.flush()
     version.estado=EstadoCaso.PUBLICADO
     db.flush()
     db.commit()
@@ -46,6 +51,7 @@ def test_flujo_completo_programacion_y_ciclo_vida(
     db_session: Session,
     docente_id: uuid.UUID,
     cabeceras_estudiante,
+    ambito_convocatoria,
 ):
     # 1. Crear Espacio Académico
     espacio = EspacioAcademicoModel(nombre="Laboratorio de Psicología Social")
@@ -85,6 +91,7 @@ def test_flujo_completo_programacion_y_ciclo_vida(
 
     # 5. Convocar a un estudiante
     estudiante_id = uuid.uuid4()
+    ambito_convocatoria(db_session,db_session.get(SesionProgramadaModel,sesion_id),docente_id,estudiante_id)
     headers_estudiante = cabeceras_estudiante(estudiante_id)
     resp_conv = client.post(
         f"/scheduling/sesiones/{sesion_id}/convocatorias",

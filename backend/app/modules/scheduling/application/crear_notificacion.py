@@ -18,6 +18,7 @@ class ErrorNotificacion(ValueError):
 
 TIPOS_PERMITIDOS = {
     "CONVOCATORIA",
+    "CONVOCATORIA_RETIRADA",
     "SESION_INICIADA",
     "SESION_FINALIZADA",
     "CALIFICACION",

@@ -100,10 +100,6 @@ def integracion(autor, request):
             'tiempo_maximo_minutos':30})
         assert sesion.status_code==201,sesion.text
         sid=sesion.json()['id']
-        conv=client.post(f'/scheduling/sesiones/{sid}/convocatorias',headers=a.headers,
-            json={'estudiante_id':str(uuid_estudiante)})
-        assert conv.status_code==201,conv.text
-        cid=conv.json()['convocatoria_id'];codigo=conv.json()['codigo_acceso']
         with a.sesiones.begin() as s:
             caso=s.scalar(select(CasoModel).join(VersionCasoModel,VersionCasoModel.caso_id==CasoModel.id)
                           .where(VersionCasoModel.id==UUID(version)))
@@ -111,6 +107,10 @@ def integracion(autor, request):
                 version_caso_id=UUID(version),apertura=fecha,cierre=fecha+timedelta(hours=1),
                 fecha_limite_ingreso=fecha+timedelta(hours=1),tiempo_maximo_min=30)
             s.add(asignacion);s.flush();aid=asignacion.id_asignacion
+        conv=client.post(f'/scheduling/sesiones/{sid}/convocatorias',headers=a.headers,
+            json={'estudiante_id':str(uuid_estudiante)})
+        assert conv.status_code==201,conv.text
+        cid=conv.json()['convocatoria_id'];codigo=conv.json()['codigo_acceso']
         estado=client.post(f'/scheduling/sesiones/{sid}/estado',headers=a.headers,json={'accion':'iniciar'})
         assert estado.status_code==200,estado.text
         login=client.post('/api/v1/identity/auth/estudiantes',json={

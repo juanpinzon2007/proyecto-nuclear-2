@@ -27,7 +27,7 @@ from app.db.session import get_db, get_session_factory
 from app.main import app
 from app.modules.scheduling.api.router import obtener_docente_autenticado
 from unittest.mock import Mock
-from app.modules.identity.api.dependencies import obtener_fabrica_tokens, obtener_fabrica_usuarios
+from app.modules.identity.api.dependencies import obtener_fabrica_tokens, obtener_fabrica_usuarios, obtener_docente_actual
 from app.modules.identity.api.academic_dependencies import obtener_fabrica_resolver_academico
 from app.modules.identity.application.academic_identity import (
     ConsultaVinculosAcademicos, ResolverIdentidadAcademica, SistemaAcademico, VinculoAcademico,
@@ -35,10 +35,39 @@ from app.modules.identity.application.academic_identity import (
 from app.modules.identity.application.ports import RepositorioUsuarios
 from app.modules.identity.domain.entities import ContextoAcceso, Rol
 from app.modules.identity.infrastructure.security import TokensJWT
+from app.modules.identity.infrastructure.models import UsuarioORM, RolORM
+from app.modules.identity.infrastructure.academic_identity_models import IdentidadAcademicaORM
+from app.modules.identity.infrastructure.academic_base_models import GrupoAcademicoORM, GrupoEstudianteORM
+from app.modules.scheduling.infrastructure.assignment_models import AsignacionCasoModel
 
 _CONNECT_TIMEOUT_S = 3
 _LOCK_TIMEOUT_MS = 5_000
 _IDLE_TX_TIMEOUT_MS = 15_000
+
+
+@pytest.fixture
+def ambito_convocatoria():
+    """Relaciones SQL sintéticas; el guard RF-21 no se sustituye por un mock."""
+    def preparar(db, sesion, docente_uuid, estudiante_uuid):
+        db.add_all([RolORM(id_rol=1,nombre='DOCENTE'),RolORM(id_rol=2,nombre='ESTUDIANTE')])
+        db.flush()
+        db.add_all([UsuarioORM(id_usuario=6,id_rol=1,nombre='Docente LAB',correo='docente@universidad.test',clave_hash='sin-login'),
+                    UsuarioORM(id_usuario=7,id_rol=2,nombre='Estudiante LAB',correo='estudiante@universidad.test',clave_hash='sin-login')])
+        db.flush()
+        db.add_all([IdentidadAcademicaORM(id_usuario=6,sistema='SCHEDULING',id_academico=docente_uuid),
+                    IdentidadAcademicaORM(id_usuario=6,sistema='CASES',id_academico=docente_uuid),
+                    IdentidadAcademicaORM(id_usuario=7,sistema='SCHEDULING',id_academico=estudiante_uuid)])
+        g=GrupoAcademicoORM(id_profesor=6,nombre='Grupo LAB',periodo='2026-2');db.add(g);db.flush()
+        db.add(GrupoEstudianteORM(id_grupo=g.id_grupo,id_estudiante=7,fecha_ingreso=sesion.fecha_inicio.replace(tzinfo=None)))
+        from app.modules.cases.infrastructure.models import VersionCasoModel,CasoModel
+        version=db.get(VersionCasoModel,sesion.version_caso_id)
+        caso=db.get(CasoModel,version.caso_id)
+        db.add(AsignacionCasoModel(id_grupo=g.id_grupo,id_caso=caso.id_caso,
+            sesion_programada_id=sesion.id,version_caso_id=version.id,
+            apertura=sesion.fecha_inicio.replace(tzinfo=None),cierre=sesion.fecha_fin.replace(tzinfo=None),
+            fecha_limite_ingreso=sesion.fecha_fin.replace(tzinfo=None),tiempo_maximo_min=sesion.tiempo_maximo_minutos))
+        db.commit()
+    return preparar
 
 
 def _crear_engine() -> Engine:
@@ -177,6 +206,10 @@ def client(
     app.dependency_overrides[exigir_contexto_convocatoria] = lambda: None
     app.dependency_overrides[get_session_factory] = lambda: session_factory
     app.dependency_overrides[obtener_docente_autenticado] = lambda: docente_id
+    # Suite antigua con frontera de autenticación simulada explícitamente.
+    # RF-21 nuevo acredita JWT real en test_convocation_management_http.py.
+    app.dependency_overrides[obtener_docente_actual] = lambda: ContextoAcceso(
+        '6','docente@universidad.test',frozenset({Rol.DOCENTE}))
     try:
         with TestClient(app) as test_client:
             yield test_client

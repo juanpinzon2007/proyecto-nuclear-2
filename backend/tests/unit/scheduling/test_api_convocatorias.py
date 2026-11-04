@@ -1,7 +1,6 @@
 
-"""Pruebas de creación de convocatorias y notificaciones."""
+"""Router aislado: delegación y UoW. Avisos reales: aceptación RF-21 PostgreSQL."""
 
-from types import SimpleNamespace
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
@@ -13,6 +12,8 @@ from app.main import app
 from app.modules.scheduling.api.router import (
     obtener_docente_autenticado,
 )
+from app.modules.identity.api.dependencies import obtener_docente_actual
+from app.modules.identity.domain.entities import ContextoAcceso, Rol
 from app.modules.scheduling.application.crear_convocatoria import (
     ResultadoConvocatoria,
 )
@@ -22,9 +23,7 @@ from app.modules.scheduling.application.crear_convocatoria import (
 def entorno_api():
     docente_id = uuid4()
     db = Mock()
-    db.get.return_value = SimpleNamespace(
-        docente_id=docente_id,
-    )
+    usuario = ContextoAcceso('7','docente@universidad.test',frozenset({Rol.DOCENTE}))
 
     anteriores = app.dependency_overrides.copy()
 
@@ -32,30 +31,24 @@ def entorno_api():
         lambda: docente_id
     )
     app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[obtener_docente_actual] = lambda: usuario
 
     try:
         with TestClient(app, raise_server_exceptions=False) as client:
-            yield client, db
+            yield client, db, usuario, docente_id
     finally:
         app.dependency_overrides.clear()
         app.dependency_overrides.update(anteriores)
 
 
-def test_convocatoria_crea_notificacion(entorno_api):
-    client, db = entorno_api
+def test_router_delega_convocatoria_y_aviso_en_una_transaccion(entorno_api):
+    client, db, usuario, docente_id = entorno_api
 
     sesion_id = uuid4()
     estudiante_id = uuid4()
     convocatoria_id = uuid4()
 
-    with (
-        patch(
-            "app.modules.scheduling.api.router.crear_convocatoria"
-        ) as crear,
-        patch(
-            "app.modules.scheduling.api.router.crear_notificacion"
-        ) as notificar,
-    ):
+    with patch("app.modules.scheduling.api.router.convocar_con_aviso") as crear:
         crear.return_value = ResultadoConvocatoria(
             convocatoria_id=convocatoria_id,
             codigo_acceso="CODIGO_DE_PRUEBA",
@@ -71,35 +64,19 @@ def test_convocatoria_crea_notificacion(entorno_api):
             convocatoria_id
         )
 
-        notificar.assert_called_once()
-        assert notificar.call_args.kwargs["tipo"] == "CONVOCATORIA"
-        assert notificar.call_args.kwargs["canal"] == "INTERNA"
-        assert (
-            notificar.call_args.kwargs["destinatario_id"]
-            == estudiante_id
-        )
+        crear.assert_called_once_with(db,usuario=usuario,sesion_id=sesion_id,
+            estudiante_id=estudiante_id,docente_id=docente_id)
+        assert respuesta.headers['Cache-Control']=='no-store'
 
         db.commit.assert_called_once()
         db.rollback.assert_not_called()
 
 
 def test_fallo_notificacion_revierte_convocatoria(entorno_api):
-    client, db = entorno_api
+    client, db, _, _ = entorno_api
 
-    with (
-        patch(
-            "app.modules.scheduling.api.router.crear_convocatoria"
-        ) as crear,
-        patch(
-            "app.modules.scheduling.api.router.crear_notificacion"
-        ) as notificar,
-    ):
-        crear.return_value = ResultadoConvocatoria(
-            convocatoria_id=uuid4(),
-            codigo_acceso="CODIGO_DE_PRUEBA",
-        )
-
-        notificar.side_effect = RuntimeError(
+    with patch("app.modules.scheduling.api.router.convocar_con_aviso") as crear:
+        crear.side_effect = RuntimeError(
             "Error al registrar notificación"
         )
 

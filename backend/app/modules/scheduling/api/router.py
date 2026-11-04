@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.db.session import get_db, get_session_factory
 from app.modules.scheduling.api.dependencies import exigir_contexto_convocatoria
-from app.modules.identity.api.academic_dependencies import obtener_docente_scheduling, obtener_estudiante_scheduling
+from app.modules.identity.api.academic_dependencies import obtener_docente_scheduling, obtener_estudiante_scheduling, DocenteActual
 from app.modules.scheduling.api.schemas import (
     ProgramarSesionRequest,
     CambiarEstadoRequest,
@@ -26,8 +26,10 @@ from app.modules.scheduling.api.schemas import (
 )
 from app.modules.scheduling.application.crear_convocatoria import (
     ErrorConvocatoria,
-    crear_convocatoria,
 )
+from app.modules.scheduling.infrastructure.convocation_management import convocar_con_aviso, retirar_con_aviso
+from app.modules.scheduling.application.cambiar_estado_sesion import SesionNoEncontradaError
+from app.modules.identity.domain.errors import AccesoDenegado, IntegracionPendiente
 from app.modules.scheduling.application.programar_sesion import (
     ErrorProgramacion,
     programar_sesion,
@@ -310,57 +312,26 @@ def convocar_estudiante(
     datos: CrearConvocatoriaRequest,
     docente_id: Docente,
     db: BaseDatos,
+    respuesta: Response,
+    usuario: DocenteActual,
 ):
     """Convoca a un estudiante a una sesión académica (RF-20)."""
     try:
-        sesion = db.get(
-            SesionProgramadaModel,
-            sesion_id,
-            with_for_update=True,
-        )
-
-        if sesion is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Sesión no encontrada.",
-            )
-
-        if sesion.docente_id != docente_id:
-            raise HTTPException(
-                status_code=403,
-                detail="No tienes permiso para convocar estudiantes.",
-            )
-
-        # Crear convocatoria y generar código seguro.
-        resultado = crear_convocatoria(
-            db,
-            sesion_id=sesion_id,
-            estudiante_id=datos.estudiante_id,
-        )
-
-        # Registrar notificación interna para el estudiante.
-        crear_notificacion(
-            db,
-            destinatario_id=datos.estudiante_id,
-            convocatoria_id=resultado.convocatoria_id,
-            tipo="CONVOCATORIA",
-            canal="INTERNA",
-            mensaje=(
-                "Has sido convocado a una sesión académica. "
-                "Consulta los detalles de tu convocatoria "
-                "y solicita tu código mediante el canal "
-                "institucional autorizado."
-            ),
-        )
+        resultado = convocar_con_aviso(db,usuario=usuario,sesion_id=sesion_id,
+            estudiante_id=datos.estudiante_id,docente_id=docente_id)
 
         # Confirmar ambas operaciones juntas.
         db.commit()
-
+        respuesta.headers['Cache-Control']='no-store'
         return ConvocatoriaResponse(
             convocatoria_id=resultado.convocatoria_id,
             codigo_acceso=resultado.codigo_acceso,
         )
 
+    except (AccesoDenegado, IntegracionPendiente, SesionNoEncontradaError, SQLAlchemyError) as error:
+        db.rollback()
+        estado=403 if isinstance(error,AccesoDenegado) else 404 if isinstance(error,SesionNoEncontradaError) else 503
+        raise HTTPException(estado,detail='Ámbito de convocatoria no disponible.',headers={'Cache-Control':'no-store'}) from None
     except ErrorConvocatoria as error:
         db.rollback()
         raise HTTPException(
@@ -368,6 +339,28 @@ def convocar_estudiante(
             detail=str(error),
         ) from error
 
+    except Exception:
+        db.rollback()
+        raise
+
+
+@router.delete('/sesiones/{sesion_id}/convocatorias/{convocatoria_id}',response_model=ConvocatoriaDetalleResponse)
+def retirar_estudiante(sesion_id: UUID, convocatoria_id: UUID, docente_id: Docente, db: BaseDatos, respuesta: Response, usuario: DocenteActual):
+    """Retiro lógico idempotente; conserva código hash y referencias históricas."""
+    try:
+        convocatoria=retirar_con_aviso(db,usuario=usuario,sesion_id=sesion_id,convocatoria_id=convocatoria_id,docente_id=docente_id)
+        # Materializar antes de cerrar la transacción; no SELECT posterior al commit.
+        resultado=ConvocatoriaDetalleResponse.model_validate(convocatoria)
+        db.commit()
+        respuesta.headers['Cache-Control']='no-store'
+        return resultado
+    except (AccesoDenegado, IntegracionPendiente, SesionNoEncontradaError, SQLAlchemyError) as error:
+        db.rollback()
+        estado=403 if isinstance(error,AccesoDenegado) else 404 if isinstance(error,SesionNoEncontradaError) else 503
+        raise HTTPException(estado,detail='Ámbito de convocatoria no disponible.',headers={'Cache-Control':'no-store'}) from None
+    except ErrorConvocatoria as error:
+        db.rollback()
+        raise HTTPException(422,detail=str(error)) from None
     except Exception:
         db.rollback()
         raise
