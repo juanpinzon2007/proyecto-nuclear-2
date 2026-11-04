@@ -55,7 +55,7 @@ def test_inicio_autorizado_guarda_el_intento_con_tiempo_programado(entorno: Ento
     assert entorno.almacen.intentos[resultado.id_intento].id_consentimiento == 30
     assert entorno.almacen.commits == 1
     assert entorno.identity.llamadas == ["acceso", "inicio"]
-    assert entorno.scheduling.llamadas == ["condiciones", "nuevo"]
+    assert entorno.scheduling.llamadas == ["condiciones", "nuevo", "instante_inicio"]
 
 
 @pytest.mark.parametrize("causa", ["titular", "consentimiento", "permiso", "programacion"])
@@ -408,6 +408,13 @@ def test_duracion_invalida_de_dependencia_no_inicia(entorno: Entorno) -> None:
     with pytest.raises(ErrorDominioParticipacion):
         entorno.iniciar()
     assert entorno.almacen.commits == 0
+
+
+def test_fallo_revalidacion_instante_no_guarda_ni_confirma(entorno: Entorno) -> None:
+    entorno.scheduling.fallar_en.add("instante_inicio")
+    with pytest.raises(RuntimeError, match="Scheduling"):
+        entorno.iniciar()
+    assert entorno.almacen.intentos == {} and entorno.almacen.commits == 0
 
 
 @pytest.mark.parametrize("decisiones", [(50, 50), (0,), (True,)])

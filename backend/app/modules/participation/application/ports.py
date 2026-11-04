@@ -68,6 +68,10 @@ class IdentityPort(Protocol):
 
 
 class SchedulingPort(Protocol):
+    def validar_instante_inicio(self, *, instante: datetime) -> None:
+        """Revalida el inicio real sobre permisos bloqueados en esta misma UoW."""
+        ...
+
     def obtener_condiciones(
         self, *, id_asignacion: int, id_grupo_estudiante: int
     ) -> CondicionesIntento:

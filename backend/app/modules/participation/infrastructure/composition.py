@@ -144,6 +144,9 @@ class SchedulingIntentoSQLAlchemy:
     def obtener_condiciones(self,**_):
         raise ReglaPendiente("Inicio productivo no habilitado.")
 
+    def validar_instante_inicio(self,**_):
+        raise ReglaPendiente("Inicio productivo no habilitado.")
+
     def autorizar_nuevo_intento(self,**_):
         raise ReglaPendiente("No existe una política de nuevos intentos configurada.")
 

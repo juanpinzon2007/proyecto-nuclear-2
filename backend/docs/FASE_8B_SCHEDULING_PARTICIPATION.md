@@ -1,5 +1,12 @@
 # 8B — Autorización real de respuestas y composición HTTP
 
+Actualización 2026-11-03: se implementó el inicio transaccional sobre participación
+existente mediante `crear_facade_inicio_8b`, probado con políticas explícitas de
+laboratorio. Véase [inicio transaccional](FASE_8B_INICIO_TRANSACCIONAL.md).
+Las afirmaciones posteriores sobre métodos de inicio cerrados corresponden a la
+composición anterior `crear_facade_8b`, que conserva ese bloqueo deliberadamente;
+no describen la nueva composición opt-in. No se habilitó el router principal.
+
 2026-11-02 · `feature/integracion-backend`. Backend y 8B aún no completos.
 El trabajo no modifica archivos del Plan de Pruebas PT-DCP-01.
 

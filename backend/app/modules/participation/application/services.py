@@ -37,40 +37,40 @@ class ServicioInicio:
     ) -> ResumenIntento:
         # La participación ya existe; no se inventa aquí su estado ni convocatoria.
         with self.fabrica() as trabajo:
-            repo = trabajo.repositorio
-            participacion = repo.obtener_participacion(id_participacion)
-            self.identity.autorizar_acceso(
-                id_estudiante=id_estudiante, id_participacion=id_participacion,
-            )
-            self.identity.autorizar_inicio(
-                id_estudiante=id_estudiante, id_participacion=id_participacion,
-                id_grupo_estudiante=participacion.id_grupo_estudiante,
-                id_consentimiento=id_consentimiento, id_permiso_extra=id_permiso_extra,
-            )
-            previos = repo.listar_intentos(id_participacion)
-            if any(i.estado == EstadoIntento.EN_CURSO for i in previos):
-                raise ErrorAplicacionParticipacion(
-                    "Ya existe un intento en curso; recupérelo o procese su vencimiento."
-                )
-            condiciones = self.scheduling.obtener_condiciones(
-                id_asignacion=participacion.id_asignacion,
-                id_grupo_estudiante=participacion.id_grupo_estudiante,
-            )
-            numero = max((i.numero_intento for i in previos), default=0) + 1
-            self.scheduling.autorizar_nuevo_intento(
-                id_asignacion=participacion.id_asignacion,
-                id_grupo_estudiante=participacion.id_grupo_estudiante,
-                numero_intento=numero, id_permiso_extra=id_permiso_extra,
-            )
-            intento = Intento.iniciar(
-                id_intento=repo.nuevo_id_intento(), id_participacion=id_participacion,
-                id_consentimiento=id_consentimiento, numero_intento=numero,
-                tiempo_maximo=condiciones.tiempo_maximo, reloj=self.reloj,
-                id_permiso_extra=id_permiso_extra,
-            )
-            repo.agregar_intento(intento)
+            resultado = self.preparar(trabajo=trabajo, id_estudiante=id_estudiante,
+                id_participacion=id_participacion, id_consentimiento=id_consentimiento,
+                id_permiso_extra=id_permiso_extra)
             trabajo.commit()
-            return ResumenIntento.desde(intento)
+            return resultado
+
+    def preparar(self, *, trabajo, id_estudiante: int, id_participacion: int,
+                 id_consentimiento: int, id_permiso_extra: int | None = None) -> ResumenIntento:
+        """Mismas reglas en una UoW activa; el coordinador conserva commit/rollback.
+
+        Permite crear participación e intento atómicamente, sin transacciones
+        anidadas ni copiar las reglas del inicio ya implementado.
+        """
+        repo = trabajo.repositorio
+        participacion = repo.obtener_participacion(id_participacion)
+        self.identity.autorizar_acceso(id_estudiante=id_estudiante,id_participacion=id_participacion)
+        self.identity.autorizar_inicio(id_estudiante=id_estudiante,id_participacion=id_participacion,
+            id_grupo_estudiante=participacion.id_grupo_estudiante,
+            id_consentimiento=id_consentimiento,id_permiso_extra=id_permiso_extra)
+        previos = repo.listar_intentos(id_participacion)
+        if any(i.estado == EstadoIntento.EN_CURSO for i in previos):
+            raise ErrorAplicacionParticipacion("Ya existe un intento en curso; recupérelo o procese su vencimiento.")
+        condiciones = self.scheduling.obtener_condiciones(id_asignacion=participacion.id_asignacion,
+            id_grupo_estudiante=participacion.id_grupo_estudiante)
+        numero = max((i.numero_intento for i in previos),default=0)+1
+        self.scheduling.autorizar_nuevo_intento(id_asignacion=participacion.id_asignacion,
+            id_grupo_estudiante=participacion.id_grupo_estudiante,
+            numero_intento=numero,id_permiso_extra=id_permiso_extra)
+        intento = Intento.iniciar(id_intento=repo.nuevo_id_intento(),id_participacion=id_participacion,
+            id_consentimiento=id_consentimiento,numero_intento=numero,
+            tiempo_maximo=condiciones.tiempo_maximo,reloj=self.reloj,id_permiso_extra=id_permiso_extra)
+        self.scheduling.validar_instante_inicio(instante=intento.inicio)
+        repo.agregar_intento(intento)
+        return ResumenIntento.desde(intento)
 
 
 @dataclass(frozen=True)

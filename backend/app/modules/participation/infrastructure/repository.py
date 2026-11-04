@@ -30,6 +30,23 @@ class RepositorioParticipacionSQLAlchemy(LecturasParticipacionSQLAlchemy):
         self._escritor()
         return self.sesion.scalar(text("SELECT nextval(pg_get_serial_sequence('public.intento','id_intento'))"))
 
+    def obtener_por_convocatoria(self, convocatoria_id):
+        self._escritor()
+        pk = self.sesion.scalar(select(ParticipacionModel.id_participacion).where(
+            ParticipacionModel.convocatoria_id==convocatoria_id).with_for_update())
+        return self.obtener_participacion(pk) if pk is not None else None
+
+    def agregar_participacion(self, *, id_asignacion, id_grupo_estudiante,
+                             convocatoria_id, estado, fecha_registro):
+        """Inserta referencias acreditadas; no elige estado ni confirma la UoW."""
+        self._escritor()
+        pk = self.sesion.scalar(ParticipacionModel.__table__.insert().values(
+            id_asignacion=id_asignacion,id_grupo_estudiante=id_grupo_estudiante,
+            convocatoria_id=convocatoria_id,estado=estado,
+            fecha_registro=self.fechas.hacia_db(fecha_registro,sin_offset=True))
+            .returning(ParticipacionModel.id_participacion))
+        return self.obtener_participacion(pk)
+
     def nuevo_id_paso(self):
         self._escritor()
         return self.sesion.scalar(text("SELECT nextval(pg_get_serial_sequence('public.paso_simulacion','id_paso'))"))

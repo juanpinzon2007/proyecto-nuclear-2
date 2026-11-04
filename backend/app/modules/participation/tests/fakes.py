@@ -159,6 +159,9 @@ class SchedulingFalso:
             raise AccesoDenegado("No se permite ingreso.")
         return CondicionesIntento(id_caso=300, tiempo_maximo=self.duracion)
 
+    def validar_instante_inicio(self, *, instante) -> None:
+        self._comprobar_fallo("instante_inicio")
+
     def autorizar_nuevo_intento(self, **datos) -> None:
         self._comprobar_fallo("nuevo")
         # Política de ejemplo exclusiva del fake, no implementada en Application.
