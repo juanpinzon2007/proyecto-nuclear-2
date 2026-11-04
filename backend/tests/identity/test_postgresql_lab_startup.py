@@ -215,3 +215,27 @@ def test_aislamiento_invalido_no_abre_tcp(entorno_simulado, infraccion):
         with lab.motor_postgresql_desechable(): pass
     e.crear.assert_not_called()
     e.limpiar.assert_called_once_with(ID)
+
+
+def test_publicacion_de_puerto_demorada_se_espera_sin_abrir_engine(entorno_simulado):
+    from copy import deepcopy
+    e=entorno_simulado;tiempo=TiempoSimulado()
+    pendiente=deepcopy(e.datos)
+    pendiente["NetworkSettings"]["Ports"]["5432/tcp"]=[]
+    e.comando.side_effect=[json.dumps([pendiente]),json.dumps([e.datos])]
+    datos=lab.esperar_puerto_publicado(ID,nombre="sps-resolver-lab-"+"b"*12,
+        reloj=tiempo.ahora,pausa=tiempo.pausa)
+    assert datos["NetworkSettings"]["Ports"]["5432/tcp"][0]["HostPort"]=="55555"
+    assert len(tiempo.pausas)==1 and e.comando.call_count==2
+    e.crear.assert_not_called()
+
+
+def test_puerto_no_publicado_agota_plazo_acotado(entorno_simulado):
+    e=entorno_simulado;tiempo=TiempoSimulado()
+    e.datos["NetworkSettings"]["Ports"]["5432/tcp"]=[]
+    e.comando.side_effect=None;e.comando.return_value=json.dumps([e.datos])
+    with pytest.raises(TimeoutError,match="puerto TCP"):
+        lab.esperar_puerto_publicado(ID,nombre="sps-resolver-lab-"+"b"*12,
+            timeout=1,intervalo=.3,reloj=tiempo.ahora,pausa=tiempo.pausa)
+    assert tiempo.instante==pytest.approx(1) and e.comando.call_count==4
+    e.crear.assert_not_called()
