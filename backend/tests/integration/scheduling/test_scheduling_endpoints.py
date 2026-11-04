@@ -17,6 +17,7 @@ from app.modules.scheduling.infrastructure.models import (
     ConvocatoriaModel,
     NotificacionModel,
     EventoAuditoriaModel,
+    DocenteEspacioAcademicoModel,
 )
 
 
@@ -60,6 +61,8 @@ def test_flujo_completo_programacion_y_ciclo_vida(
 
     # 2. Crear Caso con versión publicada
     version = _crear_caso_publicado(db_session, docente_id)
+    db_session.add(DocenteEspacioAcademicoModel(id_docente=6,espacio_academico_id=espacio.id))
+    db_session.commit()
 
     # 3. Programar Sesión Académica
     ahora = datetime.now(timezone.utc)

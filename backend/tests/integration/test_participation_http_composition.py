@@ -36,6 +36,7 @@ from app.modules.participation.infrastructure.repository import RepositorioParti
 from app.modules.scheduling.api.router import router as scheduling_router, exigir_politica_ingreso_configurada, obtener_reloj_ingreso
 from app.modules.scheduling.infrastructure.assignment_models import AsignacionCasoModel as A
 from app.modules.scheduling.infrastructure.models import SesionProgramadaModel as S, ConvocatoriaModel as C
+from app.modules.scheduling.infrastructure.models import DocenteEspacioAcademicoModel
 from app.modules.scheduling.domain.ingress_policy import PoliticaIngresoNoConfigurada
 from tests.integration.test_cases_graph_authoring import pg_autoria, autor, crear, configurar  # noqa: F401
 from tests.integration.cases.conftest import payload_valido  # noqa: F401
@@ -93,6 +94,9 @@ def integracion(autor, request):
         assert client.post(f"/api/v1/cases/{version}/publish",headers=a.headers).status_code==200
         espacio=client.post('/scheduling/espacios',headers=a.headers,json={'nombre':'Espacio LAB'})
         assert espacio.status_code==201,espacio.text
+        # Asignación explícita de laboratorio; crear el catálogo no concede uso.
+        with a.sesiones.begin() as s:
+            s.add(DocenteEspacioAcademicoModel(id_docente=a.propio,espacio_academico_id=UUID(espacio.json()['id'])))
         sesion=client.post('/scheduling/sesiones',headers=a.headers,json={
             'espacio_academico_id':espacio.json()['id'],'version_caso_id':version,
             'fecha_inicio':fecha.replace(tzinfo=timezone.utc).isoformat(),

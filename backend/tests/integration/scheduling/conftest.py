@@ -49,14 +49,9 @@ _IDLE_TX_TIMEOUT_MS = 15_000
 def ambito_convocatoria():
     """Relaciones SQL sintéticas; el guard RF-21 no se sustituye por un mock."""
     def preparar(db, sesion, docente_uuid, estudiante_uuid):
-        db.add_all([RolORM(id_rol=1,nombre='DOCENTE'),RolORM(id_rol=2,nombre='ESTUDIANTE')])
+        db.add(UsuarioORM(id_usuario=7,id_rol=2,nombre='Estudiante LAB',correo='estudiante@universidad.test',clave_hash='sin-login'))
         db.flush()
-        db.add_all([UsuarioORM(id_usuario=6,id_rol=1,nombre='Docente LAB',correo='docente@universidad.test',clave_hash='sin-login'),
-                    UsuarioORM(id_usuario=7,id_rol=2,nombre='Estudiante LAB',correo='estudiante@universidad.test',clave_hash='sin-login')])
-        db.flush()
-        db.add_all([IdentidadAcademicaORM(id_usuario=6,sistema='SCHEDULING',id_academico=docente_uuid),
-                    IdentidadAcademicaORM(id_usuario=6,sistema='CASES',id_academico=docente_uuid),
-                    IdentidadAcademicaORM(id_usuario=7,sistema='SCHEDULING',id_academico=estudiante_uuid)])
+        db.add(IdentidadAcademicaORM(id_usuario=7,sistema='SCHEDULING',id_academico=estudiante_uuid))
         g=GrupoAcademicoORM(id_profesor=6,nombre='Grupo LAB',periodo='2026-2');db.add(g);db.flush()
         db.add(GrupoEstudianteORM(id_grupo=g.id_grupo,id_estudiante=7,fecha_ingreso=sesion.fecha_inicio.replace(tzinfo=None)))
         from app.modules.cases.infrastructure.models import VersionCasoModel,CasoModel
@@ -192,6 +187,13 @@ def client(
     session_factory: sessionmaker[Session],
     docente_id: uuid.UUID,
 ) -> Generator[TestClient, None, None]:
+    # El docente existe antes de programar; la frontera simulada de esta suite
+    # antigua no sustituye las relaciones SQL exigidas por RF-18.
+    with session_factory.begin() as s:
+        s.add_all([RolORM(id_rol=1,nombre='DOCENTE'),RolORM(id_rol=2,nombre='ESTUDIANTE')]);s.flush()
+        s.add(UsuarioORM(id_usuario=6,id_rol=1,nombre='Docente LAB',correo='docente@universidad.test',clave_hash='sin-login'));s.flush()
+        s.add_all([IdentidadAcademicaORM(id_usuario=6,sistema='CASES',id_academico=docente_id),
+            IdentidadAcademicaORM(id_usuario=6,sistema='SCHEDULING',id_academico=docente_id)])
     def _get_db() -> Generator[Session, None, None]:
         session = session_factory()
         event.listen(session, "loaded_as_persistent", restaurar_utc_solo_fixture_sqlite)

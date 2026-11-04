@@ -11,6 +11,17 @@ from app.modules.identity.domain.entities import ContextoAcceso
 from app.modules.identity.domain.errors import AccesoDenegado, IntegracionPendiente
 from app.modules.identity.application.ports import ValidadorContextoConvocatoria
 from app.modules.scheduling.api.schemas import ValidarIngresoRequest
+from app.modules.scheduling.application.programming_access import AutorizacionEspacioProgramacion
+from app.db.session import get_db
+from sqlalchemy.orm import Session
+
+
+def obtener_autorizacion_espacios_programacion(
+    db: Annotated[Session, Depends(get_db)],
+) -> AutorizacionEspacioProgramacion:
+    """Consulta la asignación aprobada usando la misma Session del escritor."""
+    from app.modules.scheduling.infrastructure.programming_access import AutorizacionEspacioSQLAlchemy
+    return AutorizacionEspacioSQLAlchemy(db)
 
 
 def exigir_contexto_convocatoria(

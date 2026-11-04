@@ -10,6 +10,9 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.db.session import get_db, get_session_factory
 from app.modules.scheduling.api.dependencies import exigir_contexto_convocatoria
+from app.modules.scheduling.api.dependencies import obtener_autorizacion_espacios_programacion
+from app.modules.scheduling.application.programming_access import AutorizacionEspacioProgramacion
+from app.modules.scheduling.infrastructure.programming_access import programar_sesion_autorizada
 from app.modules.identity.api.academic_dependencies import obtener_docente_scheduling, obtener_estudiante_scheduling, DocenteActual
 from app.modules.scheduling.api.schemas import (
     ProgramarSesionRequest,
@@ -192,18 +195,29 @@ def crear_sesion(
     datos: ProgramarSesionRequest,
     docente_id: Docente,
     db: BaseDatos,
+    usuario: DocenteActual,
+    autorizacion: Annotated[AutorizacionEspacioProgramacion | None, Depends(obtener_autorizacion_espacios_programacion)],
 ):
     """Programa una sesión académica (RF-18)."""
     try:
-        sesion = programar_sesion(
+        sesion = programar_sesion_autorizada(
             db,
+            usuario=usuario,autorizacion_espacio=autorizacion,
             docente_id=docente_id,
             **datos.model_dump(),
         )
 
+        # No abrir otra lectura después de confirmar: un fallo de refresh no
+        # debe comunicar rollback cuando la sesión ya quedó persistida.
+        resultado=SesionResponse.model_validate(sesion)
         db.commit()
-        db.refresh(sesion)
-        return sesion
+        return resultado
+
+    except (AccesoDenegado, IntegracionPendiente, SQLAlchemyError) as error:
+        db.rollback()
+        estado=403 if isinstance(error,AccesoDenegado) else 503
+        raise HTTPException(estado,detail='Autorización académica de programación no disponible.',
+            headers={'Cache-Control':'no-store'}) from None
 
     except ErrorProgramacion as error:
         db.rollback()
