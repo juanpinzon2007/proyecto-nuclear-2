@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from app.modules.participation.domain.entities import EstadoIntento
 from app.modules.participation.domain.evaluation import ModalidadEvaluacion
@@ -21,6 +21,22 @@ class EsquemaHTTP(BaseModel):
 class InicioIntentoSolicitud(EsquemaHTTP):
     id_consentimiento: Identificador
     id_permiso_extra: Identificador | None = None
+
+
+class VinculacionConvocatoriaSolicitud(EsquemaHTTP):
+    id_asignacion: Annotated[int, Field(strict=True, gt=0, le=2_147_483_647)]
+    codigo_acceso: SecretStr = Field(min_length=1, max_length=256)
+
+
+class InicioConvocatoriaSolicitud(VinculacionConvocatoriaSolicitud):
+    id_consentimiento: Identificador
+    id_permiso_extra: Identificador | None = None
+
+
+class VinculacionRespuesta(EsquemaHTTP):
+    id_participacion: Identificador
+    creada: bool
+    estado: str
 
 
 class SeleccionSolicitud(EsquemaHTTP):

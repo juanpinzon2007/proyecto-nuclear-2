@@ -1,0 +1,125 @@
+"""Convocatoria → P → intento, reutilizando una única UoW PostgreSQL.
+
+Opt-in del servidor: no registra rutas ni aporta estado/políticas por defecto.
+"""
+from types import SimpleNamespace
+from uuid import UUID
+
+from sqlalchemy import select, text
+
+from app.modules.cases.infrastructure.models import CasoModel, VersionCasoModel, RubricaModel
+from app.modules.identity.domain.errors import ReglaIdentidadInvalida
+from app.modules.identity.infrastructure.models import UsuarioORM, RolORM
+from app.modules.identity.infrastructure.academic_base_models import GrupoEstudianteORM as M
+from app.modules.identity.infrastructure.academic_identity_models import IdentidadAcademicaORM
+from app.modules.identity.infrastructure.repositories import id_entero
+from app.modules.participation.application.errors import AccesoDenegado, ReglaPendiente, ConflictoActualizacion
+from app.modules.participation.application.provision_policy import CondicionesVinculacion, VinculacionParticipacion
+from app.modules.participation.infrastructure.academic_context import ConsultaVinculacionSQLAlchemy
+from app.modules.participation.infrastructure.models import ParticipacionModel as P
+from app.modules.participation.infrastructure.repository import RepositorioParticipacionSQLAlchemy
+from app.modules.participation.infrastructure.start import preparar_inicio_en_uow
+from app.modules.participation.infrastructure.unit_of_work import UnidadTrabajoSQLAlchemy
+from app.modules.scheduling.domain.ingress_policy import fecha_utc, PoliticaTemporalNoDisponible
+from app.modules.scheduling.infrastructure.assignment_models import AsignacionCasoModel as A
+from app.modules.scheduling.infrastructure.models import ConvocatoriaModel as C, SesionProgramadaModel as S
+
+
+class ServicioVinculacionSQLAlchemy:
+    def __init__(self, *, usuario, reloj, fechas, crear_sesion,
+                 politica_ingreso=None, politica_vinculacion=None, politica_inicio=None):
+        self.usuario, self.reloj, self.fechas = usuario, reloj, fechas
+        self.crear_sesion = crear_sesion
+        self.ingreso, self.vinculacion, self.inicio = politica_ingreso, politica_vinculacion, politica_inicio
+
+    def _unidad(self):
+        return UnidadTrabajoSQLAlchemy(lambda s:RepositorioParticipacionSQLAlchemy(s,fechas=self.fechas),
+            crear_sesion=self.crear_sesion)
+
+    def _obtener_o_crear(self, trabajo, *, convocatoria_id, id_asignacion, codigo_acceso):
+        if self.usuario is None or not isinstance(convocatoria_id,UUID):
+            raise AccesoDenegado("Vinculación no disponible.")
+        try:
+            cuenta = id_entero(self.usuario.id_usuario)
+        except ReglaIdentidadInvalida:
+            raise AccesoDenegado("Vinculación no disponible.") from None
+        if type(id_asignacion) is not int or not 0 < id_asignacion <= 2147483647:
+            raise AccesoDenegado("Vinculación no disponible.")
+        if self.ingreso is None or self.vinculacion is None:
+            raise ReglaPendiente("Falta política de ingreso y/o provisión de participación.")
+        s, repo = trabajo.sesion, trabajo.repositorio
+        if s.get_bind().dialect.name != "postgresql" or s.connection().get_isolation_level() != "READ COMMITTED":
+            raise ReglaPendiente("La provisión exige una UoW PostgreSQL READ COMMITTED.")
+        # Serializa también la ausencia de P. El hash solo es clave de lock,
+        # nunca un identificador académico ni una conversión UUID/INTEGER.
+        s.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))"),
+            {"clave":"participation.convocatoria:"+str(convocatoria_id)})
+        existente = repo.obtener_por_convocatoria(convocatoria_id)
+        # Con P existente se conserva el orden P → cuenta del inicio anterior.
+        u = s.execute(select(UsuarioORM).where(UsuarioORM.id_usuario==cuenta).with_for_update()).scalar_one_or_none()
+        if u is None:
+            raise AccesoDenegado("Vinculación no disponible.")
+        s.execute(select(RolORM).where(RolORM.id_rol==u.id_rol).with_for_update(read=True)).all()
+        s.execute(select(IdentidadAcademicaORM).where(IdentidadAcademicaORM.id_usuario==cuenta).with_for_update(read=True)).all()
+        matriculas = s.execute(select(M).join(A,A.id_grupo==M.id_grupo).where(
+            A.id_asignacion==id_asignacion,M.id_estudiante==cuenta).with_for_update(of=M)).scalars().all()
+        if len(matriculas) != 1:
+            raise AccesoDenegado("Matrícula no disponible.")
+        convocatoria = s.execute(select(C).where(C.id==convocatoria_id).with_for_update()).scalar_one_or_none()
+        if convocatoria is None:
+            raise AccesoDenegado("Convocatoria no disponible.")
+        s.execute(select(S).where(S.id==convocatoria.sesion_id).with_for_update()).scalar_one()
+        asignacion = s.execute(select(A).where(A.id_asignacion==id_asignacion).with_for_update()).scalar_one()
+        caso = s.execute(select(CasoModel).where(CasoModel.id_caso==asignacion.id_caso).with_for_update(read=True)).scalar_one()
+        s.execute(select(VersionCasoModel).where(VersionCasoModel.id==asignacion.version_caso_id).with_for_update(read=True)).all()
+        s.execute(select(RubricaModel).where(RubricaModel.version_caso_id==asignacion.version_caso_id).with_for_update(read=True)).all()
+        try:
+            instante = fecha_utc(self.reloj.ahora())
+        except PoliticaTemporalNoDisponible:
+            raise ReglaPendiente("El reloj del servidor no es verificable.") from None
+        # Se acredita el contexto DESPUÉS de bloquear sus fuentes, en la misma
+        # Session. El instante del registro es el que Scheduling autoriza.
+        contexto = ConsultaVinculacionSQLAlchemy(s,politica=self.ingreso,
+            reloj=SimpleNamespace(ahora=lambda:instante)).consultar(usuario=self.usuario,
+                convocatoria_id=convocatoria_id,codigo_acceso=codigo_acceso,id_asignacion=id_asignacion)
+        if contexto.ingreso.caso_id != caso.id:
+            raise AccesoDenegado("Caso no disponible.")
+        if existente and (existente.id_asignacion,existente.id_grupo_estudiante) != (
+                contexto.id_asignacion,contexto.id_grupo_estudiante):
+            raise ConflictoActualizacion("La convocatoria ya tiene otra vinculación.")
+        # No se reutiliza otra P solo porque coincida asignación/matrícula:
+        # podría pertenecer a una convocatoria distinta. Nunca se reasigna.
+        otra = s.scalar(select(P.id_participacion).where(P.id_asignacion==contexto.id_asignacion,
+            P.id_grupo_estudiante==contexto.id_grupo_estudiante))
+        if otra is not None and (existente is None or otra != existente.id_participacion):
+            raise ConflictoActualizacion("La matrícula ya tiene otra participación para esta asignación.")
+        estado = self.vinculacion.autorizar(CondicionesVinculacion(contexto,instante,asignacion.estado,
+            self.fechas.desde_db(asignacion.apertura),self.fechas.desde_db(asignacion.cierre),
+            self.fechas.desde_db(asignacion.fecha_limite_ingreso),existente))
+        if type(estado) is not str or not estado.strip() or len(estado)>20:
+            raise ReglaPendiente("La política no aporta un estado inicial válido.")
+        if existente is not None:
+            return VinculacionParticipacion(existente,False)
+        nueva = repo.agregar_participacion(id_asignacion=contexto.id_asignacion,
+            id_grupo_estudiante=contexto.id_grupo_estudiante,convocatoria_id=convocatoria_id,
+            estado=estado,fecha_registro=instante)
+        return VinculacionParticipacion(nueva,True)
+
+    def obtener_o_crear(self, *, convocatoria_id, id_asignacion, codigo_acceso):
+        with self._unidad() as trabajo:
+            resultado = self._obtener_o_crear(trabajo,convocatoria_id=convocatoria_id,
+                id_asignacion=id_asignacion,codigo_acceso=codigo_acceso)
+            trabajo.commit()
+            return resultado
+
+    def iniciar_desde_convocatoria(self, *, convocatoria_id, id_asignacion,
+                                  codigo_acceso, id_consentimiento, id_permiso_extra=None):
+        with self._unidad() as trabajo:
+            vinculo = self._obtener_o_crear(trabajo,convocatoria_id=convocatoria_id,
+                id_asignacion=id_asignacion,codigo_acceso=codigo_acceso)
+            resultado = preparar_inicio_en_uow(trabajo=trabajo,usuario=self.usuario,
+                id_participacion=vinculo.participacion.id_participacion,reloj=self.reloj,fechas=self.fechas,
+                codigo_acceso=codigo_acceso,politica_ingreso=self.ingreso,politica_inicio=self.inicio,
+                id_consentimiento=id_consentimiento,id_permiso_extra=id_permiso_extra)
+            trabajo.commit()
+            return resultado

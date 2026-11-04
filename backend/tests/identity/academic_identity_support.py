@@ -85,7 +85,7 @@ def retirar_ddl_resultados_sqlite(conexion):
         raise RuntimeError("Retirada DDL auxiliar reservada a SQLite en memoria.")
     from app.db.models import registrar_modelos_integrados
     metadata=registrar_modelos_integrados()
-    for nombre in ("retroalimentacion_docente","resultado_criterio","resultado_intento"):
+    for nombre in ("docente_espacio_academico","retroalimentacion_docente","resultado_criterio","resultado_intento"):
         if inspect(conexion).has_table(nombre):
             if conexion.scalar(text(f"SELECT 1 FROM {nombre} LIMIT 1")) is not None:
                 raise RuntimeError("No eliminar resultados existentes.")
@@ -167,14 +167,14 @@ def motor_postgresql_desechable():
     if os.getenv("SPS_TEST_IDENTITY_MAPPING_DOCKER") != "1":
         pytest.skip("PostgreSQL mapping no solicitado: SPS_TEST_IDENTITY_MAPPING_DOCKER=1 crea un laboratorio nuevo.")
     # Solo imagen ya instalada, sin pull ni conexión improvisada a servidores externos.
-    docker("image", "inspect", "postgres:17")
+    docker("image", "inspect", "docker.io/library/postgres:17")
     nombre = "sps-resolver-lab-" + uuid4().hex[:12]
     secreto = secrets.token_urlsafe(32)
     identificador = docker(
         "create", "--name", nombre,
         "--label", "sps.identity.mapping.lab=true", "--tmpfs", "/var/lib/postgresql/data",
         "--env", "POSTGRES_DB=sps_identity_test_resolver", "--env", "POSTGRES_USER=resolver_lab",
-        "--env", "POSTGRES_PASSWORD", "--publish", "127.0.0.1::5432", "postgres:17",
+        "--env", "POSTGRES_PASSWORD", "--publish", "127.0.0.1::5432", "docker.io/library/postgres:17",
         env=os.environ | {"POSTGRES_PASSWORD": secreto},
     )
     engine = None
@@ -184,7 +184,10 @@ def motor_postgresql_desechable():
         if not re.fullmatch(r"[0-9a-f]{64}", identificador):
             raise RuntimeError("Docker no devolvió un ID completo de laboratorio.")
         docker("start", identificador, timeout=10)
-        datos = json.loads(docker("inspect", identificador))[0]
+        try:
+            datos = esperar_puerto_publicado(identificador,nombre=nombre)
+        except TimeoutError as error:
+            raise RuntimeError(f"{error}\n{diagnostico_laboratorio(identificador,secreto)}") from None
         assert datos["Id"] == identificador and datos["Name"] == "/" + nombre
         assert datos["Config"]["Labels"]["sps.identity.mapping.lab"] == "true"
         assert not any(m["Type"] in {"bind", "volume"} for m in datos["Mounts"])
@@ -227,6 +230,29 @@ def motor_postgresql_desechable():
                 fallo.add_note(mensaje)  # No ocultar el fallo original de arranque/prueba.
             else:
                 raise RuntimeError(mensaje) from None
+
+
+def esperar_puerto_publicado(identificador, *, nombre, timeout=10, intervalo=.2,
+                            reloj=time.monotonic, pausa=time.sleep):
+    """Docker start puede retornar antes de publicar el puerto efímero.
+
+    No equivale a PostgreSQL listo: después se exige la conexión TCP y SELECT
+    ya existentes. Solo inspecciona el ID propio y mantiene los checks de origen.
+    """
+    limite=reloj()+timeout
+    while reloj()<limite:
+        datos=json.loads(docker("inspect",identificador,timeout=3))[0]
+        assert datos["Id"]==identificador and datos["Name"]=="/"+nombre
+        assert datos["Config"]["Labels"]["sps.identity.mapping.lab"]=="true"
+        assert not any(m["Type"] in {"bind","volume"} for m in datos["Mounts"])
+        puertos=datos["NetworkSettings"]["Ports"].get("5432/tcp") or []
+        if puertos:
+            assert puertos[0]["HostIp"]=="127.0.0.1"
+            assert 0<int(puertos[0]["HostPort"])<=65535
+            return datos
+        restante=limite-reloj()
+        if restante>0:pausa(min(intervalo,restante))
+    raise TimeoutError("Docker no publicó el puerto TCP local del laboratorio dentro del plazo.")
 
 
 @pytest.fixture(scope="module", params=["sqlite", "postgresql"])

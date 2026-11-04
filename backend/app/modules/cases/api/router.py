@@ -11,8 +11,10 @@ from app.modules.cases.api.schemas.caso_responses import (
     CasoDetalleResponse,
     CasoResumenResponse,
     VersionResponse,
+    GrafoResponse,
 )
-from app.modules.cases.api.schemas.caso_schemas import CasoPayload
+from app.modules.cases.api.schemas.caso_schemas import CasoPayload, GrafoSolicitud
+from app.modules.cases.application.graph import GrafoNoDisponible
 from app.modules.cases.application.services.caso_service import CasoService
 from app.modules.cases.domain.entities.caso import VersionCaso
 from app.modules.cases.domain.exceptions import (
@@ -30,8 +32,10 @@ ServicioDep = Annotated[CasoService, Depends(get_caso_service)]
 DocenteDep = Annotated[uuid.UUID, Depends(obtener_docente_cases)]
 
 
-def _traducir(exc: ErrorDominioCaso) -> HTTPException:
+def _traducir(exc: ErrorDominioCaso | GrafoNoDisponible) -> HTTPException:
     """Traduce excepciones del dominio a respuestas HTTP."""
+    if isinstance(exc, GrafoNoDisponible):
+        return HTTPException(422, detail={"errores": [str(exc)]})
     if isinstance(exc, CasoNoEncontradoError):
         return HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
     if isinstance(exc, CasoInvalidoError):
@@ -78,7 +82,8 @@ def obtener_caso(
         raise _traducir(exc) from exc
 
 
-@router.put("/{version_id}", response_model=VersionResponse)
+@router.put("/{version_id}", response_model=VersionResponse,
+            dependencies=[Depends(exigir_permiso_creacion_configurado)])
 def editar_borrador(
     version_id: uuid.UUID, payload: CasoPayload, docente_id: DocenteDep, service: ServicioDep
 ) -> VersionResponse:
@@ -89,18 +94,20 @@ def editar_borrador(
         raise _traducir(exc) from exc
 
 
-@router.post("/{version_id}/publish", response_model=VersionResponse)
+@router.post("/{version_id}/publish", response_model=VersionResponse,
+             dependencies=[Depends(exigir_permiso_creacion_configurado)])
 def publicar_caso(
     version_id: uuid.UUID, docente_id: DocenteDep, service: ServicioDep
 ) -> VersionResponse:
     """Valida el borrador con el Chain of Responsibility y lo publica."""
     try:
         return _respuesta(service.publicar(docente_id, version_id))
-    except ErrorDominioCaso as exc:
+    except (ErrorDominioCaso, GrafoNoDisponible) as exc:
         raise _traducir(exc) from exc
 
 
-@router.post("/{version_id}/archive", response_model=VersionResponse)
+@router.post("/{version_id}/archive", response_model=VersionResponse,
+             dependencies=[Depends(exigir_permiso_creacion_configurado)])
 def archivar_caso(
     version_id: uuid.UUID, docente_id: DocenteDep, service: ServicioDep
 ) -> VersionResponse:
@@ -108,4 +115,27 @@ def archivar_caso(
     try:
         return _respuesta(service.archivar(docente_id, version_id))
     except ErrorDominioCaso as exc:
+        raise _traducir(exc) from exc
+
+
+@router.get("/{version_id}/graph", response_model=GrafoResponse)
+def consultar_grafo(version_id: uuid.UUID, docente_id: DocenteDep, service: ServicioDep):
+    """Detalle de la configuración propia, incluso del borrador incompleto."""
+    try:
+        return GrafoResponse.model_validate(service.consultar_recorrido(docente_id, version_id))
+    except (ErrorDominioCaso, GrafoNoDisponible) as exc:
+        raise _traducir(exc) from exc
+
+
+@router.put("/{version_id}/graph", response_model=GrafoResponse,
+            dependencies=[Depends(exigir_permiso_creacion_configurado)])
+def configurar_grafo(version_id: uuid.UUID, solicitud: GrafoSolicitud,
+                     docente_id: DocenteDep, service: ServicioDep):
+    """Reemplazo completo y atómico de un recorrido ejecutable del borrador."""
+    try:
+        return GrafoResponse.model_validate(service.configurar_recorrido(
+            docente_id, version_id, inicial_id=solicitud.escenario_inicial_id,
+            transiciones=tuple((t.opcion_id, t.tipo, t.destino_id) for t in solicitud.transiciones),
+        ))
+    except (ErrorDominioCaso, GrafoNoDisponible) as exc:
         raise _traducir(exc) from exc

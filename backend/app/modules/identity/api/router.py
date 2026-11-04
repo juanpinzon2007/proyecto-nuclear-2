@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Response
 from app.modules.identity.api.dependencies import (
     obtener_fabrica_autenticacion, obtener_proxy_administracion,
     obtener_proxy_excepciones, obtener_proxy_seguimiento, obtener_usuario_actual,
+    obtener_consulta_feedback_estudiantil,
 )
 from app.modules.identity.api.errors import RutaIdentity
 from app.modules.identity.api.schemas import (
@@ -17,7 +18,7 @@ from app.modules.identity.application.proxy_administracion import ProxyAdministr
 from app.modules.identity.application.proxy_excepciones import ProxyExcepciones
 from app.modules.identity.application.proxy_seguimiento import ProxySeguimiento
 from app.modules.identity.domain.entities import (
-    AutorizacionRepeticion, ContextoAcceso, DetalleParticipacion, FeedbackDocente, ResumenCaso,
+    AutorizacionRepeticion, ContextoAcceso, DetalleParticipacion, FeedbackDocente, ResumenCaso, ResumenParticipacion,
 )
 
 
@@ -63,7 +64,7 @@ def asignar_autorizaciones(id_docente: IdPublico, solicitud: AutorizacionesDocen
     return UsuarioPublico.desde_contexto(proxy.asignar_autorizaciones(usuario, id_docente, solicitud.a_dominio()))
 
 
-@router.get("/seguimiento/casos", response_model=list[ResumenCaso])
+@router.get("/seguimiento/casos", response_model=list[ResumenCaso], response_model_exclude_none=True)
 def listar_casos_realizados(usuario: UsuarioActual, proxy: Seguimiento):
     return proxy.listar_casos_realizados(usuario)
 
@@ -71,6 +72,11 @@ def listar_casos_realizados(usuario: UsuarioActual, proxy: Seguimiento):
 @router.get("/seguimiento/participaciones/{id_participacion}", response_model=DetalleParticipacion)
 def consultar_participacion(id_participacion: IdPublico, usuario: UsuarioActual, proxy: Seguimiento):
     return proxy.consultar_participacion(usuario, id_participacion)
+
+
+@router.get("/seguimiento/casos/{id_caso}/participaciones", response_model=list[ResumenParticipacion])
+def listar_participaciones(id_caso: IdPublico, usuario: UsuarioActual, proxy: Seguimiento):
+    return proxy.listar_participaciones(usuario, id_caso)
 
 
 @router.get("/seguimiento/sesiones/{id_sesion}/reporte", response_class=Response,
@@ -84,6 +90,15 @@ def descargar_reporte(id_sesion: IdPublico, usuario: UsuarioActual, proxy: Segui
 def registrar_feedback(id_participacion: IdPublico, solicitud: SolicitudFeedback,
                        usuario: UsuarioActual, proxy: Seguimiento):
     return proxy.registrar_feedback(usuario, id_participacion, solicitud.texto)
+
+
+@router.get("/seguimiento/participaciones/{id_participacion}/feedback", response_model=FeedbackDocente)
+def consultar_feedback_estudiantil(
+    id_participacion: IdPublico,
+    consulta: Annotated[Callable[..., FeedbackDocente], Depends(obtener_consulta_feedback_estudiantil)],
+):
+    """Valoración general propia; no devuelve respuestas, correcciones ni notas."""
+    return consulta(id_participacion=id_participacion)
 
 
 @router.post("/excepciones/repeticiones", response_model=AutorizacionRepeticion, status_code=201)

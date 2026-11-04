@@ -88,6 +88,7 @@ class DatosAltaDocente:
 class ResumenCaso:
     id_caso: str
     nombre: str
+    version_caso_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -95,6 +96,30 @@ class RespuestaSeguimiento:
     id_pregunta: str
     id_opcion: str | None
     retroalimentacion: str | None
+    id_intento: str | None = None
+    numero_paso: int | None = None
+    reflexion_estudiante: str | None = None
+
+
+@dataclass(frozen=True)
+class IntentoSeguimiento:
+    id_intento: str
+    numero_intento: int
+    estado: str
+    inicio: datetime
+    fin: datetime | None
+    respondidas: int
+
+
+@dataclass(frozen=True)
+class ResumenParticipacion:
+    id_participacion: str
+    id_estudiante: str
+    id_caso: str
+    version_caso_id: str
+    id_convocatoria: str
+    id_sesion: str
+    estado: str
 
 
 @dataclass(frozen=True)
@@ -104,6 +129,11 @@ class DetalleParticipacion:
     id_caso: str
     respuestas: tuple[RespuestaSeguimiento, ...]
     feedback_docente: str | None
+    intentos: tuple[IntentoSeguimiento, ...] = ()
+    version_caso_id: str | None = None
+    id_convocatoria: str | None = None
+    id_sesion: str | None = None
+    estado: str | None = None
 
 
 class EstadoReporte(StrEnum):

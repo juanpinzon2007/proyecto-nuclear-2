@@ -123,7 +123,7 @@ def intento(c, pk, **cambios):
 
 def test_metadata_reflejado_y_PK_FK_duracion_obligatoria(datos):
     with datos.engine.connect() as s:
-        assert len(registrar_modelos_integrados().tables) == 30
+        assert len(registrar_modelos_integrados().tables) == 31
         assert compare_metadata(MigrationContext.configure(s),registrar_modelos_integrados()) == []
         assert len(sa.inspect(s).get_foreign_keys("participacion")) == 3
         assert len(sa.inspect(s).get_foreign_keys("intento")) == 3
@@ -319,7 +319,7 @@ def test_downgrade_rechaza_datos_historicos(datos_pg):
         with pytest.raises(RuntimeError,match="datos historicos"):
             with s.begin_nested():
                 command.downgrade(config_alembic(s),PARENT)
-        assert s.scalar(sa.text("SELECT version_num FROM alembic_version"))=="20261102_immutable_answers"
+        assert s.scalar(sa.text("SELECT version_num FROM alembic_version"))=="20261104_teacher_spaces"
 
 
 def test_upgrade_downgrade_vacio_preserva_protecciones_anteriores():

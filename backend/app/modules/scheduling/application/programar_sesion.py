@@ -67,12 +67,11 @@ def programar_sesion(
 
     # Validar que la version del caso este en estado PUBLICADO (RF-04 / RF-18)
     estado_version = getattr(version, "estado", None)
-    if estado_version is not None:
-        valor_estado = getattr(estado_version, "value", estado_version)
-        if valor_estado != "PUBLICADO":
-            raise ErrorProgramacion(
-                "Solo se pueden programar versiones publicadas del caso."
-            )
+    valor_estado = getattr(estado_version, "value", estado_version)
+    if valor_estado != "PUBLICADO":
+        raise ErrorProgramacion(
+            "Solo se pueden programar versiones publicadas del caso."
+        )
 
     # El tiempo no debe superar el estimado del caso
     if tiempo_maximo_minutos > version.tiempo_estimado_min:

@@ -37,6 +37,14 @@ class EspacioAcademicoModel(Base):
 
 
 
+class DocenteEspacioAcademicoModel(Base):
+    """Asignación técnica explícita RF-18; no crea identidad ni membresía."""
+    __tablename__ = "docente_espacio_academico"
+    id_docente: Mapped[int] = mapped_column(Integer, ForeignKey("usuario.id_usuario"), primary_key=True)
+    espacio_academico_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("espacio_academico.id"), primary_key=True)
+
+
 class SesionProgramadaModel(Base):
     """Representa una sesión académica programada."""
 

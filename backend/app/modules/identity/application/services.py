@@ -55,7 +55,7 @@ class ServicioFeedbackDocente:
 
 
 class ServicioSeguimiento:
-    def __init__(self, lecturas: LecturaSeguimiento, reportes: ServicioReportes,
+    def __init__(self, lecturas: LecturaSeguimiento, reportes: ServicioReportes | None,
                  feedback: ServicioFeedbackDocente) -> None:
         self.lecturas = lecturas
         self.reportes = reportes
@@ -64,11 +64,17 @@ class ServicioSeguimiento:
     def listar_casos_realizados(self, contexto: ContextoAcceso) -> tuple[ResumenCaso, ...]:
         return self.lecturas.listar_casos_realizados(contexto.id_usuario)
 
+    def listar_participaciones(self, contexto: ContextoAcceso, id_caso: str):
+        validar_id(id_caso)
+        return self.lecturas.listar_participaciones(contexto.id_usuario, id_caso)
+
     def consultar_participacion(self, contexto: ContextoAcceso, id_participacion: str) -> DetalleParticipacion:
         validar_id(id_participacion)
         return self.lecturas.consultar_participacion(contexto.id_usuario, id_participacion)
 
     def descargar_reporte(self, contexto: ContextoAcceso, id_sesion: str) -> str:
+        if self.reportes is None:
+            raise IntegracionPendiente()
         return self.reportes.descargar(contexto, id_sesion)
 
     def registrar_feedback(self, contexto: ContextoAcceso, id_participacion: str, texto: str) -> FeedbackDocente:

@@ -12,7 +12,7 @@ from uuid import UUID
 from app.modules.identity.domain.entities import (
     AccesoConvocatoria, AutorizacionRepeticion, AutorizacionesDocente,
     CondicionesRepeticion, ContextoAcceso, DatosAltaDocente, DetalleParticipacion, FeedbackDocente,
-    FilaReporte, ResumenCaso,
+    FilaReporte, ResumenCaso, ResumenParticipacion,
 )
 
 
@@ -56,6 +56,7 @@ class ConsultaAmbitoAcademico(Protocol):
 
 
 class LecturaSeguimiento(Protocol):
+    def listar_participaciones(self, id_docente: str, id_caso: str) -> tuple[ResumenParticipacion, ...]: ...
     def listar_casos_realizados(self, id_docente: str) -> tuple[ResumenCaso, ...]: ...
     def consultar_participacion(self, id_docente: str, id_participacion: str) -> DetalleParticipacion:
         """Solo datos visibles en el ámbito del docente y de casos realizados."""
@@ -105,6 +106,7 @@ FabricaUnidadTrabajo = Callable[[], UnidadTrabajoIdentity]
 
 
 class IServicioSeguimiento(Protocol):
+    def listar_participaciones(self, contexto: ContextoAcceso, id_caso: str) -> tuple[ResumenParticipacion, ...]: ...
     def listar_casos_realizados(self, contexto: ContextoAcceso) -> tuple[ResumenCaso, ...]: ...
     def consultar_participacion(self, contexto: ContextoAcceso, id_participacion: str) -> DetalleParticipacion: ...
     def descargar_reporte(self, contexto: ContextoAcceso, id_sesion: str) -> str: ...

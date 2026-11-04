@@ -9,6 +9,7 @@ from app.modules.cases.domain.entities.caso import ResumenVersion, VersionCaso
 from app.modules.cases.domain.exceptions import CasoNoEncontradoError
 from app.modules.cases.domain.repositories import ICasoRepository
 from app.modules.cases.domain.validators.base import ValidadorCaso
+from app.modules.cases.application.graph import AutoriaRecorridoPort, GrafoNoDisponible, GrafoVersion
 
 
 class CasoService:
@@ -19,10 +20,12 @@ class CasoService:
         repositorio: ICasoRepository,
         fabrica_constructor: Callable[[], IConstructorCaso],
         cadena_validacion: ValidadorCaso,
+        recorridos: AutoriaRecorridoPort | None = None,
     ) -> None:
         self._repositorio = repositorio
         self._fabrica_constructor = fabrica_constructor
         self._cadena = cadena_validacion
+        self._recorridos = recorridos
 
     def crear_borrador(self, docente_creador_id: uuid.UUID, payload: CasoPayload) -> VersionCaso:
         """RF-09: guarda en BORRADOR aunque esté incompleto (no ejecuta el CoR)."""
@@ -78,8 +81,28 @@ class CasoService:
         """
         version = self._obtener_o_fallar(docente_creador_id, version_id)
         version.publicar(self._cadena)
-        self._repositorio.actualizar_estado(version)
+        if self._recorridos is not None:
+            self._recorridos.publicar_ejecutable(version)
+        else:
+            # Compatibilidad de los consumidores editoriales internos existentes.
+            # La composición HTTP siempre proporciona el puerto de recorrido.
+            self._repositorio.actualizar_estado(version)
         return version
+
+    def consultar_recorrido(self, docente_creador_id: uuid.UUID, version_id: uuid.UUID) -> GrafoVersion:
+        version = self._obtener_o_fallar(docente_creador_id, version_id)
+        if self._recorridos is None:
+            raise GrafoNoDisponible("La autoría de recorrido no está configurada.")
+        return self._recorridos.obtener_recorrido(version)
+
+    def configurar_recorrido(self, docente_creador_id: uuid.UUID, version_id: uuid.UUID,
+                            *, inicial_id: uuid.UUID, transiciones) -> GrafoVersion:
+        version = self._obtener_o_fallar(docente_creador_id, version_id)
+        version.asegurar_editable()
+        if self._recorridos is None:
+            raise GrafoNoDisponible("La autoría de recorrido no está configurada.")
+        return self._recorridos.configurar_recorrido(version, inicial_id=inicial_id,
+                                                    transiciones=transiciones)
 
     def _obtener_o_fallar(self, docente_creador_id: uuid.UUID, version_id: uuid.UUID) -> VersionCaso:
         version = self._repositorio.obtener_version(version_id, docente_creador_id)

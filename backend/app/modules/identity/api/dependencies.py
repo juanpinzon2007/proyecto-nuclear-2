@@ -21,9 +21,9 @@ from app.modules.identity.application.ports import (
 from app.modules.identity.application.proxy_administracion import ProxyAdministracionUsuarios
 from app.modules.identity.application.proxy_excepciones import ProxyExcepciones
 from app.modules.identity.application.proxy_seguimiento import ProxySeguimiento
-from app.modules.identity.application.services import ServicioAdministracionUsuarios
+from app.modules.identity.application.services import ServicioAdministracionUsuarios, ServicioSeguimiento
 from app.modules.identity.api.errors import ERRORES
-from app.modules.identity.domain.entities import ContextoAcceso, Rol
+from app.modules.identity.domain.entities import ContextoAcceso, FeedbackDocente, Rol
 from app.modules.identity.domain.errors import AccesoDenegado, IntegracionPendiente, NoAutenticado
 from app.modules.identity.infrastructure.security import TokensJWT
 from app.modules.identity.infrastructure.credentials import obtener_hasheador
@@ -64,9 +64,11 @@ def construir_consulta_ambito() -> ConsultaAmbitoAcademico:
     raise IntegracionPendiente()
 
 
-def construir_seguimiento() -> IServicioSeguimiento:
-    # Requiere lectura académica, LEFT JOIN público y UoW de Feedback_Docente.
-    raise IntegracionPendiente()
+def construir_seguimiento(*, usuario, crear_sesion) -> IServicioSeguimiento:
+    from app.modules.identity.infrastructure.followup import ConsultaSeguimientoSQLAlchemy
+    from app.modules.participation.infrastructure.individual_feedback import crear_servicio_feedback_individual
+    return ServicioSeguimiento(ConsultaSeguimientoSQLAlchemy(usuario=usuario,crear_sesion=crear_sesion),
+        None,crear_servicio_feedback_individual(usuario=usuario,crear_sesion=crear_sesion))
 
 
 def construir_excepciones() -> IServicioExcepciones:
@@ -195,12 +197,36 @@ def obtener_fabrica_validador_convocatoria(
         yield construir
 
 
-def obtener_proxy_seguimiento() -> ProxySeguimiento:
-    return ProxySeguimiento(construir_seguimiento, ServicioAutorizacion(construir_consulta_ambito))
+def obtener_fabrica_sesiones_seguimiento() -> Callable[[], Session]:
+    def crear():
+        try:
+            return get_session_factory()()
+        except (ValueError, SQLAlchemyError):
+            raise IntegracionPendiente() from None
+    return crear
+
+
+def obtener_proxy_seguimiento(
+    usuario: Annotated[ContextoAcceso, Depends(obtener_usuario_actual)],
+    sesiones: Annotated[Callable[[], Session], Depends(obtener_fabrica_sesiones_seguimiento)],
+) -> ProxySeguimiento:
+    from app.modules.identity.infrastructure.followup import ConsultaSeguimientoSQLAlchemy
+    return ProxySeguimiento(lambda:construir_seguimiento(usuario=usuario,crear_sesion=sesiones),
+        ServicioAutorizacion(lambda:ConsultaSeguimientoSQLAlchemy(usuario=usuario,crear_sesion=sesiones)))
 
 
 def obtener_proxy_excepciones() -> ProxyExcepciones:
     return ProxyExcepciones(construir_excepciones, ServicioAutorizacion(construir_consulta_ambito))
+
+
+def obtener_consulta_feedback_estudiantil(
+    usuario: Annotated[ContextoAcceso, Depends(obtener_estudiante_actual)],
+    sesiones: Annotated[Callable[[], Session], Depends(obtener_fabrica_sesiones_seguimiento)],
+) -> Callable[..., FeedbackDocente]:
+    """Compone la lectura individual existente; no concede acceso por la URL."""
+    from functools import partial
+    from app.modules.participation.infrastructure.individual_feedback import consultar_feedback_individual
+    return partial(consultar_feedback_individual, usuario=usuario, crear_sesion=sesiones)
 
 
 def obtener_proxy_administracion() -> ProxyAdministracionUsuarios:

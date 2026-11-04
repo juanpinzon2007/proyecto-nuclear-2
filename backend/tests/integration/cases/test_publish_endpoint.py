@@ -1,6 +1,7 @@
 """Pruebas de integración del flujo desdoblado: borrador (POST /cases) y publicación."""
 
 import copy
+from tests.integration.cases.conftest import configurar_final_unica_escena
 import uuid
 from typing import Any
 
@@ -123,6 +124,7 @@ def test_flujo_borrador_y_luego_publicacion_exitosa(
 ) -> None:
     version_id = client.post(URL_CREAR, json=payload_valido, headers=headers).json()["version_id"]
 
+    configurar_final_unica_escena(client, version_id, headers)
     respuesta = client.post(_url_publicar(version_id), headers=headers)
 
     assert respuesta.status_code == 200
@@ -154,6 +156,7 @@ def test_publicar_dos_veces_devuelve_400(
     client: TestClient, payload_valido: dict[str, Any], headers: dict[str, str]
 ) -> None:
     version_id = client.post(URL_CREAR, json=payload_valido, headers=headers).json()["version_id"]
+    configurar_final_unica_escena(client, version_id, headers)
     assert client.post(_url_publicar(version_id), headers=headers).status_code == 200
 
     segunda = client.post(_url_publicar(version_id), headers=headers)

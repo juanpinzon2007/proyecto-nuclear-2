@@ -154,3 +154,10 @@ def test_rechazar_version_no_publicada_archivada():
         match="Solo se pueden programar versiones publicadas del caso",
     ):
         programar_sesion(db, **datos_validos())
+
+
+def test_version_sin_estado_no_se_considera_publicada():
+    db = crear_db_simulada(estado_version=None)
+    with pytest.raises(ErrorProgramacion, match='publicadas'):
+        programar_sesion(db, **datos_validos())
+    db.add.assert_not_called()

@@ -87,3 +87,28 @@ class VersionResponse(_Respuesta):
     version_id: uuid.UUID
     estado: EstadoCaso
 
+
+class TransicionResponse(_Respuesta):
+    opcion_id: uuid.UUID
+    tipo: str | None
+    destino_id: uuid.UUID | None
+    texto: str
+
+
+class PreguntaGrafoResponse(_Respuesta):
+    id: uuid.UUID
+    enunciado: str
+    opciones: list[TransicionResponse]
+
+
+class EscenaGrafoResponse(_Respuesta):
+    id: uuid.UUID
+    inicial: bool
+    contexto: str
+    preguntas: list[PreguntaGrafoResponse]
+
+
+class GrafoResponse(_Respuesta):
+    version_id: uuid.UUID
+    escenas: list[EscenaGrafoResponse]
+

@@ -80,3 +80,22 @@ def crear_dependencia_facade_8b(*, crear_sesion, fechas, reloj):
                               fechas=fechas, crear_sesion=crear_sesion)
 
     return dependencia
+
+
+def crear_dependencia_vinculacion_8b(*, crear_sesion, fechas, reloj,
+                                    politica_ingreso=None, politica_vinculacion=None,
+                                    politica_inicio=None):
+    """Composición opt-in del servidor, sin políticas académicas por defecto.
+
+    Instancia por solicitud. No reutiliza autorizaciones/sesiones de una consulta
+    previa; el servicio existente revalida y bloquea dentro de su propia UoW.
+    Ninguna política de laboratorio se importa o selecciona desde esta capa.
+    """
+    from app.modules.participation.infrastructure.provision import ServicioVinculacionSQLAlchemy
+
+    def dependencia(usuario: Annotated[ContextoAcceso, Depends(estudiante_identity)]):
+        return ServicioVinculacionSQLAlchemy(usuario=usuario, crear_sesion=crear_sesion,
+            fechas=fechas, reloj=reloj, politica_ingreso=politica_ingreso,
+            politica_vinculacion=politica_vinculacion, politica_inicio=politica_inicio)
+
+    return dependencia

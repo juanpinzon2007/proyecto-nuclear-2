@@ -6,8 +6,10 @@ de validación del dominio.
 """
 
 from decimal import Decimal
+from uuid import UUID
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class _EsquemaEstricto(BaseModel):
@@ -70,4 +72,22 @@ class CasoPayload(_EsquemaEstricto):
     case: DatosCasoSchema
     scenarios: list[EscenarioSchema] = Field(default_factory=list)
     rubric: RubricaSchema | None = None
+
+
+class TransicionSolicitud(_EsquemaEstricto):
+    opcion_id: UUID
+    tipo: Literal["ESCENA", "FIN"]
+    destino_id: UUID | None = None
+
+    @model_validator(mode="after")
+    def coherencia(self):
+        if (self.tipo == "ESCENA") != (self.destino_id is not None):
+            raise ValueError("ESCENA requiere destino y FIN requiere destino nulo.")
+        return self
+
+
+class GrafoSolicitud(_EsquemaEstricto):
+    """UUID recuperados del detalle de la versión; nunca orden editorial."""
+    escenario_inicial_id: UUID
+    transiciones: list[TransicionSolicitud]
 
