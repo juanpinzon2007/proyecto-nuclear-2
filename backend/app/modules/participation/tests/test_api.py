@@ -430,8 +430,14 @@ def test_router_completo_no_registrado_y_solo_get_escenario_habilitado(entorno):
     # de FastAPI al incluir el router de lectura reutilizado.
     rutas_participacion = set(entorno.app.openapi()['paths'])
     consulta = '/api/v1/attempts/{attempt_id}/current-scenario'
-    assert rutas_participacion.intersection(app.openapi()["paths"]) == {consulta}
+    progreso = '/api/v1/attempts/{attempt_id}/progress'
+    decision = '/api/v1/attempts/{attempt_id}/decisions/{decision_id}'
+    cierre = '/api/v1/attempts/{attempt_id}/finish'
+    assert rutas_participacion.intersection(app.openapi()["paths"]) == {consulta, progreso, decision, cierre}
     assert set(app.openapi()['paths'][consulta]) == {'get'}
+    assert set(app.openapi()['paths'][progreso]) == {'get'}
+    assert set(app.openapi()['paths'][decision]) == {'post'}
+    assert set(app.openapi()['paths'][cierre]) == {'post'}
     with TestClient(app) as client:
-        assert client.get(PROGRESO_URL).status_code == 404
+        assert client.get(PROGRESO_URL).status_code == 401
         assert client.get("/health").status_code == 200

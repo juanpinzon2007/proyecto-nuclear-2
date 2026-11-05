@@ -128,10 +128,9 @@ def test_principal_conserva_version_archivada_y_no_expone_otras_operaciones(prin
     assert actual.status_code == 200 and actual.json() == antes.json()
     paths=app.openapi()['paths']
     rutas=[p for p in paths if p.startswith(('/api/v1/attempts/', '/api/v1/participations/', '/api/v1/convocatorias/'))]
-    assert rutas == ['/api/v1/attempts/{attempt_id}/current-scenario']
+    assert set(rutas) == {'/api/v1/attempts/{attempt_id}/current-scenario','/api/v1/attempts/{attempt_id}/progress',
+        '/api/v1/attempts/{attempt_id}/decisions/{decision_id}','/api/v1/attempts/{attempt_id}/finish'}
     assert set(paths[rutas[0]]) == {'get'}
-    for method,path in [('post',f'/api/v1/attempts/{h.ik}/finish'),
-        ('post',f'/api/v1/convocatorias/{h.convocatoria}/intentos'),
-        ('get',f'/api/v1/attempts/{h.ik}/progress'),
+    for method,path in [('post',f'/api/v1/convocatorias/{h.convocatoria}/intentos'),
         ('get',f'/api/v1/participations/1/attempts/{h.ik}/result')]:
         assert getattr(h.principal,method)(path,headers=h.main_headers).status_code == 404

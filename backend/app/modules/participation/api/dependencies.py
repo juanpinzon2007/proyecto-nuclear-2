@@ -95,6 +95,16 @@ def obtener_consulta_escenario(
     return crear_dependencia_escenario_8b(crear_sesion=sesiones, fechas=fechas, reloj=reloj)(usuario)
 
 
+def obtener_consulta_progreso(
+    usuario: Annotated[ContextoAcceso, Depends(estudiante_identity)],
+    fechas: Annotated[FechasPersistencia, Depends(obtener_fechas_escenario)],
+    reloj: Annotated[RelojSistema, Depends(obtener_reloj_escenario)],
+    sesiones: Annotated[object, Depends(obtener_fabrica_sesiones_escenario)],
+):
+    from app.modules.participation.infrastructure.progress_query import ConsultaProgresoSQLAlchemy
+    return ConsultaProgresoSQLAlchemy(usuario=usuario, crear_sesion=sesiones, fechas=fechas, reloj=reloj)
+
+
 def crear_dependencia_escenario_8b(*, crear_sesion, fechas, reloj):
     """Solo composición explícita del servidor; no registra rutas en main."""
     from app.modules.participation.infrastructure.current_scenario import ConsultaEscenarioActualSQLAlchemy
@@ -105,7 +115,19 @@ def crear_dependencia_escenario_8b(*, crear_sesion, fechas, reloj):
     return dependencia
 
 
-def crear_dependencia_facade_8b(*, crear_sesion, fechas, reloj):
+def obtener_facade_operaciones(
+    request: Request,
+    usuario: Annotated[ContextoAcceso, Depends(estudiante_identity)],
+    fechas: Annotated[FechasPersistencia, Depends(obtener_fechas_escenario)],
+    reloj: Annotated[RelojSistema, Depends(obtener_reloj_escenario)],
+    sesiones: Annotated[object, Depends(obtener_fabrica_sesiones_escenario)],
+):
+    # Solo invocada por las operaciones montadas explícitamente en main.
+    return crear_dependencia_facade_8b(crear_sesion=sesiones,fechas=fechas,reloj=reloj,
+        matricula_activa=True)(request,usuario)
+
+
+def crear_dependencia_facade_8b(*, crear_sesion, fechas, reloj, matricula_activa=False):
     """Composición HTTP explícita por el servidor; NO se instala en main.py.
 
     Solo operaciones sobre un intento existente. Identity verifica JWT/rol y
@@ -127,7 +149,7 @@ def crear_dependencia_facade_8b(*, crear_sesion, fechas, reloj):
         if not 0 < id_intento <= 2147483647:
             raise HTTPException(422, detail={"codigo": "SOLICITUD_INVALIDA", "mensaje": "Intento inválido."})
         return crear_facade_8b(usuario=usuario, id_intento=id_intento, reloj=reloj,
-                              fechas=fechas, crear_sesion=crear_sesion)
+                              fechas=fechas, crear_sesion=crear_sesion,matricula_activa=matricula_activa)
 
     return dependencia
 

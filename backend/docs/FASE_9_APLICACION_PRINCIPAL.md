@@ -1,5 +1,9 @@
 # Fase 9: integración segura con la aplicación principal
 
+Actualización posterior: [FASE_9A_PARTICIPATION.md](FASE_9A_PARTICIPATION.md)
+documenta el progreso puro y las operaciones de selección y cierre añadidas.
+Este informe conserva la evidencia del primer montaje limitado al escenario.
+
 Fecha local: 4 de noviembre de 2026, America/Bogota.
 Directorio único: `C:\Users\MARTIN GIL GARCIA\Documents\ChatGPT\Proyecto Nuclear\proyecto-nuclear-2`.
 Rama: `feature/backend-continuidad`. HEAD inicial y final:

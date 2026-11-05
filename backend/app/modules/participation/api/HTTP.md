@@ -1,10 +1,11 @@
 # Cuarto incremento: contrato HTTP PROVISIONAL
 
-Actualización Fase 9: **solo GET `/api/v1/attempts/{attempt_id}/current-scenario`
-está registrado en `app/main.py`**, con composición real y configuración temporal
-explícita, cerrada por defecto. El router completo NO está registrado. Las demás
-rutas se conservan como contratos de integración aislada. Véase
-[integración principal](../../../../docs/FASE_9_APLICACION_PRINCIPAL.md).
+Actualización Fase 9A: `app/main.py` registra exclusivamente escenario, progreso
+puro, POST de primera selección y POST de finalización de un intento existente.
+El router completo NO está registrado. Inicio, provisión, PUT y resultados siguen
+fuera de la principal. Véase [continuidad 9A](../../../../docs/FASE_9A_PARTICIPATION.md).
+Todas las operaciones principales requieren configuración temporal explícita,
+JWT real y autoridad persistente; no hay una zona horaria predeterminada.
 
 La fase 8A conecta la
 dependencia de autenticación a Identity real. 8B incorpora composición interna
@@ -33,7 +34,7 @@ reales. Esto no equipara la pregunta a toda la entidad académica decisión/crit
 Estos nombres, la separación POST/PUT y los cuerpos deben acordarse antes de
 integrar Angular o habilitar el router. No se modifican contratos de otros módulos.
 
-## Rutas propuestas
+## Rutas y composiciones
 
 Todas requieren identidad obtenida en el servidor y autorización de Application.
 Prefijo común: `/api/v1`.
@@ -41,16 +42,20 @@ Prefijo común: `/api/v1`.
 | Método | Ruta | Solicitud | Respuesta satisfactoria |
 | --- | --- | --- | --- |
 | GET (principal, condicionado) | `/attempts/{attempt_id}/current-scenario` | Sin cuerpo ni parámetros query | 200, escenario/pregunta actuales; FIN sin contenido; 503 si falta zona/configuración |
-| POST | `/participations/{participation_id}/attempts` | `id_consentimiento`, `id_permiso_extra` opcional | 201, resumen del intento |
-| POST | `/attempts/{attempt_id}/decisions/{decision_id}` | `id_opcion`, `reflexion_estudiante` opcional | 201, selección nueva confirmada y resumen del intento |
+| GET (principal, puro) | `/attempts/{attempt_id}/progress` | Sin cuerpo ni query | 200, estado efectivo/progreso sin guardar vencimiento |
+| POST (solo integración aislada) | `/participations/{participation_id}/attempts` | `id_consentimiento`, `id_permiso_extra` opcional | 201, resumen del intento |
+| POST (principal e integración) | `/attempts/{attempt_id}/decisions/{decision_id}` | `id_opcion`, `reflexion_estudiante` opcional | 201, selección nueva confirmada y resumen del intento |
 | PUT (obsoleto) | `/attempts/{attempt_id}/decisions/{decision_id}` | Mismo cuerpo | 409, `RESPUESTA_INMUTABLE` para intento activo autorizado; nunca crea ni reemplaza |
-| GET | `/attempts/{attempt_id}/progress` | Sin cuerpo | 200, progreso del recorrido aplicable |
-| POST | `/attempts/{attempt_id}/finish` | Sin cuerpo | 200, cierre confirmado, sin nota |
-| GET | `/participations/{participation_id}/attempts/{attempt_id}/result` | Sin cuerpo | 200, evaluación pendiente o definitiva confirmada |
-| GET | `/participations/{participation_id}/absence-result` | Sin cuerpo | 200, estado de la evaluación sin intento |
+| GET (integración aislada, comportamiento anterior) | `/attempts/{attempt_id}/progress` | Sin cuerpo | 200, progreso; puede confirmar vencimiento |
+| POST (principal e integración) | `/attempts/{attempt_id}/finish` | Sin cuerpo | 200, cierre confirmado, sin nota |
+| GET (solo integración aislada) | `/participations/{participation_id}/attempts/{attempt_id}/result` | Sin cuerpo | 200, evaluación pendiente o definitiva confirmada |
+| GET (solo integración aislada) | `/participations/{participation_id}/absence-result` | Sin cuerpo | 200, estado de la evaluación sin intento |
 
-Las rutas son síncronas (`def`). La consulta del escenario delega en
-`ConsultaEscenarioActualSQLAlchemy`; las otras operaciones en `ParticipacionFacade`.
+Las rutas son síncronas (`def`). La principal delega escenario en
+`ConsultaEscenarioActualSQLAlchemy`, progreso en `ConsultaProgresoSQLAlchemy` y
+POST de selección/cierre en `ParticipacionFacade`. El router de integración
+aislada conserva su progreso anterior mediante Facade, que puede persistir el
+vencimiento. Son composiciones distintas: no se monta ese GET escritor en main.
 Los routers no calculan tiempos, recorridos, notas, permisos ni estados.
 La relación entre participación e intento se valida en Application al consultar
 el resultado. Un ID presente en la URL no constituye autorización.
@@ -60,8 +65,9 @@ registrada devuelve 409 `RESPUESTA_INMUTABLE`, incluso con la misma opción.
 La aclaración posterior de la profesora prohíbe modificar cualquier respuesta.
 PUT conserva validación/autenticación/autorización y se rechaza: no es un upsert.
 Tampoco se permite cambiar la reflexión ni eliminar una selección. No hay PATCH.
-El cierre/vencimiento mantiene su error 409 `INTENTO_NO_EDITABLE`; la dependencia
-productiva sigue cerrada con 503 mientras falta composición autorizada.
+El registro sobre intento cerrado/vencido mantiene 409 `INTENTO_NO_EDITABLE`.
+La composición principal exige configuración temporal válida (503 si falta),
+además de identidad y autorización persistentes. No habilita inicio ni resultados.
 
 Los cuerpos de inicio y selección rechazan campos adicionales. IDs del cuerpo
 de participación/intento siguen siendo enteros positivos reales. Las referencias
