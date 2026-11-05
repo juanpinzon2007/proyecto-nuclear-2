@@ -11,7 +11,7 @@ from sqlalchemy import select, func
 from app.modules.cases.application.published_version import consultar_version_publicada
 from app.modules.cases.domain.exceptions import CasoNoEncontradoError
 from app.modules.cases.infrastructure.models import CasoModel, VersionCasoModel, RubricaModel
-from app.modules.identity.application.academic_identity import ResolverIdentidadAcademica
+from app.modules.identity.application.academic_identity import ResolverIdentidadAcademica, SistemaAcademico
 from app.modules.identity.domain.entities import Rol
 from app.modules.identity.domain.errors import AccesoDenegado as AccesoIdentity, IntegracionPendiente
 from app.modules.identity.infrastructure.academic_base_models import ConsentimientoORM, GrupoEstudianteORM, GrupoAcademicoORM
@@ -105,12 +105,31 @@ class IdentityInicioSQLAlchemy:
             propietario = s.scalar(select(GrupoAcademicoORM.id_profesor).join(A,A.id_grupo==GrupoAcademicoORM.id_grupo)
                 .where(A.id_asignacion==fila.id_asignacion).with_for_update(read=True,of=GrupoAcademicoORM))
             profesor = s.execute(select(UsuarioORM).where(UsuarioORM.id_usuario==permiso.id_profesor)
-                .with_for_update(read=True)).scalar_one_or_none()
+                .with_for_update()).scalar_one_or_none()
             if (permiso.id_profesor != propietario or profesor is None or not profesor.activo
                     or permiso.cantidad_autorizada <= 0):
                 raise AccesoDenegado("Permiso no disponible.")
             s.execute(select(RolORM).where(RolORM.id_rol==profesor.id_rol).with_for_update(read=True)).all()
             if Rol.DOCENTE not in RepositorioUsuariosSQLAlchemy(s).obtener(str(profesor.id_usuario)).roles:
+                raise AccesoDenegado("Permiso no disponible.")
+            # RN-16 exige al creador del caso, no solo al docente del grupo.
+            # El lock de usuario impide nuevas asociaciones por su FK mientras
+            # se resuelve; los vínculos existentes tampoco pueden cambiar.
+            s.execute(select(IdentidadAcademicaORM).where(
+                IdentidadAcademicaORM.id_usuario==profesor.id_usuario,
+                IdentidadAcademicaORM.sistema==SistemaAcademico.CASES.value
+            ).with_for_update(read=True)).all()
+            try:
+                docente_cases = ResolverIdentidadAcademica(
+                    RepositorioIdentidadAcademicaSQLAlchemy(s)).resolver(
+                        id_usuario=str(profesor.id_usuario), sistema=SistemaAcademico.CASES)
+            except AccesoIdentity:
+                raise AccesoDenegado("Permiso no disponible.") from None
+            except IntegracionPendiente:
+                raise ReglaPendiente("La identidad del docente no es verificable.") from None
+            caso = s.execute(select(CasoModel).where(CasoModel.id_caso==fila.id_caso)
+                .with_for_update(read=True)).scalar_one_or_none()
+            if caso is None or caso.docente_creador_id != docente_cases:
                 raise AccesoDenegado("Permiso no disponible.")
         # Solo datos del servidor; el proveedor decidirá aplicabilidad y cupos.
         self.consentimiento, self.permiso = consentimiento, permiso
