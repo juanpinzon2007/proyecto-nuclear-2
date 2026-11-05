@@ -1,5 +1,6 @@
 from typing import Annotated
 from uuid import UUID
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
@@ -8,6 +9,12 @@ from app.modules.identity.api.dependencies import obtener_estudiante_actual as e
 from app.modules.identity.api.academic_dependencies import obtener_estudiante_scheduling
 from app.modules.identity.domain.entities import ContextoAcceso
 from app.modules.participation.application.facade import ParticipacionFacade
+from app.core.config import get_settings
+from app.db.session import get_session_factory
+from app.modules.participation.domain.clock import RelojSistema
+from app.modules.participation.infrastructure.codecs import FechasPersistencia
+from app.modules.participation.application.errors import ReglaPendiente
+from sqlalchemy.exc import SQLAlchemyError
 
 
 class EstudianteAutenticado(BaseModel):
@@ -55,11 +62,37 @@ def obtener_facade(
     })
 
 
+def obtener_fechas_escenario() -> FechasPersistencia:
+    try:
+        zona = get_settings().participation_timestamp_zone
+        if zona is None or not zona.strip():
+            raise ValueError("Zona histórica no configurada")
+        return FechasPersistencia(ZoneInfo(zona))
+    except (ValueError, ZoneInfoNotFoundError):
+        raise ReglaPendiente("Falta configurar una zona histórica válida para los timestamps sin offset.") from None
+
+
+def obtener_reloj_escenario() -> RelojSistema:
+    return RelojSistema()
+
+
+def obtener_fabrica_sesiones_escenario():
+    # Construcción diferida: no abrir BD si falta JWT o configuración temporal.
+    def crear():
+        try:
+            return get_session_factory()()
+        except (ValueError, SQLAlchemyError):
+            raise ReglaPendiente("La infraestructura de consulta no está disponible.") from None
+    return crear
+
+
 def obtener_consulta_escenario(
     usuario: Annotated[ContextoAcceso, Depends(estudiante_identity)],
+    fechas: Annotated[FechasPersistencia, Depends(obtener_fechas_escenario)],
+    reloj: Annotated[RelojSistema, Depends(obtener_reloj_escenario)],
+    sesiones: Annotated[object, Depends(obtener_fabrica_sesiones_escenario)],
 ):
-    raise HTTPException(503, detail={"codigo": "INTEGRACION_NO_CONFIGURADA",
-        "mensaje": "La consulta de escenario no está configurada."})
+    return crear_dependencia_escenario_8b(crear_sesion=sesiones, fechas=fechas, reloj=reloj)(usuario)
 
 
 def crear_dependencia_escenario_8b(*, crear_sesion, fechas, reloj):

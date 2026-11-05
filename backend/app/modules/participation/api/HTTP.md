@@ -1,7 +1,12 @@
 # Cuarto incremento: contrato HTTP PROVISIONAL
 
-Estas rutas están preparadas para revisión del equipo. **No son un contrato
-público definitivo ni están registradas en `app/main.py`.** La fase 8A conecta la
+Actualización Fase 9: **solo GET `/api/v1/attempts/{attempt_id}/current-scenario`
+está registrado en `app/main.py`**, con composición real y configuración temporal
+explícita, cerrada por defecto. El router completo NO está registrado. Las demás
+rutas se conservan como contratos de integración aislada. Véase
+[integración principal](../../../../docs/FASE_9_APLICACION_PRINCIPAL.md).
+
+La fase 8A conecta la
 dependencia de autenticación a Identity real. 8B incorpora composición interna
 SQL por operación; la dependencia HTTP sigue cerrada con 503.
 `crear_dependencia_facade_8b` permite composición explícita para intentos existentes,
@@ -35,6 +40,7 @@ Prefijo común: `/api/v1`.
 
 | Método | Ruta | Solicitud | Respuesta satisfactoria |
 | --- | --- | --- | --- |
+| GET (principal, condicionado) | `/attempts/{attempt_id}/current-scenario` | Sin cuerpo ni parámetros query | 200, escenario/pregunta actuales; FIN sin contenido; 503 si falta zona/configuración |
 | POST | `/participations/{participation_id}/attempts` | `id_consentimiento`, `id_permiso_extra` opcional | 201, resumen del intento |
 | POST | `/attempts/{attempt_id}/decisions/{decision_id}` | `id_opcion`, `reflexion_estudiante` opcional | 201, selección nueva confirmada y resumen del intento |
 | PUT (obsoleto) | `/attempts/{attempt_id}/decisions/{decision_id}` | Mismo cuerpo | 409, `RESPUESTA_INMUTABLE` para intento activo autorizado; nunca crea ni reemplaza |
@@ -43,7 +49,8 @@ Prefijo común: `/api/v1`.
 | GET | `/participations/{participation_id}/attempts/{attempt_id}/result` | Sin cuerpo | 200, evaluación pendiente o definitiva confirmada |
 | GET | `/participations/{participation_id}/absence-result` | Sin cuerpo | 200, estado de la evaluación sin intento |
 
-Las rutas son síncronas (`def`) y delegan directamente en `ParticipacionFacade`.
+Las rutas son síncronas (`def`). La consulta del escenario delega en
+`ConsultaEscenarioActualSQLAlchemy`; las otras operaciones en `ParticipacionFacade`.
 Los routers no calculan tiempos, recorridos, notas, permisos ni estados.
 La relación entre participación e intento se valida en Application al consultar
 el resultado. Un ID presente en la URL no constituye autorización.
