@@ -1,7 +1,6 @@
 
 """Pruebas del observador de notificaciones académicas."""
 
-import asyncio
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -23,6 +22,8 @@ def preparar_db():
         estudiante_id=uuid4(),
     )
 
+    db.get.return_value = SimpleNamespace(estado="EN_CURSO")
+    db.scalar.side_effect = [1, None]
     db.scalars.return_value.all.return_value = [
         convocatoria
     ]
@@ -52,11 +53,12 @@ def test_crear_notificacion_por_evento(
         entidad_id=uuid4(),
     )
 
+    db.get.return_value.estado = {"sesion.iniciada": "EN_CURSO", "sesion.finalizada": "FINALIZADO"}[tipo_evento]
     with patch(
         "app.modules.scheduling.infrastructure."
         "observador_notificaciones.crear_notificacion"
     ) as crear:
-        asyncio.run(gestor.publicar(evento))
+        gestor.preparar(evento, db)
 
     crear.assert_called_once()
 
@@ -70,7 +72,8 @@ def test_crear_notificacion_por_evento(
         == convocatoria.estudiante_id
     )
 
-    db.commit.assert_called_once()
+    factory.assert_not_called()
+    db.commit.assert_not_called()
     db.rollback.assert_not_called()
 
 
@@ -84,13 +87,13 @@ def test_ignorar_evento_no_registrado():
         entidad_id=uuid4(),
     )
 
-    asyncio.run(gestor.publicar(evento))
+    gestor.preparar(evento, db)
 
     factory.assert_not_called()
     db.commit.assert_not_called()
 
 
-def test_rollback_si_falla_base_datos():
+def test_fallo_se_propaga_sin_commit_ni_rollback_del_observador():
     db, factory, _ = preparar_db()
 
     db.scalars.side_effect = RuntimeError(
@@ -105,7 +108,7 @@ def test_rollback_si_falla_base_datos():
     )
 
     with pytest.raises(RuntimeError):
-        asyncio.run(gestor.publicar(evento))
+        gestor.preparar(evento, db)
 
-    db.rollback.assert_called_once()
+    db.rollback.assert_not_called()
     db.commit.assert_not_called()

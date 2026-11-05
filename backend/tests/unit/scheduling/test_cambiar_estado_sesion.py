@@ -54,6 +54,7 @@ def test_iniciar_sesion_correctamente():
         SesionProgramadaModel,
         sesion.id,
         with_for_update=True,
+        populate_existing=True,
     )
 
     db.add.assert_called_once()

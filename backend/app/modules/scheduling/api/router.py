@@ -47,9 +47,6 @@ from app.modules.scheduling.application.validar_ingreso import (
     ErrorIngreso,
     validar_ingreso,
 )
-from app.modules.scheduling.application.notificar_calificacion import (
-    notificar_calificacion,
-)
 from app.modules.scheduling.domain.state import (
     TransicionInvalidaError,
 )
@@ -247,6 +244,7 @@ async def actualizar_estado(
         SesionProgramadaModel,
         sesion_id,
         with_for_update=True,
+        populate_existing=True,
     )
 
     if sesion is None:
@@ -447,30 +445,21 @@ def listar_notificaciones(
 
 @router.post(
     "/calificaciones/notificar",
-    response_model=NotificacionResponse,
-    status_code=201,
+    status_code=503,
+    responses={503: {"description": "Publicación oficial no disponible; operación sin escritura."}},
 )
 def notificar_calificacion_participacion(
     datos: NotificarCalificacionRequest,
     docente_id: Docente,
-    db: BaseDatos,
 ):
-    """Notifica al estudiante la disponibilidad de su calificación académica (RF-27)."""
-    try:
-        notificacion = notificar_calificacion(
-            db,
-            estudiante_id=datos.estudiante_id,
-            participacion_id=datos.participacion_id,
-        )
-        db.commit()
-        db.refresh(notificacion)
-        return notificacion
-    except ValueError as error:
-        db.rollback()
-        raise HTTPException(
-            status_code=422,
-            detail=str(error),
-        ) from error
-    except Exception:
-        db.rollback()
-        raise
+    """RF-27 cerrado hasta verificar resultado oficial, titularidad y publicación.
+
+    El rol docente y dos UUID del cliente no prueban esas relaciones. Se conserva
+    la ruta para responder explícitamente sin anunciar notas ni escribir avisos.
+    No confundir este contrato pendiente con los avisos de feedback ya compuestos.
+    """
+    raise HTTPException(
+        status_code=503,
+        detail="La publicación de calificaciones oficiales todavía no está disponible.",
+        headers={"Cache-Control": "no-store"},
+    )

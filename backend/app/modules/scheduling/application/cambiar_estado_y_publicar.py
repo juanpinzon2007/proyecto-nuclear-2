@@ -25,7 +25,7 @@ async def cambiar_estado_y_publicar(
     gestor: GestorEventosAcademicos,
     origen: str = "DOCENTE",
 ) -> SesionProgramadaModel:
-    """Confirma el cambio de estado antes de publicar el evento."""
+    """Confirma estado, auditoría y avisos SQL; luego callbacks efímeros."""
 
     try:
         # 1. Validar el cambio con State y registrar auditoría.
@@ -44,6 +44,10 @@ async def cambiar_estado_y_publicar(
 
         tipo = tipos_evento[sesion.estado]
         identificador = sesion.id
+        evento = EventoAcademico(tipo=tipo, entidad_id=identificador)
+
+        # Efectos internos en la MISMA transacción y bajo el lock de State.
+        gestor.preparar(evento, db)
 
         # 3. Confirmar el estado y la auditoría en PostgreSQL.
         db.commit()
@@ -55,11 +59,6 @@ async def cambiar_estado_y_publicar(
         raise
 
     # 4. Publicar solamente después del commit.
-    evento = EventoAcademico(
-        tipo=tipo,
-        entidad_id=identificador,
-    )
-
     await gestor.publicar(evento)
 
     return sesion

@@ -16,22 +16,24 @@ from app.modules.scheduling.infrastructure.observador_notificaciones import (
 def crear_gestor_eventos(
     session_factory: Callable[[], Session],
 ) -> GestorEventosAcademicos:
-    """Configura los observadores de eventos de sesiones."""
+    """Configura efectos SQL atómicos; conserva la firma de API/worker.
+
+    session_factory no se usa para avisos: estos comparten la transacción
+    de la transición. No se abre una segunda Session.
+    """
 
     gestor = GestorEventosAcademicos()
 
-    observador = ObservadorNotificaciones(
-        session_factory=session_factory,
-    )
+    observador = ObservadorNotificaciones()
 
     # Notificar cuando una sesión comienza.
-    gestor.suscribir(
+    gestor.suscribir_transaccional(
         "sesion.iniciada",
         observador,
     )
 
     # Notificar cuando una sesión finaliza.
-    gestor.suscribir(
+    gestor.suscribir_transaccional(
         "sesion.finalizada",
         observador,
     )

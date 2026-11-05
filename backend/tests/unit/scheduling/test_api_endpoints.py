@@ -276,26 +276,14 @@ def test_listar_notificaciones_estudiante(entorno_estudiante):
     assert datos[0]["tipo"] == "CONVOCATORIA"
 
 
-def test_notificar_calificacion_autorizado(entorno_docente):
+def test_rol_docente_no_autoriza_publicar_calificacion_sin_contrato(entorno_docente):
     client, db, _ = entorno_docente
     estudiante_id = uuid4()
     participacion_id = uuid4()
 
-    notif = SimpleNamespace(
-        id=uuid4(),
-        convocatoria_id=None,
-        destinatario_id=estudiante_id,
-        tipo="CALIFICACION",
-        canal="INTERNA",
-        mensaje="La evaluación de tu participación académica ya está disponible.",
-        estado="PENDIENTE",
-        creada_en=datetime.now(timezone.utc),
-    )
-
     with patch(
-        "app.modules.scheduling.api.router.notificar_calificacion",
-        return_value=notif,
-    ):
+        "app.modules.scheduling.application.notificar_calificacion.notificar_calificacion",
+    ) as notificar:
         respuesta = client.post(
             "/scheduling/calificaciones/notificar",
             json={
@@ -303,7 +291,9 @@ def test_notificar_calificacion_autorizado(entorno_docente):
                 "participacion_id": str(participacion_id),
             },
         )
-        assert respuesta.status_code == 201
-        assert respuesta.json()["tipo"] == "CALIFICACION"
-        assert respuesta.json()["destinatario_id"] == str(estudiante_id)
-        db.commit.assert_called_once()
+        # Sustituye el 201 antiguo basado solo en rol y UUID arbitrarios.
+        assert respuesta.status_code == 503
+        assert respuesta.headers['Cache-Control'] == 'no-store'
+        notificar.assert_not_called()
+        db.commit.assert_not_called()
+        db.refresh.assert_not_called()

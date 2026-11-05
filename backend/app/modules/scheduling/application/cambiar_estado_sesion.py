@@ -30,11 +30,13 @@ def cambiar_estado_sesion(
     if origen not in {"DOCENTE", "WORKER", "SISTEMA"}:
         raise ValueError("Origen de cambio de estado no válido.")
 
-    # Buscar y bloquear la sesión durante la transacción
+    # El lock serializa escritores; populate_existing evita que State use
+    # atributos antiguos de una instancia ya presente en el identity map.
     sesion = db.get(
         SesionProgramadaModel,
         sesion_id,
         with_for_update=True,
+        populate_existing=True,
     )
 
     if sesion is None:
