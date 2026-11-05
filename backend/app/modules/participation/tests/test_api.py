@@ -410,13 +410,18 @@ def test_errores_de_autenticacion_real_se_pueden_inyectar_sin_jwt_alternativo(en
 def test_openapi_aislado_marca_contrato_provisional_y_separa_resultados(entorno):
     contrato = entorno.app.openapi()
     rutas = contrato["paths"]
-    assert len(rutas) == 6  # POST/PUT comparten la ruta de decisión.
+    assert len(rutas) == 7  # Nueva consulta privada; POST/PUT comparten ruta de decisión.
     for metodos in rutas.values():
         for operacion in metodos.values():
             assert "Provisional" in operacion["summary"]
     esquema = rutas[RESULTADO_URL.replace("20", "{participation_id}").replace("10", "{attempt_id}")]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
     assert esquema["discriminator"]["propertyName"] == "estado"
     assert "student_id" not in str(contrato["components"]["schemas"]["InicioIntentoSolicitud"])
+    actual = rutas['/api/v1/attempts/{attempt_id}/current-scenario']['get']
+    assert actual['security'] == [{'HTTPBearer': []}]
+    assert set(contrato['components']['schemas']['EscenarioActualRespuesta']['properties']) == {
+        'id_escenario', 'contexto', 'pregunta', 'recorrido_finalizado', 'respondidas'}
+    assert set(contrato['components']['schemas']['OpcionActualRespuesta']['properties']) == {'id', 'texto'}
 
 
 def test_router_no_registrado_en_aplicacion_principal():

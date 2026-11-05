@@ -55,6 +55,23 @@ def obtener_facade(
     })
 
 
+def obtener_consulta_escenario(
+    usuario: Annotated[ContextoAcceso, Depends(estudiante_identity)],
+):
+    raise HTTPException(503, detail={"codigo": "INTEGRACION_NO_CONFIGURADA",
+        "mensaje": "La consulta de escenario no está configurada."})
+
+
+def crear_dependencia_escenario_8b(*, crear_sesion, fechas, reloj):
+    """Solo composición explícita del servidor; no registra rutas en main."""
+    from app.modules.participation.infrastructure.current_scenario import ConsultaEscenarioActualSQLAlchemy
+
+    def dependencia(usuario: Annotated[ContextoAcceso, Depends(estudiante_identity)]):
+        return ConsultaEscenarioActualSQLAlchemy(usuario=usuario, crear_sesion=crear_sesion,
+            fechas=fechas, reloj=reloj)
+    return dependencia
+
+
 def crear_dependencia_facade_8b(*, crear_sesion, fechas, reloj):
     """Composición HTTP explícita por el servidor; NO se instala en main.py.
 

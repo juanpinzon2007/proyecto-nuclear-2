@@ -4,6 +4,7 @@ from app.modules.cases.infrastructure.repositories.graph_repository import Repos
 from app.modules.participation.application.dto import RecorridoAplicable
 from app.modules.participation.application.errors import AccesoDenegado, ReglaPendiente
 from app.modules.participation.domain.errors import RespuestaInmutable
+from app.modules.participation.application.current_scenario import EscenarioActual, PreguntaActual, OpcionActual
 
 
 class RecorridoCasesSQLAlchemy:
@@ -21,6 +22,22 @@ class RecorridoCasesSQLAlchemy:
         # Solo una ruta terminada por FIN acredita su conjunto completo; no se
         # suman todas las preguntas de las alternativas que no se recorrieron.
         return RecorridoAplicable(ruta.decisiones, ruta.finalizado)
+
+    def obtener_actual(self, *, version_id, selecciones):
+        """Mismo grafo y algoritmo; proyecta SOLO el nodo actualmente habilitado."""
+        try:
+            grafo = RepositorioGrafoSQLAlchemy(self.crear_sesion()).leer(version_id)
+            ruta = grafo.recorrer(tuple((s.id_decision, s.id_opcion) for s in selecciones))
+        except GrafoNoDisponible:
+            raise ReglaPendiente("Cases no acredita un recorrido ejecutable.") from None
+        if ruta.finalizado:
+            return EscenarioActual(None, None, None, True, len(selecciones))
+        escena = next(e for e in grafo.escenas if e.id == ruta.escena_actual)
+        pregunta = escena.preguntas[0]  # recorrer ya exige una pregunta por escena.
+        return EscenarioActual(escena.id, escena.contexto,
+            PreguntaActual(pregunta.id, pregunta.enunciado,
+                tuple(OpcionActual(o.opcion_id, o.texto) for o in pregunta.opciones)),
+            False, len(selecciones))
 
     def validar_cambio(self, *, version_id, selecciones, propuesta):
         if any(s.id_decision == propuesta.id_decision for s in selecciones):

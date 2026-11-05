@@ -29,6 +29,7 @@ from app.modules.identity.infrastructure.academic_models import PermisoIntentoEx
 from app.modules.participation.api.router import router as attempts_router
 from app.modules.participation.api.provision_router import crear_router_inicio_8b
 from app.modules.participation.api.dependencies import obtener_facade, crear_dependencia_facade_8b
+from app.modules.participation.api.dependencies import obtener_consulta_escenario, crear_dependencia_escenario_8b
 from app.modules.participation.application.errors import AccesoDenegado
 from app.modules.participation.infrastructure.codecs import FechasPersistencia
 from app.modules.participation.infrastructure.models import ParticipacionModel as P, IntentoModel as I
@@ -69,6 +70,8 @@ def integracion(autor, request):
     app.dependency_overrides[exigir_politica_ingreso_configurada]=lambda:opciones["politica_ingreso"] or PoliticaIngresoNoConfigurada()
     app.dependency_overrides[obtener_reloj_ingreso]=lambda:reloj
     app.dependency_overrides[obtener_facade]=crear_dependencia_facade_8b(crear_sesion=a.sesiones,
+        fechas=FechasPersistencia(timezone.utc),reloj=reloj)
+    app.dependency_overrides[obtener_consulta_escenario]=crear_dependencia_escenario_8b(crear_sesion=a.sesiones,
         fechas=FechasPersistencia(timezone.utc),reloj=reloj)
     for router in (cases_router,identity_router,scheduling_router,attempts_router):app.include_router(router)
     app.include_router(crear_router_inicio_8b(crear_sesion=a.sesiones,reloj=reloj,
