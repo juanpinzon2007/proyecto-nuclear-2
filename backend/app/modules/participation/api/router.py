@@ -3,16 +3,18 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, Path, Request, HTTPException
 
 from app.modules.participation.api.dependencies import (
     EstudianteAutenticado, obtener_estudiante_actual, obtener_facade,
+    obtener_consulta_escenario,
 )
 from app.modules.participation.api.errors import RutaParticipacion
 from app.modules.participation.api.mappers import mapear_intento, mapear_progreso, mapear_resultado
 from app.modules.participation.api.schemas import (
     ErrorHTTP, InicioIntentoSolicitud, IntentoRespuesta, ProgresoRespuesta,
     ResultadoRespuesta, SeleccionSolicitud,
+    EscenarioActualRespuesta,
 )
 from app.modules.participation.application.facade import ParticipacionFacade
 
@@ -33,6 +35,17 @@ router = APIRouter(
         503: {"model": ErrorHTTP, "description": "Integración o política pendiente"},
     },
 )
+
+
+@router.get("/attempts/{attempt_id}/current-scenario", response_model=EscenarioActualRespuesta,
+            summary="Provisional: consulta privada del escenario actualmente habilitado")
+def consultar_escenario_actual(attempt_id: IdRuta, request: Request, estudiante: Estudiante,
+    consulta: Annotated[object, Depends(obtener_consulta_escenario)]):
+    # El cliente no elige escenario, pregunta, versión ni identidad por query.
+    if request.query_params:
+        raise HTTPException(422, detail={"codigo": "SOLICITUD_INVALIDA", "mensaje": "Esta consulta no admite parámetros."})
+    return EscenarioActualRespuesta.model_validate(consulta.consultar(
+        id_estudiante=estudiante.id_estudiante, id_intento=attempt_id))
 
 
 @router.post("/participations/{participation_id}/attempts", response_model=IntentoRespuesta, status_code=201,

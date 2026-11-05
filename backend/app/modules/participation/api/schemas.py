@@ -68,6 +68,25 @@ class ProgresoRespuesta(EsquemaHTTP):
     respondidas: Annotated[int, Field(ge=0)]
 
 
+class OpcionActualRespuesta(EsquemaHTTP):
+    id: UUID
+    texto: str
+
+
+class PreguntaActualRespuesta(EsquemaHTTP):
+    id: UUID
+    enunciado: str
+    opciones: list[OpcionActualRespuesta]
+
+
+class EscenarioActualRespuesta(EsquemaHTTP):
+    id_escenario: UUID | None
+    contexto: str | None
+    pregunta: PreguntaActualRespuesta | None
+    recorrido_finalizado: bool
+    respondidas: Annotated[int, Field(ge=0)]
+
+
 class ReferenciaAcademicaRespuesta(EsquemaHTTP):
     id_caso: Identificador
     id_rubrica: Identificador

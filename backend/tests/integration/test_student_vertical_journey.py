@@ -62,21 +62,26 @@ def test_recorrido_vertical_desde_login_hasta_cierre_sin_publicar_resultados(int
         assert s.get(IntentoModel, ik).id_participacion == inicio['id_participacion']
     observar("progreso ajeno privado", h.client.get(base + '/progress', headers=h.headers_ajeno), 403)
     observar("resultado activo cerrado por composicion", h.client.get(resultado, headers=h.headers), 503)
-    q = h.escenas[0]['preguntas'][0]
+    actual = observar("contenido privado de primera escena", h.client.get(base + '/current-scenario', headers=h.headers), 200).json()
+    q = actual['pregunta']
     url = base + '/decisions/' + q['id']
     observar("primera seleccion", h.client.post(url, headers=h.headers,
         json={'id_opcion': q['opciones'][0]['id']}), 201)
     observar("sustitucion prohibida", h.client.put(url, headers=h.headers,
         json={'id_opcion': q['opciones'][1]['id']}), 409)
-    q2 = h.escenas[1]['preguntas'][0]
+    siguiente = observar("contenido privado de siguiente escena", h.client.get(base + '/current-scenario', headers=h.headers), 200).json()
+    q2 = siguiente['pregunta']
     observar("pregunta pendiente del grafo real", h.client.post(base + '/decisions/' + q2['id'],
         headers=h.headers, json={'id_opcion': q2['opciones'][0]['id']}), 201)
     progreso = observar("progreso privado completo", h.client.get(base + '/progress', headers=h.headers), 200)
     assert progreso.json()['respondidas'] == 2 and progreso.json()['pendientes'] == []
     assert not any(x in progreso.text for x in ('es_correcta', 'justificacion', 'nota_final', 'puntaje', h.codigo))
+    terminal = observar("ruta terminada sin preguntas futuras", h.client.get(base + '/current-scenario', headers=h.headers), 200).json()
+    assert terminal['recorrido_finalizado'] and terminal['pregunta'] is None
     observar("finalizacion ajena rechazada", h.client.post(base + '/finish', headers=h.headers_ajeno), 403)
     assert observar("finalizacion titular", h.client.post(base + '/finish', headers=h.headers), 200).json()['estado'] == 'FINALIZADO'
     observar("cierre repetido idempotente", h.client.post(base + '/finish', headers=h.headers), 200)
+    observar("contenido cerrado tras finalizar", h.client.get(base + '/current-scenario', headers=h.headers), 409)
     observar("resultado cerrado aun sin politica/composicion", h.client.get(resultado, headers=h.headers), 503)
     with h.sesiones() as s:
         assert s.get(IntentoModel, ik).estado == 'FINALIZADO'
