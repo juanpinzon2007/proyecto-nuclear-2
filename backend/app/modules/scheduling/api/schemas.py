@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator, SecretStr
 
 
 class ProgramarSesionRequest(BaseModel):
@@ -91,6 +91,11 @@ class ValidarIngresoRequest(BaseModel):
     convocatoria_id: UUID
     estudiante_id: UUID
     codigo_acceso: str
+
+
+class SolicitudEspera(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    codigo_acceso: SecretStr = Field(min_length=1,max_length=256)
 
 
 class NotificacionResponse(BaseModel):

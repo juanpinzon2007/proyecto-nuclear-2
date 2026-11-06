@@ -15,6 +15,7 @@ from app.modules.scheduling.domain.events import (
 from app.modules.scheduling.infrastructure.models import (
     SesionProgramadaModel,
 )
+from app.modules.scheduling.infrastructure.admission import congelar_admisiones
 
 
 async def cambiar_estado_y_publicar(
@@ -35,6 +36,8 @@ async def cambiar_estado_y_publicar(
             accion=accion,
             origen=origen,
         )
+        if accion=='iniciar' and origen=='DOCENTE':
+            congelar_admisiones(db,sesion_id=sesion_id)
 
         # 2. Preparar el evento correspondiente.
         tipos_evento = {

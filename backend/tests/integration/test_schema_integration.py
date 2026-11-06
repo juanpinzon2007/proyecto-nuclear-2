@@ -228,7 +228,7 @@ def test_merge_desde_base_cada_rama_y_dos_ramas_preserva_datos(iniciales):
             script = ScriptDirectory.from_config(config)
 
             # Debe existir una sola cabeza final.
-            assert script.get_heads() == ["20261104_teacher_spaces"]
+            assert script.get_heads() == ["20261105_waiting_admission"]
             assert script.get_revision("20261102_academic_policy").down_revision == "20261102_evaluation_results"
             assert script.get_revision("20261102_evaluation_results").down_revision == HEAD_BRIDGE
             assert script.get_revision(HEAD_BRIDGE).down_revision == "20261102_participation_history"

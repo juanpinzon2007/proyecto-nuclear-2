@@ -206,6 +206,9 @@ def client(
     app.dependency_overrides[get_db] = _get_db
     app.dependency_overrides[exigir_politica_ingreso_configurada] = lambda: politica_fixture(15)
     app.dependency_overrides[exigir_contexto_convocatoria] = lambda: None
+    # Solo contrato aislado anterior con política LAB; admisión real se acredita en main.
+    from app.modules.scheduling.api.dependencies import obtener_admision
+    app.dependency_overrides[obtener_admision] = lambda: None
     app.dependency_overrides[get_session_factory] = lambda: session_factory
     app.dependency_overrides[obtener_docente_autenticado] = lambda: docente_id
     # Suite antigua con frontera de autenticación simulada explícitamente.

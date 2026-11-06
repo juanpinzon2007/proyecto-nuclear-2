@@ -43,6 +43,7 @@ from tests.integration.test_cases_graph_authoring import pg_autoria, autor, crea
 from tests.integration.cases.conftest import payload_valido  # noqa: F401
 from tests.integration.test_attempt_start import IngresoLaboratorio, InicioLaboratorio
 from tests.integration.test_participation_provision import VinculacionLaboratorio
+from tests.integration.consent_support import FuenteConsentimientoLaboratorio
 
 
 class InicioExtraLaboratorio(InicioLaboratorio):
@@ -59,7 +60,7 @@ class InicioExtraLaboratorio(InicioLaboratorio):
 def integracion(autor, request):
     a=autor
     opciones=dict(politica_ingreso=IngresoLaboratorio(),politica_inicio=InicioLaboratorio(),
-                  politica_vinculacion=VinculacionLaboratorio())
+                  politica_vinculacion=VinculacionLaboratorio(),fuente_consentimiento=FuenteConsentimientoLaboratorio())
     opciones.update(getattr(request,"param",{}))
     reloj=SimpleNamespace(ahora=lambda:datetime(2026,11,2,12,1,tzinfo=timezone.utc))
     app=FastAPI()
@@ -69,6 +70,9 @@ def integracion(autor, request):
     app.dependency_overrides[identity.obtener_dominios_login]=lambda:("universidad.test",)
     app.dependency_overrides[exigir_politica_ingreso_configurada]=lambda:opciones["politica_ingreso"] or PoliticaIngresoNoConfigurada()
     app.dependency_overrides[obtener_reloj_ingreso]=lambda:reloj
+    # Solo contrato aislado anterior con política LAB; admisión real se acredita en main.
+    from app.modules.scheduling.api.dependencies import obtener_admision
+    app.dependency_overrides[obtener_admision] = lambda: None
     app.dependency_overrides[obtener_facade]=crear_dependencia_facade_8b(crear_sesion=a.sesiones,
         fechas=FechasPersistencia(timezone.utc),reloj=reloj)
     app.dependency_overrides[obtener_consulta_escenario]=crear_dependencia_escenario_8b(crear_sesion=a.sesiones,

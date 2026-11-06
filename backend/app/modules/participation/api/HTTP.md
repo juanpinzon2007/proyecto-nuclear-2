@@ -261,3 +261,36 @@ del router en `main.py`. Este incremento no lo hace y no está listo para produc
 
 Referencias técnicas: [APIRoute de FastAPI](https://fastapi.tiangolo.com/how-to/custom-request-and-route/)
 y [overrides de dependencias en pruebas](https://fastapi.tiangolo.com/advanced/testing-dependencies/).
+
+## Consentimiento versionado: actualización interna condicionada
+
+Las rutas de provisión e inicio desde convocatoria continúan exclusivamente en
+composición aislada, fuera de app.main. No cambia el cuerpo HTTP ni se añade
+aceptación productiva. La fábrica privada admite fuente_consentimiento=None;
+sin fuente vigente del servidor no se crea una P nueva. El cliente no puede
+inyectar esa fuente ni una política por JSON.
+
+Antes de INSERT P se verifica aceptación propia, no revocada/no futura y versión
+actual inequívoca. Inicio ausente o política rechazada también impiden INSERT.
+La política de inicio es pura, recibe id_participacion=None antes de crear P y se
+revalida con su PK real antes de I; no consume permisos en la prevalidación.
+Se mantienen la misma UoW, locks, grafo y control de duración/versión históricos.
+La recuperación de P existente conserva su historia; no es creación autorizada
+por un consentimiento implícito ni permiso de repetición.
+
+El servicio interno de aceptación requiere True explícito y referencia/huella
+coincidentes con el documento resuelto en servidor. No hace commit; no hay ruta
+pública ni fuente oficial. Las pruebas de aceptación usan SQL real y documentos
+LAB; no justifican instalar estos routers en main. Ver
+`backend/docs/CONSENTIMIENTO_E_INICIO_INTERNO.md` para contratos pendientes.
+
+
+## Admisión aprobada de Scheduling (sin abrir inicio)
+
+Scheduling publica espera y comprobante en su propio router. La validación de
+ingreso de main usa AdmisionSQLAlchemy y exige concesión individual congelada.
+ConsultaIngresoSQLAlchemy puede recibir ese mismo puerto del servidor; no se
+reinterpreta una política LAB como autorización productiva. No cambian cuerpos
+HTTP de Participation, sus cuatro rutas acreditadas ni cierres de provisión/inicio.
+Ver backend/docs/SALA_ESPERA_ADMISION_DISENO.md. La fuente oficial de consentimiento
+y el enlace histórico P→aceptación siguen pendientes; este incremento no los simula.

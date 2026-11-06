@@ -40,7 +40,7 @@ PARENT="20261102_steps_uuid"
 def pg_resultados():
     with motor_postgresql_desechable() as e:
         with e.begin() as s:
-            command.upgrade(config_alembic(s),HEAD)
+            command.upgrade(config_alembic(s),"head")
             s.execute(sa.insert(RolORM),[dict(id_rol=1,nombre="DOCENTE"),dict(id_rol=2,nombre="ESTUDIANTE")])
         yield e
 

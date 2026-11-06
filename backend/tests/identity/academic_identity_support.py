@@ -52,6 +52,7 @@ def preparar_esquema_actual_aislado(conexion):
         return
     command.upgrade(config_alembic(conexion), "20261102_steps_uuid")
     preparar_grafo_sqlite(conexion)
+    preparar_admision_sqlite(conexion)
     from app.db.models import registrar_modelos_integrados
     metadata=registrar_modelos_integrados()
     metadata.create_all(conexion)
@@ -59,6 +60,55 @@ def preparar_esquema_actual_aislado(conexion):
         for indice in metadata.tables[nombre].indexes:
             if indice.name.startswith("uq_8c_"):
                 indice.create(conexion, checkfirst=True)
+
+
+def preparar_admision_sqlite(conexion):
+    """DDL SQLite real para metadata; no emula locks ni triggers PostgreSQL."""
+    from alembic.operations import Operations
+    from alembic.migration import MigrationContext
+    import sqlalchemy as sa
+    if conexion.dialect.name!='sqlite':raise RuntimeError('Solo fixture SQLite.')
+    ops=Operations(MigrationContext.configure(conexion))
+    columnas={c['name'] for c in inspect(conexion).get_columns('convocatoria')}
+    if 'espera_registrada_en' in columnas:return
+    if conexion.scalar(sa.text('SELECT 1 FROM convocatoria LIMIT 1')) is not None:
+        raise RuntimeError('Preparación de admisión solo antes de datos de fixture.')
+    with ops.batch_alter_table('evento_auditoria',recreate='always') as batch:
+        batch.create_unique_constraint('uq_evento_id_sesion_admision',['id','sesion_id'])
+    with ops.batch_alter_table('convocatoria',recreate='always') as batch:
+        batch.add_column(sa.Column('espera_registrada_en',sa.DateTime(timezone=True),nullable=True))
+        batch.add_column(sa.Column('espera_version_caso_id',sa.Uuid(),nullable=True))
+        batch.add_column(sa.Column('admision_evento_id',sa.Uuid(),nullable=True))
+        batch.create_foreign_key('fk_espera_sesion_version','sesion_programada',
+            ['sesion_id','espera_version_caso_id'],['id','version_caso_id'])
+        batch.create_foreign_key('fk_admision_evento_sesion','evento_auditoria',
+            ['admision_evento_id','sesion_id'],['id','sesion_id'])
+        batch.create_check_constraint('ck_espera_pareja','(espera_registrada_en IS NULL) = (espera_version_caso_id IS NULL)')
+        batch.create_check_constraint('ck_admision_espera','admision_evento_id IS NULL OR espera_registrada_en IS NOT NULL')
+
+
+def columnas_convocatoria_para_fixture_historica(conexion):
+    """Adaptación explícita SOLO para probar migraciones anteriores con ORM actual.
+
+    Tres columnas nullable auxiliares; no estampa la revisión nueva, ni instala
+    constraints/guards ni acredita admisión. Las pruebas de la revisión nueva
+    ejecutan su upgrade real. Reservado a PG propio de los fixtures históricos.
+    """
+    import sqlalchemy as sa
+    from alembic.operations import Operations
+    from alembic.migration import MigrationContext
+    if conexion.dialect.name!='postgresql':raise RuntimeError('Solo laboratorio histórico PG.')
+    columnas={c['name'] for c in inspect(conexion).get_columns('convocatoria')}
+    ops=Operations(MigrationContext.configure(conexion))
+    for nombre,tipo in [('espera_registrada_en',sa.DateTime(timezone=True)),
+                        ('espera_version_caso_id',sa.Uuid()),('admision_evento_id',sa.Uuid())]:
+        if nombre not in columnas:ops.add_column('convocatoria',sa.Column(nombre,tipo,nullable=True))
+
+
+def omitir_solo_constraints_admision_futura(objeto,nombre,tipo,reflejado,comparado):
+    """Comparación de una revisión histórica que aún NO instala esta admisión."""
+    return nombre not in {'fk_espera_sesion_version','fk_admision_evento_sesion',
+        'ck_espera_pareja','ck_admision_espera','uq_evento_id_sesion_admision'}
 
 
 def preparar_grafo_sqlite(conexion):

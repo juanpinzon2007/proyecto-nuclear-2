@@ -43,7 +43,7 @@ FECHA = datetime(2026, 11, 2, 12)
 def laboratorio():
     with motor_postgresql_desechable() as engine:
         with engine.begin() as c:
-            command.upgrade(config_alembic(c), HEAD)
+            command.upgrade(config_alembic(c), "head")
             c.execute(RolORM.__table__.insert(), [dict(id_rol=1, nombre="DOCENTE"), dict(id_rol=2, nombre="ESTUDIANTE")])
         yield engine
 

@@ -34,6 +34,7 @@ from app.modules.scheduling.infrastructure.models import SesionProgramadaModel a
 from tests.integration.test_attempt_start import convocada, pg_grafo, IngresoLaboratorio, InicioLaboratorio  # noqa: F401
 from tests.integration.test_participation_persistence import contexto
 from tests.integration.test_attempt_state import principal
+from tests.integration.consent_support import FuenteConsentimientoLaboratorio
 
 
 class VinculacionLaboratorio:
@@ -48,7 +49,8 @@ def servicio(c, **kw):
     return ServicioVinculacionSQLAlchemy(**(dict(usuario=c.usuario,
         reloj=SimpleNamespace(ahora=lambda:c.ahora),fechas=FechasPersistencia(timezone.utc),
         crear_sesion=c.sesiones,politica_ingreso=IngresoLaboratorio(),
-        politica_vinculacion=VinculacionLaboratorio(),politica_inicio=InicioLaboratorio())|kw))
+        politica_vinculacion=VinculacionLaboratorio(),politica_inicio=InicioLaboratorio(),
+        fuente_consentimiento=FuenteConsentimientoLaboratorio())|kw))
 
 
 def argumentos(c, **kw):

@@ -7,7 +7,7 @@ from uuid import UUID
 
 @dataclass(frozen=True)
 class CondicionesInicioIntento:
-    id_participacion: int
+    id_participacion: int | None  # None solo en autorización previa a crear P; no ID ficticio.
     id_estudiante: int
     sesion_id: UUID
     version_id: UUID
@@ -35,5 +35,7 @@ class PoliticaInicioIntento(Protocol):
         calculada ni valores elegidos por HTTP. None significa autorización;
         cualquier otro retorno es un contrato inválido. Ausencia de proveedor
         mantiene el inicio cerrado. No existe una implementación permisiva aquí.
+        Es una consulta sin efectos ni consumo de permisos: se evalúa antes de
+        crear P (id_participacion=None) y se revalida antes de registrar I.
         """
         ...

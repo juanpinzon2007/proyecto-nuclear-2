@@ -22,6 +22,8 @@ def test_upgrade_integridad_sin_autoconcesion_y_downgrade_controlado():
     with motor_postgresql_desechable() as engine:
         with engine.begin() as c:
             command.upgrade(config_alembic(c),PARENT)
+            from tests.identity.academic_identity_support import columnas_convocatoria_para_fixture_historica
+            columnas_convocatoria_para_fixture_historica(c)
             c.execute(RolORM.__table__.insert(),[dict(id_rol=1,nombre='DOCENTE'),dict(id_rol=2,nombre='ESTUDIANTE')])
         # Datos históricos sintéticos anteriores a RF-18: ni programar ni crear
         # espacios previamente puede convertirse en una asignación implícita.
@@ -34,7 +36,8 @@ def test_upgrade_integridad_sin_autoconcesion_y_downgrade_controlado():
             assert c.scalar(select(func.count()).select_from(G))==0
             assert len(inspect(c).get_foreign_keys(G.__tablename__))==2
             assert inspect(c).get_pk_constraint(G.__tablename__)['constrained_columns']==['id_docente','espacio_academico_id']
-            assert compare_metadata(MigrationContext.configure(c),registrar_modelos_integrados())==[]
+            from tests.identity.academic_identity_support import omitir_solo_constraints_admision_futura
+            assert compare_metadata(MigrationContext.configure(c,opts={'include_object':omitir_solo_constraints_admision_futura}),registrar_modelos_integrados())==[]
             assert c.execute(select(S.__table__).where(S.id==h.sesion)).one()==sesion
         valores=dict(id_docente=h.docente,espacio_academico_id=sesion.espacio_academico_id)
         with engine.begin() as c:c.execute(G.__table__.insert().values(**valores))

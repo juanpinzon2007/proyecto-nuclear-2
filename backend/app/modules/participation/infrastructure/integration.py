@@ -30,10 +30,12 @@ class ConsultaIngresoSQLAlchemy:
     def __init__(
         self, sesion: Session, *, politica: PoliticaIngreso, reloj: RelojIngreso,
         consulta_version: ConsultaVersionPublicada | None = None,
+        admision=None,
     ) -> None:
         self.sesion = sesion
         self.politica = politica
         self.reloj = reloj
+        self.admision = admision
         # Composición interna del servidor; nunca una opción elegida desde HTTP.
         self._consulta_version = consultar_version_publicada if consulta_version is None else consulta_version
 
@@ -61,7 +63,7 @@ class ConsultaIngresoSQLAlchemy:
             # Scheduling conserva todas las reglas de código, estado y horario.
             sesion = validar_ingreso(
                 self.sesion, convocatoria_id=convocatoria_id, estudiante_id=estudiante,
-                codigo_acceso=codigo_acceso, politica=self.politica, reloj=self.reloj,
+                codigo_acceso=codigo_acceso, politica=self.politica, reloj=self.reloj,admision=self.admision,
             )
             version = self._consulta_version(self.sesion, version_id=sesion.version_caso_id)
             return ContextoIngresoParticipacion(

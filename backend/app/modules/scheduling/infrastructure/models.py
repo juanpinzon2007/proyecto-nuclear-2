@@ -8,6 +8,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Integer,
     Index,
     String,
@@ -166,6 +167,10 @@ class ConvocatoriaModel(Base):
         nullable=False,
     )
 
+    espera_registrada_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    espera_version_caso_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    admision_evento_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+
     # Estado de la convocatoria
     estado: Mapped[str] = mapped_column(
         String(20),
@@ -175,9 +180,15 @@ class ConvocatoriaModel(Base):
     )
 
     # Relación con la sesión programada
-    sesion: Mapped["SesionProgramadaModel"] = relationship()
+    sesion: Mapped["SesionProgramadaModel"] = relationship(foreign_keys=[sesion_id])
 
     __table_args__ = (
+        ForeignKeyConstraint(['sesion_id','espera_version_caso_id'],
+            ['sesion_programada.id','sesion_programada.version_caso_id'],name='fk_espera_sesion_version'),
+        ForeignKeyConstraint(['admision_evento_id','sesion_id'],
+            ['evento_auditoria.id','evento_auditoria.sesion_id'],name='fk_admision_evento_sesion'),
+        CheckConstraint('(espera_registrada_en IS NULL) = (espera_version_caso_id IS NULL)',name='ck_espera_pareja'),
+        CheckConstraint('admision_evento_id IS NULL OR espera_registrada_en IS NOT NULL',name='ck_admision_espera'),
         UniqueConstraint(
             "sesion_id",
             "estudiante_id",
@@ -255,6 +266,7 @@ class EventoAuditoriaModel(Base):
     """Registra los eventos importantes de una sesión."""
 
     __tablename__ = "evento_auditoria"
+    __table_args__ = (UniqueConstraint('id','sesion_id',name='uq_evento_id_sesion_admision'),)
 
     # Identificador único del evento
     id: Mapped[uuid.UUID] = uuid_pk()

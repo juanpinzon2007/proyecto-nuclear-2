@@ -183,7 +183,7 @@ def test_inventario_aprobado_metadata_y_limites_de_la_revision():
     assert len(re.findall(r"^Table ", DBML.read_text(encoding="utf-8"), re.M)) == 28
 
     script = ScriptDirectory.from_config(config_alembic(None))
-    assert script.get_heads() == ["20261104_teacher_spaces"]
+    assert script.get_heads() == ["20261105_waiting_admission"]
     assert script.get_revision("20261102_steps_uuid").down_revision == "20261102_participation_history"
     assert script.get_revision("20261102_participation_history").down_revision == "20261102_assignment_bridge"
     assert script.get_revision("20261102_assignment_bridge").down_revision == "20261102_cases_history_guard"

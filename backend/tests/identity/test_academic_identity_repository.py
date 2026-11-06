@@ -156,7 +156,7 @@ def test_migracion_aditiva_ciclo_y_datos_previos(cuentas_identidades):
     with c.engine.begin() as conexion:
         config = config_alembic(conexion)
         script = ScriptDirectory.from_config(config)
-        assert script.get_heads() == ["20261104_teacher_spaces"]
+        assert script.get_heads() == ["20261105_waiting_admission"]
         assert script.get_revision("20261102_steps_uuid").down_revision == "20261102_participation_history"
         assert script.get_revision("20261102_participation_history").down_revision == "20261102_assignment_bridge"
         assert script.get_revision("20261102_assignment_bridge").down_revision == "20261102_cases_history_guard"

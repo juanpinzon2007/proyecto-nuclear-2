@@ -42,6 +42,11 @@ class PoliticaIngreso(Protocol):
         ...
 
 
+class AutorizacionAdmision(Protocol):
+    def autorizar(self, *, convocatoria_id:UUID, estudiante_id:UUID,
+                  sesion_id:UUID, version_id:UUID) -> None: ...
+
+
 class PoliticaIngresoNoConfigurada:
     def obtener_ventana(self, *, id_sesion: UUID, inicio: datetime, fin: datetime) -> VentanaIngreso:
         raise PoliticaTemporalNoDisponible()

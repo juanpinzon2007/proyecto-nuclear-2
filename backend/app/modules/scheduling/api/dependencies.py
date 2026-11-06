@@ -14,6 +14,14 @@ from app.modules.scheduling.api.schemas import ValidarIngresoRequest
 from app.modules.scheduling.application.programming_access import AutorizacionEspacioProgramacion
 from app.db.session import get_db
 from sqlalchemy.orm import Session
+from app.modules.scheduling.infrastructure.admission import AdmisionSQLAlchemy
+
+
+def obtener_admision(
+    db: Annotated[Session, Depends(get_db)],
+    usuario: Annotated[ContextoAcceso, Depends(obtener_estudiante_actual)],
+):
+    return AdmisionSQLAlchemy(db,usuario)
 
 
 def obtener_autorizacion_espacios_programacion(

@@ -28,6 +28,7 @@ def validar_ingreso(
     codigo_acceso: str,
     politica: PoliticaIngreso,
     reloj: RelojIngreso,
+    admision=None,
 ) -> SesionProgramadaModel:
     """Verifica código, convocatoria, estado y horario."""
 
@@ -57,13 +58,21 @@ def validar_ingreso(
     if sesion is None:
         raise ErrorIngreso("La sesión no existe.")
 
+    # Solo la transición efectiva de habilitación abre esta condición. Alcanzar
+    # la fecha programada, o una política inyectada, nunca sustituye EN_CURSO.
     if sesion.estado != "EN_CURSO":
         raise ErrorIngreso("La sesión no está en curso.")
 
     inicio, fin = fecha_utc(sesion.fecha_inicio), fecha_utc(sesion.fecha_fin)
     if fin <= inicio:
         raise PoliticaTemporalNoDisponible()
-    ventana = politica.obtener_ventana(id_sesion=sesion.id, inicio=inicio, fin=fin)
+    if admision is not None:
+        admision.autorizar(convocatoria_id=convocatoria.id,estudiante_id=estudiante_id,
+            sesion_id=sesion.id,version_id=sesion.version_caso_id)
+        # Límites exteriores de programación conservados, sin margen adicional.
+        ventana = VentanaIngreso(inicio,fin,True,False)
+    else:
+        ventana = politica.obtener_ventana(id_sesion=sesion.id, inicio=inicio, fin=fin)
     if (not isinstance(ventana, VentanaIngreso) or ventana.apertura < inicio
             or ventana.cierre > fin):
         raise PoliticaTemporalNoDisponible()

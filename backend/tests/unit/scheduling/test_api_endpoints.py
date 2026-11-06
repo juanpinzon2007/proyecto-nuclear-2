@@ -4,6 +4,7 @@ from app.modules.scheduling.api.router import exigir_politica_ingreso_configurad
 """Pruebas unitarias de los endpoints de la API de Scheduling."""
 
 from datetime import datetime, timezone
+from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 from uuid import uuid4
@@ -12,6 +13,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.modules.identity.api.academic_dependencies import obtener_estudiante_scheduling
+from app.modules.identity.api.dependencies import obtener_estudiante_actual
+from app.modules.identity.domain.entities import ContextoAcceso, Rol
 from app.db.session import get_db
 from app.main import app
 from app.modules.scheduling.api.router import (
@@ -63,9 +66,17 @@ def entorno_estudiante(entorno_publico):
     # Fixture de router: autorización sustituida; la suite de seguridad prueba JWT.
     client, db = entorno_publico
     estudiante_id = uuid4()
+    db.no_autoflush = nullcontext()
+    db.scalar.return_value = 1
+    db.scalars.return_value.all.return_value = [1]
+    app.dependency_overrides[obtener_estudiante_actual] = lambda: ContextoAcceso(
+        "7","estudiante@universidad.test",frozenset({Rol.ESTUDIANTE}))
     app.dependency_overrides[obtener_estudiante_scheduling] = lambda: estudiante_id
     app.dependency_overrides[exigir_politica_ingreso_configurada] = lambda: politica_fixture(15)
     app.dependency_overrides[exigir_contexto_convocatoria] = lambda: None
+    # Solo contrato aislado anterior con política LAB; admisión real se acredita en main.
+    from app.modules.scheduling.api.dependencies import obtener_admision
+    app.dependency_overrides[obtener_admision] = lambda: None
     yield client, db, estudiante_id
 
 

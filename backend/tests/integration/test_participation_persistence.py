@@ -319,7 +319,7 @@ def test_downgrade_rechaza_datos_historicos(datos_pg):
         with pytest.raises(RuntimeError,match="datos historicos"):
             with s.begin_nested():
                 command.downgrade(config_alembic(s),PARENT)
-        assert s.scalar(sa.text("SELECT version_num FROM alembic_version"))=="20261104_teacher_spaces"
+        assert s.scalar(sa.text("SELECT version_num FROM alembic_version"))=="20261105_waiting_admission"
 
 
 def test_upgrade_downgrade_vacio_preserva_protecciones_anteriores():

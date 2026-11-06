@@ -47,7 +47,7 @@ T=PasoSimulacionModel.__table__
 def pg():
     with motor_postgresql_desechable() as engine:
         with engine.begin() as s:
-            command.upgrade(config_alembic(s),HEAD)
+            command.upgrade(config_alembic(s),"head")
             s.execute(RolORM.__table__.insert(),[dict(id_rol=1,nombre="DOCENTE"),dict(id_rol=2,nombre="ESTUDIANTE")])
         yield engine
 
