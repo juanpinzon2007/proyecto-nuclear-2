@@ -30,6 +30,16 @@ class ConsultaCuentaPorCorreo(Protocol):
         ...
 
 
+class ValidadorCredencialesPersonal(Protocol):
+    def validar(self, correo: str, clave: str) -> ContextoAcceso | None:
+        """Verifica hash privado y retorna cuenta/roles actuales, nunca el hash.
+
+        Ausencia o contraseña inválida no distingue públicamente la cuenta.
+        Errores de infraestructura fallan cerrados; no generan identidades.
+        """
+        ...
+
+
 class ValidadorConvocatoria(Protocol):
     def validar(self, correo: str, codigo: str) -> AccesoConvocatoria | None:
         """Valida la pareja completa contra la convocatoria vigente y autorizada.

@@ -35,7 +35,9 @@ class ConsultaSeguimientoSQLAlchemy:
     def _operar(self, consulta):
         try:
             with self.crear_sesion() as s:
-                with s.begin():
+                # Los GET no confirman una UoW de escritura. Cerrar la Session
+                # descarta la transacción de lectura y libera sus locks.
+                with s.no_autoflush:
                     return consulta(s)
         except (SQLAlchemyError, ErrorDominioCaso):
             raise IntegracionPendiente() from None

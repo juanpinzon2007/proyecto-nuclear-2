@@ -20,10 +20,22 @@ class ServicioReportes:
     def descargar(self, contexto: ContextoAcceso, id_sesion: str) -> str:
         """Exporta resultados oficiales; la consulta LEFT JOIN sigue pendiente de ER."""
         validar_id(id_sesion)
+        filas = tuple(self.lecturas.obtener_filas(contexto.id_usuario, id_sesion))
+        estudiantes, participaciones = set(), set()
+        for fila in filas:
+            # No consolidar múltiples intentos ni elegir una fila arbitraria.
+            if (fila.id_estudiante in estudiantes or
+                    (fila.id_participacion is not None and fila.id_participacion in participaciones)):
+                raise IntegracionPendiente()
+            if fila.nota is not None and not 0 <= fila.nota <= 100:
+                raise IntegracionPendiente()
+            estudiantes.add(fila.id_estudiante)
+            if fila.id_participacion is not None:
+                participaciones.add(fila.id_participacion)
         salida = StringIO(newline="")
         escritor = csv.writer(salida)
         escritor.writerow(("id_estudiante", "id_participacion", "estado", "nota"))
-        for fila in self.lecturas.obtener_filas(contexto.id_usuario, id_sesion):
+        for fila in filas:
             escritor.writerow((
                 self._celda(fila.id_estudiante), self._celda(fila.id_participacion or ""),
                 fila.estado.value, "" if fila.nota is None else format(fila.nota, "f"),

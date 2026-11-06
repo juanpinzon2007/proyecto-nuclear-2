@@ -1,5 +1,12 @@
 # Identity: Identidad, Seguridad y Seguimiento
 
+> Actualización 2026-11-05: se incorporó el ingreso del personal en
+> `POST /api/v1/identity/auth/personal`, con correo y contraseña asignada por
+> administrador, según decisión funcional del equipo. Ver
+> [contrato, aceptación y políticas pendientes](../../../docs/LOGIN_PERSONAL_CORREO_CLAVE.md).
+> Los bloqueos y resultados descritos a continuación son históricos y no sustituyen
+> ese informe; no hay aprobación institucional de políticas complementarias.
+
 Incremento de Alejandro, limitado a RF-01, RF-02, RF-03, RF-15, RF-16, RF-25 y
 RF-26. La revisión de integración parte de `451583f`, rama `alejandro`, con
 Identity y develop ya publicados. Los cambios de esta revisión quedan locales,

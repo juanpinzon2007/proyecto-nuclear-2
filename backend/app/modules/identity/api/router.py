@@ -7,11 +7,12 @@ from app.modules.identity.api.dependencies import (
     obtener_fabrica_autenticacion, obtener_proxy_administracion,
     obtener_proxy_excepciones, obtener_proxy_seguimiento, obtener_usuario_actual,
     obtener_consulta_feedback_estudiantil,
+    obtener_fabrica_autenticacion_personal,
 )
 from app.modules.identity.api.errors import RutaIdentity
 from app.modules.identity.api.schemas import (
     AutorizacionesDocenteSchema, CrearDocente, IdPublico, RespuestaToken,
-    SolicitudFeedback, SolicitudLogin, SolicitudRepeticion, UsuarioPublico,
+    SolicitudFeedback, SolicitudLogin, SolicitudLoginPersonal, SolicitudRepeticion, UsuarioPublico,
 )
 from app.modules.identity.application.authentication import ServicioAutenticacion
 from app.modules.identity.application.proxy_administracion import ProxyAdministracionUsuarios
@@ -40,6 +41,15 @@ def autenticar_estudiante(
     servicio: Annotated[Callable[[], ServicioAutenticacion], Depends(obtener_fabrica_autenticacion)],
 ) -> RespuestaToken:
     token = servicio().autenticar_estudiante(solicitud.correo, solicitud.codigo_convocatoria.get_secret_value())
+    return RespuestaToken(access_token=token)
+
+
+@router.post("/auth/personal", response_model=RespuestaToken)
+def autenticar_personal(
+    solicitud: SolicitudLoginPersonal,
+    servicio: Annotated[Callable[[], ServicioAutenticacion], Depends(obtener_fabrica_autenticacion_personal)],
+) -> RespuestaToken:
+    token = servicio().autenticar_personal(solicitud.correo, solicitud.clave.get_secret_value())
     return RespuestaToken(access_token=token)
 
 
