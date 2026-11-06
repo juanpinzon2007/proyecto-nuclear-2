@@ -10,6 +10,9 @@ Este documento distingue requisito completo de capacidad técnica aislada.
 > comparten ahora la transacción de estado/auditoría. Ver sección 11; no se
 > implementó outbox ni se acreditó correo. Los cortes anteriores se conservan.
 
+> Actualización RF-19 operativo: sección 12. Proceso independiente y periodicidad
+> real acreditados en PostgreSQL17; la matriz distingue implementación de despliegue.
+
 ## 0. Registro de selección previo a modificar código
 
 Inicialmente se consideró un incremento acotado de **RF-19 / RNF-04 / RNF-10 / RNF-12**:
@@ -95,7 +98,7 @@ Discrepancias que afectan la auditoría:
 | RF-10, RN-10/11 | Permite cambiar selecciones antes del cierre; Agile y análisis repiten ese texto | Profesora confirmó respuestas inmutables. Se audita la regla posterior; no se reabre PUT. Corregir texto académico por aprobación documental, no código. |
 | RF-13/24 | No especifica toda la fórmula | Confirmados escala 0–100, pesos iguales y cero por pendientes al vencer. No están definidos mapeo de niveles, agregación, redondeo necesario y consolidación. |
 | RF-26 | Valoración individual, sin precisión de edición | Usuario aprobó una valoración editable por participación. La persistencia/privacidad lo implementan. |
-| RF-22 | Base del umbral expresamente pendiente | P01–P16 y propuesta de 15 minutos no son aprobación. Inicio productivo sigue bloqueado. |
+| RF-22 | Sala de espera y admisión congelada aprobadas por el equipo | Sin anticipación ni tolerancia tardía; ver sección 20. Consentimiento productivo no aprobado. |
 | RF-27 | Aviso de notas y feedback | Feedback interno funciona; anunciar notas no está respaldado por publicación oficial. Se reproduce y cierra la ruta insegura en este incremento. |
 | RNF-01 a RNF-14 | El PDF los denomina «propuestos» | Se evalúa evidencia frente a esos objetivos, sin presentarlos como SLA aceptados. |
 | Historia técnica | Informes antiguos indican ausencia total de rutas Participation o contratos ya resueltos | Prevalece código actual: cuatro operaciones 9A en main y corrección RN-16 de 9B. No se reimplementan. |
@@ -138,8 +141,8 @@ pruebas se verifican en el código; los parámetros concretos figuran en el JUni
 | ID y descripción | Responsable / implementación y persistencia | Endpoint o servicio; registro en main | Estado | Prueba identificable y alcance | Dependencia / próxima acción y aceptación |
 |---|---|---|---|---|---|
 | RF-01 Autenticar estudiantes | Identity: `application/authentication.py::ServicioAutenticacion.autenticar_estudiante`, `infrastructure/scheduling_access.py::ValidadorConvocatoriaScheduling`; usuario, identidad_academica, convocatoria/sesión | POST `/api/v1/identity/auth/estudiantes`, GET `/api/v1/identity/me`; sí | IMPLEMENTADO | `tests/identity/test_student_login_scheduling.py::test_flujo_login_autorizado_jwt_y_notificaciones_reales`; SQLite/PG, sin password inventado | Configurar dominios/JWT en despliegue; login no autoriza ingreso ni crea intento. Aceptación: correo/código propios, rol y cuenta actuales, contexto legítimo. |
-| RF-02 Controlar rol y permiso específico de crear casos | Identity: `api/dependencies.py::obtener_usuario_actual`, `application/authorization.py::ServicioAutorizacion`; usuario/rol/permiso/rol_permiso. Cases: `exigir_permiso_creacion_configurado` | Dependencias de rutas registradas; /me | PARCIAL | `tests/integration/test_cases_graph_authoring.py::test_autoria_no_concede_acceso_sin_identidad_rol_permiso_y_vinculo` PG; `tests/identity/test_http.py::test_roles_y_permisos_se_recargan_del_servidor` con dobles | Rol/permisos vigentes sí; falta mecanismo contractual de login personal. Completar emisión de tokens aprobada sin cabeceras alternativas. |
-| RF-03 Administrar docentes, roles y permisos | Identity: `application/services.py::ServicioAdministracionUsuarios`, `infrastructure/repositories.py`, UoW SQL; catálogo y usuario | POST `/api/v1/identity/docentes`, PUT `/docentes/{id_docente}/autorizaciones`; sí | PARCIAL | `tests/identity/test_http.py::test_administrador_crea_docente_y_asigna_permisos` usa servicios/dobles; `tests/identity/test_persistence.py` contiene pruebas condicionadas a URL, 29 omitidas en 9B | No atribuir esas 29 a PG acreditado. Permisos físicos son POR ROL, no excepciones individuales; falta login admin y aceptación SQL HTTP integral. Aceptación: alta y cambio autorizados sin elevar permisos de otros usuarios. |
+| RF-02 Controlar rol y permiso específico de crear casos | Identity: obtener_usuario_actual, ServicioAutorizacion, ServicioAutenticacion.autenticar_personal; roles/permisos SQL; Cases exigir_permiso_creacion_configurado | POST `/api/v1/identity/auth/personal`, /me y dependencias Cases registradas | IMPLEMENTADO | `tests/integration/test_main_staff_login.py::test_login_real_no_otorga_casos_ajenos_ni_permisos_eliminados` y `test_estado_y_rol_persistidos_se_revalidan_despues_del_login`; HTTP main/JWT real/PG17 | Acreditado en el alcance vigente de permisos por rol, sin conceder permisos individuales ni vínculos académicos. Login autorizado por decisión del equipo; políticas operativas institucionales pendientes. Sección 16. |
+| RF-03 Administrar docentes, roles y permisos | ServicioAdministracionUsuarios, repositorios SQL, ProxyAdministracionUsuarios y login personal reutilizado | POST `/api/v1/identity/docentes`, PUT `/docentes/{id_docente}/autorizaciones`; sí | PARCIAL | `tests/integration/test_main_staff_login.py::test_admin_ingresa_crea_docente_con_hash_y_docente_ingresa_sin_crear_vinculos`: HTTP main/PG17, alta, login y asignación compatible; rechazo de alteración global del catálogo | Login administrativo ya acreditado; sigue pendiente bootstrap institucional y definición de granularidad individual/multirrol. No declarar completo por añadir autenticación. Los 29 tests antiguos condicionados a URL siguen omitidos. Sección 16. |
 | RF-04 Asociar espacio y estudiantes | Scheduling/Identity: espacio_academico, docente_espacio_academico, grupo_academico/grupo_estudiante, asignacion_caso y convocatoria; `convocation_management.py::_autorizar` | `/scheduling/espacios`, `/sesiones`, `/sesiones/{id}/convocatorias`; sí | PARCIAL | `tests/integration/test_convocation_management_http.py::test_alta_exige_ambito_academico_persistente` PG | Asociación/verificación sí; altas de matrículas, puente de asignación y grants siguen preparados administrativamente en fixtures. Definir su proceso autorizado, sin autovinculación ni inferir grupo desde espacio. |
 | RF-05 Registrar estructura del caso | Cases: `CasoService.crear_borrador`, `ConstructorCaso`; caso/version_caso/escenario, estimado e historia | POST/PUT `/api/v1/cases[/{version_id}]`; sí | IMPLEMENTADO | `tests/integration/test_cases_graph_authoring.py::test_http_crear_configurar_publicar_y_consumir_misma_version` PG, contenido por API | Completar dependencia transversal de login personal. La preparación de nuevas ediciones históricas por ORM en algunos tests NO acredita un endpoint de nueva edición. |
 | RF-06 Contextos y preguntas por escenario | Cases: `CasoPayload`, `CasoService._construir`, escenario/pregunta | POST/PUT/GET `/api/v1/cases`; sí | IMPLEMENTADO | Mismo test HTTP PG de autoría; `tests/unit/cases/test_builder.py` valida construcción | Autoría guarda estructura; ejecución multipregunta sigue bloqueada y se clasifica en RF-10. No confundir guardar una lista con poder navegarla. |
@@ -148,17 +151,17 @@ pruebas se verifican en el código; los parámetros concretos figuran en el JUni
 | RF-09 Borrador, validar/publicar y archivar | Cases: `CasoService.publicar/archivar`, cadena validación, repositorio de grafo/guards PG | POST `/api/v1/cases/{version_id}/publish` y `/archive`; sí | IMPLEMENTADO | Autoría HTTP PG; `tests/integration/test_cases_guard_migration.py::test_revision_real_preflight_DML_locks_downgrade_y_reupgrade` | Recorridos soportados: una pregunta/escena y sin ciclos alcanzables. No rellenar grafos históricos ficticios; decidir semántica de recorridos pendientes para ampliar publicación ejecutable. |
 | RF-10 Consultar contextos y responder; aclaración posterior INMUTABLE | Participation/Cases: `current_scenario.py`, grafo SQL y Facade; intento/paso_simulacion y guard PG | GET `/api/v1/attempts/{id}/current-scenario`, POST `/decisions/{decision_id}`; sí. PUT no montado | PARCIAL | `tests/integration/test_main_decisions.py::test_primer_registro_inmutable_progreso_y_siguiente_escenario_main` PG/JWT real | Funciona para intento existente y grafo soportado. Inicio productivo bloqueado; faltan decisiones sobre varias preguntas/ciclos/revisitas. Actualizar RF documental para no pedir edición prohibida. |
 | RF-11 Guardar respuestas y progreso privado sin revelar corrección | Participation: repositorio/UoW, `progress_query.py`, `progress.py`; paso_simulacion único por intento/pregunta | POST decisiones y GET `/api/v1/attempts/{id}/progress`; sí | IMPLEMENTADO | `tests/integration/test_main_progress.py::test_progreso_efectivo_repetido_sin_dml_flush_commit`; `test_main_decisions.py::test_registros_concurrentes_conservan_una_sola_seleccion` PG | GET proyecta vencimiento sin persistir; escritura separada. Requiere zona histórica explícita y un intento ya existente. No autoriza inicio productivo. |
-| RF-12 Inicio/fin, nota y feedback por pregunta | Participation/Evaluation: `start.py`, servicios cierre, resultado_intento/resultado_criterio y explicaciones históricas | POST `/attempts/{id}/finish` sí; inicio desde convocatoria y resultado oficial no montados | PARCIAL | `tests/integration/test_main_finish.py::test_vertical_principal_escenario_progreso_respuestas_fin_sin_notas`; PG. `test_evaluation_result_storage.py::test_evaluar_guardar_y_recuperar_otra_session` solo resultado LAB | Inicio condicionado y fechas persistidas sí; falta habilitar inicio aprobado y resultado académico, no solo técnico. |
+| RF-12 Inicio/fin, nota y feedback por pregunta | Participation start/provision, consentimiento versionado interno Identity, UoW y guard previo a INSERT P; Evaluation técnica existente | POST finish sí; provisión/inicio/aceptación/resultados oficiales fuera de main | PARCIAL | `test_consent_before_provision.py`: 24 casos PG17, fuente LAB, ausencia de INSERT, aceptación/consulta/rollback/concurrencia; general actual 2126/38. Sección 19 | Orden corregido internamente; falta documento/fuente oficial, procedencia durable del consentimiento, señal de admisión y demás contratos productivos. No equiparar fuente LAB con autorización real ni resultado técnico con nota oficial. |
 | RF-13 Calcular y almacenar nota por rúbrica | Evaluation dentro de Participation: ServicioEvaluacion, Strategy/CalculadorRubrica, `academic_policy.py`, repositorio resultados; procedencia inmutable | Motor interno; rutas generales de resultados NO montadas | BLOQUEADO | `tests/integration/test_academic_policy.py::test_sin_mapeo_agregacion_no_hay_nota_academica_completa`; `test_evaluation_result_storage.py::test_evaluar_guardar_y_recuperar_otra_session` PG con política LAB | Definir nivel→logro, agregación preguntas→criterio y precisión/redondeo necesario. Aceptación: resultado real reproducible con definición aprobada, no convención de fixture. |
 | RF-14 Mostrar nota/aciertos/errores/explicaciones tras cerrar | Evaluation: servicio y `cases/application/answer_feedback.py`, DTO/API provisional | `/participations/{p}/attempts/{i}/result` solo router no montado; main no publica resultados | BLOQUEADO | `tests/integration/test_evaluation_feedback.py::test_feedback_no_expuesto_a_otro_actor_o_contexto`; pruebas API Participation con fakes no acreditan publicación | Primero cálculo/persistencia oficial y autorización/visibilidad; integrar lector aprobado sin devolver resultados LAB. |
-| RF-15 Seguimiento docente por estudiante y caso | Identity `infrastructure/followup.py::ConsultaSeguimientoSQLAlchemy`, ProxySeguimiento; joins reales a P/I/pasos y feedback | `/api/v1/identity/seguimiento/casos`, `/casos/{id}/participaciones`, `/participaciones/{id}`; sí | IMPLEMENTADO | `tests/integration/test_teacher_followup_http.py::test_docente_consulta_solo_su_ambito_con_intentos_y_referencias_exactas`; `test_detalle_cerrado_usa_explicacion_historica_y_no_abre_notas_reportes` PG | No equivale a reporte oficial RF-16. Login docente pendiente transversal; detalle activo no revela explicaciones académicas. |
-| RF-16 Descargar resultados, parciales y ausentes | Identity ServicioReportes/CSV y consulta cruda existentes, pero `reportes=None`; sin consolidación resultado_participacion | GET `/api/v1/identity/seguimiento/sesiones/{id}/reporte` registrado pero 503 | BLOQUEADO | `tests/identity/test_http.py::test_descarga_csv_incluye_parciales_y_ausentes` con dobles; test docente PG comprueba que no se abre reporte | Faltan roster autorizado completo, confirmación de ausencia y consolidación de varios intentos/notas. No exportar notas LAB ni llamar ausencia a un registro faltante. |
+| RF-15 Seguimiento docente por estudiante y caso | Identity `infrastructure/followup.py::ConsultaSeguimientoSQLAlchemy`, ProxySeguimiento y servicios existentes; joins P/I/pasos/feedback | Tres GET `/api/v1/identity/seguimiento/casos`, `/casos/{id}/participaciones`, `/participaciones/{id}` en main | IMPLEMENTADO | Pruebas históricas de `test_teacher_followup_http.py` y 11 casos actuales PG17 sobre main en `test_main_teacher_followup.py`: recorrido, versión histórica, privacidad, ámbito, concurrencia y cero DML/flush/commit; sección 14 | Lectura sin commit acreditada; no publica notas ni RF-16. Login personal sigue pendiente y JWT docente de aceptación se emite solo dentro del laboratorio. No equivale a integración productiva completa desde credenciales. |
+| RF-16 Descargar resultados, parciales y ausentes | ServicioReportes/CSV reforzado: rechaza duplicados/contradicciones y nota fuera de 0–100; consulta cruda no compuesta, `reportes=None`, sin resultado_participacion integrado | GET `/api/v1/identity/seguimiento/sesiones/{id}/reporte` registrado y cerrado con 503 para docente válido | BLOQUEADO | Seis pruebas de componente `test_report_integrity.py` con CSV sintético explícito; siete PG17/main `test_main_report_closed.py` de cierre seguro, autorización, padrón sin P, concurrencia y cero escrituras; sección 15 | La mejora no publica un reporte ni certifica procedencia oficial. Faltan padrón académico/corte/retiros, ausencia confirmada, consolidación y notas oficiales. No usar resultado_intento LAB como fuente alternativa; formato institucional pendiente. |
 | RF-17 Registrar/asociar rúbrica | Cases: ConstructorCaso, `rubrica`, `criterio_rubrica`, `nivel_rubrica`, `valoracion_opcion` por versión | DSL `/api/v1/cases`; sí | IMPLEMENTADO | Autoría HTTP PG y `tests/integration/test_evaluation_persisted.py::test_evidencias_historicas_reales_sin_calificacion` | Historia preservada; ponderación efectiva igualitaria aprobada no reescribe rúbricas anteriores. La semántica de puntajes para evaluar sigue pendiente en RF-13. |
 | RF-18 Programar horarios, duración, lugar y mensaje con caso publicado | Scheduling `programming_access.py::programar_sesion_autorizada`; docente_espacio_academico/sesion_programada con versión UUID exacta | POST `/scheduling/sesiones`, GET listado/detalle; sí | IMPLEMENTADO | `tests/integration/test_session_programming_http.py::test_programacion_autorizada_persiste_datos_y_uuid_de_scheduling`, `test_publicacion_posterior_no_sustituye_uuid_de_version_programada` PG | Grants son administrativos, no autovinculación; falta login personal transversal. No se deduce autorización de matrícula ni RF-22 de programar una sesión. |
-| RF-19 Estados de sesión y cierre automático +24h | Scheduling State, coordinador transaccional, Observer SQL y worker; evento_auditoria/notificacion | POST `/scheduling/sesiones/{id}/estado`; sí; worker separado | PARCIAL | `test_session_state_consistency.py`: 10 casos PG17; `test_session_notification_atomicity.py`: 6 casos PG17 de atomicidad, reintento y replay; secciones 10–11 | Lock con refresco preservado. Estado/auditoría/aviso interno atómicos: ya no hay cierre confirmado con aviso SQL perdido. Falta acreditar despliegue periódico/operación; callbacks externos no tienen recuperación durable y no se declara entrega de correo |
-| RF-20 Código individual y validación/notificación | Scheduling `crear_convocatoria`, hash y Identity ValidadorConvocatoriaScheduling | POST convocatorias; login real; `/scheduling/validar-ingreso` está compuesto pero cerrado por RF-22 | PARCIAL | `tests/identity/test_student_login_scheduling.py::test_login_rechaza_credenciales_o_titularidad_invalidas`; `test_convocation_management_http.py::test_altas_individuales_y_avisos_personalizados_sin_correo_ni_codigos_persistidos` PG | Código se entrega una vez al docente y se guarda hash. Falta entrega segura por correo. No tratar validación de código como aprobación temporal de ingreso. |
+| RF-19 Estados de sesión y cierre automático +24h | Scheduling State, coordinador transaccional, Observer SQL y worker_runner; evento_auditoria/notificacion | POST `/scheduling/sesiones/{id}/estado` en main; cierre automático en proceso separado/perfil worker optativo | IMPLEMENTADO | Diez casos PG17 de State, seis de atomicidad y cuatro nuevos de proceso real en `test_worker_process.py`, incluidos dos ciclos separados por 60 s, fallo/reintento y competencia de procesos; sección 12 | Comportamiento funcional acreditado sin dobles en los procesos. Activar/supervisar el worker es una condición de despliegue: no arranca dentro de main ni se instaló en un servidor permanente. Callbacks externos/correo siguen fuera de esta garantía |
+| RF-20 Código individual y validación/notificación | Scheduling `crear_convocatoria`, hash y Identity ValidadorConvocatoriaScheduling | POST convocatorias; login real; `/scheduling/validar-ingreso` exige habilitación real; sin política temporal suficiente permanece cerrado, sin P/I | PARCIAL | `tests/identity/test_student_login_scheduling.py::test_login_rechaza_credenciales_o_titularidad_invalidas`; `test_convocation_management_http.py::test_altas_individuales_y_avisos_personalizados_sin_correo_ni_codigos_persistidos` PG | Código se entrega una vez al docente y se guarda hash. Falta entrega segura por correo. No tratar validación de código como aprobación temporal de ingreso. |
 | RF-21 Correo convocatoria/altas/retiros | Scheduling convocation_management, avisos atómicos y retiro lógico; notificacion/convocatoria | POST/DELETE convocatorias y GET `/scheduling/notificaciones`; sí | PARCIAL | `tests/integration/test_convocation_management_http.py::test_retiro_revoca_login_ingreso_y_escritura_con_jwt_previo_sin_borrar_historia`, `test_fallo_tras_persistir_aviso_revierte_y_reintento_recupera` PG | Falta proveedor/remitente/URL institucional y contrato de entrega recuperable del código (hash no reconstruible). Aviso interno no prueba SMTP ni exactamente-una-vez externo. |
-| RF-22 Restringir ingreso tardío | PoliticaIngreso/NoConfigurada, inicio/vinculación con dependencias obligatorias | POST `/scheduling/validar-ingreso` 503 sin política; inicio convocatoria NO montado | BLOQUEADO | `tests/unit/scheduling/test_ingress_policy.py`; `tests/integration/test_participation_http_composition.py` con políticas explícitas LAB y rechazo cuando faltan | Aprobar base temporal, autoridad, umbral y fronteras; no adoptar 15 minutos automáticamente. Ningún positivo LAB demuestra ingreso productivo. |
+| RF-22 Restringir ingreso tardío | Scheduling admission.py, coordinador RF-19, JWT/matrícula/asignación SQL y versión histórica | POST /scheduling/convocatorias/{id}/espera; GET /scheduling/convocatorias/{id}/admision; POST /scheduling/validar-ingreso; sí en main | IMPLEMENTADO | 32 aceptaciones main/JWT real/PG17, test_waiting_admission.py; regresión focal 606 sin fallos. Sección 20 | Cumplido para sala aprobada, concesión previa y recuperación, no presencia online. No habilita P/I ni consentimiento productivo. Despliegue de migración aún no realizado. |
 | RF-23 Tiempo individual máximo y conservación | Intento, reloj inyectado, snapshot duracion_concedida_segundos, cierre y guards | Operaciones 9A de intento existente sí; nuevo inicio no | PARCIAL | `tests/integration/test_main_finish.py::test_cierre_confirma_vencimiento_que_get_no_persistio`; `tests/integration/test_attempt_start.py::test_inicio_real_y_segunda_session_con_version_y_duracion` PG, inicio LAB | Rechazo por tiempo y respuestas conservadas sí; aprobar inicio y coordinación con fin de sesión. Proyección VENCIDO no equivale a transición persistida ni nota PARCIAL. |
 | RF-24 Incompletos y ausencias | Strategy PARCIAL/AUSENCIA, PoliticaAcademicaConfirmada: cero por pendiente al vencer, sin selección/intento ficticio | Servicio interno; sin ruta oficial en main | BLOQUEADO | `tests/integration/test_academic_policy.py::test_vencido_recibe_ceros_sin_opciones_ficticias`, `test_ausencia_misma_regla_sin_intento_y_sin_nivel_cero_inventado` PG/unitarias según caso | Mapeo/agregación, cierre voluntario incompleto, confirmación/persistencia de ausencia y resultado sin intento. No copiar nota anterior por la frase «misma nota». |
 | RF-25 Repetición solo por creador y nunca sesión finalizada | Identity ProxyExcepciones sin proveedor; Participation start/permisos/locks; guard creador corregido en 9B | POST `/api/v1/identity/excepciones/repeticiones` registrado pero 503; inicio extra solo LAB | BLOQUEADO | `tests/integration/test_attempt_permission_creator.py::test_permiso_exige_identidad_cases_inequivoca_del_creador` PG; extra positivo HTTP es LAB | Aprobar cantidad/vigencia/consumo y condiciones excepcionales, conectar UoW común; preservar 403 cuando creador no se verifica. |
@@ -167,13 +170,14 @@ pruebas se verifican en el código; los parámetros concretos figuran en el JUni
 
 ### Lectura cuantitativa sin porcentajes inventados
 
-La clasificación anterior contiene **11 IMPLEMENTADO, 10 PARCIAL y 6 BLOQUEADO**;
+La clasificación actual contiene **13 IMPLEMENTADO, 9 PARCIAL y 5 BLOQUEADO**;
 ningún RF está enteramente sin componentes. No hay pesos de esfuerzo aprobados
-para convertir esas categorías a un porcentaje global. **11/27 = 40,7 %** es
+para convertir esas categorías a un porcentaje global. **13/27 = 48,1 %** es
 únicamente la proporción de RF con comportamiento acreditado bajo la definición
 anterior, no un porcentaje de código, despliegue ni recorridos de producto cerrados.
-Los once siguen sujetos a las dependencias transversales expresadas, especialmente
-autenticación de personal. La estimación conversacional previa de 80–85 % era
+Los trece siguen sujetos a las dependencias transversales expresadas. El login
+de personal ya tiene aceptación HTTP SQL, sin certificar su operación institucional.
+La estimación conversacional previa de 80–85 % era
 orientativa sobre construcción técnica; esta auditoría no la certifica como
 cumplimiento contractual y no debe emplearse como cifra de aceptación.
 
@@ -605,3 +609,327 @@ El replay del diagnóstico original también pasa sin modificarlo: 1 aprobada,
 Consolas, JUnit y motivos de las omisiones permanecen en el paquete. No hubo
 cambios de fuentes durante pytest; únicamente un JSON de evidencia BD2-04 nuevo,
 conservado y excluido del checkpoint. Sin migraciones ni conexiones permanentes.
+
+## 12. RF-19: cierre automático acreditado como proceso independiente
+
+Continuidad posterior a C1/C2/C3 (`33981c8`), sin commits nuevos. Se priorizaron
+RF-19, RF-03 y RF-21 utilizando esta matriz. Los dos últimos tienen contratos
+técnicos pendientes (login administrativo y transporte recuperable de códigos);
+no se inventaron implementaciones para declararlos completos. Selección, criterios
+previos y comandos seguros en `RF19_WORKER_OPERATIVO.md`.
+
+El perfil `worker` ya existía en Compose. Se reutilizan `worker_runner`, State,
+el coordinador y Observer transaccional. El cambio productivo se limita al runner:
+validación CLI, salida 1 en fallo de revisión única, manejo de interrupción y
+errores periódicos con código/clase, sin volcar excepción/SQL/parámetros.
+No cambiaron fecha límite +24 h, intervalo de 60 s, transacciones ni rutas.
+
+Evidencia actual en `evidencias/rf19_worker_20261105T195818Z/`:
+
+| Ejecución | Aprobadas | Omitidas | Fallos | Errores | Advertencias |
+|---|---:|---:|---:|---:|---:|
+| Focal `pruebas_casos_20261105T200215Z` | 6 | 0 | 0 | 0 | 1 |
+| Relacionada `pruebas_focal_20261105T200444Z` | 162 | 0 | 0 | 0 | 1 |
+
+La primera duró 80.88 s y la segunda 116.54 s. Las suites se solapan: no se suman.
+Dos pruebas son unitarias de CLI con dobles; cuatro usan procesos independientes,
+PostgreSQL17 y SQL/State/Observer reales. Las salidas de los hijos quedan como
+propiedades nominales del JUnit de la relacionada:
+
+- Revisión única: `Sesiones cerradas: 1`; repetición: `Sesiones cerradas: 0`.
+- Dos procesos detenidos en locks reales de PG: resultados 1 y 0; una auditoría
+  WORKER y un aviso al titular, comprobados desde otra Session.
+- Proceso periódico: error SQL controlado, rollback; siguiente revisión real a
+  los 60 s cierra la sesión sin reiniciar el proceso. Error registrado solo como
+  `REVISION_FALLIDA tipo=ProgrammingError`, sin el marcador privado de PostgreSQL.
+- Base inexistente dentro del servidor desechable: salida 1 y error saneado
+  `OperationalError`, sin nombre de base, contraseña ni traceback; sin cambios SQL.
+
+Este conjunto cubre la brecha operativa que mantenía RF-19 parcial, por eso pasa
+a IMPLEMENTADO en alcance funcional verificable. No es una certificación de
+despliegue institucional: la ruta docente ya está en main; el worker debe activarse
+y supervisarse como proceso independiente. No se construyó/certificó la imagen
+Docker ni se ejecutó Compose contra una base persistente. Los RNF operativos,
+monitorización y correo conservan sus límites globales.
+
+La general 2023/38 sigue siendo histórica; no se repitió porque no cambiaron
+contratos compartidos, esquemas HTTP ni lógica académica. La regresión relacionada
+incluye Scheduling, RF-19, atomicidad y bloqueo de notas RF-27. No se calcula un
+nuevo total general sumando los seis casos. Sin cambios a 9A/9B/Evaluation,
+`.env`, ORM, Alembic, DBML ni bases permanentes.
+
+## 13. Autenticación del personal: contrato no confirmado
+
+Se contrastaron RF-01/02/03 y RN-01/02 de los PDF, README y contratos históricos
+con el código y OpenAPI actuales. Resultado detallado y decisión necesaria en
+`AUTENTICACION_PERSONAL_CONTRATO_PENDIENTE.md`. RF-03 sigue siendo administración
+docente: implementar solo un login no resolvería permisos individuales/multirrol,
+bootstrap y aceptación integral de sus operaciones.
+
+Existe hash Argon2 de alta, primitiva de verificación pwdlib, emisor/verificador
+TokensJWT, recarga SQL de roles/permisos y autorización de recursos. No existe
+un servicio HTTP de autenticación de personal desde esas credenciales. Tampoco
+se encontró contrato que autorice local o exija un proveedor SSO concreto. No
+se implementó un mecanismo por deducción de la columna `clave_hash`.
+
+El único login registrado en main sigue siendo `/api/v1/identity/auth/estudiantes`.
+Las operaciones administrativas están registradas y protegidas por JWT/Proxy,
+pero no se añadió una vía pública para emitir esos tokens. Las fixtures de
+personal prueban autorización con tokens emitidos dentro del laboratorio.
+
+No cambian estados ni conteos: 12 IMPLEMENTADO, 9 PARCIAL y 6 BLOQUEADO. Solo se
+precisan las dependencias de RF-02/03. No se ejecutó pytest ni PostgreSQL en este
+incremento documental: no hay implementación autorizable por contrato ni cambios
+productivos. La introspección OpenAPI sin BD es una verificación de registro,
+no una prueba de login. Resultados 2023/38 y 162 relacionados permanecen históricos.
+
+Evidencia de fuentes, rutas y preservación:
+`evidencias/autenticacion_personal_20261105T201553Z/`. Todos los cambios operativos
+RF-19 y las secciones anteriores permanecen; sin cambios en código, endpoints,
+`.env`, bases permanentes, ramas, stash, checkpoints o políticas académicas.
+
+## 14. RF-15: recorrido de consulta docente de solo lectura en main
+
+Se reutilizaron los tres GET ya compuestos, ProxySeguimiento, ServicioSeguimiento,
+consulta SQL y contratos internos de Cases. RF-15 no estaba completamente bloqueado
+ni requería otro proveedor: su autorización JWT/SQL existe, aunque el login del
+personal continúa pendiente. Alcance y preparación de laboratorio en la sección
+de continuidad de `RF15_RF26_SEGUIMIENTO_DOCENTE.md`.
+
+El defecto técnico reproducido era commit innecesario en las lecturas: dos casos
+PG17 sobre main observaron seis COMMIT por recorrido de cuatro GET. No se atribuye
+DML al comportamiento anterior. `_operar` ahora usa `no_autoflush` y cierre de
+Session sin commit; conserva los locks y la revalidación de ámbito. El escritor
+de feedback y Participation no se modificaron.
+
+| Ejecución actual | Aprobadas | Omitidas | Fallos | Errores | Advertencias |
+|---|---:|---:|---:|---:|---:|
+| Reproducción `pruebas_seguridad_20261105T202708Z` | 0 | 0 | 2 | 0 | 1 |
+| Aceptación `pruebas_casos_20261105T202801Z` | 11 | 0 | 0 | 0 | 1 |
+| Relacionada `pruebas_focal_20261105T202910Z` | 129 | 0 | 0 | 0 | 1 |
+
+Evidencia: `evidencias/rf15_lectura_20261105T202511Z/`. No se suman ejecuciones.
+Incluye app.main, JWT/roles/vínculos SQL reales, edición histórica, respuestas y
+valoración individual, lecturas concurrentes, denegaciones y error SQL saneado.
+Datos/cuentas son sintéticos; se emite JWT docente dentro de la fixture, sin
+afirmar login institucional. La preparación de intento y nueva edición sigue
+identificada como LAB, no habilita inicio productivo ni otra API.
+
+RF-15 mantiene IMPLEMENTADO en este alcance; conteos 12/9/6 sin cambios. No se
+afirma lectura en una réplica PostgreSQL READ ONLY: los locks de autorización
+siguen presentes. No cambian contratos públicos/compartidos, no se repitió la
+general y 2023/38 permanece histórico. Se conservan RF-19 operativo, contrato
+pendiente de personal, RF-27, 9A/9B, Evaluation y todos los bloqueos académicos.
+
+## 15. RF-16: integridad del CSV, reporte oficial todavía bloqueado
+
+Diagnóstico y selección previa en `RF16_REPORTE_Y_BLOQUEOS.md`. RF-16 exige
+resultados, parciales y ausentes; no autoriza inventar estados/nota desde I o una
+fila faltante. La consulta existente parte de participaciones y no es el padrón
+completo; el consolidado no está integrado. ResultadoIntento solo permite ámbito
+LABORATORIO. Por ello no se compuso el proveedor ni se abrió el endpoint.
+
+Mejora limitada: ServicioReportes valida estudiante/participación únicos y nota
+presente dentro de escala antes de escribir el CSV. No deduplica seleccionando
+último/mayor intento, no cambia columnas, no transforma vacíos en cero ni toca
+Evaluation. Ese control no demuestra procedencia oficial de una fila.
+
+| Ejecución actual | Aprobadas | Omitidas | Fallos | Errores | Advertencias |
+|---|---:|---:|---:|---:|---:|
+| Focal `pruebas_casos_20261105T204245Z` | 13 | 0 | 0 | 0 | 1 |
+| Relacionada `pruebas_focal_20261105T204324Z` | 140 | 0 | 0 | 0 | 1 |
+| General `pruebas_total_20261105T204545Z` | 2053 | 38 | 0 | 0 | 1 |
+
+Evidencia en `evidencias/rf16_integridad_20261105T203847Z/`. No se suman suites.
+Seis casos prueban el serializador con fuente sintética explícita; su CSV LAB
+real se guardó con hash, no proviene de PostgreSQL ni de descarga HTTP oficial.
+Siete casos PG17 sobre main comprueban 503 para docentes (incluido ajeno), 403
+estudiante, 401 sin JWT válido, cero DML/flush/commit, concurrencia y dos convocados
+con una sola P sin inferir ausencia. El 503 global no acredita ámbito de sesión
+completo: esa autorización está pendiente junto con la composición del reporte.
+
+RF-16 permanece BLOQUEADO; conteos 12/9/6 sin cambios. La nueva general incluye
+también los incrementos RF-19 y RF-15 aún sin commit. Las 38 omitidas no son
+aprobaciones; motivos y advertencia conocida quedan en consola/JUnit. Sin nuevas
+tablas/rutas, políticas, login, calificaciones oficiales ni bases permanentes.
+
+## 16. Login del personal con correo y contraseña asignada por administrador
+
+Decisión funcional posterior del equipo: mecanismo local autorizado para este
+incremento; no se atribuye aprobación institucional adicional. Se sustituye el
+bloqueo de elección local/SSO del diagnóstico de la sección 13, que se conserva
+como antecedente. Contrato y límites: `LOGIN_PERSONAL_CORREO_CLAVE.md`.
+
+Se reutilizan Identity, pwdlib/Argon2, repositorio y TokensJWT. La ruta
+`POST /api/v1/identity/auth/personal` está registrada realmente en main. Solo
+cuentas activas DOCENTE/ADMINISTRADOR con clave correcta emiten JWT; no admiten
+roles del cliente, convocatoria ficticia ni autovinculación UUID. Los permisos y
+estado siguen consultándose en PostgreSQL en las operaciones protegidas.
+
+RF-02 pasa a IMPLEMENTADO dentro de su alcance de permiso de creación por rol:
+login real, creación propia, caso ajeno rechazado y revocación de permiso/rol
+acreditados. RF-03 sigue PARCIAL: alta y asignación compatibles funcionan, pero
+bootstrap y granularidad de permisos no se inventan. RF-16 sigue BLOQUEADO para
+CSV oficial; inicio productivo, repetición y notas no se habilitan.
+
+Resultados actuales, sin sumar suites solapadas:
+
+| Ejecución | Aprobadas | Omitidas | Fallidas | Errores | Advertencias |
+|---|---:|---:|---:|---:|---:|
+| Primera focalizada | 18 | 0 | 1 | 0 | 1 |
+| Focalizada corregida | 19 | 0 | 0 | 0 | 1 |
+| Regresión relacionada final | 421 | 29 | 0 | 0 | 1 |
+| General final | 2072 | 38 | 0 | 0 | 1 |
+
+La primera falla fue una expectativa de prueba que leía `id` en la respuesta de
+Cases en vez del contrato existente `version_id`; se corrigió únicamente esa
+expectativa y se conserva el log fallido. Después se añadieron aserciones del PUT
+administrativo, incluidas en las regresiones finales. Las 19 pruebas nuevas usan
+app.main, JWT real y PostgreSQL 17 desechable, sin overrides de autenticación o
+repositorios; el primer administrador y las asociaciones de casos se preparan
+explícitamente como fixtures de laboratorio. Las 29 omisiones antiguas de Identity
+y 9 de Participation requieren URLs/configuración explícita y no se dan por
+aprobadas. La advertencia es la conocida de Starlette/TestClient-httpx.
+
+Evidencia: `evidencias/login_personal_20261105T211338Z/`, JUnit, consola y huellas
+por ejecución. General `pruebas_total_20261105T212350Z`, 885.54 s. Base `33981c8`
+más cambios locales sin commit; no debe atribuirse este código al commit base.
+La general no cambió fuentes; generó una evidencia BD2-04 que se conserva.
+
+## 17. Antecedente RF-22: anticipación DESCARTADA por corrección posterior
+
+**No vigente:** esta sección conserva evidencia de la decisión anterior, sustituida
+por la sección 18. No permite ingreso anticipado.
+
+Decisión funcional comunicada por el equipo: ingreso anticipado desde diez minutos
+antes del inicio. No se atribuye aprobación institucional de otras políticas.
+`POST /scheduling/validar-ingreso` usa JWT real, convocatoria propia ACTIVA y
+matrícula activa vinculada por asignación a la versión exacta de la sesión.
+Se aplica `[inicio - 10 minutos, inicio)` a SIN_INICIAR. EN_CURSO conserva su
+política posterior no configurada (503); FINALIZADO rechaza. Inicio exacto con
+SIN_INICIAR sigue rechazado. No se inventa tolerancia tardía ni permite cambiar
+la ventana desde el cliente. Todos los instantes requieren zona explícita.
+
+RF-22 pasa de BLOQUEADO a PARCIAL, no a completo. La anticipación está disponible
+en main; no crea participación/intento ni habilita el router de inicio. RF-20
+conserva su parcialidad por entrega externa pendiente. RF-16 y notas oficiales
+no cambian. Contrato, archivos, casos y evidencia: `RF22_INGRESO_ANTICIPADO.md`.
+
+Aceptación: 26 casos nuevos HTTP main, JWT y PG17; cuatro unidades de límites del
+proveedor. Relacionada FINAL: 558 aprobadas, 0 omitidas/fallidas/errores, una
+advertencia, 149.94 s. General FINAL: 2102 aprobadas, 38 omitidas, 0 fallidas y
+0 errores, una advertencia, 938.51 s. No sumar suites solapadas. Las omisiones son
+las 29 antiguas Identity y 9 Participation condicionadas a configuración/URL.
+No se modificó código durante las ejecuciones. Advertencia conocida Starlette.
+
+Se conserva la primera general fallida: 2063 aprobadas, 38 omitidas, 12 fallidas,
+27 errores. La preparación de matrícula se había añadido a una fixture compartida
+de login; sus nuevas FK impedían casos de versiones/sesiones aún no asignadas.
+Se movió SOLO a la fixture temporal de ingreso. Las pruebas históricas afectadas
+permanecen y pasan; no se alteraron FK ni lógica productiva para evitarlas.
+Logs, JUnit, comandos y huellas: `evidencias/rf22_anticipado_20261105T231718Z/`,
+finales `pruebas_focal_20261105T234704Z` y `pruebas_total_20261105T235005Z`.
+Fecha local final 2026-11-05 19:05:56 (America/Bogota). Base `33981c8` más cambios
+locales sin commit. No hubo migración nueva ni conexión a una base permanente.
+
+Consentimiento: se registra la decisión posterior de aceptación antes de crear P
+y no revocación mientras se ejecuta la simulación. Sigue faltando la fuente del
+texto/version vigente y cómo comprobar su aplicabilidad. Los servicios técnicos
+reutilizables no acreditan ese contrato por sí mismos: la provisión independiente
+LAB no exige aún esa aceptación antes de P y no está montada en main. Revocación
+fuera de ejecución, versión aplicable, política desde inicio y repetición requieren
+precisión; no se implementan en este incremento. La política de anticipación no
+se inyecta al iniciador de Participation ni concede permiso para simular.
+
+## 18. RF-22 corregido: habilitación efectiva indispensable
+
+Corrección posterior del responsable funcional: no hay autorización de anticipación.
+El alumno solo puede ingresar con sesión habilitada. State produce EN_CURSO por
+operación docente protegida y lo persiste junto a auditoría; fecha_inicio no
+habilita por sí sola. Se elimina la clase/constante/factory anticipada y su rama
+en validar_ingreso. SIN_INICIAR rechaza a -10 minutos, -1 segundo, inicio exacto
+y después; FINALIZADO rechaza. EN_CURSO conserva el proveedor temporal cerrado
+hasta disponer de una política completa, sin inventar tolerancia tardía.
+
+No cambia el estado PARCIAL ni los conteos de RF. Se conserva autenticación,
+convocatoria ACTIVA, matrícula, código, versión exacta, lectura sin DML/flush/commit
+y cero P/I. No se modifican Participation, Evaluation, consentimiento ni inicio.
+La corrección es de requisito; el código anterior cumplía la interpretación
+anterior, ahora descartada. Registro: `DECISIONES_FUNCIONALES_RF22.md`.
+
+Evidencia actual `evidencias/rf22_habilitacion_20261106T002442Z/`: reproducción
+previa 2 aprobadas (admitía anticipación); aceptación corregida 30 aprobadas PG17;
+relacionada 558 aprobadas; general 2102 aprobadas, 38 omitidas, 0 fallidas/errores,
+1 advertencia conocida, 926.08 s. No sumar suites solapadas ni atribuir aprobaciones
+a omisiones. General final `pruebas_total_20261106T003253Z`, huellas estables.
+
+Los positivos temporales adicionales son explícitamente LAB; main sin overrides
+rechaza con 503 después de habilitar si falta la política. La sesión evaluada se
+crea/habilita por HTTP con JWT docente real, estudiante se autentica por correo y
+código, y estado/auditoría se recuperan desde otra Session. No se inventan instantes
+de habilitación ni se reescribe la auditoría anterior. Informe actualizado en
+`RF22_INGRESO_ANTICIPADO.md`, que conserva su nombre e historia.
+
+## 19. Definición definitiva RF-22 y consentimiento/inicio internos
+
+Se mantienen los 27 RF y sus categorías (13 IMPLEMENTADO, 9 PARCIAL, 5 BLOQUEADO).
+RF-12 y RF-22 avanzan técnicamente sin cambiar a completos. No se reauditan ni se
+atribuyen aprobaciones a otros requisitos. No hay nuevas notas oficiales.
+
+RF-22: sin tolerancia anticipada ni tardía; habilitación real es indispensable,
+pero no prueba oportunidad. Falta señal objetiva de admisión, por lo que se
+conserva 503. No se introducen minutos, igualdad de timestamps ni permiso durante
+todo EN_CURSO. Las pruebas positivas temporales siguen siendo SOLO LAB.
+
+Consentimiento: decisiones de aceptación antes de P, versión vigente/nueva
+aceptación para nueva P al cambiar versión y no revocación durante ejecución.
+No existe documento oficial. Hay borrador NO aprobado y contrato/fuente interna
+sin adaptador productivo. El servicio SQL de aceptación/consulta usa identidad
+actual, acción explícita, fecha servidor y versión/huella presentadas frente a
+fuente de servidor. Guard interno para revocación con I EN_CURSO, sin nuevo flujo
+público ni garantía SQL directa. No se reclasifica legado como aceptación probada.
+
+Antes de crear P, provisión valida consentimiento y, en flujo combinado, grafo,
+duración y misma política de inicio. Se conserva UoW/locks/revalidación antes de I,
+commit único y rollback. No hay fuente por defecto, autoinicio ni repetición.
+Los contratos privados cambian mínimamente; HTTP principal no expone nuevos
+routers. Persistencia usa consentimiento existente, sin tablas/migraciones nuevas.
+
+Pruebas actuales: focal inicial 24 aprobadas; relacionada final 582; general final
+2126 aprobadas, 38 omitidas, 0 fallidas/errores, una advertencia conocida, 874.69 s.
+Final 2026-11-05 20:31:56 America/Bogota. No sumar solapamientos ni contar omisiones
+como aprobadas (29 Identity, 9 Participation antiguas condicionadas a URL).
+Código estable durante pruebas. Evidencia/JUnit:
+`evidencias/consentimiento_inicio_20261106T010714Z/`, finales
+`pruebas_focal_20261106T011316Z` y `pruebas_total_20261106T011709Z`.
+
+Detalles, archivos y pendientes: `CONSENTIMIENTO_E_INICIO_INTERNO.md`.
+Borrador: `BORRADOR_CONSENTIMIENTO_INFORMADO.md`, no conectado al backend.
+
+
+## 20. Sala de espera y admisión aprobadas: avance RF-22
+
+La decisión funcional explícita del equipo sustituye el bloqueo de oportunidad
+anterior: solicitudes previas válidas, congeladas atómicamente con la habilitación
+docente persistida. No hay margen anticipado ni tardío. RF-22 cambia de PARCIAL a
+IMPLEMENTADO para este contrato acreditado en main/PG17; no equivale a desplegado
+ni a inicio productivo. Conteo actualizado: 14 IMPLEMENTADO, 8 PARCIAL, 5 BLOQUEADO.
+Los conteos de secciones anteriores son históricos. RF-12 permanece PARCIAL y los
+otros 25 estados no se modifican. No cambian las fórmulas o notas oficiales.
+
+Evidencia y límites: SALA_ESPERA_ADMISION_DISENO.md. Concesión causal inmutable,
+una fila por convocatoria, pertenencia de versión y elegibilidad actuales;
+read-only al consultar/validar. Espera sí escribe. 32 pruebas nuevas abarcan
+varios estudiantes, JWT real, titularidad, corte concurrente en ambos órdenes,
+conflicto reintentable, rollback integral, historial, retiro, worker y migración.
+Se conservan los fixtures históricos LAB de otras suites, identificados como
+tales y sin usarlos para declarar cumplida la admisión real. El documento de
+consentimiento oficial sigue ausente; no se abren provisión/inicio ni Evaluation.
+
+
+Validación final sección 20: general 2158 aprobadas, 38 omitidas, 0 fallidas/errores,
+1 advertencia conocida, 948.13 s; `pruebas_total_20261106T025335Z`. Aceptación final
+32; relacionada de compatibilidad 333; focal inicial 606. No sumar solapamientos.
+La primera general fallida se conserva y se explica en el contrato de sala;
+la final acredita la corrección de fixtures/cadena sin saltar pruebas. No cambia
+ningún otro RF ni evaluación de RNF por inferencia. El total vigente es 14/8/5.

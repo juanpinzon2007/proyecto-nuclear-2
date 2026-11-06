@@ -294,3 +294,15 @@ las decisiones indicadas antes de autorizar la creación productiva. El inventar
   generado por el test BD2-04 se conserva; no se elimina evidencia.
 - El lote propuesto de 9A continúa separado. La corrección de 9B, su prueba y este
   informe requieren revisión propia antes de cualquier selección para commit.
+
+## Actualización: consentimiento previo a crear P, integración interna
+
+El defecto de orden de provisión/inicio está corregido internamente: la aceptación
+vigente y la misma política de inicio se validan antes de agregar P, sin fabricar
+una PK. Fuente de servidor obligatoria, sin proveedor productivo implícito.
+El iniciador existente revalida antes de I y la UoW conserva commit/rollback único.
+Políticas positivas y documentos siguen SOLO LAB. Ninguna ruta nueva se monta en
+main; faltan documento oficial, procedencia de aceptación y señal temporal de
+admisión, además de los contratos restantes. Detalles y pruebas actuales:
+`CONSENTIMIENTO_E_INICIO_INTERNO.md` (24 focalizadas, 582 relacionadas, general
+2126 aprobadas/38 omitidas, 0 fallos/errores, una advertencia; no sumar suites).
