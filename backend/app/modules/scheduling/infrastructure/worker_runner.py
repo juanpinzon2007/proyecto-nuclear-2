@@ -2,6 +2,7 @@
 """Ejecutor periódico del Worker de cierre de sesiones (RF-19)."""
 
 import asyncio
+import argparse
 import logging
 import sys
 
@@ -21,6 +22,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 INTERVALO_SEGUNDOS = 60
+
+
+def registrar_error(error: Exception) -> None:
+    # Las excepciones SQL pueden incluir parámetros y datos académicos. Conservar
+    # solo un código operativo y la clase; nunca texto, SQL ni traceback.
+    logger.error("REVISION_FALLIDA tipo=%s", type(error).__name__)
 
 
 async def ejecutar_revision() -> int:
@@ -47,14 +54,25 @@ async def ejecutar_periodicamente() -> None:
         try:
             await ejecutar_revision()
 
-        except Exception:
-            logger.exception("Error en el Worker académico")
+        except Exception as error:
+            registrar_error(error)
 
         await asyncio.sleep(INTERVALO_SEGUNDOS)
 
 
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--once", action="store_true", help="Revisar una vez y salir.")
+    opciones = parser.parse_args(argv)
+    try:
+        asyncio.run(ejecutar_revision() if opciones.once else ejecutar_periodicamente())
+    except KeyboardInterrupt:
+        logger.info("Worker académico detenido")
+    except Exception as error:
+        registrar_error(error)
+        return 1
+    return 0
+
+
 if __name__ == "__main__":
-    if "--once" in sys.argv:
-        asyncio.run(ejecutar_revision())
-    else:
-        asyncio.run(ejecutar_periodicamente())
+    sys.exit(main())
