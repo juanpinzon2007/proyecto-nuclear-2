@@ -32,6 +32,9 @@ def exigir_aceptacion(db, *, id_estudiante, id_asignacion, ahora, fechas, fuente
         consulta = consulta.where(C.version_texto==documento.referencia,C.fecha_revocacion.is_(None))
     else:
         consulta = consulta.where(C.id_consentimiento==id_consentimiento)
+    if documento.id_version_documento is not None:
+        consulta=consulta.where(C.id_version_documento==documento.id_version_documento,
+            C.aceptacion_explicita.is_(True),C.huella_aceptada==documento.huella)
     filas = db.scalars(consulta.with_for_update(read=True).execution_options(populate_existing=True)).all()
     if len(filas)>1:
         raise IntegracionPendiente()
@@ -74,11 +77,20 @@ class ServicioConsentimientoSQLAlchemy:
             existentes=self.db.scalars(select(C).where(C.id_estudiante==cuenta,
                 C.version_texto==documento.referencia,C.fecha_revocacion.is_(None))).all()
             if existentes:
+                if (documento.id_version_documento is not None and len(existentes)==1
+                    and existentes[0].id_version_documento==documento.id_version_documento
+                    and existentes[0].aceptacion_explicita is True
+                    and existentes[0].huella_aceptada==documento.huella
+                    and self.fechas.desde_db(existentes[0].fecha_aceptacion)<=ahora):
+                    return existentes[0].id_consentimiento
                 # Una fila histórica no prueba consentimiento explícito de esta
                 # solicitud. No crear duplicados ni afirmar idempotencia sin prueba.
                 raise IntegracionPendiente()
             fila=C(id_estudiante=cuenta,version_texto=documento.referencia,
                    fecha_aceptacion=self.fechas.hacia_db(ahora,sin_offset=True))
+            if documento.id_version_documento is not None:
+                fila.id_version_documento=documento.id_version_documento
+                fila.aceptacion_explicita=True;fila.huella_aceptada=documento.huella
             self.db.add(fila);self.db.flush()
             return fila.id_consentimiento
 

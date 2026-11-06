@@ -110,6 +110,8 @@ def cuentas(c):
 @pytest.fixture
 def bd(conexion):
     command.upgrade(config_alembic(conexion), HEAD)
+    from tests.identity.academic_identity_support import columnas_consentimiento_para_fixture_historica
+    columnas_consentimiento_para_fixture_historica(conexion)
     cuentas(conexion)
     return conexion
 
@@ -141,7 +143,8 @@ def valores_validos(c, tabla):
 def test_columnas_y_claves_coinciden_con_el_dbml_original(modelo):
     t = modelo.__table__
     especificacion = columnas_dbml(t.name)
-    assert set(t.c.keys()) == {n for n, _, _, _ in especificacion}
+    extras={'id_version_documento','aceptacion_explicita','huella_aceptada'} if t.name=='consentimiento' else set()
+    assert set(t.c.keys()) == {n for n, _, _, _ in especificacion}|extras
     tipos = {"int": sa.Integer, "varchar": sa.String, "timestamp": sa.DateTime, "boolean": sa.Boolean}
     for nombre, tipo, longitud, flags in especificacion:
         col = t.c[nombre]
@@ -166,24 +169,24 @@ def test_columnas_y_claves_coinciden_con_el_dbml_original(modelo):
         for columnas in re.findall(r"\(([^)]+)\) \[unique\]", bloque_dbml(t.name))
     }
     assert {tuple(c.name for c in u.columns) for u in t.constraints if isinstance(u, sa.UniqueConstraint)} == esperadas
-    assert not any(isinstance(q, sa.CheckConstraint) for q in t.constraints)
-    assert not t.indexes
+    assert {q.name for q in t.constraints if isinstance(q,sa.CheckConstraint)}==({'ck_consentimiento_evidencia'} if extras else set())
+    assert {q.name for q in t.indexes}==({'uq_consentimiento_explicito_vigente'} if extras else set())
     assert all(f.ondelete is None and f.onupdate is None for f in t.foreign_key_constraints)
 
 
 def test_inventario_aprobado_metadata_y_limites_de_la_revision():
     m = registrar_modelos_integrados()
-    assert set(m.tables) == ANTERIORES | NUEVAS | {"asignacion_caso", "participacion", "intento", "permiso_intento_extra", "paso_simulacion", "resultado_intento", "resultado_criterio", "retroalimentacion_docente", "docente_espacio_academico"}
-    assert len(m.tables) == 31
+    assert set(m.tables) == ANTERIORES | NUEVAS | {"asignacion_caso", "participacion", "intento", "permiso_intento_extra", "paso_simulacion", "resultado_intento", "resultado_criterio", "retroalimentacion_docente", "docente_espacio_academico", "documento_consentimiento_version", "seleccion_consentimiento"}
+    assert len(m.tables) == 33
     assert {t.name for t in m.sorted_tables} == set(m.tables)
     assert set(academic_metadata.tables) == set()
     assert not NUEVAS & set(academic_metadata.tables)
-    assert sum(len(x.__table__.columns) for x in MODELOS) == 14
-    assert sum(len(x.__table__.foreign_key_constraints) for x in MODELOS) == 4
+    assert sum(len(x.__table__.columns) for x in MODELOS) == 17
+    assert sum(len(x.__table__.foreign_key_constraints) for x in MODELOS) == 5
     assert len(re.findall(r"^Table ", DBML.read_text(encoding="utf-8"), re.M)) == 28
 
     script = ScriptDirectory.from_config(config_alembic(None))
-    assert script.get_heads() == ["20261105_waiting_admission"]
+    assert script.get_heads() == ["20261106_consent_versions"]
     assert script.get_revision("20261102_steps_uuid").down_revision == "20261102_participation_history"
     assert script.get_revision("20261102_participation_history").down_revision == "20261102_assignment_bridge"
     assert script.get_revision("20261102_assignment_bridge").down_revision == "20261102_cases_history_guard"
@@ -206,12 +209,12 @@ def test_upgrade_vacio_y_modelos_reflejados(conexion):
     for modelo in MODELOS:
         t = modelo.__table__
         assert set(i.get_pk_constraint(t.name)["constrained_columns"]) == set(t.primary_key.columns.keys())
-        assert {c["name"] for c in i.get_columns(t.name)} == set(t.c.keys())
+        assert {c["name"] for c in i.get_columns(t.name)} == set(t.c.keys())-({"id_version_documento","aceptacion_explicita","huella_aceptada"} if t.name=="consentimiento" else set())
         assert conexion.scalar(sa.select(sa.func.count()).select_from(t)) == 0
         fk = {(tuple(f["constrained_columns"]), f["referred_table"], tuple(f["referred_columns"]))
               for f in i.get_foreign_keys(t.name)}
         esperado = {(tuple(f.column_keys), f.elements[0].column.table.name,
-                     tuple(e.column.name for e in f.elements)) for f in t.foreign_key_constraints}
+                     tuple(e.column.name for e in f.elements)) for f in t.foreign_key_constraints if "id_version_documento" not in f.column_keys}
         assert fk == esperado
     # La revisión histórica conserva sus 22 tablas. El metadata actual agrega
     # P1-P3: comprobar coincidencia completa al alcanzar la cabeza actual.

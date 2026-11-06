@@ -34,6 +34,7 @@ from app.modules.scheduling.application.validar_ingreso import validar_ingreso, 
 from app.modules.scheduling.domain.ingress_policy import PoliticaTemporalNoDisponible, fecha_utc
 from app.modules.scheduling.infrastructure.assignment_models import AsignacionCasoModel as A
 from app.modules.scheduling.infrastructure.models import ConvocatoriaModel as C, SesionProgramadaModel as S
+from app.modules.scheduling.infrastructure.admission import AdmisionSQLAlchemy
 
 
 class _AlcanceInicio(_Alcance):
@@ -51,11 +52,14 @@ class _AlcanceInicio(_Alcance):
 
 
 class IdentityInicioSQLAlchemy:
-    def __init__(self, alcance):
+    def __init__(self, alcance, *, reloj=None):
         self.a = alcance
+        self.reloj = reloj
 
     def autorizar_acceso(self, *, id_estudiante, id_participacion):
         s, a = self.a.sesion(), self.a
+        if s.get_bind().dialect.name != 'postgresql' or s.connection().get_isolation_level() != 'READ COMMITTED':
+            raise ReglaPendiente("El inicio exige PostgreSQL READ COMMITTED.")
         if (a.usuario is None or type(id_estudiante) is not int
                 or str(id_estudiante) != a.usuario.id_usuario or id_participacion != a.id_participacion):
             raise AccesoDenegado("Participación no disponible.")
@@ -92,10 +96,25 @@ class IdentityInicioSQLAlchemy:
         fila = self.a.datos()
         if (id_participacion,id_grupo_estudiante)!=(fila.id_participacion,fila.id_grupo_estudiante):
             raise AccesoDenegado("Participación no disponible.")
+        vinculo=s.get(P,id_participacion)
+        if vinculo.id_consentimiento is not None and vinculo.id_consentimiento!=id_consentimiento:
+            raise AccesoDenegado("El intento no puede sustituir la aceptación histórica.")
         consentimiento = s.execute(select(ConsentimientoORM).where(
             ConsentimientoORM.id_consentimiento==id_consentimiento).with_for_update(read=True)).scalar_one_or_none()
         if consentimiento is None or consentimiento.id_estudiante != id_estudiante or consentimiento.fecha_revocacion is not None:
             raise AccesoDenegado("Consentimiento no disponible o revocado.")
+        if consentimiento.id_version_documento is not None:
+            if vinculo.id_consentimiento is None:
+                raise ReglaPendiente("Participación legada sin consentimiento de creación verificable.")
+            from app.modules.identity.infrastructure.consent_repository import FuenteConsentimientoSQLAlchemy
+            if self.reloj is None:raise ReglaPendiente("Falta reloj para consentimiento versionado.")
+            try:
+                documento=FuenteConsentimientoSQLAlchemy(s).vigente(id_asignacion=fila.id_asignacion,ahora=self.reloj.ahora())
+            except IntegracionPendiente:
+                raise ReglaPendiente("Falta definición aplicable verificable.") from None
+            if (consentimiento.id_version_documento!=documento.id_version_documento
+                or consentimiento.aceptacion_explicita is not True or consentimiento.huella_aceptada!=documento.huella):
+                raise AccesoDenegado("La aceptación histórica no corresponde a la definición aplicable.")
         permiso = None
         if id_permiso_extra is not None:
             permiso = s.execute(select(PermisoIntentoExtraORM).where(
@@ -199,7 +218,8 @@ class SchedulingInicioSQLAlchemy(SchedulingIntentoSQLAlchemy):
             def ahora(self): return instante
         try:
             validar_ingreso(s,convocatoria_id=convocatoria.id,estudiante_id=convocatoria.estudiante_id,
-                codigo_acceso=self.codigo,politica=self.ingreso,reloj=Instante())
+                codigo_acceso=self.codigo,politica=self.ingreso,reloj=Instante(),
+                admision=AdmisionSQLAlchemy(s,self.a.usuario,bloquear=True))
             condiciones = replace(self._inicio,ahora=fecha_utc(instante))
             if condiciones.aceptado_en > condiciones.ahora:
                 raise AccesoDenegado("La aceptación es posterior al inicio.")
@@ -207,9 +227,9 @@ class SchedulingInicioSQLAlchemy(SchedulingIntentoSQLAlchemy):
                 raise AccesoDenegado("El permiso es posterior al inicio.")
             if self.politica.autorizar(condiciones) is not None:
                 raise ReglaPendiente("Contrato de política de inicio inválido.")
-        except ErrorIngreso:
+        except (ErrorIngreso, AccesoIdentity):
             raise AccesoDenegado("Ingreso no autorizado.") from None
-        except PoliticaTemporalNoDisponible:
+        except (PoliticaTemporalNoDisponible, IntegracionPendiente):
             raise ReglaPendiente("La ventana de ingreso no está aprobada/configurada.") from None
 
 
@@ -223,7 +243,7 @@ def crear_facade_inicio_8b(*, usuario, id_participacion, reloj, fechas, crear_se
     """
     trabajo = UnidadTrabajoSQLAlchemy(lambda s:RepositorioParticipacionSQLAlchemy(s,fechas=fechas),crear_sesion=crear_sesion)
     alcance = _AlcanceInicio(lambda:trabajo.sesion,usuario,id_participacion,fechas)
-    identity = IdentityInicioSQLAlchemy(alcance)
+    identity = IdentityInicioSQLAlchemy(alcance,reloj=reloj)
     scheduling = SchedulingInicioSQLAlchemy(alcance,identity,reloj,politica_ingreso,politica_inicio,codigo_acceso)
     return ParticipacionFacade(fabrica=lambda:trabajo,identity=identity,scheduling=scheduling,
         cases=CasesIntentoSQLAlchemy(alcance,None),reloj=reloj)
@@ -237,7 +257,7 @@ def preparar_inicio_en_uow(*, trabajo, usuario, id_participacion, reloj, fechas,
     No abre Session, no entra otra UoW y no confirma la transacción prestada.
     """
     alcance = _AlcanceInicio(lambda:trabajo.sesion,usuario,id_participacion,fechas)
-    identity = IdentityInicioSQLAlchemy(alcance)
+    identity = IdentityInicioSQLAlchemy(alcance,reloj=reloj)
     scheduling = SchedulingInicioSQLAlchemy(alcance,identity,reloj,politica_ingreso,politica_inicio,codigo_acceso)
     servicio = ServicioInicio(lambda:trabajo,identity,scheduling,reloj)
     return servicio.preparar(trabajo=trabajo,id_estudiante=id_entero(usuario.id_usuario),

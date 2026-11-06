@@ -215,7 +215,7 @@ def test_upgrade_downgrade_en_laboratorio_vacio():
             command.upgrade(config_alembic(s),PARENT)
             command.upgrade(config_alembic(s),"head")
             assert compare_metadata(MigrationContext.configure(s),registrar_modelos_integrados())==[]
-            assert len(registrar_modelos_integrados().tables)==31
+            assert len(registrar_modelos_integrados().tables)==33
             assert len(sa.inspect(s).get_foreign_keys("resultado_criterio"))==3
             command.downgrade(config_alembic(s),PARENT)
             assert "resultado_intento" not in sa.inspect(s).get_table_names()

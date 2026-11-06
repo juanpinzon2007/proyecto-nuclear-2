@@ -14,11 +14,14 @@ class DocumentoConsentimiento:
     version: str
     texto: str
     vigente: bool
+    id_version_documento: int | None = None  # Solo procede del registro SQL verificado.
 
     def __post_init__(self):
         if (not all(type(v) is str and v.strip() for v in
                     (self.referencia,self.documento_id,self.version,self.texto))
-                or len(self.referencia)>30 or type(self.vigente) is not bool):
+                or len(self.referencia)>30 or type(self.vigente) is not bool
+                or (self.id_version_documento is not None and
+                    (type(self.id_version_documento) is not int or self.id_version_documento<=0))):
             raise IntegracionPendiente()
 
     @property

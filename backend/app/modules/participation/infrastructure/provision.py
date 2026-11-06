@@ -28,16 +28,18 @@ from app.modules.participation.infrastructure.unit_of_work import UnidadTrabajoS
 from app.modules.scheduling.domain.ingress_policy import fecha_utc, PoliticaTemporalNoDisponible
 from app.modules.scheduling.infrastructure.assignment_models import AsignacionCasoModel as A
 from app.modules.scheduling.infrastructure.models import ConvocatoriaModel as C, SesionProgramadaModel as S
+from app.modules.scheduling.infrastructure.admission import AdmisionSQLAlchemy
 
 
 class ServicioVinculacionSQLAlchemy:
     def __init__(self, *, usuario, reloj, fechas, crear_sesion,
                  politica_ingreso=None, politica_vinculacion=None, politica_inicio=None,
-                 fuente_consentimiento=None):
+                 fuente_consentimiento=None, crear_fuente_consentimiento=None):
         self.usuario, self.reloj, self.fechas = usuario, reloj, fechas
         self.crear_sesion = crear_sesion
         self.ingreso, self.vinculacion, self.inicio = politica_ingreso, politica_vinculacion, politica_inicio
         self.fuente_consentimiento = fuente_consentimiento
+        self.crear_fuente_consentimiento = crear_fuente_consentimiento
 
     def _unidad(self):
         return UnidadTrabajoSQLAlchemy(lambda s:RepositorioParticipacionSQLAlchemy(s,fechas=self.fechas),
@@ -88,6 +90,7 @@ class ServicioVinculacionSQLAlchemy:
         # Se acredita el contexto DESPUÉS de bloquear sus fuentes, en la misma
         # Session. El instante del registro es el que Scheduling autoriza.
         contexto = ConsultaVinculacionSQLAlchemy(s,politica=self.ingreso,
+            admision=AdmisionSQLAlchemy(s,self.usuario,bloquear=True),
             reloj=SimpleNamespace(ahora=lambda:instante)).consultar(usuario=self.usuario,
                 convocatoria_id=convocatoria_id,codigo_acceso=codigo_acceso,id_asignacion=id_asignacion)
         if contexto.ingreso.caso_id != caso.id:
@@ -107,7 +110,7 @@ class ServicioVinculacionSQLAlchemy:
             try:
                 aceptacion=exigir_aceptacion(s,id_estudiante=cuenta,id_asignacion=id_asignacion,
                     id_consentimiento=id_consentimiento,ahora=instante,fechas=self.fechas,
-                    fuente=self.fuente_consentimiento)
+                    fuente=(self.crear_fuente_consentimiento(s) if self.crear_fuente_consentimiento is not None else self.fuente_consentimiento))
             except ConsentimientoDenegado:
                 raise AccesoDenegado("Consentimiento no disponible para crear participación.") from None
             except IntegracionPendiente:
@@ -139,10 +142,26 @@ class ServicioVinculacionSQLAlchemy:
         if type(estado) is not str or not estado.strip() or len(estado)>20:
             raise ReglaPendiente("La política no aporta un estado inicial válido.")
         if existente is not None:
+            if iniciar:
+                id_historico=s.scalar(select(P.id_consentimiento).where(P.id_participacion==existente.id_participacion))
+                if id_historico is not None and id_historico!=id_consentimiento:
+                    raise AccesoDenegado("No sustituir consentimiento histórico al iniciar.")
+                if id_historico is not None:
+                    from app.modules.identity.infrastructure.academic_base_models import ConsentimientoORM
+                    historico=s.get(ConsentimientoORM,id_historico)
+                    if historico.id_version_documento is not None:
+                        try:
+                            exigir_aceptacion(s,id_estudiante=cuenta,id_asignacion=id_asignacion,
+                                id_consentimiento=id_historico,ahora=instante,fechas=self.fechas,
+                                fuente=(self.crear_fuente_consentimiento(s) if self.crear_fuente_consentimiento is not None else self.fuente_consentimiento))
+                        except ConsentimientoDenegado:
+                            raise AccesoDenegado("Consentimiento histórico no vigente o revocado.") from None
+                        except IntegracionPendiente:
+                            raise ReglaPendiente("Cambio de consentimiento: inicio histórico cerrado.") from None
             return VinculacionParticipacion(existente,False)
         nueva = repo.agregar_participacion(id_asignacion=contexto.id_asignacion,
             id_grupo_estudiante=contexto.id_grupo_estudiante,convocatoria_id=convocatoria_id,
-            estado=estado,fecha_registro=instante)
+            estado=estado,fecha_registro=instante,id_consentimiento=aceptacion.id_consentimiento)
         return VinculacionParticipacion(nueva,True)
 
     def obtener_o_crear(self, *, convocatoria_id, id_asignacion, codigo_acceso):

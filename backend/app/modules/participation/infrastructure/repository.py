@@ -37,12 +37,14 @@ class RepositorioParticipacionSQLAlchemy(LecturasParticipacionSQLAlchemy):
         return self.obtener_participacion(pk) if pk is not None else None
 
     def agregar_participacion(self, *, id_asignacion, id_grupo_estudiante,
-                             convocatoria_id, estado, fecha_registro):
+                             convocatoria_id, estado, fecha_registro, id_consentimiento=None):
         """Inserta referencias acreditadas; no elige estado ni confirma la UoW."""
         self._escritor()
+        if type(id_consentimiento) is not int or id_consentimiento<=0:
+            raise ReglaPendiente('Falta aceptación para vincular la participación.')
         pk = self.sesion.scalar(ParticipacionModel.__table__.insert().values(
             id_asignacion=id_asignacion,id_grupo_estudiante=id_grupo_estudiante,
-            convocatoria_id=convocatoria_id,estado=estado,
+            convocatoria_id=convocatoria_id,estado=estado,id_consentimiento=id_consentimiento,
             fecha_registro=self.fechas.hacia_db(fecha_registro,sin_offset=True))
             .returning(ParticipacionModel.id_participacion))
         return self.obtener_participacion(pk)

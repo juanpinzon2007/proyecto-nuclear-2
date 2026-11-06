@@ -56,10 +56,49 @@ def preparar_esquema_actual_aislado(conexion):
     from app.db.models import registrar_modelos_integrados
     metadata=registrar_modelos_integrados()
     metadata.create_all(conexion)
+    preparar_consentimiento_sqlite(conexion)
     for nombre in ("criterio_rubrica", "nivel_rubrica"):
         for indice in metadata.tables[nombre].indexes:
             if indice.name.startswith("uq_8c_"):
                 indice.create(conexion, checkfirst=True)
+
+
+
+def columnas_consentimiento_para_fixture_historica(conexion):
+    """Solo columnas auxiliares para usar ORM actual en revisiones antiguas.
+
+    No estampa la revisión nueva ni instala evidencia, documentos o guards.
+    """
+    import sqlalchemy as sa
+    from alembic.operations import Operations
+    from alembic.migration import MigrationContext
+    ops=Operations(MigrationContext.configure(conexion))
+    if inspect(conexion).has_table('consentimiento'):
+        existentes={c['name'] for c in inspect(conexion).get_columns('consentimiento')}
+        for n,t in [('id_version_documento',sa.Integer()),('aceptacion_explicita',sa.Boolean()),('huella_aceptada',sa.String(64))]:
+            if n not in existentes:ops.add_column('consentimiento',sa.Column(n,t,nullable=True))
+    if inspect(conexion).has_table('participacion') and 'id_consentimiento' not in {c['name'] for c in inspect(conexion).get_columns('participacion')}:
+        ops.add_column('participacion',sa.Column('id_consentimiento',sa.Integer(),nullable=True))
+
+
+def preparar_consentimiento_sqlite(conexion):
+    """FK/CHECK/índice reales SQLite; ninguna emulación de guards/locks PG."""
+    import sqlalchemy as sa
+    from alembic.operations import Operations
+    from alembic.migration import MigrationContext
+    if conexion.dialect.name!='sqlite':raise RuntimeError('Solo SQLite aislado.')
+    if 'id_version_documento' in {c['name'] for c in inspect(conexion).get_columns('consentimiento')}:return
+    ops=Operations(MigrationContext.configure(conexion))
+    with ops.batch_alter_table('consentimiento',recreate='always') as b:
+        b.add_column(sa.Column('id_version_documento',sa.Integer(),nullable=True))
+        b.add_column(sa.Column('aceptacion_explicita',sa.Boolean(),nullable=True))
+        b.add_column(sa.Column('huella_aceptada',sa.String(64),nullable=True))
+        b.create_foreign_key('fk_consentimiento_documento','documento_consentimiento_version',['id_version_documento'],['id_version_documento'])
+        b.create_check_constraint('ck_consentimiento_evidencia','(id_version_documento IS NULL AND aceptacion_explicita IS NULL AND huella_aceptada IS NULL) OR (id_version_documento IS NOT NULL AND aceptacion_explicita IS TRUE AND huella_aceptada IS NOT NULL AND length(huella_aceptada)=64)')
+        b.create_index('uq_consentimiento_explicito_vigente',['id_estudiante','id_version_documento'],unique=True,sqlite_where=sa.text('aceptacion_explicita IS TRUE AND fecha_revocacion IS NULL'))
+    with ops.batch_alter_table('participacion',recreate='always') as b:
+        b.add_column(sa.Column('id_consentimiento',sa.Integer(),nullable=True))
+        b.create_foreign_key('fk_participacion_consentimiento','consentimiento',['id_consentimiento'],['id_consentimiento'])
 
 
 def preparar_admision_sqlite(conexion):
@@ -103,11 +142,13 @@ def columnas_convocatoria_para_fixture_historica(conexion):
     for nombre,tipo in [('espera_registrada_en',sa.DateTime(timezone=True)),
                         ('espera_version_caso_id',sa.Uuid()),('admision_evento_id',sa.Uuid())]:
         if nombre not in columnas:ops.add_column('convocatoria',sa.Column(nombre,tipo,nullable=True))
+    columnas_consentimiento_para_fixture_historica(conexion)
 
 
 def omitir_solo_constraints_admision_futura(objeto,nombre,tipo,reflejado,comparado):
     """Comparación de una revisión histórica que aún NO instala esta admisión."""
-    return nombre not in {'fk_espera_sesion_version','fk_admision_evento_sesion',
+    if tipo=='table' and nombre in {'documento_consentimiento_version','seleccion_consentimiento'}:return False
+    return nombre not in {'fk_consentimiento_documento','fk_participacion_consentimiento','ck_consentimiento_evidencia','uq_consentimiento_explicito_vigente','fk_espera_sesion_version','fk_admision_evento_sesion',
         'ck_espera_pareja','ck_admision_espera','uq_evento_id_sesion_admision'}
 
 
@@ -135,7 +176,7 @@ def retirar_ddl_resultados_sqlite(conexion):
         raise RuntimeError("Retirada DDL auxiliar reservada a SQLite en memoria.")
     from app.db.models import registrar_modelos_integrados
     metadata=registrar_modelos_integrados()
-    for nombre in ("docente_espacio_academico","retroalimentacion_docente","resultado_criterio","resultado_intento"):
+    for nombre in ("seleccion_consentimiento","documento_consentimiento_version","docente_espacio_academico","retroalimentacion_docente","resultado_criterio","resultado_intento"):
         if inspect(conexion).has_table(nombre):
             if conexion.scalar(text(f"SELECT 1 FROM {nombre} LIMIT 1")) is not None:
                 raise RuntimeError("No eliminar resultados existentes.")

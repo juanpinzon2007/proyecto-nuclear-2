@@ -1,3 +1,10 @@
+> Incremento interno posterior: CONSENTIMIENTO_VERSIONADO_IMPLEMENTACION.md
+> implementa registro documental y selector SQL separado, evidencia y enlace P→C.
+> La fuente no se configura por defecto ni publica el borrador. Los controles y
+> resultados de las secciones siguientes son históricos; no hubo aprobación institucional.
+
+---
+
 > Actualización vigente: sala de espera y admisión aprobadas por el equipo.
 > Se registran solicitudes propias antes de habilitar y se congela el conjunto
 > elegible en la transacción docente SIN_INICIAR → EN_CURSO. EN_CURSO sin concesión

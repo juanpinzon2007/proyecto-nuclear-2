@@ -33,7 +33,7 @@ def test_revision_copia_literal_SQL_autorizado_y_cabeza_unica():
     assert revision.DOWNGRADE_SQL==(LAB/"revertir_protecciones.sql").read_text(encoding="utf-8")
     config=Config();config.set_main_option("script_location",str(BACKEND/"alembic"))
     script=ScriptDirectory.from_config(config)
-    assert script.get_heads()==["20261105_waiting_admission"]
+    assert script.get_heads()==["20261106_consent_versions"]
     assert script.get_revision("20261102_steps_uuid").down_revision=="20261102_participation_history"
     assert script.get_revision("20261102_participation_history").down_revision=="20261102_assignment_bridge"
     assert script.get_revision("20261102_assignment_bridge").down_revision==HEAD
@@ -79,7 +79,7 @@ def test_HTTP_Cases_y_Scheduling_con_head_PostgreSQL_real():
                 assert c.scalar(text("SELECT current_database()"))=="sps_test"
                 assert inspect(c).get_table_names()==[]
                 command.upgrade(config_alembic(c),"head")
-                assert c.scalar(text("SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal"))==47
+                assert c.scalar(text("SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal"))==55
             safe=os.environ.copy()
             for n in ('SPS_IDENTITY_TEST_URL','SPS_PERSISTENCE_LAB_URL'):safe.pop(n,None)
             safe.update(TEST_DATABASE_URL=url.render_as_string(hide_password=False),SPS_TEST_POSTGRESQL="0",

@@ -6,11 +6,12 @@ reingreso. Crear estas tablas no acredita aceptación ni autoriza participación
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint, true
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, UniqueConstraint, Index, text, true
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 from app.modules.identity.infrastructure.models import UsuarioORM
+from app.modules.identity.infrastructure import consent_document_models  # noqa: F401
 
 
 class GrupoAcademicoORM(Base):
@@ -47,6 +48,12 @@ class GrupoEstudianteORM(Base):
 
 class ConsentimientoORM(Base):
     __tablename__ = "consentimiento"
+    __table_args__ = (
+        CheckConstraint('(id_version_documento IS NULL AND aceptacion_explicita IS NULL AND huella_aceptada IS NULL) OR (id_version_documento IS NOT NULL AND aceptacion_explicita IS TRUE AND huella_aceptada IS NOT NULL AND length(huella_aceptada)=64)', name='ck_consentimiento_evidencia'),
+        Index('uq_consentimiento_explicito_vigente','id_estudiante','id_version_documento',unique=True,
+              postgresql_where=text('aceptacion_explicita IS TRUE AND fecha_revocacion IS NULL'),
+              sqlite_where=text('aceptacion_explicita IS TRUE AND fecha_revocacion IS NULL')),
+    )
 
     id_consentimiento: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     id_estudiante: Mapped[int] = mapped_column(
@@ -56,3 +63,6 @@ class ConsentimientoORM(Base):
     version_texto: Mapped[str] = mapped_column(String(30), nullable=False)
     fecha_aceptacion: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
     fecha_revocacion: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)
+    id_version_documento: Mapped[int | None] = mapped_column(ForeignKey('documento_consentimiento_version.id_version_documento', name='fk_consentimiento_documento'), nullable=True)
+    aceptacion_explicita: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    huella_aceptada: Mapped[str | None] = mapped_column(String(64), nullable=True)

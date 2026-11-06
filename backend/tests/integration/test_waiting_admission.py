@@ -235,10 +235,10 @@ def test_carrera_habilitacion_gana_no_admite_nueva_solicitud(ingreso_main):
 def test_migracion_upgrade_downgrade_vacia_pg17():
     with motor_postgresql_desechable() as motor:
         with motor.begin() as c:
-            cfg=config_alembic(c);command.upgrade(cfg,'head')
+            cfg=config_alembic(c);command.upgrade(cfg,'20261105_waiting_admission')
             assert c.scalar(text('SELECT version_num FROM alembic_version'))=='20261105_waiting_admission'
             command.downgrade(cfg,'20261104_teacher_spaces')
-            command.upgrade(cfg,'head')
+            command.upgrade(cfg,'20261105_waiting_admission')
             assert c.scalar(text("SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='convocatoria' AND column_name IN ('espera_registrada_en','espera_version_caso_id','admision_evento_id')"))==3
 
 

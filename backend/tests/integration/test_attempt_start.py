@@ -1,4 +1,5 @@
 """Inicio SQL real con políticas explícitas SOLO de laboratorio; sin rutas públicas."""
+import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import timedelta, timezone
@@ -29,6 +30,9 @@ from app.modules.scheduling.domain.ingress_policy import VentanaIngreso
 from app.modules.scheduling.infrastructure.models import SesionProgramadaModel as S, ConvocatoriaModel as C
 from app.modules.scheduling.infrastructure.assignment_models import AsignacionCasoModel as A
 from app.modules.scheduling.application.crear_convocatoria import crear_convocatoria
+from app.modules.scheduling.infrastructure.admission import registrar_espera
+from app.modules.scheduling.application.cambiar_estado_y_publicar import cambiar_estado_y_publicar
+from app.modules.scheduling.application.registrar_observadores import crear_gestor_eventos
 from tests.integration.test_cases_graph import pg_grafo, version_grafo, configurar  # noqa: F401
 from tests.integration.test_cases_history import publicar
 from tests.integration.test_participation_persistence import contexto, participacion, FECHA
@@ -41,10 +45,13 @@ class IngresoLaboratorio:
 
 
 class InicioLaboratorio:
+    def __init__(self, referencia="sintetico"):
+        self.referencia = referencia  # Configuración explícita SOLO LAB.
+
     def autorizar(self, c):
         # Regla SINTÉTICA explícita, jamás default productivo. Usa el cupo real
         # almacenado, sin sumar permisos ni conceder repeticiones excepcionales.
-        if c.version_consentimiento != "sintetico":
+        if c.version_consentimiento != self.referencia:
             raise ReglaPendiente("Versión de consentimiento sin regla LAB.")
         if (c.estado_asignacion != "programada" or not c.apertura <= c.ahora < c.cierre
                 or c.ahora > c.limite_ingreso or c.numero_intento > c.intentos_base
@@ -77,11 +84,18 @@ def preparar_convocada(engine, *, configurar_recorrido=configurar):
             apertura=a.apertura,cierre=a.cierre,fecha_limite_ingreso=a.cierre,tiempo_maximo_min=a.tiempo_maximo_min)
         s.add(asignacion);s.flush()
         conv = crear_convocatoria(s,sesion_id=nueva.id,estudiante_id=c.uuid)
-        nueva.estado = "EN_CURSO"
         c.datos |= dict(id_asignacion=asignacion.id_asignacion,convocatoria_id=conv.convocatoria_id)
         c.sesion,c.codigo = nueva.id,conv.codigo_acceso
     c.usuario = principal(c)
     c.ahora = FECHA.replace(tzinfo=timezone.utc)+timedelta(minutes=1)
+    # Contrato posterior: EN_CURSO sin concesión individual no autoriza inicio.
+    # Preparación LAB mediante servicios reales, sin INSERT de admisiones falsas.
+    with c.sesiones.begin() as s:
+        registrar_espera(s,usuario=c.usuario,convocatoria_id=c.datos['convocatoria_id'],
+            codigo=c.codigo,reloj=SimpleNamespace(ahora=lambda:c.ahora))
+    with c.sesiones() as s:
+        asyncio.run(cambiar_estado_y_publicar(s,sesion_id=c.sesion,accion='iniciar',
+            gestor=crear_gestor_eventos(c.sesiones)))
     return c
 
 

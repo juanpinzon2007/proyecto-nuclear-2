@@ -380,7 +380,7 @@ def test_SQLite_DDL_FK_y_contrato_HTTP_UUID_sin_simular_locks():
         with engine.begin() as s:
             s.exec_driver_sql("PRAGMA foreign_keys=ON")
             preparar_esquema_actual_aislado(s)
-            assert len(registrar_modelos_integrados().tables)==31
+            assert len(registrar_modelos_integrados().tables)==33
             assert compare_metadata(MigrationContext.configure(s),registrar_modelos_integrados())==[]
             assert len(sa.inspect(s).get_foreign_keys("paso_simulacion"))==3
             opcion=uuid4()

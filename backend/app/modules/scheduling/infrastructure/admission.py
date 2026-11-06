@@ -59,10 +59,15 @@ def verificar_concesion(db,c,s):
 
 
 class AdmisionSQLAlchemy:
-    def __init__(self,db,usuario):self.db,self.usuario=db,usuario
+    def __init__(self,db,usuario,*,bloquear=False):
+        self.db,self.usuario,self.bloquear=db,usuario,bloquear
     def autorizar(self, *, convocatoria_id, estudiante_id, sesion_id, version_id):
         c,s=contexto_admision(self.db,self.usuario,convocatoria_id)
         if (c.estudiante_id,s.id,s.version_caso_id)!=(estudiante_id,sesion_id,version_id):raise AccesoDenegado()
+        if self.bloquear and c.admision_evento_id is not None:
+            # El escritor de Participation ya posee cuenta/matrícula/C/S/A.
+            # Proteger también la evidencia causal hasta su único commit.
+            self.db.get(E,c.admision_evento_id,with_for_update={'read':True},populate_existing=True)
         verificar_concesion(self.db,c,s)
 
 
