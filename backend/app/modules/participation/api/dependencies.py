@@ -156,7 +156,7 @@ def crear_dependencia_facade_8b(*, crear_sesion, fechas, reloj, matricula_activa
 
 def crear_dependencia_vinculacion_8b(*, crear_sesion, fechas, reloj,
                                     politica_ingreso=None, politica_vinculacion=None,
-                                    politica_inicio=None, fuente_consentimiento=None):
+                                    politica_inicio=None, fuente_consentimiento=None, crear_fuente_consentimiento=None):
     """Composición opt-in del servidor, sin políticas académicas por defecto.
 
     Instancia por solicitud. No reutiliza autorizaciones/sesiones de una consulta
@@ -169,6 +169,6 @@ def crear_dependencia_vinculacion_8b(*, crear_sesion, fechas, reloj,
         return ServicioVinculacionSQLAlchemy(usuario=usuario, crear_sesion=crear_sesion,
             fechas=fechas, reloj=reloj, politica_ingreso=politica_ingreso,
             politica_vinculacion=politica_vinculacion, politica_inicio=politica_inicio,
-            fuente_consentimiento=fuente_consentimiento)
+            fuente_consentimiento=fuente_consentimiento, crear_fuente_consentimiento=crear_fuente_consentimiento)
 
     return dependencia

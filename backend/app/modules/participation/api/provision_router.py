@@ -20,7 +20,7 @@ from app.modules.participation.infrastructure.provision import ServicioVinculaci
 
 def crear_router_inicio_8b(*, crear_sesion, fechas, reloj,
                          politica_ingreso=None, politica_vinculacion=None,
-                         politica_inicio=None, fuente_consentimiento=None) -> APIRouter:
+                         politica_inicio=None, fuente_consentimiento=None, crear_fuente_consentimiento=None) -> APIRouter:
     """El servidor aporta conexiones/reloj/políticas; None conserva el cierre.
 
     Puede incluirse en una app de integración sin modificar dependencias globales.
@@ -29,7 +29,7 @@ def crear_router_inicio_8b(*, crear_sesion, fechas, reloj,
     dependencia = crear_dependencia_vinculacion_8b(crear_sesion=crear_sesion,
         fechas=fechas, reloj=reloj, politica_ingreso=politica_ingreso,
         politica_vinculacion=politica_vinculacion, politica_inicio=politica_inicio,
-        fuente_consentimiento=fuente_consentimiento)
+        fuente_consentimiento=fuente_consentimiento, crear_fuente_consentimiento=crear_fuente_consentimiento)
     Servicio = Annotated[ServicioVinculacionSQLAlchemy, Depends(dependencia)]
     router = APIRouter(prefix="/api/v1", route_class=RutaParticipacion,
         tags=["Participación — integración condicionada"],

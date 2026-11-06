@@ -151,7 +151,7 @@ pruebas se verifican en el código; los parámetros concretos figuran en el JUni
 | RF-09 Borrador, validar/publicar y archivar | Cases: `CasoService.publicar/archivar`, cadena validación, repositorio de grafo/guards PG | POST `/api/v1/cases/{version_id}/publish` y `/archive`; sí | IMPLEMENTADO | Autoría HTTP PG; `tests/integration/test_cases_guard_migration.py::test_revision_real_preflight_DML_locks_downgrade_y_reupgrade` | Recorridos soportados: una pregunta/escena y sin ciclos alcanzables. No rellenar grafos históricos ficticios; decidir semántica de recorridos pendientes para ampliar publicación ejecutable. |
 | RF-10 Consultar contextos y responder; aclaración posterior INMUTABLE | Participation/Cases: `current_scenario.py`, grafo SQL y Facade; intento/paso_simulacion y guard PG | GET `/api/v1/attempts/{id}/current-scenario`, POST `/decisions/{decision_id}`; sí. PUT no montado | PARCIAL | `tests/integration/test_main_decisions.py::test_primer_registro_inmutable_progreso_y_siguiente_escenario_main` PG/JWT real | Funciona para intento existente y grafo soportado. Inicio productivo bloqueado; faltan decisiones sobre varias preguntas/ciclos/revisitas. Actualizar RF documental para no pedir edición prohibida. |
 | RF-11 Guardar respuestas y progreso privado sin revelar corrección | Participation: repositorio/UoW, `progress_query.py`, `progress.py`; paso_simulacion único por intento/pregunta | POST decisiones y GET `/api/v1/attempts/{id}/progress`; sí | IMPLEMENTADO | `tests/integration/test_main_progress.py::test_progreso_efectivo_repetido_sin_dml_flush_commit`; `test_main_decisions.py::test_registros_concurrentes_conservan_una_sola_seleccion` PG | GET proyecta vencimiento sin persistir; escritura separada. Requiere zona histórica explícita y un intento ya existente. No autoriza inicio productivo. |
-| RF-12 Inicio/fin, nota y feedback por pregunta | Participation start/provision, consentimiento versionado interno Identity, UoW y guard previo a INSERT P; Evaluation técnica existente | POST finish sí; provisión/inicio/aceptación/resultados oficiales fuera de main | PARCIAL | `test_consent_before_provision.py`: 24 casos PG17, fuente LAB, ausencia de INSERT, aceptación/consulta/rollback/concurrencia; general actual 2126/38. Sección 19 | Orden corregido internamente; falta documento/fuente oficial, procedencia durable del consentimiento, señal de admisión y demás contratos productivos. No equiparar fuente LAB con autorización real ni resultado técnico con nota oficial. |
+| RF-12 Inicio/fin, nota y feedback por pregunta | Participation start/provision, admisión SQL en la misma UoW, consentimiento versionado/evidencia P→C y API aislada; Evaluation técnica | Cuatro operaciones de intentos existentes en main; consentimiento/provisión/inicio/resultados oficiales fuera | PARCIAL | test_admitted_start.py: 11 aceptaciones nuevas PG17/JWT real; relacionada final 680; general actual 2224 aprobadas, 38 omitidas, 0 fallidas/errores, 1 advertencia. INICIO_ADMITIDO_Y_CONSENTIMIENTO_TRANSACCIONAL.md | Resuelta la composición técnica de concesión/consentimiento antes de INSERT P y creación P/I atómica. Faltan documento/proceso institucional y políticas/configuración productivas obligatorias. Sin notas oficiales ni recuperación inventada. |
 | RF-13 Calcular y almacenar nota por rúbrica | Evaluation dentro de Participation: ServicioEvaluacion, Strategy/CalculadorRubrica, `academic_policy.py`, repositorio resultados; procedencia inmutable | Motor interno; rutas generales de resultados NO montadas | BLOQUEADO | `tests/integration/test_academic_policy.py::test_sin_mapeo_agregacion_no_hay_nota_academica_completa`; `test_evaluation_result_storage.py::test_evaluar_guardar_y_recuperar_otra_session` PG con política LAB | Definir nivel→logro, agregación preguntas→criterio y precisión/redondeo necesario. Aceptación: resultado real reproducible con definición aprobada, no convención de fixture. |
 | RF-14 Mostrar nota/aciertos/errores/explicaciones tras cerrar | Evaluation: servicio y `cases/application/answer_feedback.py`, DTO/API provisional | `/participations/{p}/attempts/{i}/result` solo router no montado; main no publica resultados | BLOQUEADO | `tests/integration/test_evaluation_feedback.py::test_feedback_no_expuesto_a_otro_actor_o_contexto`; pruebas API Participation con fakes no acreditan publicación | Primero cálculo/persistencia oficial y autorización/visibilidad; integrar lector aprobado sin devolver resultados LAB. |
 | RF-15 Seguimiento docente por estudiante y caso | Identity `infrastructure/followup.py::ConsultaSeguimientoSQLAlchemy`, ProxySeguimiento y servicios existentes; joins P/I/pasos/feedback | Tres GET `/api/v1/identity/seguimiento/casos`, `/casos/{id}/participaciones`, `/participaciones/{id}` en main | IMPLEMENTADO | Pruebas históricas de `test_teacher_followup_http.py` y 11 casos actuales PG17 sobre main en `test_main_teacher_followup.py`: recorrido, versión histórica, privacidad, ámbito, concurrencia y cero DML/flush/commit; sección 14 | Lectura sin commit acreditada; no publica notas ni RF-16. Login personal sigue pendiente y JWT docente de aceptación se emite solo dentro del laboratorio. No equivale a integración productiva completa desde credenciales. |
@@ -933,3 +933,73 @@ Validación final sección 20: general 2158 aprobadas, 38 omitidas, 0 fallidas/e
 La primera general fallida se conserva y se explica en el contrato de sala;
 la final acredita la corrección de fixtures/cadena sin saltar pruebas. No cambia
 ningún otro RF ni evaluación de RNF por inferencia. El total vigente es 14/8/5.
+
+
+## 21. Checkpoints y persistencia de consentimiento: sin cambio de estados RF
+
+Los 77 archivos se confirmaron en cuatro commits locales (a6f7e48, 906aec9,
+8a08e8b y 28be564), sin modificar su contenido ni publicar. Reejecución actual:
+56 aprobadas, 0 omitidas, 0 fallidas/errores y 1 advertencia conocida, consentimiento
+interno y admisión; PG17 desechable. No se suma al histórico general 2158/38.
+
+La persistencia documental/versionada no se implementa por asumir aprobación del
+borrador. Se entrega diseño físico para aprobación: una tabla técnica adicional
+(31→32), selector y evidencia de aceptación/enlace P→C. Se identifica el impacto
+concreto de bd205_asignacion en selectores de asignaciones de versiones archivadas.
+No hay ORM, migración ni endpoint nuevos de consentimiento. RF-12 sigue PARCIAL,
+RF-22 IMPLEMENTADO en su alcance; totales sin cambio, 14/8/5. Documento técnico:
+CONSENTIMIENTO_PERSISTENCIA_PROPUESTA_20261105.md.
+
+## 22. Infraestructura interna de consentimiento versionado
+
+Se implementa registro documental SQL y selector independiente por contexto del
+puerto, sin modificar asignacion_caso ni el guard de Cases. Evidencia explícita
+y vínculo P→C para el flujo moderno; legado nullable sin backfill. 33 tablas
+físicas, ER académico original intacto. No documento oficial, publicación ni
+rutas nuevas en main. RF-12 permanece PARCIAL: totales 14/8/5 sin cambios.
+Detalle, migración y pruebas en CONSENTIMIENTO_VERSIONADO_IMPLEMENTACION.md.
+
+Cierre sección 22: general definitiva 2187 aprobadas, 38 omitidas, 0 fallidas/errores
+y una advertencia, 993.01 s, pruebas_total_20261106T043913Z. Sustituye el estado
+pendiente de la ejecución; no se suma con 2185/38 ni con 639/257/29. Sin nuevos
+estados RF: se mantienen 14 IMPLEMENTADO, 8 PARCIAL y 5 BLOQUEADO. RF-22 intacto,
+RF-12 PARCIAL. No hay publicación institucional, notas ni rutas nuevas en main.
+
+
+## 23. API privada de consentimiento en composición aislada
+
+Se implementan consulta vigente, estado de aceptación y aceptación explícita con
+JWT real, ?mbito SQL y fuente/servicio existentes. GET sin DML/flush/commit;
+POST transaccional, idempotencia, concurrencia y rollback, sin P/I. No se registra
+la API en main ni se habilita inicio. No nuevas tablas/migraciones. Borrador sin
+aprobación y proceso institucional pendientes. Detalle: API_CONSENTIMIENTO_ESTUDIANTIL.md.
+
+General actual: 2213 aprobadas, 38 omitidas, 0 fallidas/errores, 1 advertencia;
+1022.09 s, pruebas_total_20261106T152521Z. Aceptación final: 26. No sumar las
+corridas. La relacionada inicial conserva 668 aprobadas y 1 error de preparación
+HTTP 401, repetido con ?xito (1) y cubierto por la general. Se registra discontinuidad
+horaria y no se atribuye causa JWT definitiva sin evidencia. No se alteró auth.
+RF-12 sigue PARCIAL; total 14 IMPLEMENTADO, 8 PARCIAL y 5 BLOQUEADO. RF-22/RNF sin
+cambios inferidos. Inicio, provisión y calificaciones oficiales permanecen cerrados.
+
+
+## 24. Inicio interno admitido, con consentimiento en la misma transacción
+
+Scheduling aporta la concesión persistente al coordinador de provisión/inicio y
+al inicio directo sobre P existente. Se mantiene la misma UoW READ COMMITTED,
+orden de locks y validación de consentimiento anterior al INSERT. Se protege
+además la fila causal de auditoría durante el inicio. Sin ORM/migraciones/rutas
+nuevas en main. Fuente documental SQL y políticas explícitas SOLO LAB en aceptación.
+Detalle: INICIO_ADMITIDO_Y_CONSENTIMIENTO_TRANSACCIONAL.md.
+
+El 401 histórico no se reprodujo: nodo aislado 1, orden inverso 21, relacionada
+previa 669, con instrumentación observacional y reloj estable. Causa histórica
+no determinada, sin modificación de JWT. La expectativa antigua de fallo de un
+proveedor de ventana se adaptó al proveedor activo SQL, conservando el rechazo.
+Aceptación final nueva 11; relacionada final 680; general actual 2224 aprobadas,
+38 omitidas, 0 fallidas/errores, 1 advertencia conocida (1094.21 s). No sumar corridas.
+Logs/XML incluidos los diagnósticos conservados en evidencias/inicio_admitido_20261106T155628Z.
+RF-12 PARCIAL; estados 14 IMPLEMENTADO, 8 PARCIAL y 5 BLOQUEADO sin cambios. RF-22
+mantiene su estado, con nueva evidencia de integración; no se aprueba el borrador
+ni se habilita inicio productivo o Evaluation oficial. Los demás RF/RNF no se
+reclasifican por inferencia.
