@@ -5484,6 +5484,215 @@
               "response": []
             }
           ]
+        },
+        {
+          "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/preparacion",
+          "item": [
+            {
+              "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/preparacion [POSITIVA/PRECONDICIONES]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/preparacion",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_docente}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "RF-13/RF-24/RF-16: preparación, no notas. Cuenta activa, identidades CASES/SCHEDULING inequívocas, sesión/caso/grupos propios y matrículas ciertas; zona histórica explícita. READ ONLY; publicable=false. Disponible en app.main; requiere configuración y recursos válidos."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+                      "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id_sesion\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Id Sesion\"}, \"version_caso_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Version Caso Id\"}, \"estado_sesion\": {\"type\": \"string\", \"enum\": [\"SIN_INICIAR\", \"EN_CURSO\", \"FINALIZADO\"], \"title\": \"Estado Sesion\"}, \"convocatorias\": {\"items\": {\"properties\": {\"id_convocatoria\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Id Convocatoria\"}, \"id_estudiante\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Estudiante\"}, \"estado\": {\"type\": \"string\", \"enum\": [\"ACTIVA\", \"RETIRADA\"], \"title\": \"Estado\"}, \"id_participacion\": {\"anyOf\": [{\"type\": \"integer\", \"exclusiveMinimum\": 0.0}, {\"type\": \"null\"}], \"title\": \"Id Participacion\"}, \"intentos\": {\"items\": {\"properties\": {\"id_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Intento\"}, \"numero\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Numero\"}, \"estado\": {\"type\": \"string\", \"enum\": [\"EN_CURSO\", \"FINALIZADO\", \"VENCIDO\"], \"title\": \"Estado\"}, \"resultado_tecnico_disponible\": {\"type\": \"boolean\", \"title\": \"Resultado Tecnico Disponible\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_intento\", \"numero\", \"estado\", \"resultado_tecnico_disponible\"], \"title\": \"IntentoPreparacionRespuesta\"}, \"type\": \"array\", \"title\": \"Intentos\"}, \"pendientes\": {\"items\": {\"type\": \"string\"}, \"type\": \"array\", \"title\": \"Pendientes\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_convocatoria\", \"id_estudiante\", \"estado\", \"id_participacion\", \"intentos\", \"pendientes\"], \"title\": \"ConvocatoriaPreparacionRespuesta\"}, \"type\": \"array\", \"title\": \"Convocatorias\"}, \"pendientes\": {\"items\": {\"type\": \"string\"}, \"type\": \"array\", \"title\": \"Pendientes\"}, \"publicable\": {\"type\": \"boolean\", \"const\": false, \"title\": \"Publicable\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_sesion\", \"version_caso_id\", \"estado_sesion\", \"convocatorias\", \"pendientes\", \"publicable\"], \"title\": \"PreparacionSesionRespuesta\"}));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}",
+                      "const j=pm.response.json();",
+                      "pm.test('Preparación no autoriza publicación',()=>pm.expect(j.publicable).to.eql(false));",
+                      "pm.test('Versión histórica esperada',()=>pm.expect(j.version_caso_id).to.eql(pm.variables.get('version_id')));",
+                      "pm.test('Sin rúbrica, respuestas o resultado técnico identificable',()=>{function k(x){if(!x||typeof x!=='object')return [];return Object.keys(x).concat(...Object.values(x).map(k));}pm.expect(k(j)).not.to.include.any.members(['rubrica_id','version_regla','nota_final','puntaje','respuestas','id_resultado_tecnico','procedencia','es_correcta','justificacion']);});",
+                      "pm.test('Sin caché',()=>pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'));"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/preparacion [SIN JWT]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/preparacion",
+                "auth": {
+                  "type": "noauth"
+                },
+                "description": ""
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/preparacion [JWT INVALIDO]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/preparacion",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "invalido-LAB",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/preparacion [ROL NO AUTORIZADO]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/preparacion",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_estudiante}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 403',()=>pm.response.to.have.status(403));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET preparación [PARÁMETRO NO ADMITIDO]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/preparacion?docente_id=otro",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_docente}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 422',()=>pm.response.to.have.status(422));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            }
+          ]
         }
       ]
     },

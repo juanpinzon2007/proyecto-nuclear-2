@@ -80,6 +80,8 @@ def policy(path,method):
     if path.endswith('/identity/me'):return 'AUTENTICADO','Cuenta activa y rol vigente desde PostgreSQL.'
     if path.startswith('/api/v1/identity/docentes'):return 'ADMINISTRADOR','Cuentas de Identity; no concede ámbito académico ni DOCENTE ADMINISTRADOR.'
     if path.startswith('/api/v1/attempts'):return 'ESTUDIANTE','JWT con convocatoria propia activa, matrícula, intento propio, versión histórica, zona explícita y condiciones temporales del caso de uso.'
+    if path.endswith('/evaluacion/preparacion'):
+        return 'DOCENTE','RF-13/RF-24/RF-16: preparación, no notas. Cuenta activa, identidades CASES/SCHEDULING inequívocas, sesión/caso/grupos propios y matrículas ciertas; zona histórica explícita. READ ONLY; publicable=false.'
     if path.startswith('/scheduling'):
         if any(x in path for x in ('validar-ingreso','/espera','/admision','/notificaciones')):
             return 'ESTUDIANTE','Identidad SCHEDULING, convocatoria propia y matrícula; ingreso exige concesión de admisión y EN_CURSO, nunca crea P/I.'
@@ -148,9 +150,9 @@ def main():
             matches=[p for p,ops in spec['paths'].items() if m.lower() in ops and (p==r.path or p.endswith(r.path))]
             assert len(matches)==1,('Revisar inclusión de router',r.path,m)
             deps[(matches[0],m.lower())]={'archivo':str(Path(inspect.getsourcefile(r.endpoint)).relative_to(ROOT)).replace('\\','/'),'funcion':r.endpoint.__name__,'dependencias':names(r.dependant)}
-    assert len(deps)==40,'Cambió la superficie registrada; conciliar inventario antes de regenerar.'
+    assert len(deps)==41,'Cambió la superficie registrada; conciliar inventario antes de regenerar.'
     groups={n:[] for n in ('Identity','Cases','Scheduling','Participation','Seguimiento y notificaciones','Tecnico')}
-    inventory=[]
+    inventory=[];preparacion_items=[]
     for path,ops in spec['paths'].items():
         for method,op in ops.items():
             if method not in METHODS:continue
@@ -176,7 +178,15 @@ def main():
             if '/seguimiento/' in path or '/notificaciones' in path or 'calificaciones/notificar' in path:group='Seguimiento y notificaciones'
             if path in TECH:group='Tecnico'
             desc=notes+(' BLOQUEADO: 503 con identidad y referencias válidas; no se afirma éxito funcional.' if blocked else ' Disponible en app.main; requiere configuración y recursos válidos.')
-            positive=request(f'{method.upper()} {path}'+(' [CIERRE SEGURO]' if blocked else ' [POSITIVA/PRECONDICIONES]'),method,target,role,body,status,schema=schema,private='/attempts/' in path,description=desc)
+            extra=''
+            if path.endswith('/evaluacion/preparacion'):
+                extra="""const j=pm.response.json();
+pm.test('Preparación no autoriza publicación',()=>pm.expect(j.publicable).to.eql(false));
+pm.test('Versión histórica esperada',()=>pm.expect(j.version_caso_id).to.eql(pm.variables.get('version_id')));
+pm.test('Sin rúbrica, respuestas o resultado técnico identificable',()=>{function k(x){if(!x||typeof x!=='object')return [];return Object.keys(x).concat(...Object.values(x).map(k));}pm.expect(k(j)).not.to.include.any.members(['rubrica_id','version_regla','nota_final','puntaje','respuestas','id_resultado_tecnico','procedencia','es_correcta','justificacion']);});
+pm.test('Sin caché',()=>pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'));
+"""
+            positive=request(f'{method.upper()} {path}'+(' [CIERRE SEGURO]' if blocked else ' [POSITIVA/PRECONDICIONES]'),method,target,role,body,status,schema=schema,private='/attempts/' in path,description=desc,extra=extra)
             variants=[positive]
             if body_schema and resolve(body_schema,spec).get('required'):
                 variants.append(request(f'{method.upper()} {path} [BODY INVALIDO]',method,target,role,{},422))
@@ -186,6 +196,9 @@ def main():
                 neg['request']['auth']['bearer'][0]['value']='invalido-LAB';variants.append(neg)
                 wrong='token_docente' if role in ('ADMINISTRADOR','ESTUDIANTE') else 'token_estudiante'
                 if role!='AUTENTICADO':variants.append(request(f'{method.upper()} {path} [ROL NO AUTORIZADO]',method,target,role,body,403,auth=wrong))
+            if path.endswith('/evaluacion/preparacion'):
+                variants.append(request('GET preparación [PARÁMETRO NO ADMITIDO]','get',path+'?docente_id=otro','DOCENTE',status=422))
+                preparacion_items=copy.deepcopy(variants)
             groups[group].append({'name':method.upper()+' '+path,'item':variants})
             inventory.append({'metodo':method.upper(),'ruta':path,'rol':role,'autenticacion':'Bearer JWT real' if role!='PUBLICO' else 'Sin Bearer',
                 'estado':'REGISTRADO_BLOQUEADO' if blocked else 'REGISTRADO_CON_PRECONDICIONES','dependencias_academicas':notes,
@@ -199,6 +212,15 @@ def main():
             inventory.append({'metodo':method,'ruta':p,'rol':'PUBLICO','autenticacion':'Ninguna', 'estado':'DOCUMENTACION_AUTOMATICA','body':None,'respuesta_funcional_preparada':200})
     write('inventario_endpoints.json',inventory)
     write('Proyecto_Nuclear_main.postman_collection.json',collection('Proyecto Nuclear — app.main — catálogo (no ejecutar entero)',[{'name':k,'item':v} for k,v in groups.items() if v]))
+    logins=[]
+    for role,perfil in [('DOCENTE','docente'),('ESTUDIANTE','estudiante')]:
+        path='/api/v1/identity/auth/'+('personal' if perfil=='docente' else 'estudiantes')
+        body={'correo':reference('correo_'+perfil)}
+        body.update({'clave':reference('clave_docente')} if perfil=='docente' else {'codigo_convocatoria':reference('codigo_estudiante')})
+        logins.append(request('MAIN — login '+perfil,'post',path,body=body,
+            extra="pm.variables.set('token_"+perfil+"',pm.response.json().access_token);"))
+    write('Proyecto_Nuclear_preparacion_docente.postman_collection.json',collection(
+        'Proyecto Nuclear — preparación docente privada — app.main',logins+preparacion_items))
     workflow(spec)
     write('Proyecto_Nuclear_laboratorio.postman_environment.json',{'name':'Proyecto Nuclear LAB — SIN SECRETOS','values':[{'key':k,'value':v,'type':'secret' if k in SECRET or any(x in k for x in ('clave','codigo','token')) else 'default','enabled':True} for k,v in sorted(VARS.items())], '_postman_variable_scope':'environment'})
     rows=['# Endpoints registrados en app.main','','Fuente: openapi_main.json y dependencias de los routers. No acredita despliegue ni ejecución HTTP.','','| Método | Ruta | Rol | Estado | Dependencias |','|---|---|---|---|---|']
@@ -207,7 +229,7 @@ def main():
            'No hay rutas Evaluation. Inicio/provisión/consentimiento no están en main. PUT de decisiones no está montado: 405, no una operación disponible.',
            'OpenAPI no enumera todos los errores funcionales: revisar archivo/función/dependencias indicados y README.']
     (OUT/'INVENTARIO.md').write_text('\n'.join(rows)+'\n',encoding='utf-8')
-    print(json.dumps({'operaciones_openapi':sum(m in METHODS for v in spec['paths'].values() for m in v),'rutas_documentacion':4,'colecciones':2}))
+    print(json.dumps({'operaciones_openapi':sum(m in METHODS for v in spec['paths'].values() for m in v),'rutas_documentacion':4,'colecciones':3}))
 
 
 def workflow(spec):

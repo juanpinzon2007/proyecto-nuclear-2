@@ -7,7 +7,7 @@ Fecha local: 7 de noviembre de 2026, America/Bogota.
 ## Archivos importables y contrato
 
 1. `Proyecto_Nuclear_main.postman_collection.json`: catálogo de app.main,
-   formato Postman 2.1; 174 solicitudes agrupadas por Identity, Cases, Scheduling,
+   formato Postman 2.1; 179 solicitudes agrupadas por Identity, Cases, Scheduling,
    Participation, seguimiento/notificaciones y técnico. Contiene positivas con
    precondiciones, ausencia de JWT, JWT inválido, rol incorrecto y body inválido.
    **No ejecutar este catálogo entero**: mezcla estados de recursos mutuamente
@@ -23,8 +23,8 @@ Fecha local: 7 de noviembre de 2026, America/Bogota.
    estructuras HTTP; el generador añade notas de autorización/cierre extraídas
    de los routers, porque OpenAPI no documenta todos sus errores funcionales.
 
-Hay **40 operaciones en OpenAPI** y cuatro rutas automáticas de documentación
-con GET/HEAD: 48 combinaciones método/ruta en el inventario. No existe una ruta
+Hay **41 operaciones en OpenAPI** y cuatro rutas automáticas de documentación
+con GET/HEAD: 49 combinaciones método/ruta en el inventario. No existe una ruta
 Evaluation en main. No se encontró una colección Postman previa que reutilizar.
 Se reutilizan routers, esquemas y preparación del test integral existente.
 
@@ -77,7 +77,7 @@ forzoso, inspeccionar el recurso propio con el equipo; no aplicar limpieza globa
 
 ## Configuración privada de Postman y orden de ejecución
 
-1. Importar las dos colecciones y el Environment desde los archivos anteriores.
+1. Importar las colecciones y el Environment desde los archivos anteriores.
 2. Seleccionar el Environment LAB. Usar valores locales no compartidos; no sincronizar
    secretos. Si la versión de Postman permite Vault, introducirlos allí mediante su
    interfaz y referenciarlos desde los valores locales. `type: secret` oculta en la
@@ -204,3 +204,28 @@ se proporciona un comando con secretos inventados ni se instala un CLI aquí.
 Antes de compartir: los JSON distribuidos siempre deben mantener secretos vacíos.
 No exportar el entorno utilizado ni respuestas de login. Conservar los archivos
 históricos, stash y .env; este incremento solo crea archivos bajo esta carpeta.
+
+
+## Incremento: preparación académica docente privada
+
+Colección adicional `Proyecto_Nuclear_preparacion_docente.postman_collection.json`:
+7 solicitudes ordenadas (login docente/estudiante, preparación autorizada y cuatro
+rechazos). `GET /scheduling/sesiones/{sesion_id}/evaluacion/preparacion` ya está en
+app.main; solo DOCENTE con ámbito de sesión/caso/grupos y matrículas ciertas.
+No devuelve rúbricas ni notas, publicable siempre false, sin DML/flush/commit.
+
+Para capturas y precondiciones, leer `../PREPARACION_ACADEMICA_DOCENTE_HTTP.md`.
+El Environment y recorrido integral de 30 pasos permanecen iguales. Las cifras de
+RESULTADOS.md y VALIDACION.json pertenecen a la preparación histórica anterior;
+no son la aceptación de la nueva ruta. Las siete comprobaciones actuales sin SQL
+(incluyen el rechazo 401 de esta ruta) se guardan en evidencia nueva, sin sobrescribir
+los JSON históricos. El validador acepta --salida y rechaza archivos ya existentes.
+
+```powershell
+$salidaPostman = "evidencias/postman_validacion_$(Get-Date -Format yyyyMMdd_HHmmss).json"
+.\.venv\Scripts\python.exe -B backend\docs\postman\validar_preparacion.py --salida $salidaPostman
+```
+
+Los pm.test requieren ejecución manual en Desktop; Node solo comprueba sintaxis.
+La regresión Backend de este nuevo incremento se registra en el informe HTTP,
+no se atribuye a la ejecución histórica del catálogo.

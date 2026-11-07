@@ -1841,6 +1841,64 @@
         }
       }
     },
+    "/scheduling/sesiones/{sesion_id}/evaluacion/preparacion": {
+      "get": {
+        "tags": [
+          "Scheduling",
+          "Preparación académica docente"
+        ],
+        "summary": "Preparación privada; sin notas ni permiso de publicación",
+        "operationId": "consultar_preparacion_scheduling_sesiones__sesion_id__evaluacion_preparacion_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreparacionSesionRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "JWT ausente/inválido o cuenta inactiva"
+          },
+          "403": {
+            "description": "Docente sin ámbito o recurso no accesible"
+          },
+          "503": {
+            "description": "Integridad, matrícula o configuración no acreditadas"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/attempts/{attempt_id}/current-scenario": {
       "get": {
         "tags": [
@@ -2380,6 +2438,65 @@
           "estado"
         ],
         "title": "ConvocatoriaDetalleResponse"
+      },
+      "ConvocatoriaPreparacionRespuesta": {
+        "properties": {
+          "id_convocatoria": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id Convocatoria"
+          },
+          "id_estudiante": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Estudiante"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "ACTIVA",
+              "RETIRADA"
+            ],
+            "title": "Estado"
+          },
+          "id_participacion": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Participacion"
+          },
+          "intentos": {
+            "items": {
+              "$ref": "#/components/schemas/IntentoPreparacionRespuesta"
+            },
+            "type": "array",
+            "title": "Intentos"
+          },
+          "pendientes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pendientes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_convocatoria",
+          "id_estudiante",
+          "estado",
+          "id_participacion",
+          "intentos",
+          "pendientes"
+        ],
+        "title": "ConvocatoriaPreparacionRespuesta"
       },
       "ConvocatoriaResponse": {
         "properties": {
@@ -3032,6 +3149,42 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "IntentoPreparacionRespuesta": {
+        "properties": {
+          "id_intento": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Intento"
+          },
+          "numero": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Numero"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "EN_CURSO",
+              "FINALIZADO",
+              "VENCIDO"
+            ],
+            "title": "Estado"
+          },
+          "resultado_tecnico_disponible": {
+            "type": "boolean",
+            "title": "Resultado Tecnico Disponible"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_intento",
+          "numero",
+          "estado",
+          "resultado_tecnico_disponible"
+        ],
+        "title": "IntentoPreparacionRespuesta"
+      },
       "IntentoRespuesta": {
         "properties": {
           "id_intento": {
@@ -3526,6 +3679,59 @@
           "enunciado"
         ],
         "title": "PreguntaSchema"
+      },
+      "PreparacionSesionRespuesta": {
+        "properties": {
+          "id_sesion": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id Sesion"
+          },
+          "version_caso_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Version Caso Id"
+          },
+          "estado_sesion": {
+            "type": "string",
+            "enum": [
+              "SIN_INICIAR",
+              "EN_CURSO",
+              "FINALIZADO"
+            ],
+            "title": "Estado Sesion"
+          },
+          "convocatorias": {
+            "items": {
+              "$ref": "#/components/schemas/ConvocatoriaPreparacionRespuesta"
+            },
+            "type": "array",
+            "title": "Convocatorias"
+          },
+          "pendientes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pendientes"
+          },
+          "publicable": {
+            "type": "boolean",
+            "const": false,
+            "title": "Publicable"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_sesion",
+          "version_caso_id",
+          "estado_sesion",
+          "convocatorias",
+          "pendientes",
+          "publicable"
+        ],
+        "title": "PreparacionSesionRespuesta"
       },
       "ProgramarSesionRequest": {
         "properties": {

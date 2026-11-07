@@ -491,3 +491,7 @@ def notificar_calificacion_participacion(
 
 from app.modules.scheduling.api.admission_router import router as admission_router
 router.include_router(admission_router)
+
+# Solo lectura docente acreditada; no monta Evaluation ni Participation general.
+from app.modules.scheduling.api.evaluation_readiness import router as readiness_router
+router.include_router(readiness_router)

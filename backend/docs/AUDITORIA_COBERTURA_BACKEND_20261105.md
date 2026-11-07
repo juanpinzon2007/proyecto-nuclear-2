@@ -152,7 +152,7 @@ pruebas se verifican en el código; los parámetros concretos figuran en el JUni
 | RF-10 Consultar contextos y responder; aclaración posterior INMUTABLE | Participation/Cases: `current_scenario.py`, grafo SQL y Facade; intento/paso_simulacion y guard PG | GET `/api/v1/attempts/{id}/current-scenario`, POST `/decisions/{decision_id}`; sí. PUT no montado | PARCIAL | `tests/integration/test_main_decisions.py::test_primer_registro_inmutable_progreso_y_siguiente_escenario_main` PG/JWT real | Funciona para intento existente y grafo soportado. Inicio productivo bloqueado; faltan decisiones sobre varias preguntas/ciclos/revisitas. Actualizar RF documental para no pedir edición prohibida. |
 | RF-11 Guardar respuestas y progreso privado sin revelar corrección | Participation: repositorio/UoW, `progress_query.py`, `progress.py`; paso_simulacion único por intento/pregunta | POST decisiones y GET `/api/v1/attempts/{id}/progress`; sí | IMPLEMENTADO | `tests/integration/test_main_progress.py::test_progreso_efectivo_repetido_sin_dml_flush_commit`; `test_main_decisions.py::test_registros_concurrentes_conservan_una_sola_seleccion` PG | GET proyecta vencimiento sin persistir; escritura separada. Requiere zona histórica explícita y un intento ya existente. No autoriza inicio productivo. |
 | RF-12 Inicio/fin, nota y feedback por pregunta | Participation start/provision, admisión SQL en la misma UoW, consentimiento versionado/evidencia P→C y API aislada; Evaluation técnica | Cuatro operaciones de intentos existentes en main; consentimiento/provisión/inicio/resultados oficiales fuera | PARCIAL | test_lab_student_journey.py: 2 E2E nuevos, main + composición aislada sin overrides de auth; aceptación actual 13 y relacionada 682, 0 fallidas/errores. General 2224/38 es histórica. RECORRIDO_ESTUDIANTIL_INTEGRAL_LAB.md | Resuelta la composición técnica de concesión/consentimiento antes de INSERT P y creación P/I atómica. Faltan documento/proceso institucional y políticas/configuración productivas obligatorias. Sin notas oficiales ni recuperación inventada. |
-| RF-13 Calcular y almacenar nota por rúbrica | Evaluation dentro de Participation: ServicioEvaluacion, Strategy/CalculadorRubrica, `academic_policy.py`, repositorio resultados; procedencia inmutable; preparación interna por sesión | Motor interno; rutas generales de resultados NO montadas | BLOQUEADO | `tests/integration/test_academic_policy.py::test_sin_mapeo_agregacion_no_hay_nota_academica_completa`; `test_evaluation_result_storage.py::test_evaluar_guardar_y_recuperar_otra_session` PG con política LAB; `test_evaluation_readiness.py`: 13 PG internos, sin notas/publicación | Definir nivel→logro, agregación preguntas→criterio y precisión/redondeo necesario. Aceptación: resultado real reproducible con definición aprobada, no convención de fixture. |
+| RF-13 Calcular y almacenar nota por rúbrica | Evaluation dentro de Participation: ServicioEvaluacion, Strategy/CalculadorRubrica, `academic_policy.py`, repositorio resultados; procedencia inmutable; preparación interna por sesión | GET `/scheduling/sesiones/{sesion_id}/evaluacion/preparacion` en main, sin notas; motor interno y rutas generales de resultados NO montadas | BLOQUEADO | `tests/integration/test_academic_policy.py::test_sin_mapeo_agregacion_no_hay_nota_academica_completa`; `test_evaluation_result_storage.py::test_evaluar_guardar_y_recuperar_otra_session` PG con política LAB; `test_evaluation_readiness.py`: 13 PG internos, sin notas/publicación | Definir nivel→logro, agregación preguntas→criterio y precisión/redondeo necesario. Aceptación: resultado real reproducible con definición aprobada, no convención de fixture. |
 | RF-14 Mostrar nota/aciertos/errores/explicaciones tras cerrar | Evaluation: servicio y `cases/application/answer_feedback.py`, DTO/API provisional | `/participations/{p}/attempts/{i}/result` solo router no montado; main no publica resultados | BLOQUEADO | `tests/integration/test_evaluation_feedback.py::test_feedback_no_expuesto_a_otro_actor_o_contexto`; pruebas API Participation con fakes no acreditan publicación | Primero cálculo/persistencia oficial y autorización/visibilidad; integrar lector aprobado sin devolver resultados LAB. |
 | RF-15 Seguimiento docente por estudiante y caso | Identity `infrastructure/followup.py::ConsultaSeguimientoSQLAlchemy`, ProxySeguimiento y servicios existentes; joins P/I/pasos/feedback | Tres GET `/api/v1/identity/seguimiento/casos`, `/casos/{id}/participaciones`, `/participaciones/{id}` en main | IMPLEMENTADO | Pruebas históricas de `test_teacher_followup_http.py` y 11 casos actuales PG17 sobre main en `test_main_teacher_followup.py`: recorrido, versión histórica, privacidad, ámbito, concurrencia y cero DML/flush/commit; sección 14 | Lectura sin commit acreditada; no publica notas ni RF-16. Login personal sigue pendiente y JWT docente de aceptación se emite solo dentro del laboratorio. No equivale a integración productiva completa desde credenciales. |
 | RF-16 Descargar resultados, parciales y ausentes | ServicioReportes/CSV reforzado: rechaza duplicados/contradicciones y nota fuera de 0–100; consulta cruda no compuesta, `reportes=None`, sin resultado_participacion integrado | GET `/api/v1/identity/seguimiento/sesiones/{id}/reporte` registrado y cerrado con 503 para docente válido | BLOQUEADO | Seis pruebas de componente `test_report_integrity.py` con CSV sintético explícito; siete PG17/main `test_main_report_closed.py` de cierre seguro, autorización, padrón sin P, concurrencia y cero escrituras; sección 15 | La mejora no publica un reporte ni certifica procedencia oficial. Faltan padrón académico/corte/retiros, ausencia confirmada, consolidación y notas oficiales. No usar resultado_intento LAB como fuente alternativa; formato institucional pendiente. |
@@ -1128,3 +1128,39 @@ Totales sin cambios: 14 IMPLEMENTADO, 8 PARCIAL, 5 BLOQUEADO.
 Detalle: RF03_CONSULTA_ADMINISTRATIVA_DOCENTES.md. Evidencia:
 `evidencias/rf03_consulta_20261107T044600Z/`. Código probado: HEAD 8b544f5 más cambios
 locales sin commit. No se crearon migraciones ni se modificaron bases permanentes.
+
+
+## 29. Consulta docente privada de preparación académica (7 de noviembre de 2026)
+
+GET `/scheduling/sesiones/{sesion_id}/evaluacion/preparacion` se incorpora al router
+Scheduling de app.main. Reutiliza ConsultaPreparacionEvaluacionSQLAlchemy y conserva
+su instantánea REPEATABLE READ/READ ONLY. Cuenta activa/rol vigente desde SQL,
+identidades CASES/SCHEDULING, titularidad de sesión/caso y grupos propios. Proyección
+HTTP sin rúbrica, nota, respuestas ni ID de resultado; publicable siempre false.
+Una matrícula no inequívoca cierra el conjunto con 503 sin datos de alumnos dudosos.
+
+No se calculan ni publican notas, se infieren ausencias o se seleccionan intentos.
+Las retiradas y participantes sin intentos se conservan como hechos y pendientes.
+No hay configuración temporal predeterminada; falta de zona válida cierra con 503.
+No cambia el lector interno ni se montan inicio/consentimiento o resultados.
+
+Aceptación nueva PG17/main/JWT: 19 aprobadas, 0 omitidas/fallidas/errores, una
+advertencia conocida, 24.31 s. Relacionada: 84 aprobadas, 0 omitidas/fallidas/errores,
+una advertencia, 146.13 s; incluye las 19 y las 13 internas. Sin DML/flush/commit,
+privacidad entre grupos, revalidación, concurrencia, versión histórica y errores
+saneados. General nueva: 2284 aprobadas, 38 omitidas, 0 fallidas/errores y una
+advertencia, 1294.14 s; 2322 casos JUnit. Se conservan las omisiones históricas
+por configuración externa, ninguna nueva. Fuentes estables durante las tres
+ejecuciones; solo se generó una evidencia BD2-04 nueva, conservada.
+No sumar selecciones solapadas ni sustituir cifras históricas.
+
+Postman: 41 operaciones OpenAPI + cuatro rutas documentales GET/HEAD; catálogo
+179 solicitudes y colección docente separada de siete. Recorrido integral y
+Environment permanecen iguales; los pm.test requieren Desktop, no se declaran
+aprobados por validar sintaxis Node o HTTP Python. Evidencias nuevas fuera de
+los JSON históricos: evidencias/preparacion_docente_http_20261107T184605Z/.
+
+RF-13, RF-14, RF-16, RF-24 y RF-25 mantienen BLOQUEADO. Totales sin cambios:
+14 IMPLEMENTADO, 8 PARCIAL, 5 BLOQUEADO. Detalle: PREPARACION_ACADEMICA_DOCENTE_HTTP.md.
+El contrato funcional propuesto de Evaluation queda intacto como antecedente;
+este incremento acredita su siguiente paso lector, no aprueba sus políticas.

@@ -1,6 +1,7 @@
 """Validación local sin SQL: no sustituye Postman/Newman ni aceptación PG17."""
 from pathlib import Path
 import ast
+import argparse
 import hashlib
 import json
 import re
@@ -21,7 +22,7 @@ def requests(items):
         else:yield x
 
 
-def main():
+def main(salida=None):
     env=json.loads((OUT/'Proyecto_Nuclear_laboratorio.postman_environment.json').read_text(encoding='utf-8'))
     variables={x['key']:x['value'] for x in env['values']}
     assert all(not x['value'] for x in env['values'] if x['type']=='secret')
@@ -60,7 +61,8 @@ def main():
         with TestClient(app,raise_server_exceptions=True) as client:
             for path,status in [('/health',200),('/openapi.json',200),
                 ('/api/v1/identity/docentes',401),('/api/v1/identity/me',401),
-                ('/api/v1/attempts/1/current-scenario',401),('/api/v1/attempts/1/progress',401)]:
+                ('/api/v1/attempts/1/current-scenario',401),('/api/v1/attempts/1/progress',401),
+                ('/scheduling/sesiones/00000000-0000-0000-0000-000000000001/evaluacion/preparacion',401)]:
                 r=client.get(path);assert r.status_code==status,(path,r.status_code)
                 if path=='/health':assert r.json()=={'status':'ok'}
                 http.append({'metodo':'GET','ruta':path,'esperado':status,'observado':r.status_code,'medio':'ASGI/TestClient sin SQL'})
@@ -72,8 +74,13 @@ def main():
         'pruebas_http_sin_sql':http,'postman_cli':shutil.which('postman'),'newman':shutil.which('newman'),
         'aceptacion_pg17_postman':'PENDIENTE: CLI/Newman ausentes; HTTP TCP Python se informa por separado en resultado_http_*.json',
         'sin_ejecucion_suite_general':True,'sin_secretos_en_archivos_importables':True}
-    (OUT/'VALIDACION.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    destino=salida or OUT/('VALIDACION_'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'.json')
+    with destino.open('x',encoding='utf-8') as f:
+        f.write(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps(result,ensure_ascii=False,indent=2))
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--salida',type=Path,help='JSON nuevo; nunca sobrescribe evidencia anterior.')
+    main(parser.parse_args().salida)

@@ -2855,6 +2855,70 @@
   },
   {
     "metodo": "GET",
+    "ruta": "/scheduling/sesiones/{sesion_id}/evaluacion/preparacion",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "RF-13/RF-24/RF-16: preparación, no notas. Cuenta activa, identidades CASES/SCHEDULING inequívocas, sesión/caso/grupos propios y matrículas ciertas; zona histórica explícita. READ ONLY; publicable=false.",
+    "parametros": [
+      {
+        "name": "sesion_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Sesion Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PreparacionSesionRespuesta"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "JWT ausente/inválido o cuenta inactiva"
+      },
+      "403": {
+        "description": "Docente sin ámbito o recurso no accesible"
+      },
+      "503": {
+        "description": "Integridad, matrícula o configuración no acreditadas"
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/evaluation_readiness.py",
+    "funcion": "consultar_preparacion",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_consulta_preparacion",
+      "obtener_docente_actual",
+      "obtener_fabrica_sesiones_seguimiento",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "GET",
     "ruta": "/api/v1/attempts/{attempt_id}/current-scenario",
     "rol": "ESTUDIANTE",
     "autenticacion": "Bearer JWT real",
