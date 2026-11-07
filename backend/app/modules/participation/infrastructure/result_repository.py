@@ -34,8 +34,11 @@ class ResultadoTecnico:
 
 
 class RepositorioResultadosTecnicosSQLAlchemy:
-    def __init__(self, sesion, *, alcance, fechas):
+    def __init__(self, sesion, *, alcance, fechas, lecturas=None):
         self.sesion, self.alcance, self.fechas = sesion, alcance, fechas
+        # La consulta de preparación aporta el lector existente sin locks de
+        # escritura. Los escritores actuales conservan su repositorio original.
+        self.lecturas = lecturas
 
     def _laboratorio(self):
         if not self.sesion.in_transaction() or self.sesion.get_bind().dialect.name!="postgresql":
@@ -58,7 +61,8 @@ class RepositorioResultadosTecnicosSQLAlchemy:
             datos=datos_desde(p["datos"]); rubrica=rubrica_desde(p["rubrica"]); plan=plan_desde(p["plan"])
             if not datos.lista_para_persistir or datos.id_intento!=self.alcance.id_intento:
                 raise EvaluacionInconsistente("Resultado pendiente o de otro intento.")
-            intento=RepositorioParticipacionSQLAlchemy(self.sesion,fechas=self.fechas).obtener_intento(datos.id_intento)
+            lector = self.lecturas if self.lecturas is not None else RepositorioParticipacionSQLAlchemy(self.sesion,fechas=self.fechas)
+            intento=lector.obtener_intento(datos.id_intento)
             evidencia=_evidencias(self.alcance,intento)
             preguntas=consultar_estructura_version(self.sesion,version_id=evidencia.rubrica.version_id).preguntas
             if any(e.id_decision not in {q.id for q in preguntas} for e in datos.evidencias):
