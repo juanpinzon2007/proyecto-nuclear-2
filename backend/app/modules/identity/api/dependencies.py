@@ -246,4 +246,6 @@ def obtener_consulta_feedback_estudiantil(
 
 
 def obtener_proxy_administracion() -> ProxyAdministracionUsuarios:
-    return ProxyAdministracionUsuarios(construir_administracion, ServicioAutorizacion(construir_consulta_ambito))
+    from app.modules.identity.infrastructure.teacher_directory import ConsultaDocentesSQLAlchemy
+    return ProxyAdministracionUsuarios(construir_administracion, ServicioAutorizacion(construir_consulta_ambito),
+        ConsultaDocentesSQLAlchemy(obtener_fabrica_sesiones_seguimiento()))

@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 
 from app.modules.identity.api.dependencies import (
     obtener_fabrica_autenticacion, obtener_proxy_administracion,
@@ -13,6 +13,7 @@ from app.modules.identity.api.errors import RutaIdentity
 from app.modules.identity.api.schemas import (
     AutorizacionesDocenteSchema, CrearDocente, IdPublico, RespuestaToken,
     SolicitudFeedback, SolicitudLogin, SolicitudLoginPersonal, SolicitudRepeticion, UsuarioPublico,
+    PaginaDocentesRespuesta,
 )
 from app.modules.identity.application.authentication import ServicioAutenticacion
 from app.modules.identity.application.proxy_administracion import ProxyAdministracionUsuarios
@@ -66,6 +67,14 @@ def crear_docente(solicitud: CrearDocente, usuario: UsuarioActual, proxy: Admini
             clave=solicitud.clave.get_secret_value() if solicitud.clave else None,
         ))
     return UsuarioPublico.desde_contexto(proxy.crear_docente(usuario, solicitud.correo, solicitud.a_dominio()))
+
+
+@router.get("/docentes", response_model=PaginaDocentesRespuesta)
+def consultar_docentes(usuario: UsuarioActual, proxy: Administracion,
+    limite: Annotated[int, Query(ge=1, le=100)] = 25,
+    desplazamiento: Annotated[int, Query(ge=0)] = 0):
+    """Cuentas docentes; no incluye permisos ni asociaciones académicas."""
+    return proxy.consultar_docentes(usuario, limite=limite, desplazamiento=desplazamiento)
 
 
 @router.put("/docentes/{id_docente}/autorizaciones", response_model=UsuarioPublico)

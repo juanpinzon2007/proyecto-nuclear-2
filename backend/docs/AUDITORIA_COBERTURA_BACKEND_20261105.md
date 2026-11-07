@@ -142,7 +142,7 @@ pruebas se verifican en el código; los parámetros concretos figuran en el JUni
 |---|---|---|---|---|---|
 | RF-01 Autenticar estudiantes | Identity: `application/authentication.py::ServicioAutenticacion.autenticar_estudiante`, `infrastructure/scheduling_access.py::ValidadorConvocatoriaScheduling`; usuario, identidad_academica, convocatoria/sesión | POST `/api/v1/identity/auth/estudiantes`, GET `/api/v1/identity/me`; sí | IMPLEMENTADO | `tests/identity/test_student_login_scheduling.py::test_flujo_login_autorizado_jwt_y_notificaciones_reales`; SQLite/PG, sin password inventado | Configurar dominios/JWT en despliegue; login no autoriza ingreso ni crea intento. Aceptación: correo/código propios, rol y cuenta actuales, contexto legítimo. |
 | RF-02 Controlar rol y permiso específico de crear casos | Identity: obtener_usuario_actual, ServicioAutorizacion, ServicioAutenticacion.autenticar_personal; roles/permisos SQL; Cases exigir_permiso_creacion_configurado | POST `/api/v1/identity/auth/personal`, /me y dependencias Cases registradas | IMPLEMENTADO | `tests/integration/test_main_staff_login.py::test_login_real_no_otorga_casos_ajenos_ni_permisos_eliminados` y `test_estado_y_rol_persistidos_se_revalidan_despues_del_login`; HTTP main/JWT real/PG17 | Acreditado en el alcance vigente de permisos por rol, sin conceder permisos individuales ni vínculos académicos. Login autorizado por decisión del equipo; políticas operativas institucionales pendientes. Sección 16. |
-| RF-03 Administrar docentes, roles y permisos | ServicioAdministracionUsuarios, repositorios SQL, ProxyAdministracionUsuarios y login personal reutilizado | POST `/api/v1/identity/docentes`, PUT `/docentes/{id_docente}/autorizaciones`; sí | PARCIAL | `tests/integration/test_main_staff_login.py::test_admin_ingresa_crea_docente_con_hash_y_docente_ingresa_sin_crear_vinculos`: HTTP main/PG17, alta, login y asignación compatible; rechazo de alteración global del catálogo | Login administrativo ya acreditado; sigue pendiente bootstrap institucional y definición de granularidad individual/multirrol. No declarar completo por añadir autenticación. Los 29 tests antiguos condicionados a URL siguen omitidos. Sección 16. |
+| RF-03 Administrar docentes, roles y permisos | Identity: ServicioAdministracionUsuarios, repositorios/UoW, Proxy, login personal, bootstrap interno y ConsultaDocentesSQLAlchemy | POST y GET `/api/v1/identity/docentes`, PUT `/docentes/{id_docente}/autorizaciones`; sí. Bootstrap solo comando, sin ruta HTTP | PARCIAL | `test_admin_bootstrap.py`: 13 aceptaciones; `test_admin_teacher_directory.py`: 13 aceptaciones PG17/main/JWT reales. Relacionada actual: 166 aprobadas, 0 omitidas/fallidas/errores. Incluye login, alta, seguimiento y recorrido estudiantil | Primera cuenta y consulta administrativa paginada resueltas; ADMINISTRADOR persistente, sin hashes ni datos académicos. Siguen pendientes configuración operativa del catálogo, granularidad individual/multirrol, ámbito de administración de asociaciones y significado DOCENTE ADMINISTRADOR. No declarar RF-03 completo. Las omisiones históricas de pruebas por URL no se consideran aprobadas. RF03_ADMINISTRADOR_INICIAL.md y RF03_CONSULTA_ADMINISTRATIVA_DOCENTES.md |
 | RF-04 Asociar espacio y estudiantes | Scheduling/Identity: espacio_academico, docente_espacio_academico, grupo_academico/grupo_estudiante, asignacion_caso y convocatoria; `convocation_management.py::_autorizar` | `/scheduling/espacios`, `/sesiones`, `/sesiones/{id}/convocatorias`; sí | PARCIAL | `tests/integration/test_convocation_management_http.py::test_alta_exige_ambito_academico_persistente` PG | Asociación/verificación sí; altas de matrículas, puente de asignación y grants siguen preparados administrativamente en fixtures. Definir su proceso autorizado, sin autovinculación ni inferir grupo desde espacio. |
 | RF-05 Registrar estructura del caso | Cases: `CasoService.crear_borrador`, `ConstructorCaso`; caso/version_caso/escenario, estimado e historia | POST/PUT `/api/v1/cases[/{version_id}]`; sí | IMPLEMENTADO | `tests/integration/test_cases_graph_authoring.py::test_http_crear_configurar_publicar_y_consumir_misma_version` PG, contenido por API | Login personal real acreditado; configurar cuentas/JWT institucionales para despliegue. La preparación de nuevas ediciones históricas por ORM en algunos tests NO acredita un endpoint de nueva edición. |
 | RF-06 Contextos y preguntas por escenario | Cases: `CasoPayload`, `CasoService._construir`, escenario/pregunta | POST/PUT/GET `/api/v1/cases`; sí | IMPLEMENTADO | Mismo test HTTP PG de autoría; `tests/unit/cases/test_builder.py` valida construcción | Autoría guarda estructura; ejecución multipregunta sigue bloqueada y se clasifica en RF-10. No confundir guardar una lista con poder navegarla. |
@@ -1067,3 +1067,64 @@ BD2-04 preservado. Evidencia: evidencias/evaluation_preparacion_20261106T225458Z
 pruebas_total_20261107T033737Z/. La general anterior de este incremento quedó
 interrumpida al 28 %, sin veredicto; su log se conserva y no se computa como suite
 aprobada. Docker fue reanudado por el usuario antes de ejecutar la general completa.
+
+
+## 27. RF-03: administrador inicial controlado (6 de noviembre de 2026)
+
+Se seleccionó el bootstrap por su dependencia sobre login/alta docente ya existentes.
+La primera cuenta ya no exige un INSERT manual de fixture: comando interno
+identity.infrastructure.bootstrap_admin, sin HTTP, sin credenciales predeterminadas
+ni asignaciones UUID. Reutiliza hasheador, repositorio y UoW. Catálogo ADMINISTRADOR
+existente e inequívoco; rechaza si ya hay un administrador incluso inactivo o
+correo ocupado, sin recuperar/reactivar cuentas. Los roles se normalizan como el
+repositorio actual, sin suponer IDs. No se modifica rol_permiso ni el modelo de roles.
+
+READ COMMITTED + locks de usuario/rol serializan la comprobación y alta. Rollback
+ante fallo; ninguna creación de catálogos o autorización académica implícita.
+El operador necesita acceso controlado al despliegue y credenciales SQL; confirmar
+el nombre de base evita errores de destino, no prueba su autoridad. No hay registro
+público ni vía de recuperación. DOCENTE ADMINISTRADOR sigue sin definición ejecutable.
+
+Aceptación nueva: 13 aprobadas, 0 omitidas/fallidas/errores, 1 advertencia conocida;
+12 escenarios PG17 nuevos y uno de parser/consola sin BD. Regresión relacionada:
+153 aprobadas, 0 omitidas/fallidas/errores y 1 advertencia, incluye esos 13.
+No sumar suites solapadas. HTTP de app.main usa login/JWT/SQL reales; solo la entrada
+interactiva del comando se simula. Se acreditan concurrencia, rollback SQL real,
+persistencia en otra Session, ausencia de escalamiento y conservación del recorrido
+estudiantil. Evidencias: evidencias/rf03_bootstrap_20261107T043239Z/.
+
+No general nueva: solo módulo aislado, tests y documentación nuevos; no cambiaron
+servicios, contratos, modelos ni rutas compartidos. Las 2239/38 previas siguen siendo
+históricas; sus 38 omisiones no se consideran resueltas. No cambió Evaluation ni
+sus documentos/evidencias sin commit. RF-03 permanece PARCIAL; totales sin cambio:
+14 IMPLEMENTADO, 8 PARCIAL y 5 BLOQUEADO. Detalle: RF03_ADMINISTRADOR_INICIAL.md.
+
+## 28. RF-03: consulta administrativa privada (7 de noviembre de 2026)
+
+GET `/api/v1/identity/docentes` disponible mediante el router Identity ya registrado
+en app.main. Reutiliza el Proxy administrativo y exige ADMINISTRADOR. JWT real,
+cuenta activa y rol revalidados en PostgreSQL; no se admiten privilegios inferidos
+para DOCENTE ADMINISTRADOR ni identidad por cabecera.
+
+Listado de cuentas docentes activas e inactivas, con nombre, correo, ID y estado;
+paginación limitada y orden por ID. Instantánea REPEATABLE READ/READ ONLY, sin DML,
+flush ni commit. No devuelve hashes, permisos, asociaciones, respuestas o notas.
+El permiso administrativo actual no acredita ámbito universal para consultar
+asociaciones académicas: ese tramo no se presume aprobado. Tener cero o varios
+vínculos no omite ni duplica una cuenta, ni concede permiso sobre recursos académicos.
+
+Nueva aceptación PG17/main/JWT real: 13 aprobadas sin omisiones/fallos/errores.
+Regresión relacionada: 166 aprobadas sin omisiones/fallos/errores. General final:
+2265 aprobadas, 38 omitidas, 0 fallidas/errores, 1 advertencia conocida; 1222.11 s.
+No sumar selecciones solapadas. Se conservan las 38 omisiones de configuraciones
+externas históricas; ninguna aceptación nueva se omite. Fallo inicial de preparación
+(12 aprobadas/1 fallida) conservado; se corrigió el aislamiento de la fixture, no
+se relajó el contrato productivo. Fuentes estables durante todas las ejecuciones.
+
+RF-03 continúa PARCIAL: permanecen decisiones sobre granularidad de permisos,
+multirrol, significado DOCENTE ADMINISTRADOR y ámbito administrativo de asociaciones.
+No se incorporan operaciones de activación, recuperación o asignación adicionales.
+Totales sin cambios: 14 IMPLEMENTADO, 8 PARCIAL, 5 BLOQUEADO.
+Detalle: RF03_CONSULTA_ADMINISTRATIVA_DOCENTES.md. Evidencia:
+`evidencias/rf03_consulta_20261107T044600Z/`. Código probado: HEAD 8b544f5 más cambios
+locales sin commit. No se crearon migraciones ni se modificaron bases permanentes.

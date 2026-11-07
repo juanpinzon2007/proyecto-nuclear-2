@@ -67,6 +67,20 @@ class UsuarioPublico(EsquemaIdentity):
                    roles=contexto.roles, permisos=contexto.permisos)
 
 
+class CuentaDocenteRespuesta(EsquemaIdentity):
+    id_usuario: str
+    nombre: str
+    correo: str
+    activo: bool
+
+
+class PaginaDocentesRespuesta(EsquemaIdentity):
+    docentes: tuple[CuentaDocenteRespuesta, ...]
+    total: int
+    limite: int
+    desplazamiento: int
+
+
 class SolicitudRepeticion(EsquemaIdentity):
     id_sesion: IdPublico
     id_estudiante: IdPublico
