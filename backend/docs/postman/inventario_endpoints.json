@@ -1,0 +1,3292 @@
+[
+  {
+    "metodo": "GET",
+    "ruta": "/api/v1/cases",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad CASES inequívoca, titularidad; CREAR_CASOS en escrituras. Publicación exige grafo ejecutable; publicados inmutables.",
+    "parametros": [],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/CasoResumenResponse"
+              },
+              "type": "array",
+              "title": "Response Listar Casos Api V1 Cases Get"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/cases/api/router.py",
+    "funcion": "listar_casos",
+    "dependencias": [
+      "HTTPBearer",
+      "get_caso_service",
+      "get_db",
+      "obtener_docente_actual",
+      "obtener_docente_cases",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/api/v1/cases",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad CASES inequívoca, titularidad; CREAR_CASOS en escrituras. Publicación exige grafo ejecutable; publicados inmutables.",
+    "parametros": [],
+    "body": {
+      "properties": {
+        "case": {
+          "properties": {
+            "nombre": {
+              "type": "string",
+              "title": "Nombre"
+            },
+            "desarrolloSituacional": {
+              "type": "string",
+              "title": "Desarrollosituacional"
+            },
+            "contextoHistoria": {
+              "type": "string",
+              "title": "Contextohistoria"
+            },
+            "tiempoEstimadoMin": {
+              "type": "integer",
+              "title": "Tiempoestimadomin"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "nombre",
+            "desarrolloSituacional",
+            "contextoHistoria",
+            "tiempoEstimadoMin"
+          ],
+          "title": "DatosCasoSchema",
+          "description": "Bloque ``case`` del payload."
+        },
+        "scenarios": {
+          "items": {
+            "properties": {
+              "orden": {
+                "type": "integer",
+                "title": "Orden"
+              },
+              "contextoSituacional": {
+                "type": "string",
+                "title": "Contextosituacional"
+              },
+              "questions": {
+                "items": {
+                  "properties": {
+                    "orden": {
+                      "type": "integer",
+                      "title": "Orden"
+                    },
+                    "enunciado": {
+                      "type": "string",
+                      "title": "Enunciado"
+                    },
+                    "options": {
+                      "items": {
+                        "properties": {
+                          "orden": {
+                            "type": "integer",
+                            "title": "Orden"
+                          },
+                          "texto": {
+                            "type": "string",
+                            "title": "Texto"
+                          },
+                          "esCorrecta": {
+                            "type": "boolean",
+                            "title": "Escorrecta"
+                          },
+                          "justificacion": {
+                            "type": "string",
+                            "title": "Justificacion"
+                          },
+                          "valoraciones": {
+                            "additionalProperties": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string"
+                                }
+                              ]
+                            },
+                            "type": "object",
+                            "title": "Valoraciones"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "orden",
+                          "texto",
+                          "esCorrecta",
+                          "justificacion"
+                        ],
+                        "title": "OpcionSchema"
+                      },
+                      "type": "array",
+                      "title": "Options"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "orden",
+                    "enunciado"
+                  ],
+                  "title": "PreguntaSchema"
+                },
+                "type": "array",
+                "title": "Questions"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "orden",
+              "contextoSituacional"
+            ],
+            "title": "EscenarioSchema"
+          },
+          "type": "array",
+          "title": "Scenarios"
+        },
+        "rubric": {
+          "anyOf": [
+            {
+              "properties": {
+                "nombre": {
+                  "type": "string",
+                  "title": "Nombre"
+                },
+                "versionRegla": {
+                  "type": "string",
+                  "title": "Versionregla"
+                },
+                "criterios": {
+                  "items": {
+                    "properties": {
+                      "nombre": {
+                        "type": "string",
+                        "title": "Nombre"
+                      },
+                      "peso": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string"
+                          }
+                        ],
+                        "title": "Peso"
+                      },
+                      "niveles": {
+                        "items": {
+                          "properties": {
+                            "nombre": {
+                              "type": "string",
+                              "title": "Nombre"
+                            },
+                            "puntaje": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string"
+                                }
+                              ],
+                              "title": "Puntaje"
+                            },
+                            "descriptor": {
+                              "type": "string",
+                              "title": "Descriptor"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "nombre",
+                            "puntaje",
+                            "descriptor"
+                          ],
+                          "title": "NivelSchema"
+                        },
+                        "type": "array",
+                        "title": "Niveles"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "nombre",
+                      "peso"
+                    ],
+                    "title": "CriterioSchema"
+                  },
+                  "type": "array",
+                  "title": "Criterios"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "nombre",
+                "versionRegla"
+              ],
+              "title": "RubricaSchema"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "case"
+      ],
+      "title": "CasoPayload",
+      "description": "Raíz del DSL: ``case``, ``scenarios`` (con ``questions`` y ``options``) y ``rubric``."
+    },
+    "respuestas_openapi": {
+      "201": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/VersionResponse"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 201,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/cases/api/router.py",
+    "funcion": "crear_borrador",
+    "dependencias": [
+      "HTTPBearer",
+      "exigir_permiso_creacion_configurado",
+      "get_caso_service",
+      "get_db",
+      "obtener_docente_actual",
+      "obtener_docente_cases",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/api/v1/cases/{version_id}",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad CASES inequívoca, titularidad; CREAR_CASOS en escrituras. Publicación exige grafo ejecutable; publicados inmutables.",
+    "parametros": [
+      {
+        "name": "version_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Version Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CasoDetalleResponse"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/cases/api/router.py",
+    "funcion": "obtener_caso",
+    "dependencias": [
+      "HTTPBearer",
+      "get_caso_service",
+      "get_db",
+      "obtener_docente_actual",
+      "obtener_docente_cases",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "PUT",
+    "ruta": "/api/v1/cases/{version_id}",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad CASES inequívoca, titularidad; CREAR_CASOS en escrituras. Publicación exige grafo ejecutable; publicados inmutables.",
+    "parametros": [
+      {
+        "name": "version_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Version Id"
+        }
+      }
+    ],
+    "body": {
+      "properties": {
+        "case": {
+          "properties": {
+            "nombre": {
+              "type": "string",
+              "title": "Nombre"
+            },
+            "desarrolloSituacional": {
+              "type": "string",
+              "title": "Desarrollosituacional"
+            },
+            "contextoHistoria": {
+              "type": "string",
+              "title": "Contextohistoria"
+            },
+            "tiempoEstimadoMin": {
+              "type": "integer",
+              "title": "Tiempoestimadomin"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "nombre",
+            "desarrolloSituacional",
+            "contextoHistoria",
+            "tiempoEstimadoMin"
+          ],
+          "title": "DatosCasoSchema",
+          "description": "Bloque ``case`` del payload."
+        },
+        "scenarios": {
+          "items": {
+            "properties": {
+              "orden": {
+                "type": "integer",
+                "title": "Orden"
+              },
+              "contextoSituacional": {
+                "type": "string",
+                "title": "Contextosituacional"
+              },
+              "questions": {
+                "items": {
+                  "properties": {
+                    "orden": {
+                      "type": "integer",
+                      "title": "Orden"
+                    },
+                    "enunciado": {
+                      "type": "string",
+                      "title": "Enunciado"
+                    },
+                    "options": {
+                      "items": {
+                        "properties": {
+                          "orden": {
+                            "type": "integer",
+                            "title": "Orden"
+                          },
+                          "texto": {
+                            "type": "string",
+                            "title": "Texto"
+                          },
+                          "esCorrecta": {
+                            "type": "boolean",
+                            "title": "Escorrecta"
+                          },
+                          "justificacion": {
+                            "type": "string",
+                            "title": "Justificacion"
+                          },
+                          "valoraciones": {
+                            "additionalProperties": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string"
+                                }
+                              ]
+                            },
+                            "type": "object",
+                            "title": "Valoraciones"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "orden",
+                          "texto",
+                          "esCorrecta",
+                          "justificacion"
+                        ],
+                        "title": "OpcionSchema"
+                      },
+                      "type": "array",
+                      "title": "Options"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "orden",
+                    "enunciado"
+                  ],
+                  "title": "PreguntaSchema"
+                },
+                "type": "array",
+                "title": "Questions"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "orden",
+              "contextoSituacional"
+            ],
+            "title": "EscenarioSchema"
+          },
+          "type": "array",
+          "title": "Scenarios"
+        },
+        "rubric": {
+          "anyOf": [
+            {
+              "properties": {
+                "nombre": {
+                  "type": "string",
+                  "title": "Nombre"
+                },
+                "versionRegla": {
+                  "type": "string",
+                  "title": "Versionregla"
+                },
+                "criterios": {
+                  "items": {
+                    "properties": {
+                      "nombre": {
+                        "type": "string",
+                        "title": "Nombre"
+                      },
+                      "peso": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string"
+                          }
+                        ],
+                        "title": "Peso"
+                      },
+                      "niveles": {
+                        "items": {
+                          "properties": {
+                            "nombre": {
+                              "type": "string",
+                              "title": "Nombre"
+                            },
+                            "puntaje": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string"
+                                }
+                              ],
+                              "title": "Puntaje"
+                            },
+                            "descriptor": {
+                              "type": "string",
+                              "title": "Descriptor"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "nombre",
+                            "puntaje",
+                            "descriptor"
+                          ],
+                          "title": "NivelSchema"
+                        },
+                        "type": "array",
+                        "title": "Niveles"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "nombre",
+                      "peso"
+                    ],
+                    "title": "CriterioSchema"
+                  },
+                  "type": "array",
+                  "title": "Criterios"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "nombre",
+                "versionRegla"
+              ],
+              "title": "RubricaSchema"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "case"
+      ],
+      "title": "CasoPayload",
+      "description": "Raíz del DSL: ``case``, ``scenarios`` (con ``questions`` y ``options``) y ``rubric``."
+    },
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/VersionResponse"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/cases/api/router.py",
+    "funcion": "editar_borrador",
+    "dependencias": [
+      "HTTPBearer",
+      "exigir_permiso_creacion_configurado",
+      "get_caso_service",
+      "get_db",
+      "obtener_docente_actual",
+      "obtener_docente_cases",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/api/v1/cases/{version_id}/publish",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad CASES inequívoca, titularidad; CREAR_CASOS en escrituras. Publicación exige grafo ejecutable; publicados inmutables.",
+    "parametros": [
+      {
+        "name": "version_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Version Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/VersionResponse"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/cases/api/router.py",
+    "funcion": "publicar_caso",
+    "dependencias": [
+      "HTTPBearer",
+      "exigir_permiso_creacion_configurado",
+      "get_caso_service",
+      "get_db",
+      "obtener_docente_actual",
+      "obtener_docente_cases",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/api/v1/cases/{version_id}/archive",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad CASES inequívoca, titularidad; CREAR_CASOS en escrituras. Publicación exige grafo ejecutable; publicados inmutables.",
+    "parametros": [
+      {
+        "name": "version_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Version Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/VersionResponse"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/cases/api/router.py",
+    "funcion": "archivar_caso",
+    "dependencias": [
+      "HTTPBearer",
+      "exigir_permiso_creacion_configurado",
+      "get_caso_service",
+      "get_db",
+      "obtener_docente_actual",
+      "obtener_docente_cases",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/api/v1/cases/{version_id}/graph",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad CASES inequívoca, titularidad; CREAR_CASOS en escrituras. Publicación exige grafo ejecutable; publicados inmutables.",
+    "parametros": [
+      {
+        "name": "version_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Version Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GrafoResponse"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/cases/api/router.py",
+    "funcion": "consultar_grafo",
+    "dependencias": [
+      "HTTPBearer",
+      "get_caso_service",
+      "get_db",
+      "obtener_docente_actual",
+      "obtener_docente_cases",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "PUT",
+    "ruta": "/api/v1/cases/{version_id}/graph",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad CASES inequívoca, titularidad; CREAR_CASOS en escrituras. Publicación exige grafo ejecutable; publicados inmutables.",
+    "parametros": [
+      {
+        "name": "version_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Version Id"
+        }
+      }
+    ],
+    "body": {
+      "properties": {
+        "escenario_inicial_id": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Escenario Inicial Id"
+        },
+        "transiciones": {
+          "items": {
+            "properties": {
+              "opcion_id": {
+                "type": "string",
+                "format": "uuid",
+                "title": "Opcion Id"
+              },
+              "tipo": {
+                "type": "string",
+                "enum": [
+                  "ESCENA",
+                  "FIN"
+                ],
+                "title": "Tipo"
+              },
+              "destino_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Destino Id"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "opcion_id",
+              "tipo"
+            ],
+            "title": "TransicionSolicitud"
+          },
+          "type": "array",
+          "title": "Transiciones"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "escenario_inicial_id",
+        "transiciones"
+      ],
+      "title": "GrafoSolicitud",
+      "description": "UUID recuperados del detalle de la versión; nunca orden editorial."
+    },
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GrafoResponse"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/cases/api/router.py",
+    "funcion": "configurar_grafo",
+    "dependencias": [
+      "HTTPBearer",
+      "exigir_permiso_creacion_configurado",
+      "get_caso_service",
+      "get_db",
+      "obtener_docente_actual",
+      "obtener_docente_cases",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/api/v1/identity/auth/estudiantes",
+    "rol": "PUBLICO",
+    "autenticacion": "Sin Bearer",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Ninguna para acceder; el login valida credenciales y cuenta persistente.",
+    "parametros": [],
+    "body": {
+      "properties": {
+        "correo": {
+          "type": "string",
+          "maxLength": 254,
+          "minLength": 3,
+          "title": "Correo"
+        },
+        "codigo_convocatoria": {
+          "type": "string",
+          "maxLength": 256,
+          "minLength": 1,
+          "format": "password",
+          "title": "Codigo Convocatoria",
+          "writeOnly": true
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "correo",
+        "codigo_convocatoria"
+      ],
+      "title": "SolicitudLogin"
+    },
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RespuestaToken"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Credenciales ausentes o inválidas"
+      },
+      "403": {
+        "description": "Operación denegada por el Proxy"
+      },
+      "503": {
+        "description": "Integración o configuración pendiente"
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/identity/api/router.py",
+    "funcion": "autenticar_estudiante",
+    "dependencias": [
+      "obtener_dominios_login",
+      "obtener_fabrica_autenticacion",
+      "obtener_fabrica_sesiones_login",
+      "obtener_fabrica_tokens"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/api/v1/identity/auth/personal",
+    "rol": "PUBLICO",
+    "autenticacion": "Sin Bearer",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Ninguna para acceder; el login valida credenciales y cuenta persistente.",
+    "parametros": [],
+    "body": {
+      "properties": {
+        "correo": {
+          "type": "string",
+          "maxLength": 254,
+          "minLength": 3,
+          "title": "Correo"
+        },
+        "clave": {
+          "type": "string",
+          "maxLength": 1024,
+          "minLength": 1,
+          "format": "password",
+          "title": "Clave",
+          "writeOnly": true
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "correo",
+        "clave"
+      ],
+      "title": "SolicitudLoginPersonal"
+    },
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RespuestaToken"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Credenciales ausentes o inválidas"
+      },
+      "403": {
+        "description": "Operación denegada por el Proxy"
+      },
+      "503": {
+        "description": "Integración o configuración pendiente"
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/identity/api/router.py",
+    "funcion": "autenticar_personal",
+    "dependencias": [
+      "obtener_fabrica_autenticacion_personal",
+      "obtener_fabrica_sesiones_login",
+      "obtener_fabrica_tokens"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/api/v1/identity/me",
+    "rol": "AUTENTICADO",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Cuenta activa y rol vigente desde PostgreSQL.",
+    "parametros": [],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UsuarioPublico"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Credenciales ausentes o inválidas"
+      },
+      "403": {
+        "description": "Operación denegada por el Proxy"
+      },
+      "503": {
+        "description": "Integración o configuración pendiente"
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/identity/api/router.py",
+    "funcion": "consultar_identidad",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_usuario_actual"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/api/v1/identity/docentes",
+    "rol": "ADMINISTRADOR",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Cuentas de Identity; no concede ámbito académico ni DOCENTE ADMINISTRADOR.",
+    "parametros": [],
+    "body": {
+      "properties": {
+        "roles": {
+          "items": {
+            "type": "string",
+            "enum": [
+              "ADMINISTRADOR",
+              "DOCENTE",
+              "ESTUDIANTE"
+            ],
+            "title": "Rol"
+          },
+          "type": "array",
+          "uniqueItems": true,
+          "title": "Roles",
+          "default": [
+            "DOCENTE"
+          ]
+        },
+        "permisos": {
+          "items": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1
+          },
+          "type": "array",
+          "uniqueItems": true,
+          "title": "Permisos",
+          "default": []
+        },
+        "correo": {
+          "type": "string",
+          "maxLength": 254,
+          "minLength": 3,
+          "title": "Correo"
+        },
+        "nombre": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 120,
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Nombre"
+        },
+        "clave": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 1024,
+              "minLength": 1,
+              "format": "password",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Clave"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "correo"
+      ],
+      "title": "CrearDocente"
+    },
+    "respuestas_openapi": {
+      "201": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UsuarioPublico"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Credenciales ausentes o inválidas"
+      },
+      "403": {
+        "description": "Operación denegada por el Proxy"
+      },
+      "503": {
+        "description": "Integración o configuración pendiente"
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 201,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/identity/api/router.py",
+    "funcion": "crear_docente",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_proxy_administracion",
+      "obtener_usuario_actual"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/api/v1/identity/docentes",
+    "rol": "ADMINISTRADOR",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Cuentas de Identity; no concede ámbito académico ni DOCENTE ADMINISTRADOR.",
+    "parametros": [
+      {
+        "name": "limite",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "maximum": 100,
+          "minimum": 1,
+          "default": 25,
+          "title": "Limite"
+        }
+      },
+      {
+        "name": "desplazamiento",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "title": "Desplazamiento"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PaginaDocentesRespuesta"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Credenciales ausentes o inválidas"
+      },
+      "403": {
+        "description": "Operación denegada por el Proxy"
+      },
+      "503": {
+        "description": "Integración o configuración pendiente"
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/identity/api/router.py",
+    "funcion": "consultar_docentes",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_proxy_administracion",
+      "obtener_usuario_actual"
+    ]
+  },
+  {
+    "metodo": "PUT",
+    "ruta": "/api/v1/identity/docentes/{id_docente}/autorizaciones",
+    "rol": "ADMINISTRADOR",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Cuentas de Identity; no concede ámbito académico ni DOCENTE ADMINISTRADOR.",
+    "parametros": [
+      {
+        "name": "id_docente",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^\\S+$",
+          "title": "Id Docente"
+        }
+      }
+    ],
+    "body": {
+      "properties": {
+        "roles": {
+          "items": {
+            "type": "string",
+            "enum": [
+              "ADMINISTRADOR",
+              "DOCENTE",
+              "ESTUDIANTE"
+            ],
+            "title": "Rol"
+          },
+          "type": "array",
+          "uniqueItems": true,
+          "title": "Roles",
+          "default": [
+            "DOCENTE"
+          ]
+        },
+        "permisos": {
+          "items": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1
+          },
+          "type": "array",
+          "uniqueItems": true,
+          "title": "Permisos",
+          "default": []
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "title": "AutorizacionesDocenteSchema"
+    },
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UsuarioPublico"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Credenciales ausentes o inválidas"
+      },
+      "403": {
+        "description": "Operación denegada por el Proxy"
+      },
+      "503": {
+        "description": "Integración o configuración pendiente"
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/identity/api/router.py",
+    "funcion": "asignar_autorizaciones",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_proxy_administracion",
+      "obtener_usuario_actual"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/api/v1/identity/seguimiento/casos",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Ámbito persistente de caso/sesión/participación; seguimiento de casos realizados. No hay notas oficiales.",
+    "parametros": [],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/ResumenCaso"
+              },
+              "type": "array",
+              "title": "Response Listar Casos Realizados Api V1 Identity Seguimiento Casos Get"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Credenciales ausentes o inválidas"
+      },
+      "403": {
+        "description": "Operación denegada por el Proxy"
+      },
+      "503": {
+        "description": "Integración o configuración pendiente"
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/identity/api/router.py",
+    "funcion": "listar_casos_realizados",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_fabrica_sesiones_seguimiento",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_proxy_seguimiento",
+      "obtener_usuario_actual"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/api/v1/identity/seguimiento/participaciones/{id_participacion}",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Ámbito persistente de caso/sesión/participación; seguimiento de casos realizados. No hay notas oficiales.",
+    "parametros": [
+      {
+        "name": "id_participacion",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^\\S+$",
+          "title": "Id Participacion"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/DetalleParticipacion"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Credenciales ausentes o inválidas"
+      },
+      "403": {
+        "description": "Operación denegada por el Proxy"
+      },
+      "503": {
+        "description": "Integración o configuración pendiente"
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/identity/api/router.py",
+    "funcion": "consultar_participacion",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_fabrica_sesiones_seguimiento",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_proxy_seguimiento",
+      "obtener_usuario_actual"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/api/v1/identity/seguimiento/casos/{id_caso}/participaciones",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Ámbito persistente de caso/sesión/participación; seguimiento de casos realizados. No hay notas oficiales.",
+    "parametros": [
+      {
+        "name": "id_caso",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^\\S+$",
+          "title": "Id Caso"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ResumenParticipacion"
+              },
+              "title": "Response Listar Participaciones Api V1 Identity Seguimiento Casos  Id Caso  Participaciones Get"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Credenciales ausentes o inválidas"
+      },
+      "403": {
+        "description": "Operación denegada por el Proxy"
+      },
+      "503": {
+        "description": "Integración o configuración pendiente"
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/identity/api/router.py",
+    "funcion": "listar_participaciones",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_fabrica_sesiones_seguimiento",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_proxy_seguimiento",
+      "obtener_usuario_actual"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/api/v1/identity/seguimiento/sesiones/{id_sesion}/reporte",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_BLOQUEADO",
+    "dependencias_academicas": "Ámbito persistente de caso/sesión/participación; seguimiento de casos realizados. No hay notas oficiales.",
+    "parametros": [
+      {
+        "name": "id_sesion",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^\\S+$",
+          "title": "Id Sesion"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Reporte CSV académico",
+        "content": {
+          "text/csv": {}
+        }
+      },
+      "401": {
+        "description": "Credenciales ausentes o inválidas"
+      },
+      "403": {
+        "description": "Operación denegada por el Proxy"
+      },
+      "503": {
+        "description": "Integración o configuración pendiente"
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 503,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/identity/api/router.py",
+    "funcion": "descargar_reporte",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_fabrica_sesiones_seguimiento",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_proxy_seguimiento",
+      "obtener_usuario_actual"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/api/v1/identity/seguimiento/participaciones/{id_participacion}/feedback",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Ámbito persistente de caso/sesión/participación; seguimiento de casos realizados. No hay notas oficiales.",
+    "parametros": [
+      {
+        "name": "id_participacion",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^\\S+$",
+          "title": "Id Participacion"
+        }
+      }
+    ],
+    "body": {
+      "properties": {
+        "texto": {
+          "type": "string",
+          "maxLength": 10000,
+          "minLength": 1,
+          "title": "Texto"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "texto"
+      ],
+      "title": "SolicitudFeedback"
+    },
+    "respuestas_openapi": {
+      "201": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/FeedbackDocente"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Credenciales ausentes o inválidas"
+      },
+      "403": {
+        "description": "Operación denegada por el Proxy"
+      },
+      "503": {
+        "description": "Integración o configuración pendiente"
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 201,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/identity/api/router.py",
+    "funcion": "registrar_feedback",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_fabrica_sesiones_seguimiento",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_proxy_seguimiento",
+      "obtener_usuario_actual"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/api/v1/identity/seguimiento/participaciones/{id_participacion}/feedback",
+    "rol": "ESTUDIANTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Participación propia y condiciones de visibilidad; no muestra notas ni correcciones.",
+    "parametros": [
+      {
+        "name": "id_participacion",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^\\S+$",
+          "title": "Id Participacion"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/FeedbackDocente"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Credenciales ausentes o inválidas"
+      },
+      "403": {
+        "description": "Operación denegada por el Proxy"
+      },
+      "503": {
+        "description": "Integración o configuración pendiente"
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/identity/api/router.py",
+    "funcion": "consultar_feedback_estudiantil",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_consulta_feedback_estudiantil",
+      "obtener_estudiante_actual",
+      "obtener_fabrica_sesiones_seguimiento",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/api/v1/identity/excepciones/repeticiones",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_BLOQUEADO",
+    "dependencias_academicas": "Ámbito persistente de caso/sesión/participación; seguimiento de casos realizados. No hay notas oficiales.",
+    "parametros": [],
+    "body": {
+      "properties": {
+        "id_sesion": {
+          "type": "string",
+          "maxLength": 200,
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "title": "Id Sesion"
+        },
+        "id_estudiante": {
+          "type": "string",
+          "maxLength": 200,
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "title": "Id Estudiante"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "id_sesion",
+        "id_estudiante"
+      ],
+      "title": "SolicitudRepeticion"
+    },
+    "respuestas_openapi": {
+      "201": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AutorizacionRepeticion"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Credenciales ausentes o inválidas"
+      },
+      "403": {
+        "description": "Operación denegada por el Proxy"
+      },
+      "503": {
+        "description": "Integración o configuración pendiente"
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 503,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/identity/api/router.py",
+    "funcion": "autorizar_repeticion",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_proxy_excepciones",
+      "obtener_usuario_actual"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/scheduling/espacios",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad SCHEDULING. Sesión propia; programación requiere asignación explícita docente-espacio y caso publicado propio. /espacios es catálogo docente global según código actual.",
+    "parametros": [],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/EspacioAcademicoResponse"
+              },
+              "type": "array",
+              "title": "Response Listar Espacios Scheduling Espacios Get"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/router.py",
+    "funcion": "listar_espacios",
+    "dependencias": [
+      "HTTPBearer",
+      "get_db",
+      "obtener_docente_actual",
+      "obtener_docente_autenticado",
+      "obtener_docente_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/scheduling/espacios",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad SCHEDULING. Sesión propia; programación requiere asignación explícita docente-espacio y caso publicado propio. /espacios es catálogo docente global según código actual.",
+    "parametros": [],
+    "body": {
+      "properties": {
+        "nombre": {
+          "type": "string",
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Nombre"
+        }
+      },
+      "type": "object",
+      "required": [
+        "nombre"
+      ],
+      "title": "CrearEspacioAcademicoRequest"
+    },
+    "respuestas_openapi": {
+      "201": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EspacioAcademicoResponse"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 201,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/router.py",
+    "funcion": "crear_espacio",
+    "dependencias": [
+      "HTTPBearer",
+      "get_db",
+      "obtener_docente_actual",
+      "obtener_docente_autenticado",
+      "obtener_docente_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/scheduling/sesiones",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad SCHEDULING. Sesión propia; programación requiere asignación explícita docente-espacio y caso publicado propio. /espacios es catálogo docente global según código actual.",
+    "parametros": [
+      {
+        "name": "docente_id",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Docente Id"
+        }
+      },
+      {
+        "name": "espacio_id",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Espacio Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/SesionResponse"
+              },
+              "title": "Response Listar Sesiones Scheduling Sesiones Get"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/router.py",
+    "funcion": "listar_sesiones",
+    "dependencias": [
+      "HTTPBearer",
+      "get_db",
+      "obtener_docente_actual",
+      "obtener_docente_autenticado",
+      "obtener_docente_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/scheduling/sesiones",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad SCHEDULING. Sesión propia; programación requiere asignación explícita docente-espacio y caso publicado propio. /espacios es catálogo docente global según código actual.",
+    "parametros": [],
+    "body": {
+      "properties": {
+        "espacio_academico_id": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Espacio Academico Id"
+        },
+        "version_caso_id": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Version Caso Id"
+        },
+        "fecha_inicio": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Fecha Inicio"
+        },
+        "fecha_fin": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Fecha Fin"
+        },
+        "tiempo_maximo_minutos": {
+          "type": "integer",
+          "exclusiveMinimum": 0.0,
+          "title": "Tiempo Maximo Minutos"
+        },
+        "lugar": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 255
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Lugar"
+        },
+        "mensaje_personalizado": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mensaje Personalizado"
+        }
+      },
+      "type": "object",
+      "required": [
+        "espacio_academico_id",
+        "version_caso_id",
+        "fecha_inicio",
+        "fecha_fin",
+        "tiempo_maximo_minutos"
+      ],
+      "title": "ProgramarSesionRequest"
+    },
+    "respuestas_openapi": {
+      "201": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SesionResponse"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 201,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/router.py",
+    "funcion": "crear_sesion",
+    "dependencias": [
+      "HTTPBearer",
+      "get_db",
+      "obtener_autorizacion_espacios_programacion",
+      "obtener_docente_actual",
+      "obtener_docente_autenticado",
+      "obtener_docente_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/scheduling/sesiones/{sesion_id}",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad SCHEDULING. Sesión propia; programación requiere asignación explícita docente-espacio y caso publicado propio. /espacios es catálogo docente global según código actual.",
+    "parametros": [
+      {
+        "name": "sesion_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Sesion Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SesionResponse"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/router.py",
+    "funcion": "obtener_sesion",
+    "dependencias": [
+      "HTTPBearer",
+      "get_db",
+      "obtener_docente_actual",
+      "obtener_docente_autenticado",
+      "obtener_docente_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/scheduling/sesiones/{sesion_id}/estado",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad SCHEDULING. Sesión propia; programación requiere asignación explícita docente-espacio y caso publicado propio. /espacios es catálogo docente global según código actual.",
+    "parametros": [
+      {
+        "name": "sesion_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Sesion Id"
+        }
+      }
+    ],
+    "body": {
+      "properties": {
+        "accion": {
+          "type": "string",
+          "enum": [
+            "iniciar",
+            "finalizar"
+          ],
+          "title": "Accion"
+        }
+      },
+      "type": "object",
+      "required": [
+        "accion"
+      ],
+      "title": "CambiarEstadoRequest"
+    },
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SesionResponse"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/router.py",
+    "funcion": "actualizar_estado",
+    "dependencias": [
+      "HTTPBearer",
+      "get_db",
+      "get_session_factory",
+      "obtener_docente_actual",
+      "obtener_docente_autenticado",
+      "obtener_docente_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/scheduling/sesiones/{sesion_id}/convocatorias",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad SCHEDULING. Sesión propia; programación requiere asignación explícita docente-espacio y caso publicado propio. /espacios es catálogo docente global según código actual.",
+    "parametros": [
+      {
+        "name": "sesion_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Sesion Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ConvocatoriaDetalleResponse"
+              },
+              "title": "Response Listar Convocatorias Scheduling Sesiones  Sesion Id  Convocatorias Get"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/router.py",
+    "funcion": "listar_convocatorias",
+    "dependencias": [
+      "HTTPBearer",
+      "get_db",
+      "obtener_docente_actual",
+      "obtener_docente_autenticado",
+      "obtener_docente_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/scheduling/sesiones/{sesion_id}/convocatorias",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad SCHEDULING. Sesión propia; programación requiere asignación explícita docente-espacio y caso publicado propio. /espacios es catálogo docente global según código actual.",
+    "parametros": [
+      {
+        "name": "sesion_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Sesion Id"
+        }
+      }
+    ],
+    "body": {
+      "properties": {
+        "estudiante_id": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Estudiante Id"
+        }
+      },
+      "type": "object",
+      "required": [
+        "estudiante_id"
+      ],
+      "title": "CrearConvocatoriaRequest"
+    },
+    "respuestas_openapi": {
+      "201": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ConvocatoriaResponse"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 201,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/router.py",
+    "funcion": "convocar_estudiante",
+    "dependencias": [
+      "HTTPBearer",
+      "get_db",
+      "obtener_docente_actual",
+      "obtener_docente_autenticado",
+      "obtener_docente_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "DELETE",
+    "ruta": "/scheduling/sesiones/{sesion_id}/convocatorias/{convocatoria_id}",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad SCHEDULING. Sesión propia; programación requiere asignación explícita docente-espacio y caso publicado propio. /espacios es catálogo docente global según código actual.",
+    "parametros": [
+      {
+        "name": "sesion_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Sesion Id"
+        }
+      },
+      {
+        "name": "convocatoria_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Convocatoria Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ConvocatoriaDetalleResponse"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/router.py",
+    "funcion": "retirar_estudiante",
+    "dependencias": [
+      "HTTPBearer",
+      "get_db",
+      "obtener_docente_actual",
+      "obtener_docente_autenticado",
+      "obtener_docente_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/scheduling/validar-ingreso",
+    "rol": "ESTUDIANTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad SCHEDULING, convocatoria propia y matrícula; ingreso exige concesión de admisión y EN_CURSO, nunca crea P/I.",
+    "parametros": [],
+    "body": {
+      "properties": {
+        "convocatoria_id": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Convocatoria Id"
+        },
+        "estudiante_id": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Estudiante Id"
+        },
+        "codigo_acceso": {
+          "type": "string",
+          "title": "Codigo Acceso"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "convocatoria_id",
+        "estudiante_id",
+        "codigo_acceso"
+      ],
+      "title": "ValidarIngresoRequest"
+    },
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SesionResponse"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/router.py",
+    "funcion": "validar_ingreso_estudiante",
+    "dependencias": [
+      "HTTPBearer",
+      "exigir_contexto_convocatoria",
+      "exigir_politica_ingreso_configurada",
+      "get_db",
+      "obtener_admision",
+      "obtener_estudiante_actual",
+      "obtener_estudiante_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_sesiones_login",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_fabrica_validador_convocatoria",
+      "obtener_reloj_ingreso"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/scheduling/notificaciones",
+    "rol": "ESTUDIANTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad SCHEDULING, convocatoria propia y matrícula; ingreso exige concesión de admisión y EN_CURSO, nunca crea P/I.",
+    "parametros": [
+      {
+        "name": "destinatario_id",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Destinatario Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/NotificacionResponse"
+              },
+              "title": "Response Listar Notificaciones Scheduling Notificaciones Get"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/router.py",
+    "funcion": "listar_notificaciones",
+    "dependencias": [
+      "HTTPBearer",
+      "get_db",
+      "obtener_estudiante_actual",
+      "obtener_estudiante_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/scheduling/calificaciones/notificar",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_BLOQUEADO",
+    "dependencias_academicas": "Identidad SCHEDULING. Sesión propia; programación requiere asignación explícita docente-espacio y caso publicado propio. /espacios es catálogo docente global según código actual.",
+    "parametros": [],
+    "body": {
+      "properties": {
+        "estudiante_id": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Estudiante Id"
+        },
+        "participacion_id": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Participacion Id"
+        }
+      },
+      "type": "object",
+      "required": [
+        "estudiante_id",
+        "participacion_id"
+      ],
+      "title": "NotificarCalificacionRequest"
+    },
+    "respuestas_openapi": {
+      "503": {
+        "description": "Publicación oficial no disponible; operación sin escritura.",
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 503,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/router.py",
+    "funcion": "notificar_calificacion_participacion",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_docente_actual",
+      "obtener_docente_autenticado",
+      "obtener_docente_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/scheduling/convocatorias/{convocatoria_id}/espera",
+    "rol": "ESTUDIANTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad SCHEDULING, convocatoria propia y matrícula; ingreso exige concesión de admisión y EN_CURSO, nunca crea P/I.",
+    "parametros": [
+      {
+        "name": "convocatoria_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Convocatoria Id"
+        }
+      }
+    ],
+    "body": {
+      "properties": {
+        "codigo_acceso": {
+          "type": "string",
+          "maxLength": 256,
+          "minLength": 1,
+          "format": "password",
+          "title": "Codigo Acceso",
+          "writeOnly": true
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "codigo_acceso"
+      ],
+      "title": "SolicitudEspera"
+    },
+    "respuestas_openapi": {
+      "201": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 201,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/admission_router.py",
+    "funcion": "esperar",
+    "dependencias": [
+      "HTTPBearer",
+      "get_db",
+      "obtener_estudiante_actual",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_reloj_espera"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/scheduling/convocatorias/{convocatoria_id}/admision",
+    "rol": "ESTUDIANTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Identidad SCHEDULING, convocatoria propia y matrícula; ingreso exige concesión de admisión y EN_CURSO, nunca crea P/I.",
+    "parametros": [
+      {
+        "name": "convocatoria_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Convocatoria Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/admission_router.py",
+    "funcion": "consultar",
+    "dependencias": [
+      "HTTPBearer",
+      "get_db",
+      "obtener_estudiante_actual",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/api/v1/attempts/{attempt_id}/current-scenario",
+    "rol": "ESTUDIANTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "JWT con convocatoria propia activa, matrícula, intento propio, versión histórica, zona explícita y condiciones temporales del caso de uso.",
+    "parametros": [
+      {
+        "name": "attempt_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "title": "Attempt Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EscenarioActualRespuesta"
+            }
+          }
+        }
+      },
+      "401": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorHTTP"
+            }
+          }
+        },
+        "description": "Unauthorized"
+      },
+      "403": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorHTTP"
+            }
+          }
+        },
+        "description": "Forbidden"
+      },
+      "404": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorHTTP"
+            }
+          }
+        },
+        "description": "Not Found"
+      },
+      "409": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorHTTP"
+            }
+          }
+        },
+        "description": "Conflict"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorHTTP"
+            }
+          }
+        },
+        "description": "Unprocessable Content"
+      },
+      "503": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorHTTP"
+            }
+          }
+        },
+        "description": "Service Unavailable"
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/participation/api/current_scenario_router.py",
+    "funcion": "consultar_escenario_actual",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_consulta_escenario",
+      "obtener_estudiante_actual",
+      "obtener_estudiante_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_sesiones_escenario",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_fechas_escenario",
+      "obtener_reloj_escenario"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/api/v1/attempts/{attempt_id}/progress",
+    "rol": "ESTUDIANTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "JWT con convocatoria propia activa, matrícula, intento propio, versión histórica, zona explícita y condiciones temporales del caso de uso.",
+    "parametros": [
+      {
+        "name": "attempt_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "title": "Attempt Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProgresoRespuesta"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/participation/api/progress_router.py",
+    "funcion": "consultar_progreso_privado",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_consulta_progreso",
+      "obtener_estudiante_actual",
+      "obtener_estudiante_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_sesiones_escenario",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_fechas_escenario",
+      "obtener_reloj_escenario"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/api/v1/attempts/{attempt_id}/decisions/{decision_id}",
+    "rol": "ESTUDIANTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "JWT con convocatoria propia activa, matrícula, intento propio, versión histórica, zona explícita y condiciones temporales del caso de uso.",
+    "parametros": [
+      {
+        "name": "attempt_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "title": "Attempt Id"
+        }
+      },
+      {
+        "name": "decision_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Decision Id"
+        }
+      }
+    ],
+    "body": {
+      "properties": {
+        "id_opcion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0.0
+            }
+          ],
+          "title": "Id Opcion"
+        },
+        "reflexion_estudiante": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reflexion Estudiante"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "id_opcion"
+      ],
+      "title": "SeleccionSolicitud"
+    },
+    "respuestas_openapi": {
+      "201": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/IntentoRespuesta"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 201,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/participation/api/attempt_operations_router.py",
+    "funcion": "registrar_primera_decision",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_estudiante_actual",
+      "obtener_estudiante_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_sesiones_escenario",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_facade_operaciones",
+      "obtener_fechas_escenario",
+      "obtener_reloj_escenario"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/api/v1/attempts/{attempt_id}/finish",
+    "rol": "ESTUDIANTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "JWT con convocatoria propia activa, matrícula, intento propio, versión histórica, zona explícita y condiciones temporales del caso de uso.",
+    "parametros": [
+      {
+        "name": "attempt_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "title": "Attempt Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/IntentoRespuesta"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/participation/api/attempt_operations_router.py",
+    "funcion": "finalizar_intento_existente",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_estudiante_actual",
+      "obtener_estudiante_scheduling",
+      "obtener_fabrica_resolver_academico",
+      "obtener_fabrica_sesiones_academicas",
+      "obtener_fabrica_sesiones_escenario",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "obtener_facade_operaciones",
+      "obtener_fechas_escenario",
+      "obtener_reloj_escenario"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/health",
+    "rol": "PUBLICO",
+    "autenticacion": "Sin Bearer",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "Ninguna para acceder; el login valida credenciales y cuenta persistente.",
+    "parametros": [],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object",
+              "title": "Response Health Health Get"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/main.py",
+    "funcion": "health",
+    "dependencias": []
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/openapi.json",
+    "rol": "PUBLICO",
+    "autenticacion": "Ninguna",
+    "estado": "DOCUMENTACION_AUTOMATICA",
+    "body": null,
+    "respuesta_funcional_preparada": 200
+  },
+  {
+    "metodo": "HEAD",
+    "ruta": "/openapi.json",
+    "rol": "PUBLICO",
+    "autenticacion": "Ninguna",
+    "estado": "DOCUMENTACION_AUTOMATICA",
+    "body": null,
+    "respuesta_funcional_preparada": 200
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/docs",
+    "rol": "PUBLICO",
+    "autenticacion": "Ninguna",
+    "estado": "DOCUMENTACION_AUTOMATICA",
+    "body": null,
+    "respuesta_funcional_preparada": 200
+  },
+  {
+    "metodo": "HEAD",
+    "ruta": "/docs",
+    "rol": "PUBLICO",
+    "autenticacion": "Ninguna",
+    "estado": "DOCUMENTACION_AUTOMATICA",
+    "body": null,
+    "respuesta_funcional_preparada": 200
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/redoc",
+    "rol": "PUBLICO",
+    "autenticacion": "Ninguna",
+    "estado": "DOCUMENTACION_AUTOMATICA",
+    "body": null,
+    "respuesta_funcional_preparada": 200
+  },
+  {
+    "metodo": "HEAD",
+    "ruta": "/redoc",
+    "rol": "PUBLICO",
+    "autenticacion": "Ninguna",
+    "estado": "DOCUMENTACION_AUTOMATICA",
+    "body": null,
+    "respuesta_funcional_preparada": 200
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/docs/oauth2-redirect",
+    "rol": "PUBLICO",
+    "autenticacion": "Ninguna",
+    "estado": "DOCUMENTACION_AUTOMATICA",
+    "body": null,
+    "respuesta_funcional_preparada": 200
+  },
+  {
+    "metodo": "HEAD",
+    "ruta": "/docs/oauth2-redirect",
+    "rol": "PUBLICO",
+    "autenticacion": "Ninguna",
+    "estado": "DOCUMENTACION_AUTOMATICA",
+    "body": null,
+    "respuesta_funcional_preparada": 200
+  }
+]
