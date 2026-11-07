@@ -60,11 +60,16 @@ def fuentes_motor():
 # añadir la fórmula igualitaria. La rama porcentual se conserva sin cambios;
 # jamás ejecutar código recibido de la BD para reproducir un resultado antiguo.
 MOTOR_V1_COMPATIBLE = "00571eb465608fa91d158aa399882d744846c2ff4cf8f34f1cfaf9d876a740cc"
+# Motor de HEAD 9a1d133 antes de añadir calcular_preguntas. Las dos ramas
+# anteriores de calcular y las estrategias se conservan byte a byte.
+MOTOR_V2_COMPATIBLE = "c3dcc7853b0db8809650707503e18abb3f4b955c8c14d756bfbd2ac9a00c2582"
 
 
 def motor_compatible(motor, formula):
     return motor==fuentes_motor() or (huella(canonico(motor))==MOTOR_V1_COMPATIBLE
-        and formula==FormulaCalculo.SUMA_PONDERADA_PORCENTUAL.value)
+        and formula==FormulaCalculo.SUMA_PONDERADA_PORCENTUAL.value) or (
+        huella(canonico(motor))==MOTOR_V2_COMPATIBLE and formula in (
+            FormulaCalculo.SUMA_PONDERADA_PORCENTUAL.value, FormulaCalculo.PROMEDIO_IGUALITARIO_100.value))
 
 
 def datos_desde(d):

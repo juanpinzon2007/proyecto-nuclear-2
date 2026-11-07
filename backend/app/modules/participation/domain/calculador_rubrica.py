@@ -55,6 +55,29 @@ class CalculoRubrica:
 
 
 class CalculadorRubrica:
+    def calcular_preguntas(self, *, puntajes: tuple[Decimal, ...], total_exigidas: int) -> Decimal:
+        """RF-13/24: un voto por pregunta, pendientes cero sin selecciones ficticias.
+
+        El llamador acredita el grafo y el denominador histórico. Se suman valores
+        Decimal exactos; se redondea únicamente la nota final a centésimas.
+        No fabrica un nivel de desempeño ni un ResultadoCriterio.
+        """
+        if type(total_exigidas) is not int or total_exigidas <= 0 or not isinstance(puntajes, tuple) or len(puntajes) > total_exigidas:
+            raise EvaluacionInconsistente("Denominador o selecciones inválidos.")
+        if any(not isinstance(p, Decimal) or not p.is_finite() or not Decimal(0) <= p <= Decimal(100) for p in puntajes):
+            raise EvaluacionInconsistente("Puntajes explícitos Decimal 0–100 requeridos.")
+        precision = max((len(p.as_tuple().digits) + abs(p.as_tuple().exponent) for p in puntajes), default=1) + len(str(total_exigidas)) + 32
+        with localcontext(Context(prec=precision)):
+            total = sum(puntajes, Decimal(0))
+            # Dividir centavos con cociente/resto exactos evita redondear un
+            # tercio intermedio antes de decidir ROUND_HALF_UP final.
+            centavos = total * Decimal(100)
+            cociente = (centavos / Decimal(total_exigidas)).to_integral_value(rounding=ROUND_DOWN)
+            resto = centavos - cociente * Decimal(total_exigidas)
+            if resto * Decimal(2) >= Decimal(total_exigidas):
+                cociente += Decimal(1)
+            return (cociente / Decimal(100)).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
+
     def calcular(
         self, rubrica: RubricaEvaluacion, niveles: tuple[NivelObtenido, ...],
         politica: PoliticaCalculo | None,
