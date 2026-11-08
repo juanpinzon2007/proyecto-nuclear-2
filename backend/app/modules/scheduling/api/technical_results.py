@@ -104,3 +104,28 @@ def consultar_resultado(sesion_id:UUID,id_intento:Annotated[int,Path(gt=0)],requ
         raise HTTPException(422,detail={'codigo':'SOLICITUD_INVALIDA','mensaje':'Esta consulta no admite parámetros.'},
             headers={'Cache-Control':'no-store'})
     return ResultadoTecnicoRespuesta.desde_lectura(consulta.consultar_resultado(id_sesion=sesion_id,id_intento=id_intento))
+
+
+from app.modules.participation.infrastructure.teacher_evaluation import EvaluadorTecnicoDocente
+from app.modules.participation.domain.clock import RelojSistema
+
+
+def obtener_evaluador_tecnico(
+    consulta:Annotated[ConsultaResultadoDocenteSQLAlchemy,Depends(obtener_consulta_resultado)],
+) -> EvaluadorTecnicoDocente:
+    return EvaluadorTecnicoDocente(consulta=consulta,reloj=RelojSistema())
+
+
+@router.post('/{sesion_id}/evaluacion/intentos/{id_intento}/resultado-tecnico',
+    response_model=ResultadoTecnicoRespuesta,response_model_exclude_none=True,status_code=200,
+    summary='Evaluar explícitamente un intento cerrado, sin publicación oficial',
+    responses={401:{'description':'Autenticación inválida'},403:{'description':'Fuera del ámbito docente'},
+        409:{'description':'Intento abierto, resultado de otro motor o conflicto recuperable'},
+        503:{'description':'Cálculo/configuración/persistencia no disponibles; reintento explícito'}})
+def evaluar_resultado(sesion_id:UUID,id_intento:Annotated[int,Path(gt=0)],request:Request,
+    evaluador:Annotated[EvaluadorTecnicoDocente,Depends(obtener_evaluador_tecnico)]):
+    # El servidor elige fuente histórica y política; no acepta puntajes ni rúbrica.
+    if request.query_params or request.headers.get('content-length','0')!='0' or request.headers.get('transfer-encoding'):
+        raise HTTPException(422,detail={'codigo':'SOLICITUD_INVALIDA','mensaje':'Esta operación no admite cuerpo ni parámetros.'},
+            headers={'Cache-Control':'no-store'})
+    return ResultadoTecnicoRespuesta.desde_lectura(evaluador.evaluar(id_sesion=sesion_id,id_intento=id_intento))

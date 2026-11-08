@@ -1968,6 +1968,75 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Scheduling",
+          "Resultados técnicos docentes"
+        ],
+        "summary": "Evaluar explícitamente un intento cerrado, sin publicación oficial",
+        "operationId": "evaluar_resultado_scheduling_sesiones__sesion_id__evaluacion_intentos__id_intento__resultado_tecnico_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          },
+          {
+            "name": "id_intento",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "title": "Id Intento"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoTecnicoRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Autenticación inválida"
+          },
+          "403": {
+            "description": "Fuera del ámbito docente"
+          },
+          "409": {
+            "description": "Intento abierto, resultado de otro motor o conflicto recuperable"
+          },
+          "503": {
+            "description": "Cálculo/configuración/persistencia no disponibles; reintento explícito"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/attempts/{attempt_id}/current-scenario": {

@@ -8,7 +8,7 @@ import warnings
 import laboratorio_http as lab
 
 
-def preparar(secretos, stack):
+def preparar(secretos, stack, *, evaluar=True):
     import pytest
     import sqlalchemy as sa
     from tests.integration.test_question_result_storage import pg_resultados, crear_registro, cerrar, guardar
@@ -25,7 +25,7 @@ def preparar(secretos, stack):
     cerrar(c,vencido=True,respondidas=1)
     revision.__wrapped__(c)
     h=stack.enter_context(lab.fixture(docente_http,c,patch))
-    guardar(c)
+    if evaluar:guardar(c)
     with c.sesiones.begin() as s:
         docente=s.get(U,c.docente)
         ajeno=s.scalar(sa.select(U).where(U.nombre=='Docente ajeno LAB'))
@@ -43,7 +43,7 @@ def preparar(secretos, stack):
     return h,recursos
 
 
-def run(puerto):
+def run(puerto, sin_evaluar=False):
     lab.settings_lab()
     if not sys.stdin.isatty() or not sys.stderr.isatty():raise RuntimeError('Use consola interactiva.')
     with warnings.catch_warnings():
@@ -52,11 +52,11 @@ def run(puerto):
             ('codigo_estudiante','Código sintético estudiante LAB: ')]}
     if any(not v or len(v)>256 for v in secretos.values()):raise RuntimeError('Secretos LAB inválidos.')
     with ExitStack() as stack:
-        _,recursos=preparar(secretos,stack)
+        _,recursos=preparar(secretos,stack,evaluar=not sin_evaluar)
         from app.main import app
         recursos['base_url']='http://127.0.0.1:'+str(lab.serve(app,puerto,stack))
         print('LAB PostgreSQL17 NUEVO. Datos sintéticos; no acredita autoría/inicio productivos.')
-        print('Resultado persistido PARCIAL: 33.33; fracciones 50/3 + 50/3; oficial=false.')
+        print('Intento VENCIDO preparado sin resultado; use POST explícito, sin cuerpo.' if sin_evaluar else 'Resultado persistido PARCIAL: 33.33; fracciones 50/3 + 50/3; oficial=false.')
         print(json.dumps(recursos,ensure_ascii=False,indent=2))
         print('Complete SOLO valores locales de Postman. No exporte secretos ni respuestas de login.')
         input('Enter termina el servidor y elimina únicamente el contenedor propio. ')
@@ -64,7 +64,9 @@ def run(puerto):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--puerto',type=int,default=8765)
-    try:run(p.parse_args().puerto)
+    p.add_argument('--sin-evaluar',action='store_true',help='Prepara cierre confirmado sin calcular; POST lo evaluará.')
+    args=p.parse_args()
+    try:run(args.puerto,args.sin_evaluar)
     except KeyboardInterrupt:pass
     except Exception:
         print("No se completó el laboratorio. Revise Docker, postgres:17 y puerto local; no se muestran detalles privados.",file=sys.stderr)

@@ -2996,6 +2996,85 @@
     ]
   },
   {
+    "metodo": "POST",
+    "ruta": "/scheduling/sesiones/{sesion_id}/evaluacion/intentos/{id_intento}/resultado-tecnico",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "RF-13/RF-24: comando explícito sobre intento cerrado. Identidad/rol y ámbito persistentes bajo locks; UoW independiente del cierre. Idempotente 200; activo u otro motor 409; fallo 503 recuperable. Sin cuerpo ni puntajes del cliente, sin notas oficiales.",
+    "parametros": [
+      {
+        "name": "sesion_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Sesion Id"
+        }
+      },
+      {
+        "name": "id_intento",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "title": "Id Intento"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResultadoTecnicoRespuesta"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Autenticación inválida"
+      },
+      "403": {
+        "description": "Fuera del ámbito docente"
+      },
+      "409": {
+        "description": "Intento abierto, resultado de otro motor o conflicto recuperable"
+      },
+      "503": {
+        "description": "Cálculo/configuración/persistencia no disponibles; reintento explícito"
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/technical_results.py",
+    "funcion": "evaluar_resultado",
+    "dependencias": [
+      "HTTPBearer",
+      "obtener_consulta_preparacion",
+      "obtener_consulta_resultado",
+      "obtener_docente_actual",
+      "obtener_evaluador_tecnico",
+      "obtener_fabrica_sesiones_seguimiento",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios"
+    ]
+  },
+  {
     "metodo": "GET",
     "ruta": "/api/v1/attempts/{attempt_id}/current-scenario",
     "rol": "ESTUDIANTE",

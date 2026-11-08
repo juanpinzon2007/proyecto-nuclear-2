@@ -242,3 +242,15 @@ Las variables nuevas están vacías; no exportar secretos ni JWT de la demostrac
 El catálogo/OpenAPI tienen 42 operaciones registradas; los informes anteriores
 son históricos. No se modifica el recorrido LAB de 30 solicitudes ni se añade
 publicación oficial. Node comprueba sintaxis; no se atribuyen ejecuciones Postman.
+
+
+## Incremento: comando explícito de evaluación técnica
+
+Colección `Proyecto_Nuclear_evaluacion_tecnica.postman_collection.json`: trece
+solicitudes. Servidor efímero con `--sin-evaluar` prepara un cierre sin resultado;
+GET404 -> POST200 -> reintento200 -> GET200, con rechazos y pm.test. No es publicación
+oficial. Guía, campos y capturas: `../CIERRE_TECNICO_EVALUATION.md`. Confirmar ambas
+banderas LAB locales para ejecutar POST. Reiniciar el laboratorio para repetir
+la secuencia inicial GET404; nunca borrar resultados para forzar una captura.
+La superficie OpenAPI pasa a 43 operaciones; no se modifican las 30 del recorrido
+LAB ni las nueve de consulta técnica anterior. Los informes previos son históricos.

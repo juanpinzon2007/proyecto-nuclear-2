@@ -67,6 +67,9 @@ def main(salida=None):
                 r=client.get(path);assert r.status_code==status,(path,r.status_code)
                 if path=='/health':assert r.json()=={'status':'ok'}
                 http.append({'metodo':'GET','ruta':path,'esperado':status,'observado':r.status_code,'medio':'ASGI/TestClient sin SQL'})
+            path='/scheduling/sesiones/00000000-0000-0000-0000-000000000001/evaluacion/intentos/1/resultado-tecnico'
+            r=client.post(path);assert r.status_code==401
+            http.append({'metodo':'POST','ruta':path,'esperado':401,'observado':r.status_code,'medio':'ASGI/TestClient sin SQL'})
     result={'fecha_utc':datetime.now(timezone.utc).isoformat(),
         'head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         'operaciones_main':len(expected),'rutas_documentacion_get_head':4,'colecciones':checks,

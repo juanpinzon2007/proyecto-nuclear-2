@@ -80,6 +80,8 @@ def policy(path,method):
     if path.endswith('/identity/me'):return 'AUTENTICADO','Cuenta activa y rol vigente desde PostgreSQL.'
     if path.startswith('/api/v1/identity/docentes'):return 'ADMINISTRADOR','Cuentas de Identity; no concede ámbito académico ni DOCENTE ADMINISTRADOR.'
     if path.startswith('/api/v1/attempts'):return 'ESTUDIANTE','JWT con convocatoria propia activa, matrícula, intento propio, versión histórica, zona explícita y condiciones temporales del caso de uso.'
+    if path.endswith('/resultado-tecnico') and method=='post':
+        return 'DOCENTE','RF-13/RF-24: comando explícito sobre intento cerrado. Identidad/rol y ámbito persistentes bajo locks; UoW independiente del cierre. Idempotente 200; activo u otro motor 409; fallo 503 recuperable. Sin cuerpo ni puntajes del cliente, sin notas oficiales.'
     if path.endswith('/resultado-tecnico'):
         return 'DOCENTE','RF-13/RF-24: resultado técnico previamente persistido, no oficial. JWT/cuenta/rol y ámbito sesión/caso/grupos/participación/intento. REPEATABLE READ/READ ONLY; GET no genera resultados; 404 si no existe.'
     if path.endswith('/evaluacion/preparacion'):
@@ -152,9 +154,9 @@ def main():
             matches=[p for p,ops in spec['paths'].items() if m.lower() in ops and (p==r.path or p.endswith(r.path))]
             assert len(matches)==1,('Revisar inclusión de router',r.path,m)
             deps[(matches[0],m.lower())]={'archivo':str(Path(inspect.getsourcefile(r.endpoint)).relative_to(ROOT)).replace('\\','/'),'funcion':r.endpoint.__name__,'dependencias':names(r.dependant)}
-    assert len(deps)==42,'Cambió la superficie registrada; conciliar inventario antes de regenerar.'
+    assert len(deps)==43,'Cambió la superficie registrada; conciliar inventario antes de regenerar.'
     groups={n:[] for n in ('Identity','Cases','Scheduling','Participation','Seguimiento y notificaciones','Tecnico')}
-    inventory=[];preparacion_items=[];resultados_items=[]
+    inventory=[];preparacion_items=[];resultados_items=[];evaluacion_items=[]
     for path,ops in spec['paths'].items():
         for method,op in ops.items():
             if method not in METHODS:continue
@@ -210,11 +212,16 @@ if(j.ambito==='TECNICO')pm.test('Fracciones exactas como cadenas',()=>j.criterio
             if path.endswith('/evaluacion/preparacion'):
                 variants.append(request('GET preparación [PARÁMETRO NO ADMITIDO]','get',path+'?docente_id=otro','DOCENTE',status=422))
                 preparacion_items=copy.deepcopy(variants)
-            if path.endswith('/resultado-tecnico'):
+            if path.endswith('/resultado-tecnico') and method=='get':
                 variants.append(request('GET resultado técnico [DOCENTE AJENO]','get',path,'DOCENTE',status=403,auth='token_docente_ajeno'))
                 variants.append(request('GET resultado técnico [AÚN NO DISPONIBLE]','get',path.replace('{id_intento}','{intento_sin_resultado_id}'),'DOCENTE',status=404,
                     extra="pm.test('No devuelve nota',()=>pm.expect(pm.response.json()).not.to.have.property('nota_final'));"))
                 resultados_items=copy.deepcopy(variants)
+            if path.endswith('/resultado-tecnico') and method=='post':
+                variants.append(request('POST evaluación [DOCENTE AJENO]','post',path,'DOCENTE',status=403,auth='token_docente_ajeno'))
+                variants.append(request('POST evaluación [INTENTO ACTIVO]','post',path.replace('{id_intento}','{intento_sin_resultado_id}'),'DOCENTE',status=409))
+                variants.append(request('POST evaluación [BODY PROHIBIDO]','post',path,'DOCENTE',body={'nota_final':'100'},status=422))
+                evaluacion_items=copy.deepcopy(variants)
             groups[group].append({'name':method.upper()+' '+path,'item':variants})
             inventory.append({'metodo':method.upper(),'ruta':path,'rol':role,'autenticacion':'Bearer JWT real' if role!='PUBLICO' else 'Sin Bearer',
                 'estado':'REGISTRADO_BLOQUEADO' if blocked else 'REGISTRADO_CON_PRECONDICIONES','dependencias_academicas':notes,
@@ -241,6 +248,16 @@ if(j.ambito==='TECNICO')pm.test('Fracciones exactas como cadenas',()=>j.criterio
         body={'correo':reference('correo_docente_ajeno'),'clave':reference('clave_docente')},
         extra="pm.variables.set('token_docente_ajeno',pm.response.json().access_token);")
     write('Proyecto_Nuclear_resultados_tecnicos.postman_collection.json',collection('Proyecto Nuclear — resultados técnicos docentes, NO oficiales',logins+[login_ajeno]+resultados_items))
+    ruta_resultado='/scheduling/sesiones/{sesion_id}/evaluacion/intentos/{id_intento}/resultado-tecnico'
+    pendiente=request('MAIN — cerrado sin resultado [GET 404]','get',ruta_resultado,'DOCENTE',status=404)
+    primero=copy.deepcopy(evaluacion_items[0]);primero['name']='MAIN — evaluar cerrado [POST 200]'
+    primero['event'][0]['script']['exec'] += ["pm.test('Resultado conocido LAB, no oficial',()=>{const x=pm.response.json();pm.expect(x.ambito).to.eql('TECNICO');pm.expect(x.nota_final).to.eql('33.33');pm.expect(x.oficial).to.eql(false);});"]
+    primero['event'][0]['script']['exec'] += ["const x=pm.response.json();pm.variables.set('resultado_id_primero',x.id_resultado);pm.variables.set('resultado_hash_primero',x.procedencia_sha256);pm.variables.set('resultado_fecha_primero',x.fecha_calculo);"]
+    repetir=copy.deepcopy(evaluacion_items[0]);repetir['name']='MAIN — reintento idempotente [POST 200]'
+    repetir['event'][0]['script']['exec'] += ["const x=pm.response.json();pm.test('Mismo resultado y fecha',()=>{pm.expect(String(x.id_resultado)).to.eql(String(pm.variables.get('resultado_id_primero')));pm.expect(x.procedencia_sha256).to.eql(pm.variables.get('resultado_hash_primero'));pm.expect(x.fecha_calculo).to.eql(pm.variables.get('resultado_fecha_primero'));});"]
+    write('Proyecto_Nuclear_evaluacion_tecnica.postman_collection.json',collection(
+        'Proyecto Nuclear — cierre confirmado y evaluación explícita, NO oficial',
+        logins+[login_ajeno,pendiente,primero,repetir,copy.deepcopy(resultados_items[0])]+evaluacion_items[1:]))
     workflow(spec)
     write('Proyecto_Nuclear_laboratorio.postman_environment.json',{'name':'Proyecto Nuclear LAB — SIN SECRETOS','values':[{'key':k,'value':v,'type':'secret' if k in SECRET or any(x in k for x in ('clave','codigo','token')) else 'default','enabled':True} for k,v in sorted(VARS.items())], '_postman_variable_scope':'environment'})
     rows=['# Endpoints registrados en app.main','','Fuente: openapi_main.json y dependencias de los routers. No acredita despliegue ni ejecución HTTP.','','| Método | Ruta | Rol | Estado | Dependencias |','|---|---|---|---|---|']
@@ -249,7 +266,7 @@ if(j.ambito==='TECNICO')pm.test('Fracciones exactas como cadenas',()=>j.criterio
            'Preparación y resultado técnico docente están registrados; no hay publicación oficial. Inicio/provisión/consentimiento no están en main. PUT de decisiones no está montado: 405, no una operación disponible.',
            'OpenAPI no enumera todos los errores funcionales: revisar archivo/función/dependencias indicados y README.']
     (OUT/'INVENTARIO.md').write_text('\n'.join(rows)+'\n',encoding='utf-8')
-    print(json.dumps({'operaciones_openapi':sum(m in METHODS for v in spec['paths'].values() for m in v),'rutas_documentacion':4,'colecciones':4}))
+    print(json.dumps({'operaciones_openapi':sum(m in METHODS for v in spec['paths'].values() for m in v),'rutas_documentacion':4,'colecciones':5}))
 
 
 def workflow(spec):
