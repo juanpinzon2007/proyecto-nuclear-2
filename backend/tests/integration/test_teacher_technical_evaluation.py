@@ -159,12 +159,15 @@ def test_post_no_admite_puntajes_versiones_ni_body(docente_http):
 
 
 @pytest.mark.parametrize('c',['activo'],indirect=True)
-def test_cierre_temprano_sin_fin_no_inventa_evaluacion(docente_http,monkeypatch):
+def test_cierre_temprano_sin_fin_evalua_parcial_sin_selecciones_ficticias(docente_http,monkeypatch):
     h=docente_http;monkeypatch.setattr(RelojSistema,'ahora',lambda self:FECHA.replace(tzinfo=timezone.utc)+timedelta(minutes=1))
     r=h.client.post(f'/api/v1/attempts/{h.c.ik}/finish',headers=h.auth['estudiante'])
     assert r.status_code==200 and r.json()['estado']=='FINALIZADO'
     antes=estado(h.c)
-    assert enviar(h).status_code==503 and contar(h.c)==0 and estado(h.c)==antes
+    # Sustituye el bloqueo anterior por la política técnica explícita v2.
+    calculo=enviar(h);assert calculo.status_code==200,calculo.text
+    assert calculo.json()['modalidad']=='PARCIAL' and calculo.json()['nota_final']=='0.00'
+    assert calculo.json()['oficial'] is False and contar(h.c)==1 and estado(h.c)==antes
 
 
 

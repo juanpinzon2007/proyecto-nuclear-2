@@ -45,11 +45,11 @@ class DetallesPreguntasSQLAlchemy:
             if r.procedencia!=datos.procedencia:
                 raise ConflictoActualizacion('No se recalifica un resultado histórico.')
             return r
-        j=json.loads(datos.procedencia);f=j['rubrica'];e=j['exacto']
+        j=json.loads(datos.procedencia);f=j['rubrica'];e=j['exacto'];politica=json.loads(j['politica_documento'])
         rid=self.s.scalar(R.__table__.insert().values(id_intento=datos.id_intento,nota_final=datos.nota_final,
             fecha_calculo=fecha_calculo,id_caso=f['id_caso_academico'],caso_id=UUID(f['caso_id']),
             version_caso_id=UUID(f['version_id']),rubrica_id=UUID(f['rubrica_id']),version_regla=f['version_regla'],
-            modalidad=datos.modalidad.value,ambito='TECNICO',politica_id='PREGUNTAS_100_V1',politica_version='1',
+            modalidad=datos.modalidad.value,ambito='TECNICO',politica_id=politica['id'],politica_version=politica['version'],
             politica_hash=huella(j['politica_documento']),procedencia=datos.procedencia,procedencia_sha256=datos.sha256).returning(R.id_resultado))
         self.s.execute(G.__table__.insert().values(id_resultado=rid,suma_puntajes=Decimal(e['suma_puntajes']),
             preguntas_exigidas=e['preguntas_exigidas'],preguntas_respondidas=e['preguntas_respondidas'],
@@ -69,9 +69,9 @@ class DetallesPreguntasSQLAlchemy:
         datos=self.reproducir(r['id_intento'])
         if r['procedencia']!=datos.procedencia or r['procedencia_sha256']!=datos.sha256:
             raise EvaluacionInconsistente('Procedencia histórica modificada o motor no reproducible.')
-        j=json.loads(datos.procedencia);f=j['rubrica'];e=j['exacto'];rid=r['id_resultado']
+        j=json.loads(datos.procedencia);f=j['rubrica'];e=j['exacto'];politica=json.loads(j['politica_documento']);rid=r['id_resultado']
         if (r['ambito'],r['nota_final'],r['modalidad'],str(r['version_caso_id']),str(r['caso_id']),r['id_caso'],str(r['rubrica_id']),r['politica_id'],r['politica_version'],r['politica_hash']) != (
-            'TECNICO',datos.nota_final,datos.modalidad.value,f['version_id'],f['caso_id'],f['id_caso_academico'],f['rubrica_id'],'PREGUNTAS_100_V1','1',huella(j['politica_documento'])):
+            'TECNICO',datos.nota_final,datos.modalidad.value,f['version_id'],f['caso_id'],f['id_caso_academico'],f['rubrica_id'],'PREGUNTAS_100_V1',json.loads(j['politica_documento'])['version'],huella(j['politica_documento'])):
             raise EvaluacionInconsistente('Cabecera incompatible con el cálculo exacto.')
         g=self.s.execute(select(G.__table__).where(G.id_resultado==rid)).mappings().one_or_none()
         esperado=dict(id_resultado=rid,suma_puntajes=Decimal(e['suma_puntajes']),preguntas_exigidas=e['preguntas_exigidas'],

@@ -87,7 +87,7 @@ def policy(path,method):
     if path.endswith('/identity/excepciones/repeticiones'):
         return 'DOCENTE','RF-25: permiso nativo individual de un uso, misma participación histórica, sesión EN_CURSO e intentos anteriores cerrados. Idempotente si existe permiso pendiente; no inicia intentos ni concede consentimiento.'
     if path.endswith('/resultado-tecnico') and method=='post':
-        return 'DOCENTE','RF-13/RF-24: comando explícito sobre intento cerrado. Identidad/rol y ámbito persistentes bajo locks; UoW independiente del cierre. Idempotente 200; activo u otro motor 409; fallo 503 recuperable. Sin cuerpo ni puntajes del cliente, sin notas oficiales.'
+        return 'DOCENTE','RF-13/RF-24: comando explícito sobre intento cerrado. Identidad/rol y ámbito persistentes bajo locks; UoW independiente del cierre. Idempotente 200; FINALIZADO sin FIN admite PARCIAL técnico con política 2 si el denominador es uniforme (propuesta del equipo, no aprobación institucional). Activo u otro motor 409; fallo 503 recuperable. Sin cuerpo ni puntajes del cliente, sin notas oficiales.'
     if path.endswith('/resultado-tecnico'):
         return 'DOCENTE','RF-13/RF-24: resultado técnico previamente persistido, no oficial. JWT/cuenta/rol y ámbito sesión/caso/grupos/participación/intento. REPEATABLE READ/READ ONLY; GET no genera resultados; 404 si no existe.'
     if path.endswith('/evaluacion/preparacion'):
@@ -292,6 +292,9 @@ if(j.ambito==='TECNICO')pm.test('Fracciones exactas como cadenas',()=>j.criterio
     write('Proyecto_Nuclear_evaluacion_tecnica.postman_collection.json',collection(
         'Proyecto Nuclear — cierre confirmado y evaluación explícita, NO oficial',
         logins+[login_ajeno,pendiente,primero,repetir,copy.deepcopy(resultados_items[0])]+evaluacion_items[1:]))
+    archivo=OUT/'Proyecto_Nuclear_evaluacion_tecnica.postman_collection.json'
+    datos=json.loads(archivo.read_text(encoding='utf-8'));datos['info']['description']+=' Cierre voluntario sin FIN: POST explícito admite PARCIAL técnico política 2 sobre denominador uniforme. Propuesta del equipo, no aprobación institucional; finish no calcula. Mismas rutas/esquemas; las aserciones existentes de la fixture vencida 33.33 no cambian.'
+    write(archivo.name,datos)
     ciclo_academico(logins,login_ajeno)
     workflow(spec)
     write('Proyecto_Nuclear_laboratorio.postman_environment.json',{'name':'Proyecto Nuclear LAB — SIN SECRETOS','values':[{'key':k,'value':v,'type':'secret' if k in SECRET or any(x in k for x in ('clave','codigo','token')) else 'default','enabled':True} for k,v in sorted(VARS.items())], '_postman_variable_scope':'environment'})
