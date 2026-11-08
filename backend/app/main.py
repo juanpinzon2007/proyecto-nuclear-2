@@ -7,6 +7,9 @@ from app.db.models import registrar_modelos_integrados
 from app.modules.cases.api.router import router as cases_router
 from app.modules.identity.api.router import router as identity_router
 from app.modules.scheduling.api.router import router as scheduling_router
+from app.modules.participation.api.current_scenario_router import router as escenario_router
+from app.modules.participation.api.progress_router import router as progreso_router
+from app.modules.participation.api.attempt_operations_router import router as operaciones_router
 
 
 # Registrar los modelos compartidos.
@@ -27,6 +30,11 @@ app.include_router(identity_router)
 
 # Módulo de Programación - Maicol.
 app.include_router(scheduling_router)
+
+# Operaciones verificadas del intento existente; sin inicio, PUT ni resultados.
+app.include_router(escenario_router, prefix="/api/v1")
+app.include_router(progreso_router, prefix="/api/v1")
+app.include_router(operaciones_router, prefix="/api/v1")
 
 
 # Endpoint de salud de la aplicación.

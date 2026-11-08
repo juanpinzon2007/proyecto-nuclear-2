@@ -424,11 +424,20 @@ def test_openapi_aislado_marca_contrato_provisional_y_separa_resultados(entorno)
     assert set(contrato['components']['schemas']['OpcionActualRespuesta']['properties']) == {'id', 'texto'}
 
 
-def test_router_no_registrado_en_aplicacion_principal():
+def test_router_completo_no_registrado_y_solo_get_escenario_habilitado(entorno):
     from app.main import app
-    from app.modules.participation.api.router import router
-    rutas_participacion = {ruta.path for ruta in router.routes}
-    assert rutas_participacion.isdisjoint(app.openapi()["paths"])
+    # Verificar el contrato expandido, sin depender de contenedores internos
+    # de FastAPI al incluir el router de lectura reutilizado.
+    rutas_participacion = set(entorno.app.openapi()['paths'])
+    consulta = '/api/v1/attempts/{attempt_id}/current-scenario'
+    progreso = '/api/v1/attempts/{attempt_id}/progress'
+    decision = '/api/v1/attempts/{attempt_id}/decisions/{decision_id}'
+    cierre = '/api/v1/attempts/{attempt_id}/finish'
+    assert rutas_participacion.intersection(app.openapi()["paths"]) == {consulta, progreso, decision, cierre}
+    assert set(app.openapi()['paths'][consulta]) == {'get'}
+    assert set(app.openapi()['paths'][progreso]) == {'get'}
+    assert set(app.openapi()['paths'][decision]) == {'post'}
+    assert set(app.openapi()['paths'][cierre]) == {'post'}
     with TestClient(app) as client:
-        assert client.get(PROGRESO_URL).status_code == 404
+        assert client.get(PROGRESO_URL).status_code == 401
         assert client.get("/health").status_code == 200

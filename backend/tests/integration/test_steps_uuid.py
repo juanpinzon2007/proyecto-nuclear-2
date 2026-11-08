@@ -47,7 +47,7 @@ T=PasoSimulacionModel.__table__
 def pg():
     with motor_postgresql_desechable() as engine:
         with engine.begin() as s:
-            command.upgrade(config_alembic(s),HEAD)
+            command.upgrade(config_alembic(s),"head")
             s.execute(RolORM.__table__.insert(),[dict(id_rol=1,nombre="DOCENTE"),dict(id_rol=2,nombre="ESTUDIANTE")])
         yield engine
 
@@ -380,7 +380,7 @@ def test_SQLite_DDL_FK_y_contrato_HTTP_UUID_sin_simular_locks():
         with engine.begin() as s:
             s.exec_driver_sql("PRAGMA foreign_keys=ON")
             preparar_esquema_actual_aislado(s)
-            assert len(registrar_modelos_integrados().tables)==31
+            assert len(registrar_modelos_integrados().tables)==39
             assert compare_metadata(MigrationContext.configure(s),registrar_modelos_integrados())==[]
             assert len(sa.inspect(s).get_foreign_keys("paso_simulacion"))==3
             opcion=uuid4()

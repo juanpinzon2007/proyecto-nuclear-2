@@ -1,5 +1,6 @@
 from typing import Annotated
 from uuid import UUID
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
@@ -8,6 +9,12 @@ from app.modules.identity.api.dependencies import obtener_estudiante_actual as e
 from app.modules.identity.api.academic_dependencies import obtener_estudiante_scheduling
 from app.modules.identity.domain.entities import ContextoAcceso
 from app.modules.participation.application.facade import ParticipacionFacade
+from app.core.config import get_settings
+from app.db.session import get_session_factory
+from app.modules.participation.domain.clock import RelojSistema
+from app.modules.participation.infrastructure.codecs import FechasPersistencia
+from app.modules.participation.application.errors import ReglaPendiente
+from sqlalchemy.exc import SQLAlchemyError
 
 
 class EstudianteAutenticado(BaseModel):
@@ -55,11 +62,47 @@ def obtener_facade(
     })
 
 
+def obtener_fechas_escenario() -> FechasPersistencia:
+    try:
+        zona = get_settings().participation_timestamp_zone
+        if zona is None or not zona.strip():
+            raise ValueError("Zona histórica no configurada")
+        return FechasPersistencia(ZoneInfo(zona))
+    except (ValueError, ZoneInfoNotFoundError):
+        raise ReglaPendiente("Falta configurar una zona histórica válida para los timestamps sin offset.") from None
+
+
+def obtener_reloj_escenario() -> RelojSistema:
+    return RelojSistema()
+
+
+def obtener_fabrica_sesiones_escenario():
+    # Construcción diferida: no abrir BD si falta JWT o configuración temporal.
+    def crear():
+        try:
+            return get_session_factory()()
+        except (ValueError, SQLAlchemyError):
+            raise ReglaPendiente("La infraestructura de consulta no está disponible.") from None
+    return crear
+
+
 def obtener_consulta_escenario(
     usuario: Annotated[ContextoAcceso, Depends(estudiante_identity)],
+    fechas: Annotated[FechasPersistencia, Depends(obtener_fechas_escenario)],
+    reloj: Annotated[RelojSistema, Depends(obtener_reloj_escenario)],
+    sesiones: Annotated[object, Depends(obtener_fabrica_sesiones_escenario)],
 ):
-    raise HTTPException(503, detail={"codigo": "INTEGRACION_NO_CONFIGURADA",
-        "mensaje": "La consulta de escenario no está configurada."})
+    return crear_dependencia_escenario_8b(crear_sesion=sesiones, fechas=fechas, reloj=reloj)(usuario)
+
+
+def obtener_consulta_progreso(
+    usuario: Annotated[ContextoAcceso, Depends(estudiante_identity)],
+    fechas: Annotated[FechasPersistencia, Depends(obtener_fechas_escenario)],
+    reloj: Annotated[RelojSistema, Depends(obtener_reloj_escenario)],
+    sesiones: Annotated[object, Depends(obtener_fabrica_sesiones_escenario)],
+):
+    from app.modules.participation.infrastructure.progress_query import ConsultaProgresoSQLAlchemy
+    return ConsultaProgresoSQLAlchemy(usuario=usuario, crear_sesion=sesiones, fechas=fechas, reloj=reloj)
 
 
 def crear_dependencia_escenario_8b(*, crear_sesion, fechas, reloj):
@@ -72,7 +115,19 @@ def crear_dependencia_escenario_8b(*, crear_sesion, fechas, reloj):
     return dependencia
 
 
-def crear_dependencia_facade_8b(*, crear_sesion, fechas, reloj):
+def obtener_facade_operaciones(
+    request: Request,
+    usuario: Annotated[ContextoAcceso, Depends(estudiante_identity)],
+    fechas: Annotated[FechasPersistencia, Depends(obtener_fechas_escenario)],
+    reloj: Annotated[RelojSistema, Depends(obtener_reloj_escenario)],
+    sesiones: Annotated[object, Depends(obtener_fabrica_sesiones_escenario)],
+):
+    # Solo invocada por las operaciones montadas explícitamente en main.
+    return crear_dependencia_facade_8b(crear_sesion=sesiones,fechas=fechas,reloj=reloj,
+        matricula_activa=True)(request,usuario)
+
+
+def crear_dependencia_facade_8b(*, crear_sesion, fechas, reloj, matricula_activa=False):
     """Composición HTTP explícita por el servidor; NO se instala en main.py.
 
     Solo operaciones sobre un intento existente. Identity verifica JWT/rol y
@@ -94,14 +149,14 @@ def crear_dependencia_facade_8b(*, crear_sesion, fechas, reloj):
         if not 0 < id_intento <= 2147483647:
             raise HTTPException(422, detail={"codigo": "SOLICITUD_INVALIDA", "mensaje": "Intento inválido."})
         return crear_facade_8b(usuario=usuario, id_intento=id_intento, reloj=reloj,
-                              fechas=fechas, crear_sesion=crear_sesion)
+                              fechas=fechas, crear_sesion=crear_sesion,matricula_activa=matricula_activa)
 
     return dependencia
 
 
 def crear_dependencia_vinculacion_8b(*, crear_sesion, fechas, reloj,
                                     politica_ingreso=None, politica_vinculacion=None,
-                                    politica_inicio=None):
+                                    politica_inicio=None, fuente_consentimiento=None, crear_fuente_consentimiento=None):
     """Composición opt-in del servidor, sin políticas académicas por defecto.
 
     Instancia por solicitud. No reutiliza autorizaciones/sesiones de una consulta
@@ -113,6 +168,7 @@ def crear_dependencia_vinculacion_8b(*, crear_sesion, fechas, reloj,
     def dependencia(usuario: Annotated[ContextoAcceso, Depends(estudiante_identity)]):
         return ServicioVinculacionSQLAlchemy(usuario=usuario, crear_sesion=crear_sesion,
             fechas=fechas, reloj=reloj, politica_ingreso=politica_ingreso,
-            politica_vinculacion=politica_vinculacion, politica_inicio=politica_inicio)
+            politica_vinculacion=politica_vinculacion, politica_inicio=politica_inicio,
+            fuente_consentimiento=fuente_consentimiento, crear_fuente_consentimiento=crear_fuente_consentimiento)
 
     return dependencia

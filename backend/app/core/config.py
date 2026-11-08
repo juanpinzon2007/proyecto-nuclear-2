@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     identity_jwt_audience: str = "sps"
     identity_jwt_minutes: int = Field(default=15, ge=1, le=60)
     identity_institutional_domains: tuple[str, ...] = ()
+    # Convención histórica verificada del despliegue; nunca inferir UTC/local.
+    participation_timestamp_zone: str | None = None
 
     @property
     def database_url(self) -> URL:

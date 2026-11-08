@@ -30,6 +30,16 @@ class ConsultaCuentaPorCorreo(Protocol):
         ...
 
 
+class ValidadorCredencialesPersonal(Protocol):
+    def validar(self, correo: str, clave: str) -> ContextoAcceso | None:
+        """Verifica hash privado y retorna cuenta/roles actuales, nunca el hash.
+
+        Ausencia o contraseña inválida no distingue públicamente la cuenta.
+        Errores de infraestructura fallan cerrados; no generan identidades.
+        """
+        ...
+
+
 class ValidadorConvocatoria(Protocol):
     def validar(self, correo: str, codigo: str) -> AccesoConvocatoria | None:
         """Valida la pareja completa contra la convocatoria vigente y autorizada.
@@ -80,8 +90,8 @@ class ConsultaEscrituraAcademica(ConsultaAmbitoAcademico, Protocol):
 
 
 class RepositorioAutorizaciones(Protocol):
-    def guardar(self, autorizacion: AutorizacionRepeticion) -> None:
-        """Sin commit propio ni upsert implícito. No equivale a permiso_intento_extra."""
+    def guardar(self, autorizacion: AutorizacionRepeticion) -> int | AutorizacionRepeticion | None:
+        """Sin commit propio. Devuelve ID nativo o concesión persistida (fecha original en replay)."""
         ...
 
 
@@ -109,7 +119,7 @@ class IServicioSeguimiento(Protocol):
     def listar_participaciones(self, contexto: ContextoAcceso, id_caso: str) -> tuple[ResumenParticipacion, ...]: ...
     def listar_casos_realizados(self, contexto: ContextoAcceso) -> tuple[ResumenCaso, ...]: ...
     def consultar_participacion(self, contexto: ContextoAcceso, id_participacion: str) -> DetalleParticipacion: ...
-    def descargar_reporte(self, contexto: ContextoAcceso, id_sesion: str) -> str: ...
+    def descargar_reporte(self, contexto: ContextoAcceso, id_sesion: str, *, formato=None, filtros=None): ...
     def registrar_feedback(self, contexto: ContextoAcceso, id_participacion: str, texto: str) -> FeedbackDocente: ...
 
 

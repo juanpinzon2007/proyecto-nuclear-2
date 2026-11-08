@@ -1,5 +1,9 @@
 # Fase 9: consulta privada del escenario actual
 
+Actualización posterior: el montaje limitado en `app.main`, su configuración y
+sus pruebas están en [FASE_9_APLICACION_PRINCIPAL.md](FASE_9_APLICACION_PRINCIPAL.md).
+Este documento conserva la evidencia histórica de la aplicación aislada.
+
 Fecha local: 4 de noviembre de 2026 (America/Bogota).
 Base: `origin/develop`, `4ade83a64ffef3347dba2c649b8461c75fb11741` (merge PR #7).
 Validación actual: `C:\Users\MARTIN GIL GARCIA\Documents\ChatGPT\Proyecto Nuclear\proyecto-nuclear-2`,

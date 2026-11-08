@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.db.session import get_db, get_session_factory
 from app.modules.scheduling.api.dependencies import exigir_contexto_convocatoria
+from app.modules.scheduling.api.dependencies import obtener_admision
 from app.modules.scheduling.api.dependencies import obtener_autorizacion_espacios_programacion
 from app.modules.scheduling.application.programming_access import AutorizacionEspacioProgramacion
 from app.modules.scheduling.infrastructure.programming_access import programar_sesion_autorizada
@@ -33,6 +34,9 @@ from app.modules.scheduling.application.crear_convocatoria import (
 from app.modules.scheduling.infrastructure.convocation_management import convocar_con_aviso, retirar_con_aviso
 from app.modules.scheduling.application.cambiar_estado_sesion import SesionNoEncontradaError
 from app.modules.identity.domain.errors import AccesoDenegado, IntegracionPendiente
+from app.modules.identity.api.dependencies import obtener_estudiante_actual
+from app.modules.identity.domain.entities import ContextoAcceso
+from app.modules.scheduling.infrastructure.ingress_access import exigir_matricula_ingreso
 from app.modules.scheduling.application.programar_sesion import (
     ErrorProgramacion,
     programar_sesion,
@@ -47,14 +51,12 @@ from app.modules.scheduling.application.validar_ingreso import (
     ErrorIngreso,
     validar_ingreso,
 )
-from app.modules.scheduling.application.notificar_calificacion import (
-    notificar_calificacion,
-)
 from app.modules.scheduling.domain.state import (
     TransicionInvalidaError,
 )
 from app.modules.scheduling.domain.ingress_policy import (
-    PoliticaIngreso, PoliticaIngresoNoConfigurada, PoliticaTemporalNoDisponible, RelojIngreso, RelojServidor,
+    PoliticaIngreso, PoliticaIngresoNoConfigurada,
+    PoliticaTemporalNoDisponible, RelojIngreso, RelojServidor,
 )
 from app.modules.scheduling.infrastructure.models import (
     EspacioAcademicoModel,
@@ -89,7 +91,7 @@ Estudiante = Annotated[UUID, Depends(obtener_estudiante_scheduling)]
 
 
 def exigir_politica_ingreso_configurada() -> PoliticaIngreso:
-    """Sin regla RF-22 aprobada: el servicio rechaza, sin un límite inventado."""
+    """El ingreso desde el inicio programado sigue sin política suficiente."""
     return PoliticaIngresoNoConfigurada()
 
 
@@ -247,6 +249,7 @@ async def actualizar_estado(
         SesionProgramadaModel,
         sesion_id,
         with_for_update=True,
+        populate_existing=True,
     )
 
     if sesion is None:
@@ -280,6 +283,14 @@ async def actualizar_estado(
             status_code=409,
             detail=str(error),
         ) from error
+    except IntegracionPendiente:
+        db.rollback()
+        raise HTTPException(503,detail='Admisión no disponible.',headers={'Cache-Control':'no-store'}) from None
+    except SQLAlchemyError as error:
+        db.rollback()
+        estado=409 if getattr(error.orig,'sqlstate',None)=='55P03' else 503
+        raise HTTPException(estado,detail='Conflicto de habilitación; reintente.' if estado==409
+            else 'Persistencia de sesión no disponible.',headers={'Cache-Control':'no-store'}) from None
 
 
 # =========================================================================
@@ -392,31 +403,42 @@ def validar_ingreso_estudiante(
     datos: ValidarIngresoRequest,
     estudiante_id: Estudiante,
     politica: Annotated[PoliticaIngreso, Depends(exigir_politica_ingreso_configurada)],
+    usuario: Annotated[ContextoAcceso, Depends(obtener_estudiante_actual)],
     contexto: Annotated[None, Depends(exigir_contexto_convocatoria)],
     reloj: Annotated[RelojIngreso, Depends(obtener_reloj_ingreso)],
+    admision: Annotated[object, Depends(obtener_admision)],
     db: BaseDatos,
     respuesta: Response,
 ):
     """Requiere titular autenticado además de código, convocatoria y horario."""
     if datos.estudiante_id != estudiante_id:
-        raise HTTPException(status_code=403, detail="No tienes permiso para validar el ingreso de otro estudiante.")
+        raise HTTPException(status_code=403, detail="No tienes permiso para validar el ingreso de otro estudiante.",
+                            headers={"Cache-Control": "no-store"})
     respuesta.headers["Cache-Control"] = "no-store"
     try:
-        return validar_ingreso(
-            db,
-            convocatoria_id=datos.convocatoria_id,
-            estudiante_id=estudiante_id,
-            codigo_acceso=datos.codigo_acceso,
-            politica=politica,
-            reloj=reloj,
-        )
+        with db.no_autoflush:
+            sesion = validar_ingreso(
+                db,
+                convocatoria_id=datos.convocatoria_id,
+                estudiante_id=estudiante_id,
+                codigo_acceso=datos.codigo_acceso,
+                politica=politica,
+                reloj=reloj,
+                admision=admision,
+            )
+            exigir_matricula_ingreso(db, id_usuario=usuario.id_usuario, sesion=sesion)
+            return sesion
     except ErrorIngreso as error:
         raise HTTPException(
             status_code=403,
             detail=str(error),
+            headers={"Cache-Control": "no-store"},
         ) from error
-    except (PoliticaTemporalNoDisponible, SQLAlchemyError):
-        raise HTTPException(503, detail="Política temporal o infraestructura de ingreso no disponible.") from None
+    except AccesoDenegado:
+        raise HTTPException(403, detail="Ingreso no autorizado.", headers={"Cache-Control": "no-store"}) from None
+    except (PoliticaTemporalNoDisponible, IntegracionPendiente, SQLAlchemyError):
+        raise HTTPException(503, detail="Política temporal o infraestructura de ingreso no disponible.",
+                            headers={"Cache-Control": "no-store"}) from None
 
 
 # =========================================================================
@@ -447,30 +469,35 @@ def listar_notificaciones(
 
 @router.post(
     "/calificaciones/notificar",
-    response_model=NotificacionResponse,
-    status_code=201,
+    status_code=503,
+    responses={503: {"description": "Publicación oficial no disponible; operación sin escritura."}},
 )
 def notificar_calificacion_participacion(
     datos: NotificarCalificacionRequest,
     docente_id: Docente,
-    db: BaseDatos,
 ):
-    """Notifica al estudiante la disponibilidad de su calificación académica (RF-27)."""
-    try:
-        notificacion = notificar_calificacion(
-            db,
-            estudiante_id=datos.estudiante_id,
-            participacion_id=datos.participacion_id,
-        )
-        db.commit()
-        db.refresh(notificacion)
-        return notificacion
-    except ValueError as error:
-        db.rollback()
-        raise HTTPException(
-            status_code=422,
-            detail=str(error),
-        ) from error
-    except Exception:
-        db.rollback()
-        raise
+    """RF-27 cerrado hasta verificar resultado oficial, titularidad y publicación.
+
+    El rol docente y dos UUID del cliente no prueban esas relaciones. Se conserva
+    la ruta para responder explícitamente sin anunciar notas ni escribir avisos.
+    No confundir este contrato pendiente con los avisos de feedback ya compuestos.
+    """
+    raise HTTPException(
+        status_code=503,
+        detail="La publicación de calificaciones oficiales todavía no está disponible.",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+from app.modules.scheduling.api.admission_router import router as admission_router
+router.include_router(admission_router)
+
+# Solo lectura docente acreditada; no monta Evaluation ni Participation general.
+from app.modules.scheduling.api.evaluation_readiness import router as readiness_router
+router.include_router(readiness_router)
+
+from app.modules.scheduling.api.technical_results import router as resultados_tecnicos_router
+router.include_router(resultados_tecnicos_router)
+
+from app.modules.scheduling.api.academic_results import router as academic_results_router
+router.include_router(academic_results_router)

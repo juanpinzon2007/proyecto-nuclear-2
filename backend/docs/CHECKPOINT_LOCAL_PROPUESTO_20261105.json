@@ -1,0 +1,223 @@
+{
+  "fecha_local": "2026-11-05T19:08:03.797106-05:00",
+  "rama": "feature/backend-continuidad",
+  "base": "33981c8da00996e4091d9dde9c0288bbac50c5ab",
+  "estado": "PROPUESTA SIN STAGING NI COMMITS",
+  "archivos": [
+    {
+      "ruta": "backend/app/modules/identity/README.md",
+      "bytes": 14898,
+      "sha256": "ac9e6fdd649d18d7b6b1c4dbbe16ccaa240d81bde54d614459f3285d1853fe20",
+      "bloque": "login_personal"
+    },
+    {
+      "ruta": "backend/app/modules/identity/api/dependencies.py",
+      "bytes": 12151,
+      "sha256": "5602315147a8f407e4a453514e00725961cee217e354f7f4d118f3286f5ced2b",
+      "bloque": "login_personal"
+    },
+    {
+      "ruta": "backend/app/modules/identity/api/router.py",
+      "bytes": 6211,
+      "sha256": "b4d02d79dc158e2944c7a696354ee5fae38562c98b9cb0ea76705bf80ada00c8",
+      "bloque": "login_personal"
+    },
+    {
+      "ruta": "backend/app/modules/identity/api/schemas.py",
+      "bytes": 2673,
+      "sha256": "87cf7bdd9ef2cd3b644d9c502b745a3ffd9dd681c30595ee6d36f7a04c1aeb07",
+      "bloque": "login_personal"
+    },
+    {
+      "ruta": "backend/app/modules/identity/application/authentication.py",
+      "bytes": 3057,
+      "sha256": "25b52f2b70ff01337747d411f18ef25ef8bdcab28aa7a0964eac35a52bcaf610",
+      "bloque": "login_personal"
+    },
+    {
+      "ruta": "backend/app/modules/identity/application/ports.py",
+      "bytes": 5923,
+      "sha256": "90d722e7a7d6d8629b41e11714fd1b2be9d0d037d5541f226d024929b744c0fd",
+      "bloque": "login_personal"
+    },
+    {
+      "ruta": "backend/app/modules/identity/application/services.py",
+      "bytes": 7507,
+      "sha256": "f7b52397ac35fe8b4ffa8ee4e3997c6fb3f1595c8cf67e8f33fd2aa0c9c19d78",
+      "bloque": "RF16"
+    },
+    {
+      "ruta": "backend/app/modules/identity/infrastructure/credentials.py",
+      "bytes": 2585,
+      "sha256": "ab946696676cd8654847619034dc0c817444ee9f9031b9515e185979a79412ea",
+      "bloque": "login_personal"
+    },
+    {
+      "ruta": "backend/app/modules/identity/infrastructure/followup.py",
+      "bytes": 7737,
+      "sha256": "ebcf4a2f9fdb89e005b49f37b48c5ca91122ddb16a8e1c71a559751bb8fb53b9",
+      "bloque": "RF15"
+    },
+    {
+      "ruta": "backend/app/modules/scheduling/POLITICA_TEMPORAL_INGRESO.md",
+      "bytes": 13634,
+      "sha256": "e1d1b0e4671fc1cfb2b387658b3bd61c47524c7a2d1f963623274639599a54b2",
+      "bloque": "RF22"
+    },
+    {
+      "ruta": "backend/app/modules/scheduling/api/router.py",
+      "bytes": 17223,
+      "sha256": "5746c1db7547ce4dc29850173601a1ed8d31dbe7365281ef5b8426b4e858024b",
+      "bloque": "RF22"
+    },
+    {
+      "ruta": "backend/app/modules/scheduling/application/validar_ingreso.py",
+      "bytes": 3026,
+      "sha256": "f54427584720ef2cd25844595c492a7c8e2c2015dd246281eb275cb092e29042",
+      "bloque": "RF22"
+    },
+    {
+      "ruta": "backend/app/modules/scheduling/domain/ingress_policy.py",
+      "bytes": 2658,
+      "sha256": "5262abd17a79fe67489dfdc011dce944d83062f1f7259463e14aff650976daa2",
+      "bloque": "RF22"
+    },
+    {
+      "ruta": "backend/app/modules/scheduling/infrastructure/ingress_access.py",
+      "bytes": 1794,
+      "sha256": "6fa41c127e015c3fb30dfd12da02d87fa138fce53ee536950554ea2505658420",
+      "bloque": "RF22"
+    },
+    {
+      "ruta": "backend/app/modules/scheduling/infrastructure/worker_runner.py",
+      "bytes": 2149,
+      "sha256": "08b3426f8f8ce4e9458377e260e3e5c8ed46a0a4d2a5c5411fe13f19ab4ffe30",
+      "bloque": "RF19"
+    },
+    {
+      "ruta": "backend/docs/AUDITORIA_COBERTURA_BACKEND_20261105.md",
+      "bytes": 76437,
+      "sha256": "402ce550d28aff44ebe1c539175ad7d8c273eaaed89456053dc3bcd30f25ee3c",
+      "bloque": "compartido"
+    },
+    {
+      "ruta": "backend/docs/AUTENTICACION_PERSONAL_CONTRATO_PENDIENTE.md",
+      "bytes": 12207,
+      "sha256": "241f9659c5267be3ca423e53e3987ee30d6486e90e57e9d46a7df0e01382d61b",
+      "bloque": "login_personal"
+    },
+    {
+      "ruta": "backend/docs/LOGIN_PERSONAL_CORREO_CLAVE.md",
+      "bytes": 7513,
+      "sha256": "b9b83216f527ae3408c93cdd806d9df9e2c2c8a9b0abb0997ea607e2bd8d800a",
+      "bloque": "login_personal"
+    },
+    {
+      "ruta": "backend/docs/RF15_RF26_SEGUIMIENTO_DOCENTE.md",
+      "bytes": 13144,
+      "sha256": "de9ddf5605dac657d424ffd579e77fc2978ff6ff6b404f8fc77c1dfdae6bef21",
+      "bloque": "RF15"
+    },
+    {
+      "ruta": "backend/docs/RF16_REPORTE_Y_BLOQUEOS.md",
+      "bytes": 9221,
+      "sha256": "c81436319c45d3c94d881f214a54518f89ffdeda00d1103412d629d12f396e90",
+      "bloque": "RF16"
+    },
+    {
+      "ruta": "backend/docs/RF19_WORKER_OPERATIVO.md",
+      "bytes": 6124,
+      "sha256": "a88190321c1107e263fdacd3d1c34da98ac748950076339e2f519ae1cced35ac",
+      "bloque": "RF19"
+    },
+    {
+      "ruta": "backend/docs/RF22_INGRESO_ANTICIPADO.md",
+      "bytes": 11146,
+      "sha256": "616e6d19463b05dba228bf3aaf5fac0bcdbc4e93c182b071adcaa597c3cba145",
+      "bloque": "RF22"
+    },
+    {
+      "ruta": "backend/tests/identity/test_ingress_temporal_sql.py",
+      "bytes": 9403,
+      "sha256": "7b37f14d766d1b1793e09fb7934dd5f07b870179917ee67a0100930c71a33902",
+      "bloque": "RF22"
+    },
+    {
+      "ruta": "backend/tests/identity/test_report_integrity.py",
+      "bytes": 2495,
+      "sha256": "96b257b5e52b80162c616c3d38a71907e3d27730f4cac32957c9bd7b79844f05",
+      "bloque": "login_personal"
+    },
+    {
+      "ruta": "backend/tests/identity/test_student_login_scheduling.py",
+      "bytes": 15684,
+      "sha256": "d6b669babc9250091529c016eaf02fd7a902658f57799722be9936d076a3668b",
+      "bloque": "RF22"
+    },
+    {
+      "ruta": "backend/tests/integration/test_main_early_ingress.py",
+      "bytes": 9632,
+      "sha256": "87789e57c37feb3e310e0d8fb338f1c09dfa12ab0eef4ad6c80ef1b89d06eb5f",
+      "bloque": "RF22"
+    },
+    {
+      "ruta": "backend/tests/integration/test_main_report_closed.py",
+      "bytes": 4884,
+      "sha256": "b989c4e651bd6b12dc10c1d2d221d20ae8f13f1533eb220756c9e64b29f1c100",
+      "bloque": "RF16"
+    },
+    {
+      "ruta": "backend/tests/integration/test_main_staff_login.py",
+      "bytes": 11113,
+      "sha256": "5ac32e0b94b212491dd6f36f67f20a560853c7a2f72f5eb458b86318a69380b1",
+      "bloque": "login_personal"
+    },
+    {
+      "ruta": "backend/tests/integration/test_main_teacher_followup.py",
+      "bytes": 8204,
+      "sha256": "908545916397fb2c1ea01b4c101b1426280b855b7e43d56ef6e6805cbb12b487",
+      "bloque": "RF15"
+    },
+    {
+      "ruta": "backend/tests/integration/test_student_identity_security.py",
+      "bytes": 12355,
+      "sha256": "807f55054e458bbf62e0e1a1bfaa8e128f0c53789e464848b3e898bcab4869dd",
+      "bloque": "RF22"
+    },
+    {
+      "ruta": "backend/tests/integration/test_worker_process.py",
+      "bytes": 9376,
+      "sha256": "a9cdb3e63937197580f5d8a4cbe00ffcaf19936ed8c318a09d701ee524615ca1",
+      "bloque": "RF19"
+    },
+    {
+      "ruta": "backend/tests/unit/scheduling/test_api_endpoints.py",
+      "bytes": 10963,
+      "sha256": "a5a926987358f966fc62ef1a1683e4f8fbdf00daa294154ebc3a1d6e79744221",
+      "bloque": "RF22"
+    },
+    {
+      "ruta": "backend/tests/unit/scheduling/test_ingress_policy.py",
+      "bytes": 6409,
+      "sha256": "ec1a0e8eb6f3eaed7b0ca636cd66251b8431caff4cca885fc7d1f5e390954dc0",
+      "bloque": "RF22"
+    },
+    {
+      "ruta": "backend/tests/unit/scheduling/test_worker_runner.py",
+      "bytes": 893,
+      "sha256": "98734717afa927b17744287e22f2177d19b677ba94f1b78431c15a1d6a472e83",
+      "bloque": "RF19"
+    }
+  ],
+  "exclusiones": [
+    ".env",
+    "evidencias/",
+    "respaldos",
+    "ZIP",
+    "Word y archivos universitarios",
+    "caches",
+    "scripts ajenos"
+  ],
+  "manifiesto_no_autorreferenciado": "backend/docs/CHECKPOINT_LOCAL_PROPUESTO_20261105.json",
+  "revision": "Patrones de claves privadas, URL con clave y JWT literales no detectados. Las credenciales sintéticas explícitas de fixtures no son cuentas de producción; no certifica un escaneo exhaustivo."
+}

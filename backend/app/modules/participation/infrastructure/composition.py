@@ -53,8 +53,9 @@ class _Alcance:
 
 
 class IdentityIntentoSQLAlchemy:
-    def __init__(self,alcance):
+    def __init__(self,alcance,*,matricula_activa=False):
         self.a=alcance
+        self.matricula_activa=matricula_activa
 
     def autorizar_acceso(self,*,id_estudiante,id_participacion):
         if type(id_estudiante) is not int or id_estudiante!=id_entero(self.a.usuario.id_usuario) or self.a.datos().id_participacion!=id_participacion:
@@ -68,6 +69,9 @@ class IdentityIntentoSQLAlchemy:
             raise AccesoDenegado("Intento no disponible.")
         s.execute(select(r.id_rol).where(r.id_rol==fila.id_rol).with_for_update(read=True)).one()
         ConsultaEstadoIntentoSQLAlchemy(s,fechas=self.a.fechas).consultar(usuario=self.a.usuario,id_intento=self.a.id_intento)
+        if self.matricula_activa and s.scalar(select(m.activo).where(
+                m.id_grupo_estudiante==self.a.datos().id_grupo_estudiante)) is not True:
+            raise AccesoDenegado("Matrícula no habilitada.")
 
     def autorizar_inicio(self,**_):
         raise ReglaPendiente("Inicio no habilitado: faltan políticas y composición de provisión.")
@@ -216,7 +220,7 @@ class CasesIntentoSQLAlchemy:
 def crear_facade_8b(*,usuario:ContextoAcceso,id_intento:int,
                    reloj:Reloj,fechas:FechasPersistencia,crear_sesion:Callable[[],Session],
                    autorizacion_edicion:AutorizacionEdicionIntento|None=_AUTORIZACION_RESPUESTA,
-                   recorrido:RecorridoVersionCases|None=None)->ParticipacionFacade:
+                   recorrido:RecorridoVersionCases|None=None,matricula_activa=False)->ParticipacionFacade:
     """Una sola operación, adaptadores SQL reales sobre la misma UoW.
 
     Scheduling autoriza por defecto RESPONDER en la ventana confirmada, usando
@@ -225,5 +229,5 @@ def crear_facade_8b(*,usuario:ContextoAcceso,id_intento:int,
     """
     trabajo=UnidadTrabajoSQLAlchemy(lambda s:RepositorioParticipacionSQLAlchemy(s,fechas=fechas),crear_sesion=crear_sesion)
     alcance=_Alcance(lambda:trabajo.sesion,usuario,id_intento,fechas)
-    return ParticipacionFacade(fabrica=lambda:trabajo,identity=IdentityIntentoSQLAlchemy(alcance),
+    return ParticipacionFacade(fabrica=lambda:trabajo,identity=IdentityIntentoSQLAlchemy(alcance,matricula_activa=matricula_activa),
         cases=CasesIntentoSQLAlchemy(alcance,recorrido),scheduling=SchedulingIntentoSQLAlchemy(alcance,autorizacion_edicion,reloj),reloj=reloj)

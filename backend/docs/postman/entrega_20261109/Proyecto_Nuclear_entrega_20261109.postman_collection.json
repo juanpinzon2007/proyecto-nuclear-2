@@ -1,0 +1,1530 @@
+{
+  "info": {
+    "name": "ENTREGA 9 noviembre — recorrido técnico — MAIN y LAB explícitos",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Solo laboratorio nuevo y desechable. Sin secretos exportados. Consulte README.md; ninguna aprobación de políticas oficiales. RF-16 oficial: usar la colección adicional Proyecto_Nuclear_reportes_oficiales del mismo directorio con laboratorio_publicacion.py; no ejecutar ambos recorridos sobre el mismo estado."
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.variables.get('laboratorio_confirmado') !== 'true') throw new Error('Confirme laboratorio propio, no una base permanente.');",
+          "const destino=pm.variables.replaceIn(pm.request.url.toString());",
+          "if (!/^http:\\/\\/(127\\.0\\.0\\.1|localhost):\\d+\\//.test(destino)) throw new Error('Solo loopback con puerto explícito de laboratorio.');",
+          "if (['POST','PUT','PATCH','DELETE'].includes(pm.request.method) && pm.variables.get('permitir_escrituras_laboratorio') !== 'true') throw new Error('Escrituras LAB no confirmadas.');",
+          "const bruto=pm.request.url.toString()+' '+JSON.stringify(pm.request.headers.toJSON())+' '+(pm.request.body ? pm.request.body.raw || '' : '')+' '+JSON.stringify(pm.request.auth ? pm.request.auth.toJSON() : {});",
+          "for (const m of bruto.matchAll(/\\{\\{([^{}]+)\\}\\}/g)) { const v=pm.variables.get(m[1]); if (v === undefined || v === '') throw new Error('Complete la variable local: '+m[1]); }"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "MAIN — login admin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/identity/auth/personal",
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{correo_admin}}\",\n  \"clave\": \"{{clave_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"access_token\": {\"type\": \"string\", \"title\": \"Access Token\"}, \"token_type\": {\"type\": \"string\", \"const\": \"bearer\", \"title\": \"Token Type\", \"default\": \"bearer\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"access_token\"], \"title\": \"RespuestaToken\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.environment.set('token_admin',pm.response.json().access_token);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — login docente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/identity/auth/personal",
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{correo_docente}}\",\n  \"clave\": \"{{clave_docente}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"access_token\": {\"type\": \"string\", \"title\": \"Access Token\"}, \"token_type\": {\"type\": \"string\", \"const\": \"bearer\", \"title\": \"Token Type\", \"default\": \"bearer\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"access_token\"], \"title\": \"RespuestaToken\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.environment.set('token_docente',pm.response.json().access_token);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — listar docentes",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/identity/docentes",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_admin}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"docentes\": {\"items\": {\"properties\": {\"id_usuario\": {\"type\": \"string\", \"title\": \"Id Usuario\"}, \"nombre\": {\"type\": \"string\", \"title\": \"Nombre\"}, \"correo\": {\"type\": \"string\", \"title\": \"Correo\"}, \"activo\": {\"type\": \"boolean\", \"title\": \"Activo\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_usuario\", \"nombre\", \"correo\", \"activo\"], \"title\": \"CuentaDocenteRespuesta\"}, \"type\": \"array\", \"title\": \"Docentes\"}, \"total\": {\"type\": \"integer\", \"title\": \"Total\"}, \"limite\": {\"type\": \"integer\", \"title\": \"Limite\"}, \"desplazamiento\": {\"type\": \"integer\", \"title\": \"Desplazamiento\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"docentes\", \"total\", \"limite\", \"desplazamiento\"], \"title\": \"PaginaDocentesRespuesta\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — login estudiante",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/identity/auth/estudiantes",
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{correo_estudiante}}\",\n  \"codigo_convocatoria\": \"{{codigo_estudiante}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"access_token\": {\"type\": \"string\", \"title\": \"Access Token\"}, \"token_type\": {\"type\": \"string\", \"const\": \"bearer\", \"title\": \"Token Type\", \"default\": \"bearer\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"access_token\"], \"title\": \"RespuestaToken\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.environment.set('token_estudiante',pm.response.json().access_token);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — login ajeno",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/identity/auth/estudiantes",
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{correo_ajeno}}\",\n  \"codigo_convocatoria\": \"{{codigo_ajeno}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"access_token\": {\"type\": \"string\", \"title\": \"Access Token\"}, \"token_type\": {\"type\": \"string\", \"const\": \"bearer\", \"title\": \"Token Type\", \"default\": \"bearer\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"access_token\"], \"title\": \"RespuestaToken\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.environment.set('token_ajeno',pm.response.json().access_token);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — identidad privada",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/identity/me",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id_usuario\": {\"type\": \"string\", \"title\": \"Id Usuario\"}, \"correo\": {\"type\": \"string\", \"title\": \"Correo\"}, \"roles\": {\"items\": {\"type\": \"string\", \"enum\": [\"ADMINISTRADOR\", \"DOCENTE\", \"ESTUDIANTE\"], \"title\": \"Rol\"}, \"type\": \"array\", \"uniqueItems\": true, \"title\": \"Roles\"}, \"permisos\": {\"items\": {\"type\": \"string\"}, \"type\": \"array\", \"uniqueItems\": true, \"title\": \"Permisos\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_usuario\", \"correo\", \"roles\", \"permisos\"], \"title\": \"UsuarioPublico\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — admisión persistida en preparación LAB",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/convocatorias/{{convocatoria_id}}/admision",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.test('Concesión vigente',()=>pm.expect(pm.response.json().admitida).to.eql(true));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — validar ingreso sin crear P/I",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/validar-ingreso",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"convocatoria_id\": \"{{convocatoria_id}}\",\n  \"estudiante_id\": \"{{estudiante_id}}\",\n  \"codigo_acceso\": \"{{codigo_estudiante}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Id\"}, \"espacio_academico_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Espacio Academico Id\"}, \"version_caso_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Version Caso Id\"}, \"docente_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Docente Id\"}, \"fecha_inicio\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Fecha Inicio\"}, \"fecha_fin\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Fecha Fin\"}, \"tiempo_maximo_minutos\": {\"type\": \"integer\", \"title\": \"Tiempo Maximo Minutos\"}, \"lugar\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Lugar\"}, \"mensaje_personalizado\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Mensaje Personalizado\"}, \"estado\": {\"type\": \"string\", \"title\": \"Estado\"}, \"finalizado_en\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"date-time\"}, {\"type\": \"null\"}], \"title\": \"Finalizado En\"}}, \"type\": \"object\", \"required\": [\"id\", \"espacio_academico_id\", \"version_caso_id\", \"docente_id\", \"fecha_inicio\", \"fecha_fin\", \"tiempo_maximo_minutos\", \"lugar\", \"mensaje_personalizado\", \"estado\", \"finalizado_en\"], \"title\": \"SesionResponse\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "LAB AISLADA — documento sintético versionado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "const j=pm.response.json(); ['id_version_documento','referencia','huella'].forEach(k=>pm.environment.set(k,j[k]));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "LAB AISLADA — aceptación explícita LAB",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_version_documento\": {{id_version_documento}},\n  \"referencia\": \"{{referencia}}\",\n  \"huella\": \"{{huella}}\",\n  \"acepta\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.environment.set('id_consentimiento',pm.response.json().id_consentimiento);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "LAB AISLADA — inicio transaccional LAB",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 201',()=>pm.response.to.have.status(201));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "const j=pm.response.json();pm.environment.set('id_intento',j.id_intento);pm.environment.set('id_participacion',j.id_participacion);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "LAB AISLADA — inicio repetido sin duplicados",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 409',()=>pm.response.to.have.status(409));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — progreso ajeno rechazado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/progress",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_ajeno}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 403',()=>pm.response.to.have.status(403));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — progreso inicial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/progress",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"intento\": {\"properties\": {\"id_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Intento\"}, \"id_participacion\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Participacion\"}, \"numero_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Numero Intento\"}, \"estado\": {\"type\": \"string\", \"enum\": [\"EN_CURSO\", \"FINALIZADO\", \"VENCIDO\"], \"title\": \"EstadoIntento\"}, \"inicio\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Inicio\"}, \"fin\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"date-time\"}, {\"type\": \"null\"}], \"title\": \"Fin\"}, \"vence_en\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Vence En\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_intento\", \"id_participacion\", \"numero_intento\", \"estado\", \"inicio\", \"fin\", \"vence_en\"], \"title\": \"IntentoRespuesta\"}, \"decisiones_aplicables\": {\"anyOf\": [{\"items\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"uuid\"}, {\"type\": \"integer\", \"exclusiveMinimum\": 0.0}]}, \"type\": \"array\"}, {\"type\": \"null\"}], \"title\": \"Decisiones Aplicables\"}, \"selecciones\": {\"items\": {\"properties\": {\"id_decision\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"uuid\"}, {\"type\": \"integer\", \"exclusiveMinimum\": 0.0}], \"title\": \"Id Decision\"}, \"id_opcion\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"uuid\"}, {\"type\": \"integer\", \"exclusiveMinimum\": 0.0}], \"title\": \"Id Opcion\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_decision\", \"id_opcion\"], \"title\": \"SeleccionRespuesta\"}, \"type\": \"array\", \"title\": \"Selecciones\"}, \"pendientes\": {\"anyOf\": [{\"items\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"uuid\"}, {\"type\": \"integer\", \"exclusiveMinimum\": 0.0}]}, \"type\": \"array\"}, {\"type\": \"null\"}], \"title\": \"Pendientes\"}, \"total_aplicable\": {\"anyOf\": [{\"type\": \"integer\", \"minimum\": 0.0}, {\"type\": \"null\"}], \"title\": \"Total Aplicable\"}, \"respondidas\": {\"type\": \"integer\", \"minimum\": 0.0, \"title\": \"Respondidas\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"intento\", \"decisiones_aplicables\", \"selecciones\", \"pendientes\", \"total_aplicable\", \"respondidas\"], \"title\": \"ProgresoRespuesta\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
+              "}",
+              "pm.test('Cero respuestas',()=>pm.expect(pm.response.json().respondidas).to.eql(0));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — escenario actual 1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/current-scenario",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id_escenario\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"uuid\"}, {\"type\": \"null\"}], \"title\": \"Id Escenario\"}, \"contexto\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Contexto\"}, \"pregunta\": {\"anyOf\": [{\"properties\": {\"id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Id\"}, \"enunciado\": {\"type\": \"string\", \"title\": \"Enunciado\"}, \"opciones\": {\"items\": {\"properties\": {\"id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Id\"}, \"texto\": {\"type\": \"string\", \"title\": \"Texto\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id\", \"texto\"], \"title\": \"OpcionActualRespuesta\"}, \"type\": \"array\", \"title\": \"Opciones\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id\", \"enunciado\", \"opciones\"], \"title\": \"PreguntaActualRespuesta\"}, {\"type\": \"null\"}]}, \"recorrido_finalizado\": {\"type\": \"boolean\", \"title\": \"Recorrido Finalizado\"}, \"respondidas\": {\"type\": \"integer\", \"minimum\": 0.0, \"title\": \"Respondidas\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_escenario\", \"contexto\", \"pregunta\", \"recorrido_finalizado\", \"respondidas\"], \"title\": \"EscenarioActualRespuesta\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
+              "}",
+              "const q=pm.response.json().pregunta; pm.test('Pregunta habilitada',()=>pm.expect(q).to.be.an('object')); if(q){pm.environment.set('id_decision',q.id);pm.environment.set('id_opcion',q.opciones[0].id);}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — primera selección 1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/decisions/{{id_decision}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_opcion\": \"{{id_opcion}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 201',()=>pm.response.to.have.status(201));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Intento\"}, \"id_participacion\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Participacion\"}, \"numero_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Numero Intento\"}, \"estado\": {\"type\": \"string\", \"enum\": [\"EN_CURSO\", \"FINALIZADO\", \"VENCIDO\"], \"title\": \"EstadoIntento\"}, \"inicio\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Inicio\"}, \"fin\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"date-time\"}, {\"type\": \"null\"}], \"title\": \"Fin\"}, \"vence_en\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Vence En\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_intento\", \"id_participacion\", \"numero_intento\", \"estado\", \"inicio\", \"fin\", \"vence_en\"], \"title\": \"IntentoRespuesta\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — segunda selección rechazada",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/decisions/{{id_decision}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_opcion\": \"{{id_opcion}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 409',()=>pm.response.to.have.status(409));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — escenario actual 2",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/current-scenario",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id_escenario\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"uuid\"}, {\"type\": \"null\"}], \"title\": \"Id Escenario\"}, \"contexto\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Contexto\"}, \"pregunta\": {\"anyOf\": [{\"properties\": {\"id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Id\"}, \"enunciado\": {\"type\": \"string\", \"title\": \"Enunciado\"}, \"opciones\": {\"items\": {\"properties\": {\"id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Id\"}, \"texto\": {\"type\": \"string\", \"title\": \"Texto\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id\", \"texto\"], \"title\": \"OpcionActualRespuesta\"}, \"type\": \"array\", \"title\": \"Opciones\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id\", \"enunciado\", \"opciones\"], \"title\": \"PreguntaActualRespuesta\"}, {\"type\": \"null\"}]}, \"recorrido_finalizado\": {\"type\": \"boolean\", \"title\": \"Recorrido Finalizado\"}, \"respondidas\": {\"type\": \"integer\", \"minimum\": 0.0, \"title\": \"Respondidas\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_escenario\", \"contexto\", \"pregunta\", \"recorrido_finalizado\", \"respondidas\"], \"title\": \"EscenarioActualRespuesta\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
+              "}",
+              "const q=pm.response.json().pregunta; pm.test('Pregunta habilitada',()=>pm.expect(q).to.be.an('object')); if(q){pm.environment.set('id_decision',q.id);pm.environment.set('id_opcion',q.opciones[0].id);}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — primera selección 2",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/decisions/{{id_decision}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_opcion\": \"{{id_opcion}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 201',()=>pm.response.to.have.status(201));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Intento\"}, \"id_participacion\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Participacion\"}, \"numero_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Numero Intento\"}, \"estado\": {\"type\": \"string\", \"enum\": [\"EN_CURSO\", \"FINALIZADO\", \"VENCIDO\"], \"title\": \"EstadoIntento\"}, \"inicio\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Inicio\"}, \"fin\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"date-time\"}, {\"type\": \"null\"}], \"title\": \"Fin\"}, \"vence_en\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Vence En\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_intento\", \"id_participacion\", \"numero_intento\", \"estado\", \"inicio\", \"fin\", \"vence_en\"], \"title\": \"IntentoRespuesta\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — ruta terminal",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/current-scenario",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id_escenario\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"uuid\"}, {\"type\": \"null\"}], \"title\": \"Id Escenario\"}, \"contexto\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Contexto\"}, \"pregunta\": {\"anyOf\": [{\"properties\": {\"id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Id\"}, \"enunciado\": {\"type\": \"string\", \"title\": \"Enunciado\"}, \"opciones\": {\"items\": {\"properties\": {\"id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Id\"}, \"texto\": {\"type\": \"string\", \"title\": \"Texto\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id\", \"texto\"], \"title\": \"OpcionActualRespuesta\"}, \"type\": \"array\", \"title\": \"Opciones\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id\", \"enunciado\", \"opciones\"], \"title\": \"PreguntaActualRespuesta\"}, {\"type\": \"null\"}]}, \"recorrido_finalizado\": {\"type\": \"boolean\", \"title\": \"Recorrido Finalizado\"}, \"respondidas\": {\"type\": \"integer\", \"minimum\": 0.0, \"title\": \"Respondidas\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_escenario\", \"contexto\", \"pregunta\", \"recorrido_finalizado\", \"respondidas\"], \"title\": \"EscenarioActualRespuesta\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
+              "}",
+              "pm.test('Terminal sin pregunta futura',()=>{const j=pm.response.json();pm.expect(j.recorrido_finalizado).to.eql(true);pm.expect(j.pregunta).to.eql(null);});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — progreso completo privado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/progress",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"intento\": {\"properties\": {\"id_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Intento\"}, \"id_participacion\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Participacion\"}, \"numero_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Numero Intento\"}, \"estado\": {\"type\": \"string\", \"enum\": [\"EN_CURSO\", \"FINALIZADO\", \"VENCIDO\"], \"title\": \"EstadoIntento\"}, \"inicio\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Inicio\"}, \"fin\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"date-time\"}, {\"type\": \"null\"}], \"title\": \"Fin\"}, \"vence_en\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Vence En\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_intento\", \"id_participacion\", \"numero_intento\", \"estado\", \"inicio\", \"fin\", \"vence_en\"], \"title\": \"IntentoRespuesta\"}, \"decisiones_aplicables\": {\"anyOf\": [{\"items\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"uuid\"}, {\"type\": \"integer\", \"exclusiveMinimum\": 0.0}]}, \"type\": \"array\"}, {\"type\": \"null\"}], \"title\": \"Decisiones Aplicables\"}, \"selecciones\": {\"items\": {\"properties\": {\"id_decision\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"uuid\"}, {\"type\": \"integer\", \"exclusiveMinimum\": 0.0}], \"title\": \"Id Decision\"}, \"id_opcion\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"uuid\"}, {\"type\": \"integer\", \"exclusiveMinimum\": 0.0}], \"title\": \"Id Opcion\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_decision\", \"id_opcion\"], \"title\": \"SeleccionRespuesta\"}, \"type\": \"array\", \"title\": \"Selecciones\"}, \"pendientes\": {\"anyOf\": [{\"items\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"uuid\"}, {\"type\": \"integer\", \"exclusiveMinimum\": 0.0}]}, \"type\": \"array\"}, {\"type\": \"null\"}], \"title\": \"Pendientes\"}, \"total_aplicable\": {\"anyOf\": [{\"type\": \"integer\", \"minimum\": 0.0}, {\"type\": \"null\"}], \"title\": \"Total Aplicable\"}, \"respondidas\": {\"type\": \"integer\", \"minimum\": 0.0, \"title\": \"Respondidas\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"intento\", \"decisiones_aplicables\", \"selecciones\", \"pendientes\", \"total_aplicable\", \"respondidas\"], \"title\": \"ProgresoRespuesta\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
+              "}",
+              "pm.test('Dos respondidas',()=>pm.expect(pm.response.json().respondidas).to.eql(2));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — cierre ajeno rechazado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/finish",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_ajeno}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 403',()=>pm.response.to.have.status(403));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — cierre titular",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/finish",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Intento\"}, \"id_participacion\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Participacion\"}, \"numero_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Numero Intento\"}, \"estado\": {\"type\": \"string\", \"enum\": [\"EN_CURSO\", \"FINALIZADO\", \"VENCIDO\"], \"title\": \"EstadoIntento\"}, \"inicio\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Inicio\"}, \"fin\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"date-time\"}, {\"type\": \"null\"}], \"title\": \"Fin\"}, \"vence_en\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Vence En\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_intento\", \"id_participacion\", \"numero_intento\", \"estado\", \"inicio\", \"fin\", \"vence_en\"], \"title\": \"IntentoRespuesta\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
+              "}",
+              "pm.test('Finalizado',()=>pm.expect(pm.response.json().estado).to.eql('FINALIZADO'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — cierre idempotente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/finish",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Intento\"}, \"id_participacion\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Participacion\"}, \"numero_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Numero Intento\"}, \"estado\": {\"type\": \"string\", \"enum\": [\"EN_CURSO\", \"FINALIZADO\", \"VENCIDO\"], \"title\": \"EstadoIntento\"}, \"inicio\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Inicio\"}, \"fin\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"date-time\"}, {\"type\": \"null\"}], \"title\": \"Fin\"}, \"vence_en\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Vence En\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_intento\", \"id_participacion\", \"numero_intento\", \"estado\", \"inicio\", \"fin\", \"vence_en\"], \"title\": \"IntentoRespuesta\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — escenario cerrado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/current-scenario",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 409',()=>pm.response.to.have.status(409));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"detail\": {\"properties\": {\"codigo\": {\"type\": \"string\", \"title\": \"Codigo\"}, \"mensaje\": {\"type\": \"string\", \"title\": \"Mensaje\"}, \"campos\": {\"anyOf\": [{\"items\": {\"type\": \"string\"}, \"type\": \"array\"}, {\"type\": \"null\"}], \"title\": \"Campos\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"codigo\", \"mensaje\"], \"title\": \"DetalleErrorHTTP\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"detail\"], \"title\": \"ErrorHTTP\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — login docente ajeno",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/identity/auth/personal",
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{correo_docente_ajeno}}\",\n  \"clave\": \"{{clave_docente}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.environment.set('token_docente_ajeno',pm.response.json().access_token);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — cerrado sin resultado [GET 404]",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/intentos/{{id_intento}}/resultado-tecnico",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_docente}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 404',()=>pm.response.to.have.status(404));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — evaluar cerrado [POST 200]",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/intentos/{{id_intento}}/resultado-tecnico",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_docente}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "RF-13/RF-24: comando explícito sobre intento cerrado. Identidad/rol y ámbito persistentes bajo locks; UoW independiente del cierre. Idempotente 200; activo u otro motor 409; fallo 503 recuperable. Sin cuerpo ni puntajes del cliente, sin notas oficiales. Disponible en app.main; requiere configuración y recursos válidos."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id_sesion\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Id Sesion\"}, \"id_convocatoria\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Id Convocatoria\"}, \"id_participacion\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Participacion\"}, \"id_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Intento\"}, \"id_resultado\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Resultado\"}, \"version_caso_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Version Caso Id\"}, \"rubrica_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Rubrica Id\"}, \"version_regla\": {\"type\": \"string\", \"title\": \"Version Regla\"}, \"modalidad\": {\"type\": \"string\", \"enum\": [\"COMPLETA\", \"PARCIAL\"], \"title\": \"Modalidad\"}, \"ambito\": {\"type\": \"string\", \"enum\": [\"TECNICO\", \"LABORATORIO\"], \"title\": \"Ambito\"}, \"oficial\": {\"type\": \"boolean\", \"const\": false, \"title\": \"Oficial\"}, \"fecha_calculo\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Fecha Calculo\"}, \"nota_final\": {\"type\": \"string\", \"title\": \"Nota Final\"}, \"procedencia_sha256\": {\"type\": \"string\", \"title\": \"Procedencia Sha256\"}, \"preguntas_exigidas\": {\"anyOf\": [{\"type\": \"integer\", \"exclusiveMinimum\": 0.0}, {\"type\": \"null\"}], \"title\": \"Preguntas Exigidas\"}, \"preguntas_respondidas\": {\"anyOf\": [{\"type\": \"integer\", \"minimum\": 0.0}, {\"type\": \"null\"}], \"title\": \"Preguntas Respondidas\"}, \"pendientes_con_cero\": {\"anyOf\": [{\"type\": \"integer\", \"minimum\": 0.0}, {\"type\": \"null\"}], \"title\": \"Pendientes Con Cero\"}, \"suma_puntajes\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Suma Puntajes\"}, \"preguntas\": {\"items\": {\"properties\": {\"pregunta_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Pregunta Id\"}, \"opcion_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Opcion Id\"}, \"puntaje\": {\"type\": \"string\", \"title\": \"Puntaje\"}, \"numero_paso\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Numero Paso\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"pregunta_id\", \"opcion_id\", \"puntaje\", \"numero_paso\"], \"title\": \"PreguntaTecnicaRespuesta\"}, \"type\": \"array\", \"title\": \"Preguntas\"}, \"criterios\": {\"items\": {\"properties\": {\"criterio_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Criterio Id\"}, \"suma_puntajes\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Suma Puntajes\"}, \"preguntas_evaluables\": {\"anyOf\": [{\"type\": \"integer\", \"exclusiveMinimum\": 0.0}, {\"type\": \"null\"}], \"title\": \"Preguntas Evaluables\"}, \"numerador\": {\"anyOf\": [{\"type\": \"string\", \"pattern\": \"^\\\\d+$\"}, {\"type\": \"null\"}], \"title\": \"Numerador\"}, \"denominador\": {\"anyOf\": [{\"type\": \"string\", \"pattern\": \"^[1-9]\\\\d*$\"}, {\"type\": \"null\"}], \"title\": \"Denominador\"}, \"nivel_id\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"uuid\"}, {\"type\": \"null\"}], \"title\": \"Nivel Id\"}, \"puntaje_obtenido\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Puntaje Obtenido\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"criterio_id\"], \"title\": \"CriterioTecnicoRespuesta\"}, \"type\": \"array\", \"title\": \"Criterios\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_sesion\", \"id_convocatoria\", \"id_participacion\", \"id_intento\", \"id_resultado\", \"version_caso_id\", \"rubrica_id\", \"version_regla\", \"modalidad\", \"ambito\", \"oficial\", \"fecha_calculo\", \"nota_final\", \"procedencia_sha256\", \"preguntas\", \"criterios\"], \"title\": \"ResultadoTecnicoRespuesta\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "const j=pm.response.json();",
+              "pm.test('Técnico, no oficial',()=>pm.expect(j.oficial).to.eql(false));",
+              "pm.test('Versión histórica',()=>pm.expect(j.version_caso_id).to.eql(pm.variables.get('version_id')));",
+              "pm.test('Nota decimal como cadena',()=>pm.expect(j.nota_final).to.be.a('string').and.match(/^\\d+\\.\\d{2}$/));",
+              "pm.test('Sin código ni credenciales',()=>{pm.expect(j).not.to.have.property('procedencia');pm.expect(j).not.to.have.property('politica_documento');});",
+              "pm.test('Sin caché',()=>pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'));",
+              "if(j.ambito==='TECNICO')pm.test('Fracciones exactas como cadenas',()=>j.criterios.forEach(c=>{pm.expect(c.numerador).to.be.a('string').and.match(/^\\d+$/);pm.expect(c.denominador).to.be.a('string').and.match(/^[1-9]\\d*$/);}));",
+              "pm.test('Resultado conocido LAB, no oficial',()=>{const x=pm.response.json();pm.expect(x.ambito).to.eql('TECNICO');pm.expect(x.nota_final).to.eql('100.00');pm.expect(x.oficial).to.eql(false);});",
+              "const x=pm.response.json();pm.environment.set('resultado_id_primero',x.id_resultado);pm.environment.set('resultado_hash_primero',x.procedencia_sha256);pm.environment.set('resultado_fecha_primero',x.fecha_calculo);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — reintento idempotente [POST 200]",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/intentos/{{id_intento}}/resultado-tecnico",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_docente}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "RF-13/RF-24: comando explícito sobre intento cerrado. Identidad/rol y ámbito persistentes bajo locks; UoW independiente del cierre. Idempotente 200; activo u otro motor 409; fallo 503 recuperable. Sin cuerpo ni puntajes del cliente, sin notas oficiales. Disponible en app.main; requiere configuración y recursos válidos."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id_sesion\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Id Sesion\"}, \"id_convocatoria\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Id Convocatoria\"}, \"id_participacion\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Participacion\"}, \"id_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Intento\"}, \"id_resultado\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Resultado\"}, \"version_caso_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Version Caso Id\"}, \"rubrica_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Rubrica Id\"}, \"version_regla\": {\"type\": \"string\", \"title\": \"Version Regla\"}, \"modalidad\": {\"type\": \"string\", \"enum\": [\"COMPLETA\", \"PARCIAL\"], \"title\": \"Modalidad\"}, \"ambito\": {\"type\": \"string\", \"enum\": [\"TECNICO\", \"LABORATORIO\"], \"title\": \"Ambito\"}, \"oficial\": {\"type\": \"boolean\", \"const\": false, \"title\": \"Oficial\"}, \"fecha_calculo\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Fecha Calculo\"}, \"nota_final\": {\"type\": \"string\", \"title\": \"Nota Final\"}, \"procedencia_sha256\": {\"type\": \"string\", \"title\": \"Procedencia Sha256\"}, \"preguntas_exigidas\": {\"anyOf\": [{\"type\": \"integer\", \"exclusiveMinimum\": 0.0}, {\"type\": \"null\"}], \"title\": \"Preguntas Exigidas\"}, \"preguntas_respondidas\": {\"anyOf\": [{\"type\": \"integer\", \"minimum\": 0.0}, {\"type\": \"null\"}], \"title\": \"Preguntas Respondidas\"}, \"pendientes_con_cero\": {\"anyOf\": [{\"type\": \"integer\", \"minimum\": 0.0}, {\"type\": \"null\"}], \"title\": \"Pendientes Con Cero\"}, \"suma_puntajes\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Suma Puntajes\"}, \"preguntas\": {\"items\": {\"properties\": {\"pregunta_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Pregunta Id\"}, \"opcion_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Opcion Id\"}, \"puntaje\": {\"type\": \"string\", \"title\": \"Puntaje\"}, \"numero_paso\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Numero Paso\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"pregunta_id\", \"opcion_id\", \"puntaje\", \"numero_paso\"], \"title\": \"PreguntaTecnicaRespuesta\"}, \"type\": \"array\", \"title\": \"Preguntas\"}, \"criterios\": {\"items\": {\"properties\": {\"criterio_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Criterio Id\"}, \"suma_puntajes\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Suma Puntajes\"}, \"preguntas_evaluables\": {\"anyOf\": [{\"type\": \"integer\", \"exclusiveMinimum\": 0.0}, {\"type\": \"null\"}], \"title\": \"Preguntas Evaluables\"}, \"numerador\": {\"anyOf\": [{\"type\": \"string\", \"pattern\": \"^\\\\d+$\"}, {\"type\": \"null\"}], \"title\": \"Numerador\"}, \"denominador\": {\"anyOf\": [{\"type\": \"string\", \"pattern\": \"^[1-9]\\\\d*$\"}, {\"type\": \"null\"}], \"title\": \"Denominador\"}, \"nivel_id\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"uuid\"}, {\"type\": \"null\"}], \"title\": \"Nivel Id\"}, \"puntaje_obtenido\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Puntaje Obtenido\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"criterio_id\"], \"title\": \"CriterioTecnicoRespuesta\"}, \"type\": \"array\", \"title\": \"Criterios\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_sesion\", \"id_convocatoria\", \"id_participacion\", \"id_intento\", \"id_resultado\", \"version_caso_id\", \"rubrica_id\", \"version_regla\", \"modalidad\", \"ambito\", \"oficial\", \"fecha_calculo\", \"nota_final\", \"procedencia_sha256\", \"preguntas\", \"criterios\"], \"title\": \"ResultadoTecnicoRespuesta\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "const j=pm.response.json();",
+              "pm.test('Técnico, no oficial',()=>pm.expect(j.oficial).to.eql(false));",
+              "pm.test('Versión histórica',()=>pm.expect(j.version_caso_id).to.eql(pm.variables.get('version_id')));",
+              "pm.test('Nota decimal como cadena',()=>pm.expect(j.nota_final).to.be.a('string').and.match(/^\\d+\\.\\d{2}$/));",
+              "pm.test('Sin código ni credenciales',()=>{pm.expect(j).not.to.have.property('procedencia');pm.expect(j).not.to.have.property('politica_documento');});",
+              "pm.test('Sin caché',()=>pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'));",
+              "if(j.ambito==='TECNICO')pm.test('Fracciones exactas como cadenas',()=>j.criterios.forEach(c=>{pm.expect(c.numerador).to.be.a('string').and.match(/^\\d+$/);pm.expect(c.denominador).to.be.a('string').and.match(/^[1-9]\\d*$/);}));",
+              "const x=pm.response.json();pm.test('Mismo resultado y fecha',()=>{pm.expect(String(x.id_resultado)).to.eql(String(pm.variables.get('resultado_id_primero')));pm.expect(x.procedencia_sha256).to.eql(pm.variables.get('resultado_hash_primero'));pm.expect(x.fecha_calculo).to.eql(pm.variables.get('resultado_fecha_primero'));});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/intentos/{id_intento}/resultado-tecnico [POSITIVA/PRECONDICIONES]",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/intentos/{{id_intento}}/resultado-tecnico",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_docente}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "RF-13/RF-24: resultado técnico previamente persistido, no oficial. JWT/cuenta/rol y ámbito sesión/caso/grupos/participación/intento. REPEATABLE READ/READ ONLY; GET no genera resultados; 404 si no existe. Disponible en app.main; requiere configuración y recursos válidos."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id_sesion\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Id Sesion\"}, \"id_convocatoria\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Id Convocatoria\"}, \"id_participacion\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Participacion\"}, \"id_intento\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Intento\"}, \"id_resultado\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Id Resultado\"}, \"version_caso_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Version Caso Id\"}, \"rubrica_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Rubrica Id\"}, \"version_regla\": {\"type\": \"string\", \"title\": \"Version Regla\"}, \"modalidad\": {\"type\": \"string\", \"enum\": [\"COMPLETA\", \"PARCIAL\"], \"title\": \"Modalidad\"}, \"ambito\": {\"type\": \"string\", \"enum\": [\"TECNICO\", \"LABORATORIO\"], \"title\": \"Ambito\"}, \"oficial\": {\"type\": \"boolean\", \"const\": false, \"title\": \"Oficial\"}, \"fecha_calculo\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Fecha Calculo\"}, \"nota_final\": {\"type\": \"string\", \"title\": \"Nota Final\"}, \"procedencia_sha256\": {\"type\": \"string\", \"title\": \"Procedencia Sha256\"}, \"preguntas_exigidas\": {\"anyOf\": [{\"type\": \"integer\", \"exclusiveMinimum\": 0.0}, {\"type\": \"null\"}], \"title\": \"Preguntas Exigidas\"}, \"preguntas_respondidas\": {\"anyOf\": [{\"type\": \"integer\", \"minimum\": 0.0}, {\"type\": \"null\"}], \"title\": \"Preguntas Respondidas\"}, \"pendientes_con_cero\": {\"anyOf\": [{\"type\": \"integer\", \"minimum\": 0.0}, {\"type\": \"null\"}], \"title\": \"Pendientes Con Cero\"}, \"suma_puntajes\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Suma Puntajes\"}, \"preguntas\": {\"items\": {\"properties\": {\"pregunta_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Pregunta Id\"}, \"opcion_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Opcion Id\"}, \"puntaje\": {\"type\": \"string\", \"title\": \"Puntaje\"}, \"numero_paso\": {\"type\": \"integer\", \"exclusiveMinimum\": 0.0, \"title\": \"Numero Paso\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"pregunta_id\", \"opcion_id\", \"puntaje\", \"numero_paso\"], \"title\": \"PreguntaTecnicaRespuesta\"}, \"type\": \"array\", \"title\": \"Preguntas\"}, \"criterios\": {\"items\": {\"properties\": {\"criterio_id\": {\"type\": \"string\", \"format\": \"uuid\", \"title\": \"Criterio Id\"}, \"suma_puntajes\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Suma Puntajes\"}, \"preguntas_evaluables\": {\"anyOf\": [{\"type\": \"integer\", \"exclusiveMinimum\": 0.0}, {\"type\": \"null\"}], \"title\": \"Preguntas Evaluables\"}, \"numerador\": {\"anyOf\": [{\"type\": \"string\", \"pattern\": \"^\\\\d+$\"}, {\"type\": \"null\"}], \"title\": \"Numerador\"}, \"denominador\": {\"anyOf\": [{\"type\": \"string\", \"pattern\": \"^[1-9]\\\\d*$\"}, {\"type\": \"null\"}], \"title\": \"Denominador\"}, \"nivel_id\": {\"anyOf\": [{\"type\": \"string\", \"format\": \"uuid\"}, {\"type\": \"null\"}], \"title\": \"Nivel Id\"}, \"puntaje_obtenido\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"title\": \"Puntaje Obtenido\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"criterio_id\"], \"title\": \"CriterioTecnicoRespuesta\"}, \"type\": \"array\", \"title\": \"Criterios\"}}, \"additionalProperties\": false, \"type\": \"object\", \"required\": [\"id_sesion\", \"id_convocatoria\", \"id_participacion\", \"id_intento\", \"id_resultado\", \"version_caso_id\", \"rubrica_id\", \"version_regla\", \"modalidad\", \"ambito\", \"oficial\", \"fecha_calculo\", \"nota_final\", \"procedencia_sha256\", \"preguntas\", \"criterios\"], \"title\": \"ResultadoTecnicoRespuesta\"}));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "const j=pm.response.json();",
+              "pm.test('Técnico, no oficial',()=>pm.expect(j.oficial).to.eql(false));",
+              "pm.test('Versión histórica',()=>pm.expect(j.version_caso_id).to.eql(pm.variables.get('version_id')));",
+              "pm.test('Nota decimal como cadena',()=>pm.expect(j.nota_final).to.be.a('string').and.match(/^\\d+\\.\\d{2}$/));",
+              "pm.test('Sin código ni credenciales',()=>{pm.expect(j).not.to.have.property('procedencia');pm.expect(j).not.to.have.property('politica_documento');});",
+              "pm.test('Sin caché',()=>pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'));",
+              "if(j.ambito==='TECNICO')pm.test('Fracciones exactas como cadenas',()=>j.criterios.forEach(c=>{pm.expect(c.numerador).to.be.a('string').and.match(/^\\d+$/);pm.expect(c.denominador).to.be.a('string').and.match(/^[1-9]\\d*$/);}));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/intentos/{id_intento}/resultado-tecnico [ROL NO AUTORIZADO]",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/intentos/{{id_intento}}/resultado-tecnico",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 403',()=>pm.response.to.have.status(403));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "POST evaluación [DOCENTE AJENO]",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/intentos/{{id_intento}}/resultado-tecnico",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_docente_ajeno}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 403',()=>pm.response.to.have.status(403));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}

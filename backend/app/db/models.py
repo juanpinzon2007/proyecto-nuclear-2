@@ -24,11 +24,14 @@ def registrar_modelos_integrados() -> MetaData:
     from app.modules.identity.infrastructure import models as identity_models  # noqa: F401
     from app.modules.identity.infrastructure import academic_identity_models  # noqa: F401
     from app.modules.identity.infrastructure import academic_base_models  # noqa: F401
+    from app.modules.identity.infrastructure import consent_document_models  # noqa: F401
     from app.modules.cases.infrastructure import models as cases_models  # noqa: F401
     from app.modules.scheduling.infrastructure import models as scheduling_models  # noqa: F401
     from app.modules.scheduling.infrastructure import assignment_models  # noqa: F401
     from app.modules.participation.infrastructure import models as participation_models  # noqa: F401
     from app.modules.participation.infrastructure import result_models  # noqa: F401
+    from app.modules.participation.infrastructure import academic_results_models  # noqa: F401
+    from app.modules.participation.infrastructure import question_result_models  # noqa: F401
     from app.modules.identity.infrastructure.academic_models import PermisoIntentoExtraORM, RetroalimentacionDocenteORM  # noqa: F401
 
     validar_referencias(Base.metadata)

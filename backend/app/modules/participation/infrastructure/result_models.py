@@ -18,7 +18,7 @@ class ResultadoIntentoModel(Base):
     __table_args__ = (
         UniqueConstraint("id_intento", name="uq_8c_resultado_intento"),
         UniqueConstraint("id_resultado", "rubrica_id", name="uq_8c_resultado_rubrica"),
-        CheckConstraint("ambito = 'LABORATORIO'", name="ck_8c_solo_laboratorio"),
+        CheckConstraint("ambito = 'LABORATORIO' OR (ambito = 'TECNICO' AND version_regla = 'PREGUNTAS_100_V1')", name="ck_resultado_ambito"),
         CheckConstraint("modalidad IN ('COMPLETA','PARCIAL') AND nota_final >= 0 AND nota_final <= 100", name="ck_8c_resultado"),
         CheckConstraint("length(procedencia_sha256)=64 AND length(politica_hash)=64", name="ck_8c_hash"),
     )

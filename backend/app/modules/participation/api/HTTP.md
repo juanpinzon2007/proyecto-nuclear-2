@@ -1,7 +1,13 @@
 # Cuarto incremento: contrato HTTP PROVISIONAL
 
-Estas rutas están preparadas para revisión del equipo. **No son un contrato
-público definitivo ni están registradas en `app/main.py`.** La fase 8A conecta la
+Actualización Fase 9A: `app/main.py` registra exclusivamente escenario, progreso
+puro, POST de primera selección y POST de finalización de un intento existente.
+El router completo NO está registrado. Inicio, provisión, PUT y resultados siguen
+fuera de la principal. Véase [continuidad 9A](../../../../docs/FASE_9A_PARTICIPATION.md).
+Todas las operaciones principales requieren configuración temporal explícita,
+JWT real y autoridad persistente; no hay una zona horaria predeterminada.
+
+La fase 8A conecta la
 dependencia de autenticación a Identity real. 8B incorpora composición interna
 SQL por operación; la dependencia HTTP sigue cerrada con 503.
 `crear_dependencia_facade_8b` permite composición explícita para intentos existentes,
@@ -28,22 +34,28 @@ reales. Esto no equipara la pregunta a toda la entidad académica decisión/crit
 Estos nombres, la separación POST/PUT y los cuerpos deben acordarse antes de
 integrar Angular o habilitar el router. No se modifican contratos de otros módulos.
 
-## Rutas propuestas
+## Rutas y composiciones
 
 Todas requieren identidad obtenida en el servidor y autorización de Application.
 Prefijo común: `/api/v1`.
 
 | Método | Ruta | Solicitud | Respuesta satisfactoria |
 | --- | --- | --- | --- |
-| POST | `/participations/{participation_id}/attempts` | `id_consentimiento`, `id_permiso_extra` opcional | 201, resumen del intento |
-| POST | `/attempts/{attempt_id}/decisions/{decision_id}` | `id_opcion`, `reflexion_estudiante` opcional | 201, selección nueva confirmada y resumen del intento |
+| GET (principal, condicionado) | `/attempts/{attempt_id}/current-scenario` | Sin cuerpo ni parámetros query | 200, escenario/pregunta actuales; FIN sin contenido; 503 si falta zona/configuración |
+| GET (principal, puro) | `/attempts/{attempt_id}/progress` | Sin cuerpo ni query | 200, estado efectivo/progreso sin guardar vencimiento |
+| POST (solo integración aislada) | `/participations/{participation_id}/attempts` | `id_consentimiento`, `id_permiso_extra` opcional | 201, resumen del intento |
+| POST (principal e integración) | `/attempts/{attempt_id}/decisions/{decision_id}` | `id_opcion`, `reflexion_estudiante` opcional | 201, selección nueva confirmada y resumen del intento |
 | PUT (obsoleto) | `/attempts/{attempt_id}/decisions/{decision_id}` | Mismo cuerpo | 409, `RESPUESTA_INMUTABLE` para intento activo autorizado; nunca crea ni reemplaza |
-| GET | `/attempts/{attempt_id}/progress` | Sin cuerpo | 200, progreso del recorrido aplicable |
-| POST | `/attempts/{attempt_id}/finish` | Sin cuerpo | 200, cierre confirmado, sin nota |
-| GET | `/participations/{participation_id}/attempts/{attempt_id}/result` | Sin cuerpo | 200, evaluación pendiente o definitiva confirmada |
-| GET | `/participations/{participation_id}/absence-result` | Sin cuerpo | 200, estado de la evaluación sin intento |
+| GET (integración aislada, comportamiento anterior) | `/attempts/{attempt_id}/progress` | Sin cuerpo | 200, progreso; puede confirmar vencimiento |
+| POST (principal e integración) | `/attempts/{attempt_id}/finish` | Sin cuerpo | 200, cierre confirmado, sin nota |
+| GET (solo integración aislada) | `/participations/{participation_id}/attempts/{attempt_id}/result` | Sin cuerpo | 200, evaluación pendiente o definitiva confirmada |
+| GET (solo integración aislada) | `/participations/{participation_id}/absence-result` | Sin cuerpo | 200, estado de la evaluación sin intento |
 
-Las rutas son síncronas (`def`) y delegan directamente en `ParticipacionFacade`.
+Las rutas son síncronas (`def`). La principal delega escenario en
+`ConsultaEscenarioActualSQLAlchemy`, progreso en `ConsultaProgresoSQLAlchemy` y
+POST de selección/cierre en `ParticipacionFacade`. El router de integración
+aislada conserva su progreso anterior mediante Facade, que puede persistir el
+vencimiento. Son composiciones distintas: no se monta ese GET escritor en main.
 Los routers no calculan tiempos, recorridos, notas, permisos ni estados.
 La relación entre participación e intento se valida en Application al consultar
 el resultado. Un ID presente en la URL no constituye autorización.
@@ -53,8 +65,9 @@ registrada devuelve 409 `RESPUESTA_INMUTABLE`, incluso con la misma opción.
 La aclaración posterior de la profesora prohíbe modificar cualquier respuesta.
 PUT conserva validación/autenticación/autorización y se rechaza: no es un upsert.
 Tampoco se permite cambiar la reflexión ni eliminar una selección. No hay PATCH.
-El cierre/vencimiento mantiene su error 409 `INTENTO_NO_EDITABLE`; la dependencia
-productiva sigue cerrada con 503 mientras falta composición autorizada.
+El registro sobre intento cerrado/vencido mantiene 409 `INTENTO_NO_EDITABLE`.
+La composición principal exige configuración temporal válida (503 si falta),
+además de identidad y autorización persistentes. No habilita inicio ni resultados.
 
 Los cuerpos de inicio y selección rechazan campos adicionales. IDs del cuerpo
 de participación/intento siguen siendo enteros positivos reales. Las referencias
@@ -248,3 +261,36 @@ del router en `main.py`. Este incremento no lo hace y no está listo para produc
 
 Referencias técnicas: [APIRoute de FastAPI](https://fastapi.tiangolo.com/how-to/custom-request-and-route/)
 y [overrides de dependencias en pruebas](https://fastapi.tiangolo.com/advanced/testing-dependencies/).
+
+## Consentimiento versionado: actualización interna condicionada
+
+Las rutas de provisión e inicio desde convocatoria continúan exclusivamente en
+composición aislada, fuera de app.main. No cambia el cuerpo HTTP ni se añade
+aceptación productiva. La fábrica privada admite fuente_consentimiento=None;
+sin fuente vigente del servidor no se crea una P nueva. El cliente no puede
+inyectar esa fuente ni una política por JSON.
+
+Antes de INSERT P se verifica aceptación propia, no revocada/no futura y versión
+actual inequívoca. Inicio ausente o política rechazada también impiden INSERT.
+La política de inicio es pura, recibe id_participacion=None antes de crear P y se
+revalida con su PK real antes de I; no consume permisos en la prevalidación.
+Se mantienen la misma UoW, locks, grafo y control de duración/versión históricos.
+La recuperación de P existente conserva su historia; no es creación autorizada
+por un consentimiento implícito ni permiso de repetición.
+
+El servicio interno de aceptación requiere True explícito y referencia/huella
+coincidentes con el documento resuelto en servidor. No hace commit; no hay ruta
+pública ni fuente oficial. Las pruebas de aceptación usan SQL real y documentos
+LAB; no justifican instalar estos routers en main. Ver
+`backend/docs/CONSENTIMIENTO_E_INICIO_INTERNO.md` para contratos pendientes.
+
+
+## Admisión aprobada de Scheduling (sin abrir inicio)
+
+Scheduling publica espera y comprobante en su propio router. La validación de
+ingreso de main usa AdmisionSQLAlchemy y exige concesión individual congelada.
+ConsultaIngresoSQLAlchemy puede recibir ese mismo puerto del servidor; no se
+reinterpreta una política LAB como autorización productiva. No cambian cuerpos
+HTTP de Participation, sus cuatro rutas acreditadas ni cierres de provisión/inicio.
+Ver backend/docs/SALA_ESPERA_ADMISION_DISENO.md. La fuente oficial de consentimiento
+y el enlace histórico P→aceptación siguen pendientes; este incremento no los simula.

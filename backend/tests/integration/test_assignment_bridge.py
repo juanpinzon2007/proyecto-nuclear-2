@@ -43,12 +43,14 @@ FECHA = datetime(2026, 11, 2, 12)
 def laboratorio():
     with motor_postgresql_desechable() as engine:
         with engine.begin() as c:
-            command.upgrade(config_alembic(c), HEAD)
+            command.upgrade(config_alembic(c), "head")
             c.execute(RolORM.__table__.insert(), [dict(id_rol=1, nombre="DOCENTE"), dict(id_rol=2, nombre="ESTUDIANTE")])
         yield engine
 
 
 def preparar(engine):
+    from tests.identity.academic_identity_support import columnas_publicacion_para_fixture_historica
+    with engine.begin() as conexion:columnas_publicacion_para_fixture_historica(conexion)
     fabrica = sessionmaker(engine, expire_on_commit=False)
     v = nuevo()
     with fabrica() as s:
@@ -86,7 +88,7 @@ def test_metadata_SQLite_y_downgrade_sin_generacion_ficticia():
         with engine.begin() as c:
             c.exec_driver_sql("PRAGMA foreign_keys=ON")
             command.upgrade(config_alembic(c), HEAD)
-            assert len(registrar_modelos_integrados().tables) == 31
+            assert len(registrar_modelos_integrados().tables) == 39
             preparar_esquema_actual_aislado(c)
             assert compare_metadata(MigrationContext.configure(c), registrar_modelos_integrados()) == []
             identificador = uuid4()

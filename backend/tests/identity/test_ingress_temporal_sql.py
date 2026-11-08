@@ -5,6 +5,7 @@ para comprobar la mecánica temporal. No prueban RF-22 aprobado.
 """
 
 from datetime import datetime, timedelta, timezone
+from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest.mock import Mock
 from uuid import uuid4
@@ -20,9 +21,13 @@ from app.db.session import get_db
 from app.modules.scheduling.api.router import exigir_politica_ingreso_configurada, obtener_reloj_ingreso
 from app.modules.scheduling.domain.ingress_policy import VentanaIngreso, PoliticaTemporalNoDisponible
 from app.modules.scheduling.infrastructure.models import SesionProgramadaModel, ConvocatoriaModel
+from app.modules.identity.infrastructure.academic_base_models import GrupoAcademicoORM, GrupoEstudianteORM
+from app.modules.identity.infrastructure.models import UsuarioORM
+from app.modules.cases.infrastructure.models import CasoModel, VersionCasoModel
+from app.modules.scheduling.infrastructure.assignment_models import AsignacionCasoModel
 from tests.unit.scheduling.ingress_support import restaurar_utc_solo_fixture_sqlite
 from .test_student_login_scheduling import login_sql, login, SECRETO  # noqa: F401
-from .academic_identity_support import motor_identidades, cuentas_identidades  # noqa: F401
+from .academic_identity_support import motor_identidades, cuentas_identidades, IDS  # noqa: F401
 
 
 AHORA = datetime(2026, 11, 10, 12, tzinfo=timezone.utc)
@@ -36,8 +41,26 @@ def ingreso_sql(login_sql):
         sesion.estado = "EN_CURSO"
         sesion.fecha_inicio = AHORA - timedelta(minutes=10)
         sesion.fecha_fin = AHORA + timedelta(hours=1)
+        # Ámbito real exclusivo de estas pruebas de ingreso. No añadirlo a la
+        # fixture compartida de login: otras suites prueban sesiones sin asignar.
+        docente = UsuarioORM(id_usuario=next(IDS),id_rol=1,nombre="Docente LAB",
+            correo=f"docente-{uuid4().hex}@universidad.test",clave_hash="sin-login-en-fixture")
+        s.add(docente); s.flush()
+        grupo = GrupoAcademicoORM(id_profesor=docente.id_usuario,nombre="Grupo LAB ingreso",periodo="LAB")
+        s.add(grupo); s.flush()
+        caso = s.get(CasoModel,s.get(VersionCasoModel,sesion.version_caso_id).caso_id)
+        if caso.id_caso is None: caso.id_caso = next(IDS)  # PK académica nueva SOLO del laboratorio SQLite.
+        s.add(GrupoEstudianteORM(id_grupo=grupo.id_grupo,id_estudiante=c.propio,
+            fecha_ingreso=AHORA.replace(tzinfo=None)-timedelta(days=1)))
+        s.add(AsignacionCasoModel(id_grupo=grupo.id_grupo,id_caso=caso.id_caso,
+            sesion_programada_id=sesion.id,version_caso_id=sesion.version_caso_id,
+            apertura=sesion.fecha_inicio.replace(tzinfo=None),cierre=sesion.fecha_fin.replace(tzinfo=None),
+            fecha_limite_ingreso=sesion.fecha_fin.replace(tzinfo=None),tiempo_maximo_min=sesion.tiempo_maximo_minutos))
     event.listen(c.sesiones, "loaded_as_persistent", restaurar_utc_solo_fixture_sqlite)
     c.app.dependency_overrides[obtener_reloj_ingreso] = lambda: SimpleNamespace(ahora=lambda: AHORA)
+    # Solo contrato aislado anterior con política LAB; admisión real se acredita en main.
+    from app.modules.scheduling.api.dependencies import obtener_admision
+    c.app.dependency_overrides[obtener_admision] = lambda: None
     token = login(c).json()["access_token"]
     try:
         yield SimpleNamespace(**vars(c), token=token)
@@ -151,6 +174,7 @@ def test_fallos_no_conceden_acceso(ingreso_sql, fallo):
     c.app.dependency_overrides[exigir_politica_ingreso_configurada] = lambda: SimpleNamespace(obtener_ventana=obtener)
     if fallo == "repositorio":
         db = Mock(spec=Session)
+        db.no_autoflush = nullcontext()
         db.get.side_effect = SQLAlchemyError("detalle SQL privado")
         c.app.dependency_overrides[get_db] = lambda: db
     if fallo == "inesperado":

@@ -1,17 +1,19 @@
 from collections.abc import Callable
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response, Request, HTTPException
 
 from app.modules.identity.api.dependencies import (
     obtener_fabrica_autenticacion, obtener_proxy_administracion,
     obtener_proxy_excepciones, obtener_proxy_seguimiento, obtener_usuario_actual,
     obtener_consulta_feedback_estudiantil,
+    obtener_fabrica_autenticacion_personal,
 )
 from app.modules.identity.api.errors import RutaIdentity
 from app.modules.identity.api.schemas import (
     AutorizacionesDocenteSchema, CrearDocente, IdPublico, RespuestaToken,
-    SolicitudFeedback, SolicitudLogin, SolicitudRepeticion, UsuarioPublico,
+    SolicitudFeedback, SolicitudLogin, SolicitudLoginPersonal, SolicitudRepeticion, UsuarioPublico,
+    PaginaDocentesRespuesta,
 )
 from app.modules.identity.application.authentication import ServicioAutenticacion
 from app.modules.identity.application.proxy_administracion import ProxyAdministracionUsuarios
@@ -43,6 +45,15 @@ def autenticar_estudiante(
     return RespuestaToken(access_token=token)
 
 
+@router.post("/auth/personal", response_model=RespuestaToken)
+def autenticar_personal(
+    solicitud: SolicitudLoginPersonal,
+    servicio: Annotated[Callable[[], ServicioAutenticacion], Depends(obtener_fabrica_autenticacion_personal)],
+) -> RespuestaToken:
+    token = servicio().autenticar_personal(solicitud.correo, solicitud.clave.get_secret_value())
+    return RespuestaToken(access_token=token)
+
+
 @router.get("/me", response_model=UsuarioPublico)
 def consultar_identidad(usuario: UsuarioActual) -> UsuarioPublico:
     return UsuarioPublico.desde_contexto(usuario)
@@ -56,6 +67,14 @@ def crear_docente(solicitud: CrearDocente, usuario: UsuarioActual, proxy: Admini
             clave=solicitud.clave.get_secret_value() if solicitud.clave else None,
         ))
     return UsuarioPublico.desde_contexto(proxy.crear_docente(usuario, solicitud.correo, solicitud.a_dominio()))
+
+
+@router.get("/docentes", response_model=PaginaDocentesRespuesta)
+def consultar_docentes(usuario: UsuarioActual, proxy: Administracion,
+    limite: Annotated[int, Query(ge=1, le=100)] = 25,
+    desplazamiento: Annotated[int, Query(ge=0)] = 0):
+    """Cuentas docentes; no incluye permisos ni asociaciones académicas."""
+    return proxy.consultar_docentes(usuario, limite=limite, desplazamiento=desplazamiento)
 
 
 @router.put("/docentes/{id_docente}/autorizaciones", response_model=UsuarioPublico)
@@ -80,10 +99,34 @@ def listar_participaciones(id_caso: IdPublico, usuario: UsuarioActual, proxy: Se
 
 
 @router.get("/seguimiento/sesiones/{id_sesion}/reporte", response_class=Response,
-            responses={200: {"content": {"text/csv": {}}, "description": "Reporte CSV académico"}})
-def descargar_reporte(id_sesion: IdPublico, usuario: UsuarioActual, proxy: Seguimiento) -> Response:
-    return Response(proxy.descargar_reporte(usuario, id_sesion), media_type="text/csv",
-                    headers={"Content-Disposition": 'attachment; filename="reporte-participacion.csv"'})
+    responses={200: {"content": {
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {"schema": {"type": "string", "format": "binary"}},
+        "application/pdf": {"schema": {"type": "string", "format": "binary"}}},
+        "description": "Publicación oficial histórica: seleccionar formato=xlsx o formato=pdf"},
+        404: {"description": "Publicación oficial o versión inexistente"}})
+def descargar_reporte(id_sesion: IdPublico, usuario: UsuarioActual, proxy: Seguimiento,
+    request: Request, formato: Literal['xlsx','pdf'] | None = None,
+    version_publicacion: Annotated[int | None, Query(gt=0)] = None,
+    id_grupo: Annotated[int | None, Query(gt=0)] = None,
+    id_estudiante: Annotated[list[int] | None, Query()] = None,
+    estado: Literal['COMPLETA','PARCIAL','AUSENTE'] | None = None,
+    agrupar_por: Literal['grupo','estudiante'] = 'grupo') -> Response:
+    from app.modules.identity.application.official_reports import FiltrosReporte
+    permitidos={'formato','version_publicacion','id_grupo','id_estudiante','estado','agrupar_por'}
+    if set(request.query_params)-permitidos or any(i<=0 for i in id_estudiante or []):
+        raise HTTPException(422, 'Parámetros de reporte inválidos')
+    if formato is None:
+        if request.query_params:raise HTTPException(422, 'Se requiere formato=xlsx o formato=pdf')
+        # Contrato anterior conservado; no habilita CSV sin fuente oficial.
+        return Response(proxy.descargar_reporte(usuario,id_sesion),media_type='text/csv',
+            headers={'Content-Disposition':'attachment; filename="reporte-participacion.csv"'})
+    filtros=FiltrosReporte(version_publicacion,id_grupo,tuple(sorted(set(id_estudiante or []))),estado,agrupar_por)
+    archivo=proxy.descargar_reporte(usuario,id_sesion,formato=formato,filtros=filtros)
+    return Response(archivo.contenido,media_type=archivo.media_type,headers={
+        'Content-Disposition':f'attachment; filename="{archivo.nombre}"',
+        'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
+        'X-Publicacion-Id':str(archivo.publicacion_id),'X-Publicacion-Version':str(archivo.version),
+        'X-Publicacion-SHA256':archivo.sha256})
 
 
 @router.post("/seguimiento/participaciones/{id_participacion}/feedback", response_model=FeedbackDocente, status_code=201)
@@ -101,6 +144,6 @@ def consultar_feedback_estudiantil(
     return consulta(id_participacion=id_participacion)
 
 
-@router.post("/excepciones/repeticiones", response_model=AutorizacionRepeticion, status_code=201)
+@router.post("/excepciones/repeticiones", response_model=AutorizacionRepeticion, response_model_exclude_none=True, status_code=201)
 def autorizar_repeticion(solicitud: SolicitudRepeticion, usuario: UsuarioActual, proxy: Excepciones):
     return proxy.autorizar_repeticion(usuario, solicitud.id_sesion, solicitud.id_estudiante)

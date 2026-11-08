@@ -40,7 +40,7 @@ PARENT="20261102_steps_uuid"
 def pg_resultados():
     with motor_postgresql_desechable() as e:
         with e.begin() as s:
-            command.upgrade(config_alembic(s),HEAD)
+            command.upgrade(config_alembic(s),"head")
             s.execute(sa.insert(RolORM),[dict(id_rol=1,nombre="DOCENTE"),dict(id_rol=2,nombre="ESTUDIANTE")])
         yield e
 
@@ -215,7 +215,7 @@ def test_upgrade_downgrade_en_laboratorio_vacio():
             command.upgrade(config_alembic(s),PARENT)
             command.upgrade(config_alembic(s),"head")
             assert compare_metadata(MigrationContext.configure(s),registrar_modelos_integrados())==[]
-            assert len(registrar_modelos_integrados().tables)==31
+            assert len(registrar_modelos_integrados().tables)==39
             assert len(sa.inspect(s).get_foreign_keys("resultado_criterio"))==3
             command.downgrade(config_alembic(s),PARENT)
             assert "resultado_intento" not in sa.inspect(s).get_table_names()

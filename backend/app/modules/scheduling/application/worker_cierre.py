@@ -54,6 +54,7 @@ async def cerrar_sesiones_vencidas(
                 SesionProgramadaModel,
                 sesion_id,
                 with_for_update=True,
+                populate_existing=True,
             )
 
             if sesion is None or sesion.estado != "EN_CURSO":

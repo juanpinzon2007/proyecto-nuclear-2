@@ -26,7 +26,7 @@ from app.modules.identity.api.errors import ERRORES
 from app.modules.identity.domain.entities import ContextoAcceso, FeedbackDocente, Rol
 from app.modules.identity.domain.errors import AccesoDenegado, IntegracionPendiente, NoAutenticado
 from app.modules.identity.infrastructure.security import TokensJWT
-from app.modules.identity.infrastructure.credentials import obtener_hasheador
+from app.modules.identity.infrastructure.credentials import obtener_hasheador, CredencialesPersonalSQLAlchemy
 from app.modules.identity.infrastructure.repositories import RepositorioUsuariosSQLAlchemy
 from app.modules.identity.infrastructure.unit_of_work import UnidadTrabajoIdentitySQLAlchemy
 from app.modules.identity.application.academic_identity import ResolverIdentidadAcademica
@@ -68,12 +68,20 @@ def construir_seguimiento(*, usuario, crear_sesion) -> IServicioSeguimiento:
     from app.modules.identity.infrastructure.followup import ConsultaSeguimientoSQLAlchemy
     from app.modules.participation.infrastructure.individual_feedback import crear_servicio_feedback_individual
     return ServicioSeguimiento(ConsultaSeguimientoSQLAlchemy(usuario=usuario,crear_sesion=crear_sesion),
-        None,crear_servicio_feedback_individual(usuario=usuario,crear_sesion=crear_sesion))
+        None,crear_servicio_feedback_individual(usuario=usuario,crear_sesion=crear_sesion),
+        reportes_oficiales=lambda: construir_reporte_oficial(usuario=usuario,crear_sesion=crear_sesion))
 
 
 def construir_excepciones() -> IServicioExcepciones:
-    # Requiere UoW común y contrato transaccional con Cases/Participation/Scheduling.
-    raise IntegracionPendiente()
+    from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
+    from app.modules.participation.infrastructure.codecs import FechasPersistencia
+    from app.modules.identity.infrastructure.repetition import crear_servicio_repeticion
+    zona=get_settings().participation_timestamp_zone
+    try:
+        if not zona:raise ValueError()
+        fechas=FechasPersistencia(ZoneInfo(zona))
+        return crear_servicio_repeticion(sesiones=obtener_fabrica_sesiones_seguimiento(),fechas=fechas)
+    except (ValueError,ZoneInfoNotFoundError):raise IntegracionPendiente() from None
 
 
 def construir_administracion() -> IServicioAdministracion:
@@ -185,6 +193,22 @@ def obtener_fabrica_autenticacion(
         yield construir
 
 
+def obtener_fabrica_autenticacion_personal(
+    sesiones: Annotated[Callable[[], Session], Depends(obtener_fabrica_sesiones_login)],
+    tokens: Annotated[Callable[[], TokensJWT], Depends(obtener_fabrica_tokens)],
+) -> Generator[Callable[[], ServicioAutenticacion], None, None]:
+    with ExitStack() as recursos:
+        def construir() -> ServicioAutenticacion:
+            emisor = tokens()
+            try:
+                sesion = recursos.enter_context(sesiones())
+            except (ValueError, SQLAlchemyError):
+                raise IntegracionPendiente() from None
+            return ServicioAutenticacion(RepositorioUsuariosSQLAlchemy(sesion), None, emisor, (),
+                credenciales_personal=CredencialesPersonalSQLAlchemy(sesion))
+        yield construir
+
+
 def obtener_fabrica_validador_convocatoria(
     sesiones: Annotated[Callable[[], Session], Depends(obtener_fabrica_sesiones_login)],
 ) -> Generator[Callable[[], ValidadorConvocatoriaScheduling], None, None]:
@@ -230,4 +254,25 @@ def obtener_consulta_feedback_estudiantil(
 
 
 def obtener_proxy_administracion() -> ProxyAdministracionUsuarios:
-    return ProxyAdministracionUsuarios(construir_administracion, ServicioAutorizacion(construir_consulta_ambito))
+    from app.modules.identity.infrastructure.teacher_directory import ConsultaDocentesSQLAlchemy
+    return ProxyAdministracionUsuarios(construir_administracion, ServicioAutorizacion(construir_consulta_ambito),
+        ConsultaDocentesSQLAlchemy(obtener_fabrica_sesiones_seguimiento()))
+
+
+def construir_reporte_oficial(*,usuario,crear_sesion):
+    from datetime import datetime, UTC
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+    from app.modules.identity.application.official_reports import ServicioReporteOficial
+    from app.modules.identity.infrastructure.official_reports import ConsultaReporteOficialSQLAlchemy
+    from app.modules.identity.infrastructure.report_exporters import ExportadorReportesOficiales
+    from app.modules.participation.infrastructure.academic_cycle import CicloAcademicoSQL
+    from app.modules.participation.infrastructure.codecs import FechasPersistencia
+    zona=get_settings().participation_timestamp_zone
+    try:
+        if not zona:raise ValueError()
+        fechas=FechasPersistencia(ZoneInfo(zona))
+    except (ValueError,ZoneInfoNotFoundError):raise IntegracionPendiente() from None
+    class RelojReporte:
+        def ahora(self):return datetime.now(UTC)
+    ciclo=CicloAcademicoSQL(usuario=usuario,crear_sesion=crear_sesion,fechas=fechas,reloj=RelojReporte())
+    return ServicioReporteOficial(ConsultaReporteOficialSQLAlchemy(ciclo),ExportadorReportesOficiales())

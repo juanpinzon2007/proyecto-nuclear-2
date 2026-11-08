@@ -20,10 +20,22 @@ class ServicioReportes:
     def descargar(self, contexto: ContextoAcceso, id_sesion: str) -> str:
         """Exporta resultados oficiales; la consulta LEFT JOIN sigue pendiente de ER."""
         validar_id(id_sesion)
+        filas = tuple(self.lecturas.obtener_filas(contexto.id_usuario, id_sesion))
+        estudiantes, participaciones = set(), set()
+        for fila in filas:
+            # No consolidar múltiples intentos ni elegir una fila arbitraria.
+            if (fila.id_estudiante in estudiantes or
+                    (fila.id_participacion is not None and fila.id_participacion in participaciones)):
+                raise IntegracionPendiente()
+            if fila.nota is not None and not 0 <= fila.nota <= 100:
+                raise IntegracionPendiente()
+            estudiantes.add(fila.id_estudiante)
+            if fila.id_participacion is not None:
+                participaciones.add(fila.id_participacion)
         salida = StringIO(newline="")
         escritor = csv.writer(salida)
         escritor.writerow(("id_estudiante", "id_participacion", "estado", "nota"))
-        for fila in self.lecturas.obtener_filas(contexto.id_usuario, id_sesion):
+        for fila in filas:
             escritor.writerow((
                 self._celda(fila.id_estudiante), self._celda(fila.id_participacion or ""),
                 fila.estado.value, "" if fila.nota is None else format(fila.nota, "f"),
@@ -56,7 +68,8 @@ class ServicioFeedbackDocente:
 
 class ServicioSeguimiento:
     def __init__(self, lecturas: LecturaSeguimiento, reportes: ServicioReportes | None,
-                 feedback: ServicioFeedbackDocente) -> None:
+                 feedback: ServicioFeedbackDocente, *, reportes_oficiales=None) -> None:
+        self.reportes_oficiales = reportes_oficiales
         self.lecturas = lecturas
         self.reportes = reportes
         self.feedback = feedback
@@ -72,7 +85,11 @@ class ServicioSeguimiento:
         validar_id(id_participacion)
         return self.lecturas.consultar_participacion(contexto.id_usuario, id_participacion)
 
-    def descargar_reporte(self, contexto: ContextoAcceso, id_sesion: str) -> str:
+    def descargar_reporte(self, contexto: ContextoAcceso, id_sesion: str, *, formato=None, filtros=None):
+        if formato is not None:
+            if self.reportes_oficiales is None:
+                raise IntegracionPendiente()
+            return self.reportes_oficiales().descargar(id_sesion, formato, filtros)
         if self.reportes is None:
             raise IntegracionPendiente()
         return self.reportes.descargar(contexto, id_sesion)
@@ -98,7 +115,15 @@ class ServicioExcepciones:
             autorizacion = AutorizacionRepeticion(
                 id_sesion, id_estudiante, contexto.id_usuario, datetime.now(UTC),
             )
-            trabajo.autorizaciones.guardar(autorizacion)
+            permiso = trabajo.autorizaciones.guardar(autorizacion)
+            if isinstance(permiso,AutorizacionRepeticion):
+                if (permiso.id_sesion,permiso.id_estudiante,permiso.id_docente_autorizador)!=(id_sesion,id_estudiante,contexto.id_usuario) or type(permiso.id_permiso_extra) is not int or permiso.id_permiso_extra<=0:
+                    raise IntegracionPendiente()
+                autorizacion=permiso
+            elif permiso is not None:
+                from dataclasses import replace
+                if type(permiso) is not int or permiso <= 0:raise IntegracionPendiente()
+                autorizacion = replace(autorizacion,id_permiso_extra=permiso)
             trabajo.commit()
         return autorizacion
 

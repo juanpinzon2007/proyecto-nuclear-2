@@ -1,8 +1,12 @@
 """Resultados técnicos inmutables, sin vía de lectura/publicación oficial."""
+from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, Context, localcontext
 import json
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.modules.participation.infrastructure.question_evaluation import CalificacionTecnicaPreguntas
 
 from sqlalchemy import select, text
 
@@ -26,7 +30,8 @@ class ResultadoTecnico:
     fecha_calculo: datetime
     procedencia: str
     sha256: str
-    datos: DatosEvaluacion
+    datos: DatosEvaluacion | CalificacionTecnicaPreguntas
+    ambito: str = 'LABORATORIO'
 
     @property
     def oficial(self) -> bool:
@@ -34,14 +39,21 @@ class ResultadoTecnico:
 
 
 class RepositorioResultadosTecnicosSQLAlchemy:
-    def __init__(self, sesion, *, alcance, fechas):
+    def __init__(self, sesion, *, alcance, fechas, lecturas=None):
         self.sesion, self.alcance, self.fechas = sesion, alcance, fechas
+        # La consulta de preparación aporta el lector existente sin locks de
+        # escritura. Los escritores actuales conservan su repositorio original.
+        self.lecturas = lecturas
 
     def _laboratorio(self):
         if not self.sesion.in_transaction() or self.sesion.get_bind().dialect.name!="postgresql":
             raise PoliticaEvaluacionPendiente("La persistencia técnica exige transacción PostgreSQL de laboratorio.")
         if self.sesion.scalar(text("SELECT current_database()"))!="sps_identity_test_resolver":
             raise PoliticaEvaluacionPendiente("La base no está identificada como laboratorio desechable.")
+
+    def _tecnico(self):
+        if not self.sesion.in_transaction() or self.sesion.get_bind().dialect.name!='postgresql':
+            raise PoliticaEvaluacionPendiente('La persistencia exacta exige una transacción PostgreSQL.')
 
     def _verificar(self, documento):
         try:
@@ -58,7 +70,8 @@ class RepositorioResultadosTecnicosSQLAlchemy:
             datos=datos_desde(p["datos"]); rubrica=rubrica_desde(p["rubrica"]); plan=plan_desde(p["plan"])
             if not datos.lista_para_persistir or datos.id_intento!=self.alcance.id_intento:
                 raise EvaluacionInconsistente("Resultado pendiente o de otro intento.")
-            intento=RepositorioParticipacionSQLAlchemy(self.sesion,fechas=self.fechas).obtener_intento(datos.id_intento)
+            lector = self.lecturas if self.lecturas is not None else RepositorioParticipacionSQLAlchemy(self.sesion,fechas=self.fechas)
+            intento=lector.obtener_intento(datos.id_intento)
             evidencia=_evidencias(self.alcance,intento)
             preguntas=consultar_estructura_version(self.sesion,version_id=evidencia.rubrica.version_id).preguntas
             if any(e.id_decision not in {q.id for q in preguntas} for e in datos.evidencias):
@@ -108,9 +121,13 @@ class RepositorioResultadosTecnicosSQLAlchemy:
         return ResultadoTecnico(identificador,fecha_calculo,procedencia,huella(procedencia),datos)
 
     def obtener_tecnico(self, *, id_intento):
-        self._laboratorio()
+        self._tecnico()
         r=self.sesion.execute(select(R.__table__).where(R.id_intento==id_intento)).mappings().one_or_none()
         if r is None: raise RecursoNoDisponible("Resultado técnico no disponible.")
+        if r['ambito']=='TECNICO':
+            from app.modules.participation.infrastructure.question_result_repository import DetallesPreguntasSQLAlchemy
+            return DetallesPreguntasSQLAlchemy(self).leer(r)
+        self._laboratorio()
         if r["ambito"]!="LABORATORIO" or huella(r["procedencia"])!=r["procedencia_sha256"]:
             raise EvaluacionInconsistente("Ámbito o huella del resultado incompatible.")
         datos,definicion,ev=self._verificar(r["procedencia"])

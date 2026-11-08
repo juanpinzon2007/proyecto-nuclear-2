@@ -34,6 +34,7 @@ from app.modules.scheduling.infrastructure.models import SesionProgramadaModel a
 from tests.integration.test_attempt_start import convocada, pg_grafo, IngresoLaboratorio, InicioLaboratorio  # noqa: F401
 from tests.integration.test_participation_persistence import contexto
 from tests.integration.test_attempt_state import principal
+from tests.integration.consent_support import FuenteConsentimientoLaboratorio
 
 
 class VinculacionLaboratorio:
@@ -48,7 +49,8 @@ def servicio(c, **kw):
     return ServicioVinculacionSQLAlchemy(**(dict(usuario=c.usuario,
         reloj=SimpleNamespace(ahora=lambda:c.ahora),fechas=FechasPersistencia(timezone.utc),
         crear_sesion=c.sesiones,politica_ingreso=IngresoLaboratorio(),
-        politica_vinculacion=VinculacionLaboratorio(),politica_inicio=InicioLaboratorio())|kw))
+        politica_vinculacion=VinculacionLaboratorio(),politica_inicio=InicioLaboratorio(),
+        fuente_consentimiento=FuenteConsentimientoLaboratorio())|kw))
 
 
 def argumentos(c, **kw):
@@ -186,13 +188,28 @@ def test_consentimiento_ajeno_revierte_participacion_nueva(convocada):
     assert filas(c)==([],[])
 
 
-@pytest.mark.parametrize("politica",["politica_ingreso","politica_vinculacion"])
+@pytest.mark.parametrize("politica",["admision_sql","politica_vinculacion"])
 def test_proveedor_no_disponible_no_concede_acceso(convocada,politica):
     c=convocada
     class Fallo:
         def obtener_ventana(self,**_):raise RuntimeError("Política LAB no disponible")
         def autorizar(self,_):raise RuntimeError("Política LAB no disponible")
-    with pytest.raises(RuntimeError):vincular(c,**{politica:Fallo()})
+    if politica=='admision_sql':
+        # Con concesión real Scheduling no consulta la antigua ventana LAB.
+        # Conservar el objetivo negativo provocando fallo en su lectura causal,
+        # sin sustituir la autorización ni las relaciones por un fake positivo.
+        observado=[]
+        def fallar(conn,cursor,statement,*args):
+            if 'from evento_auditoria' in statement.lower():
+                observado.append(True)
+                raise RuntimeError('Lectura de admisión SQL no disponible SOLO LAB')
+        sa.event.listen(c.engine,'before_cursor_execute',fallar)
+        try:
+            with pytest.raises(RuntimeError):vincular(c)
+        finally:sa.event.remove(c.engine,'before_cursor_execute',fallar)
+        assert observado
+    else:
+        with pytest.raises(RuntimeError):vincular(c,**{politica:Fallo()})
     assert filas(c)==([],[])
 
 

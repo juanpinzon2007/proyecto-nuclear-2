@@ -10,6 +10,7 @@ from app.modules.participation.application.ports import (
 from app.modules.participation.domain.clock import Reloj
 from app.modules.participation.domain.entities import EstadoIntento, Intento, Participacion, IdentificadorCases
 from app.modules.participation.domain.errors import IntentoNoEditable, RespuestaInmutable
+from app.modules.participation.application.progress import proyectar_progreso
 
 
 def _cargar_autorizado(
@@ -141,18 +142,7 @@ class ServicioProgreso:
             actual = anterior.actualizar_vencimiento(self.reloj)
             id_caso = self.scheduling.obtener_id_caso(id_asignacion=participacion.id_asignacion)
             ruta = self.cases.obtener_recorrido(id_caso=id_caso, selecciones=selecciones_de(actual))
-            selecciones = selecciones_de(actual)
-            if ruta.disponible and any(s.id_decision not in ruta.decisiones for s in selecciones):
-                raise ReglaPendiente(
-                    "El recorrido excluye selecciones conservadas; debe resolverse su tratamiento."
-                )
-            respondidas = {s.id_decision for s in selecciones}
-            resultado = ProgresoIntento(
-                intento=ResumenIntento.desde(actual), decisiones_aplicables=ruta.decisiones if ruta.disponible else None,
-                selecciones=selecciones,
-                pendientes=tuple(d for d in ruta.decisiones if d not in respondidas) if ruta.disponible else None,
-                total_aplicable=len(ruta.decisiones) if ruta.total_conocido else None,
-            )
+            resultado = proyectar_progreso(actual, ruta)
             if actual is not anterior:
                 repo.guardar_intento(actual, esperado=anterior)
                 trabajo.commit()

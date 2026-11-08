@@ -4,6 +4,7 @@ from app.modules.scheduling.api.router import exigir_politica_ingreso_configurad
 """Pruebas unitarias de los endpoints de la API de Scheduling."""
 
 from datetime import datetime, timezone
+from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 from uuid import uuid4
@@ -12,6 +13,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.modules.identity.api.academic_dependencies import obtener_estudiante_scheduling
+from app.modules.identity.api.dependencies import obtener_estudiante_actual
+from app.modules.identity.domain.entities import ContextoAcceso, Rol
 from app.db.session import get_db
 from app.main import app
 from app.modules.scheduling.api.router import (
@@ -63,9 +66,17 @@ def entorno_estudiante(entorno_publico):
     # Fixture de router: autorización sustituida; la suite de seguridad prueba JWT.
     client, db = entorno_publico
     estudiante_id = uuid4()
+    db.no_autoflush = nullcontext()
+    db.scalar.return_value = 1
+    db.scalars.return_value.all.return_value = [1]
+    app.dependency_overrides[obtener_estudiante_actual] = lambda: ContextoAcceso(
+        "7","estudiante@universidad.test",frozenset({Rol.ESTUDIANTE}))
     app.dependency_overrides[obtener_estudiante_scheduling] = lambda: estudiante_id
     app.dependency_overrides[exigir_politica_ingreso_configurada] = lambda: politica_fixture(15)
     app.dependency_overrides[exigir_contexto_convocatoria] = lambda: None
+    # Solo contrato aislado anterior con política LAB; admisión real se acredita en main.
+    from app.modules.scheduling.api.dependencies import obtener_admision
+    app.dependency_overrides[obtener_admision] = lambda: None
     yield client, db, estudiante_id
 
 
@@ -276,26 +287,14 @@ def test_listar_notificaciones_estudiante(entorno_estudiante):
     assert datos[0]["tipo"] == "CONVOCATORIA"
 
 
-def test_notificar_calificacion_autorizado(entorno_docente):
+def test_rol_docente_no_autoriza_publicar_calificacion_sin_contrato(entorno_docente):
     client, db, _ = entorno_docente
     estudiante_id = uuid4()
     participacion_id = uuid4()
 
-    notif = SimpleNamespace(
-        id=uuid4(),
-        convocatoria_id=None,
-        destinatario_id=estudiante_id,
-        tipo="CALIFICACION",
-        canal="INTERNA",
-        mensaje="La evaluación de tu participación académica ya está disponible.",
-        estado="PENDIENTE",
-        creada_en=datetime.now(timezone.utc),
-    )
-
     with patch(
-        "app.modules.scheduling.api.router.notificar_calificacion",
-        return_value=notif,
-    ):
+        "app.modules.scheduling.application.notificar_calificacion.notificar_calificacion",
+    ) as notificar:
         respuesta = client.post(
             "/scheduling/calificaciones/notificar",
             json={
@@ -303,7 +302,9 @@ def test_notificar_calificacion_autorizado(entorno_docente):
                 "participacion_id": str(participacion_id),
             },
         )
-        assert respuesta.status_code == 201
-        assert respuesta.json()["tipo"] == "CALIFICACION"
-        assert respuesta.json()["destinatario_id"] == str(estudiante_id)
-        db.commit.assert_called_once()
+        # Sustituye el 201 antiguo basado solo en rol y UUID arbitrarios.
+        assert respuesta.status_code == 503
+        assert respuesta.headers['Cache-Control'] == 'no-store'
+        notificar.assert_not_called()
+        db.commit.assert_not_called()
+        db.refresh.assert_not_called()

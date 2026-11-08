@@ -1,0 +1,361 @@
+{
+  "base": "28be5646cb0cac55915b3ed9eecf3909da6b5c39",
+  "rama": "feature/backend-continuidad",
+  "fecha_utc": "2026-11-06T16:43:43.130743+00:00",
+  "solo_propuesta_sin_staging_o_commits": true,
+  "manifiesto_anterior_verificado_33_rutas": "backend/docs/CHECKPOINT_API_CONSENTIMIENTO_20261106.json",
+  "modificaciones_actuales_sobre_sus_entradas": [
+    "backend/app/modules/participation/infrastructure/provision.py",
+    "backend/app/modules/participation/infrastructure/start.py",
+    "backend/docs/AUDITORIA_COBERTURA_BACKEND_20261105.md",
+    "backend/tests/integration/test_attempt_start.py"
+  ],
+  "archivos": [
+    {
+      "ruta": "backend/alembic/versions/20261106_consent_versions.py",
+      "bytes": 13313,
+      "sha256": "1739ccf717275aa29a0155b2be668d5fda6046089826243ba8d2e4a2236cf1b6",
+      "categoria": "codigo",
+      "sha256_al_entrar": "1739ccf717275aa29a0155b2be668d5fda6046089826243ba8d2e4a2236cf1b6"
+    },
+    {
+      "ruta": "backend/app/db/models.py",
+      "bytes": 1820,
+      "sha256": "480f46c681aca0e5bb0fed2e84eddc69774b4d8d2942067c59b324af27d1d0a1",
+      "categoria": "codigo",
+      "sha256_al_entrar": "480f46c681aca0e5bb0fed2e84eddc69774b4d8d2942067c59b324af27d1d0a1"
+    },
+    {
+      "ruta": "backend/app/modules/identity/api/consent.py",
+      "bytes": 3309,
+      "sha256": "0132e9b856b1666f6397e0e855d92bdbe6ed123bbc447541b9bfed61c6aac23f",
+      "categoria": "codigo",
+      "sha256_al_entrar": "0132e9b856b1666f6397e0e855d92bdbe6ed123bbc447541b9bfed61c6aac23f"
+    },
+    {
+      "ruta": "backend/app/modules/identity/application/consent.py",
+      "bytes": 1603,
+      "sha256": "2e38f3389df182b40a9122fbf1594bf84a15336955560cb9cec474eb96db1f75",
+      "categoria": "codigo",
+      "sha256_al_entrar": "2e38f3389df182b40a9122fbf1594bf84a15336955560cb9cec474eb96db1f75"
+    },
+    {
+      "ruta": "backend/app/modules/identity/infrastructure/academic_base_models.py",
+      "bytes": 3578,
+      "sha256": "46ce207aad70d3f057a0be9e83a3c05d66d0431a383210af08bab2fc4ab23eb3",
+      "categoria": "codigo",
+      "sha256_al_entrar": "46ce207aad70d3f057a0be9e83a3c05d66d0431a383210af08bab2fc4ab23eb3"
+    },
+    {
+      "ruta": "backend/app/modules/identity/infrastructure/consent.py",
+      "bytes": 6412,
+      "sha256": "d985e35e28e68876f9b45eeacbeddffe28364a095a20b3b2d597a8b1b621abd3",
+      "categoria": "codigo",
+      "sha256_al_entrar": "d985e35e28e68876f9b45eeacbeddffe28364a095a20b3b2d597a8b1b621abd3"
+    },
+    {
+      "ruta": "backend/app/modules/identity/infrastructure/consent_access.py",
+      "bytes": 6942,
+      "sha256": "86efdbdb0c772bdd3c76556e54eff9b8fae4b4e4b8a07480fe81415dc5f4d97e",
+      "categoria": "codigo",
+      "sha256_al_entrar": "86efdbdb0c772bdd3c76556e54eff9b8fae4b4e4b8a07480fe81415dc5f4d97e"
+    },
+    {
+      "ruta": "backend/app/modules/identity/infrastructure/consent_document_models.py",
+      "bytes": 2907,
+      "sha256": "a2c9d3c7f4ab1c4fdfe01d947d7d9782d9daed779b53e687f0afbba977008921",
+      "categoria": "codigo",
+      "sha256_al_entrar": "a2c9d3c7f4ab1c4fdfe01d947d7d9782d9daed779b53e687f0afbba977008921"
+    },
+    {
+      "ruta": "backend/app/modules/identity/infrastructure/consent_repository.py",
+      "bytes": 5592,
+      "sha256": "9068293199b7d211996ed503fc7505941a91765ac4ea8ebf8068fcc53d513b9b",
+      "categoria": "codigo",
+      "sha256_al_entrar": "9068293199b7d211996ed503fc7505941a91765ac4ea8ebf8068fcc53d513b9b"
+    },
+    {
+      "ruta": "backend/app/modules/participation/api/dependencies.py",
+      "bytes": 8722,
+      "sha256": "5ca75f5757c607fc5021c95b93f06adcba4621f24e14f9b3da0470a7bd8286fb",
+      "categoria": "codigo",
+      "sha256_al_entrar": "5ca75f5757c607fc5021c95b93f06adcba4621f24e14f9b3da0470a7bd8286fb"
+    },
+    {
+      "ruta": "backend/app/modules/participation/api/provision_router.py",
+      "bytes": 3445,
+      "sha256": "4cc98ec53ba01b687043653fdad3e7b65a44895a943e41b47dfa3ca23a216ed6",
+      "categoria": "codigo",
+      "sha256_al_entrar": "4cc98ec53ba01b687043653fdad3e7b65a44895a943e41b47dfa3ca23a216ed6"
+    },
+    {
+      "ruta": "backend/app/modules/participation/infrastructure/academic_context.py",
+      "bytes": 5178,
+      "sha256": "91665c3a1a7d5ef339cb5254d3255719ff633bf8e4fc9567ac6f6b57ce4258f8",
+      "categoria": "codigo",
+      "sha256_al_entrar": "774741db158559165ac830fd5ee04f99b0ebfb1c12cb8fab5a4c3c771a8114b5"
+    },
+    {
+      "ruta": "backend/app/modules/participation/infrastructure/models.py",
+      "bytes": 4335,
+      "sha256": "10d8fe71fbf9f841a15a5b4efe4e28fba6cf7ae76a1e8d6d5348beef837b63f8",
+      "categoria": "codigo",
+      "sha256_al_entrar": "10d8fe71fbf9f841a15a5b4efe4e28fba6cf7ae76a1e8d6d5348beef837b63f8"
+    },
+    {
+      "ruta": "backend/app/modules/participation/infrastructure/provision.py",
+      "bytes": 13828,
+      "sha256": "960cf326bc2c6cd897433bf90245f6b9bce05fbc59590806c538c56fbd3947f9",
+      "categoria": "codigo",
+      "sha256_al_entrar": "1006a643b6c5043093fedd5603eab0d1f15a3b582260d8a924129f3d58a6ee6c"
+    },
+    {
+      "ruta": "backend/app/modules/participation/infrastructure/repository.py",
+      "bytes": 6371,
+      "sha256": "d507aa2edc8f4f3fb5016712e149cd2f527cc5d96848f44a4174a4d996437704",
+      "categoria": "codigo",
+      "sha256_al_entrar": "d507aa2edc8f4f3fb5016712e149cd2f527cc5d96848f44a4174a4d996437704"
+    },
+    {
+      "ruta": "backend/app/modules/participation/infrastructure/start.py",
+      "bytes": 18863,
+      "sha256": "a4495f0b566b84909637c3f36b8731b005d45c3ccc3d82cd1e0b16814d859e42",
+      "categoria": "codigo",
+      "sha256_al_entrar": "1ebbe1be257724f2fa11b538fdde3c7aef6c706dec63cfc52d8afc42bb81eafe"
+    },
+    {
+      "ruta": "backend/app/modules/scheduling/infrastructure/admission.py",
+      "bytes": 5934,
+      "sha256": "9c2e8fd15b9f8262f811cad882977ede25dec33c0d34cdbb9ba67c0d997810bb",
+      "categoria": "codigo",
+      "sha256_al_entrar": "989170a9409fde1d04c9c7588f3b6b412c787302d4ab6503add905c70eb2ae23"
+    },
+    {
+      "ruta": "backend/docs/API_CONSENTIMIENTO_ESTUDIANTIL.md",
+      "bytes": 11339,
+      "sha256": "966ebfbb2242b2a53ddff15d0f3096db69ac5c916f97b75718fdd645836bdc6c",
+      "categoria": "documentacion",
+      "sha256_al_entrar": "966ebfbb2242b2a53ddff15d0f3096db69ac5c916f97b75718fdd645836bdc6c"
+    },
+    {
+      "ruta": "backend/docs/AUDITORIA_COBERTURA_BACKEND_20261105.md",
+      "bytes": 87090,
+      "sha256": "5d7efb912833e1c2fcb956b05d44cd5c3816a9b75ecae1545fb9bda4d71616b0",
+      "categoria": "documentacion",
+      "sha256_al_entrar": "48cc79833a611f9e367611987d1f52ea7e3f53214c049180399fbf0ab45c0a04"
+    },
+    {
+      "ruta": "backend/docs/CHECKPOINT_API_CONSENTIMIENTO_20261106.json",
+      "bytes": 9671,
+      "sha256": "19074fb940ba94e1ed30685dcc0437ddffef75951d4635017b06627c0d704712",
+      "categoria": "documentacion",
+      "sha256_al_entrar": "19074fb940ba94e1ed30685dcc0437ddffef75951d4635017b06627c0d704712"
+    },
+    {
+      "ruta": "backend/docs/CONSENTIMIENTO_E_INICIO_INTERNO.md",
+      "bytes": 14831,
+      "sha256": "8e2304555399273f858bbaa86bbaf9b00d5bce0a4ea4e0c309d5b1398b0fb4dc",
+      "categoria": "documentacion",
+      "sha256_al_entrar": "8e2304555399273f858bbaa86bbaf9b00d5bce0a4ea4e0c309d5b1398b0fb4dc"
+    },
+    {
+      "ruta": "backend/docs/CONSENTIMIENTO_PERSISTENCIA_PROPUESTA_20261105.md",
+      "bytes": 20312,
+      "sha256": "b6e291f0cc696e2ba71d4dc7f289988dcdf0be72b2d65a4d9b9b047d0050ea7d",
+      "categoria": "documentacion",
+      "sha256_al_entrar": "b6e291f0cc696e2ba71d4dc7f289988dcdf0be72b2d65a4d9b9b047d0050ea7d"
+    },
+    {
+      "ruta": "backend/docs/CONSENTIMIENTO_VERSIONADO_IMPLEMENTACION.md",
+      "bytes": 18784,
+      "sha256": "1b1738f0e9a301608e0a17bb74c9d7f4fef5cee4a8ec2f70964d8cffad43a599",
+      "categoria": "documentacion",
+      "sha256_al_entrar": "1b1738f0e9a301608e0a17bb74c9d7f4fef5cee4a8ec2f70964d8cffad43a599"
+    },
+    {
+      "ruta": "backend/docs/INICIO_ADMITIDO_Y_CONSENTIMIENTO_TRANSACCIONAL.md",
+      "bytes": 11520,
+      "sha256": "945b71601f83a8ea0af5f2ac22b224c3a502ac6e88e9d9e47b18f3c0e196fce5",
+      "categoria": "documentacion",
+      "sha256_al_entrar": null
+    },
+    {
+      "ruta": "backend/tests/identity/academic_identity_support.py",
+      "bytes": 19763,
+      "sha256": "3753d3b311f2e6a137b0390be8306a01b6ed611572000c9834c8ce38e1af8b08",
+      "categoria": "pruebas",
+      "sha256_al_entrar": "3753d3b311f2e6a137b0390be8306a01b6ed611572000c9834c8ce38e1af8b08"
+    },
+    {
+      "ruta": "backend/tests/identity/test_academic_identity_repository.py",
+      "bytes": 9581,
+      "sha256": "d835f4ba13f48ac73d988f7d10c3a6fd60388a43ee122bed4be35e228edcd4e1",
+      "categoria": "pruebas",
+      "sha256_al_entrar": "d835f4ba13f48ac73d988f7d10c3a6fd60388a43ee122bed4be35e228edcd4e1"
+    },
+    {
+      "ruta": "backend/tests/integration/test_admitted_start.py",
+      "bytes": 13070,
+      "sha256": "203077b53510403be0496ffecc9e16110bcdc97a74b83bcd0daecdb719aad23c",
+      "categoria": "pruebas",
+      "sha256_al_entrar": null
+    },
+    {
+      "ruta": "backend/tests/integration/test_assignment_bridge.py",
+      "bytes": 18541,
+      "sha256": "cb1ff395c3b25b679ee7c807070555bb71d1be07ef6b403c85d31cfc260b46db",
+      "categoria": "pruebas",
+      "sha256_al_entrar": "cb1ff395c3b25b679ee7c807070555bb71d1be07ef6b403c85d31cfc260b46db"
+    },
+    {
+      "ruta": "backend/tests/integration/test_attempt_start.py",
+      "bytes": 15237,
+      "sha256": "b2fe65eda2ac1c6facfd2f46f84cb99e5c39e2a6d3fd18d6af60bfa9c9ab72ba",
+      "categoria": "pruebas",
+      "sha256_al_entrar": "83e679f75f04107f1928f2efb758211441c78c79971b0ce0f3aa4290d6e315ad"
+    },
+    {
+      "ruta": "backend/tests/integration/test_cases_guard_migration.py",
+      "bytes": 4659,
+      "sha256": "79b1287d1c2b7fecbf4e88c644a5b749777c46033d1fab20dd740a7a956bd272",
+      "categoria": "pruebas",
+      "sha256_al_entrar": "79b1287d1c2b7fecbf4e88c644a5b749777c46033d1fab20dd740a7a956bd272"
+    },
+    {
+      "ruta": "backend/tests/integration/test_consent_http.py",
+      "bytes": 12829,
+      "sha256": "848ffa45a6e8a7747c4ba476d33acb71dde36e54cc3f337d3ee4df7d37597ce6",
+      "categoria": "pruebas",
+      "sha256_al_entrar": "848ffa45a6e8a7747c4ba476d33acb71dde36e54cc3f337d3ee4df7d37597ce6"
+    },
+    {
+      "ruta": "backend/tests/integration/test_consent_version_persistence.py",
+      "bytes": 23848,
+      "sha256": "24047bf3d547ccdc5fba97d7426a399dc75b12379383bafc5b647115f33d400a",
+      "categoria": "pruebas",
+      "sha256_al_entrar": "24047bf3d547ccdc5fba97d7426a399dc75b12379383bafc5b647115f33d400a"
+    },
+    {
+      "ruta": "backend/tests/integration/test_er28_academic_base.py",
+      "bytes": 20699,
+      "sha256": "7b431dad7e1bff72e51847f4a0b15e22965b1926a57c14fe8de4d7d3e44697d2",
+      "categoria": "pruebas",
+      "sha256_al_entrar": "7b431dad7e1bff72e51847f4a0b15e22965b1926a57c14fe8de4d7d3e44697d2"
+    },
+    {
+      "ruta": "backend/tests/integration/test_evaluation_result_storage.py",
+      "bytes": 16253,
+      "sha256": "a9d9354e5ad6b0d44142448dd40a2e7379a622eb75507d7a7a393c421b674a0e",
+      "categoria": "pruebas",
+      "sha256_al_entrar": "a9d9354e5ad6b0d44142448dd40a2e7379a622eb75507d7a7a393c421b674a0e"
+    },
+    {
+      "ruta": "backend/tests/integration/test_participation_http_composition.py",
+      "bytes": 17784,
+      "sha256": "1e2591701960a7f1d16b0355ecae9162769271b995f5d39b8bbab9e655c6e18a",
+      "categoria": "pruebas",
+      "sha256_al_entrar": "da2843a37f4c077e48cf5f8ab5f07a3f97ae401b361ba5145d043665993cb5a6"
+    },
+    {
+      "ruta": "backend/tests/integration/test_participation_persistence.py",
+      "bytes": 17169,
+      "sha256": "4839a21ecc441ebd224e24f082f95d6d47fc81ffe371c9caffe705345730cf73",
+      "categoria": "pruebas",
+      "sha256_al_entrar": "4839a21ecc441ebd224e24f082f95d6d47fc81ffe371c9caffe705345730cf73"
+    },
+    {
+      "ruta": "backend/tests/integration/test_participation_provision.py",
+      "bytes": 16310,
+      "sha256": "4e5a6f0d7681f513eb0d3fcc86a2a5cf7a4275ec2c46034c86916f72f8710c97",
+      "categoria": "pruebas",
+      "sha256_al_entrar": "0907020d940f5d0a883f61b998f75d862e201311fecddd6fbd8ce30bf403b797"
+    },
+    {
+      "ruta": "backend/tests/integration/test_schema_integration.py",
+      "bytes": 11461,
+      "sha256": "37d449ed846ca3193f753b3d6a572d33bd8c34f2cc419de2592c66f500a3cbff",
+      "categoria": "pruebas",
+      "sha256_al_entrar": "37d449ed846ca3193f753b3d6a572d33bd8c34f2cc419de2592c66f500a3cbff"
+    },
+    {
+      "ruta": "backend/tests/integration/test_steps_uuid.py",
+      "bytes": 19673,
+      "sha256": "b459988d8ca7fd36843685ff5a5b169dbe5b856fce9fb02912621f1438f9459c",
+      "categoria": "pruebas",
+      "sha256_al_entrar": "b459988d8ca7fd36843685ff5a5b169dbe5b856fce9fb02912621f1438f9459c"
+    },
+    {
+      "ruta": "backend/tests/integration/test_waiting_admission.py",
+      "bytes": 18479,
+      "sha256": "a2663c861c9d04cd41139a39eb7c85647dbf84fcedefc32346e0a9fbdb4084e4",
+      "categoria": "pruebas",
+      "sha256_al_entrar": "a2663c861c9d04cd41139a39eb7c85647dbf84fcedefc32346e0a9fbdb4084e4"
+    }
+  ],
+  "commits_propuestos": [
+    {
+      "bloque": "C1",
+      "mensaje": "feat(participation): persistir consentimiento e integrar admision transaccional",
+      "rutas": [
+        "backend/alembic/versions/20261106_consent_versions.py",
+        "backend/app/db/models.py",
+        "backend/app/modules/identity/application/consent.py",
+        "backend/app/modules/identity/infrastructure/academic_base_models.py",
+        "backend/app/modules/identity/infrastructure/consent.py",
+        "backend/app/modules/identity/infrastructure/consent_document_models.py",
+        "backend/app/modules/identity/infrastructure/consent_repository.py",
+        "backend/app/modules/participation/infrastructure/academic_context.py",
+        "backend/app/modules/participation/infrastructure/models.py",
+        "backend/app/modules/participation/infrastructure/provision.py",
+        "backend/app/modules/participation/infrastructure/repository.py",
+        "backend/app/modules/participation/infrastructure/start.py",
+        "backend/app/modules/scheduling/infrastructure/admission.py",
+        "backend/docs/CONSENTIMIENTO_E_INICIO_INTERNO.md",
+        "backend/docs/CONSENTIMIENTO_PERSISTENCIA_PROPUESTA_20261105.md",
+        "backend/docs/CONSENTIMIENTO_VERSIONADO_IMPLEMENTACION.md",
+        "backend/tests/identity/academic_identity_support.py",
+        "backend/tests/identity/test_academic_identity_repository.py",
+        "backend/tests/integration/test_assignment_bridge.py",
+        "backend/tests/integration/test_attempt_start.py",
+        "backend/tests/integration/test_cases_guard_migration.py",
+        "backend/tests/integration/test_consent_version_persistence.py",
+        "backend/tests/integration/test_er28_academic_base.py",
+        "backend/tests/integration/test_evaluation_result_storage.py",
+        "backend/tests/integration/test_participation_http_composition.py",
+        "backend/tests/integration/test_participation_persistence.py",
+        "backend/tests/integration/test_participation_provision.py",
+        "backend/tests/integration/test_schema_integration.py",
+        "backend/tests/integration/test_steps_uuid.py",
+        "backend/tests/integration/test_waiting_admission.py"
+      ]
+    },
+    {
+      "bloque": "C2",
+      "mensaje": "feat(identity): preparar API privada de consentimiento y aceptacion",
+      "rutas": [
+        "backend/app/modules/identity/api/consent.py",
+        "backend/app/modules/identity/infrastructure/consent_access.py",
+        "backend/app/modules/participation/api/dependencies.py",
+        "backend/app/modules/participation/api/provision_router.py",
+        "backend/docs/API_CONSENTIMIENTO_ESTUDIANTIL.md",
+        "backend/docs/AUDITORIA_COBERTURA_BACKEND_20261105.md",
+        "backend/docs/CHECKPOINT_API_CONSENTIMIENTO_20261106.json",
+        "backend/docs/CHECKPOINT_INICIO_ADMITIDO_20261106.json",
+        "backend/docs/INICIO_ADMITIDO_Y_CONSENTIMIENTO_TRANSACCIONAL.md",
+        "backend/tests/integration/test_admitted_start.py",
+        "backend/tests/integration/test_consent_http.py"
+      ]
+    }
+  ],
+  "exclusion_de_autohuella": "backend/docs/CHECKPOINT_INICIO_ADMITIDO_20261106.json",
+  "exclusiones": [
+    ".env",
+    "evidencias temporales",
+    "respaldos",
+    "ZIP",
+    "Word",
+    "caches",
+    "arrastres ajenos al incremento"
+  ],
+  "evidencias": "evidencias\\inicio_admitido_20261106T155628Z"
+}

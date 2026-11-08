@@ -118,3 +118,8 @@ def test_reloj_se_consulta_una_vez_despues_de_la_politica():
     validar_ingreso(db, **datos)
     assert eventos == ["politica", "reloj"]
     db.commit.assert_not_called()
+
+
+# Los cuatro casos del proveedor anticipado se sustituyen por los rechazos de
+# estado y límites de este archivo y la aceptación HTTP: contrato descartado,
+# no una excepción permisiva ni una política nueva para EN_CURSO.

@@ -1,0 +1,480 @@
+{
+  "info": {
+    "name": "Proyecto Nuclear — publicación académica explícita — app.main",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Solo laboratorio nuevo y desechable. Sin secretos exportados. Consulte README.md; ninguna aprobación de políticas oficiales."
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.variables.get('laboratorio_confirmado') !== 'true') throw new Error('Confirme laboratorio propio, no una base permanente.');",
+          "const destino=pm.variables.replaceIn(pm.request.url.toString());",
+          "if (!/^http:\\/\\/(127\\.0\\.0\\.1|localhost):\\d+\\//.test(destino)) throw new Error('Solo loopback con puerto explícito de laboratorio.');",
+          "if (['POST','PUT','PATCH','DELETE'].includes(pm.request.method) && pm.variables.get('permitir_escrituras_laboratorio') !== 'true') throw new Error('Escrituras LAB no confirmadas.');",
+          "const bruto=pm.request.url.toString()+' '+JSON.stringify(pm.request.headers.toJSON())+' '+(pm.request.body ? pm.request.body.raw || '' : '')+' '+JSON.stringify(pm.request.auth ? pm.request.auth.toJSON() : {});",
+          "for (const m of bruto.matchAll(/\\{\\{([^{}]+)\\}\\}/g)) { const v=pm.variables.get(m[1]); if (v === undefined || v === '') throw new Error('Complete la variable local: '+m[1]); }"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "MAIN — login docente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/identity/auth/personal",
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{correo_docente}}\",\n  \"clave\": \"{{clave_docente}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.variables.set('token_docente',pm.response.json().access_token);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — login estudiante",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/identity/auth/estudiantes",
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{correo_estudiante}}\",\n  \"codigo_convocatoria\": \"{{codigo_estudiante}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.variables.set('token_estudiante',pm.response.json().access_token);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "MAIN — login docente ajeno",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/identity/auth/personal",
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{correo_docente_ajeno}}\",\n  \"clave\": \"{{clave_docente}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.variables.set('token_docente_ajeno',pm.response.json().access_token);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "1 — revisar cohorte y capturar hash",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/consolidacion",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_docente}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "const j=pm.response.json();pm.test('Todas resueltas',()=>pm.expect(j.publicable).to.eql(true));pm.variables.set('revision_publicacion_sha256',j.revision_sha256);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "2 — autorizar publicación completa",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/publicaciones",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_docente}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"revision_sha256\": \"{{revision_publicacion_sha256}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "const j=pm.response.json();pm.test('Oficial por autorización explícita',()=>pm.expect(j.oficial).to.eql(true));pm.variables.set('publicacion_id',j.id);pm.test('Sin duplicados',()=>pm.expect(new Set(j.resultados.map(x=>x.convocatoria_id)).size).to.eql(j.resultados.length));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "3 — reintento de misma publicación",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/publicaciones",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_docente}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"revision_sha256\": \"{{revision_publicacion_sha256}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.test('Misma publicación',()=>pm.expect(pm.response.json().id).to.eql(pm.variables.get('publicacion_id')));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "4 — lectura oficial docente",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/publicaciones",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_docente}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.test('Publicación autorizada',()=>pm.expect(pm.response.json().oficial).to.eql(true));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "5 — consulta privada titular",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/convocatorias/{{convocatoria_id}}/resultado",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_estudiante}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "const j=pm.response.json();pm.test('Oficial y decimal',()=>{pm.expect(j.oficial).to.eql(true);pm.expect(j.nota).to.match(/^\\d+\\.\\d{2}$/);});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "6 — docente ajeno rechazado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/publicaciones",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_docente_ajeno}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 403',()=>pm.response.to.have.status(403));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "7 — sin autenticación",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/publicaciones",
+        "auth": {
+          "type": "noauth"
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}

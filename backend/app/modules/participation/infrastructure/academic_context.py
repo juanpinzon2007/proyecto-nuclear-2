@@ -28,10 +28,11 @@ class ConsultaVinculacionSQLAlchemy:
     def __init__(
         self, sesion: Session, *, politica: PoliticaIngreso, reloj: RelojIngreso,
         consulta_version: ConsultaVersionPublicada | None = None,
+        admision=None,
     ) -> None:
         self.sesion = sesion
         self._ingreso = ConsultaIngresoSQLAlchemy(
-            sesion, politica=politica, reloj=reloj, consulta_version=consulta_version,
+            sesion, politica=politica, reloj=reloj, consulta_version=consulta_version, admision=admision,
         )
 
     def consultar(

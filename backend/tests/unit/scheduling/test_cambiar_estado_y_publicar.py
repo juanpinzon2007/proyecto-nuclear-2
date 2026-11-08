@@ -27,6 +27,7 @@ def preparar_prueba(estado="SIN_INICIAR"):
     """Prepara los componentes necesarios para cada prueba."""
 
     db = Mock()
+    db.scalars.return_value.all.return_value = []  # Sin solicitudes en el doble de State.
 
     sesion = SimpleNamespace(
         id=uuid4(),

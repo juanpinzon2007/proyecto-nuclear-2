@@ -13,7 +13,7 @@ from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 import jwt
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, event
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.db.session import get_db
@@ -23,6 +23,7 @@ from app.modules.identity.application.academic_identity import SistemaAcademico,
 from app.modules.identity.infrastructure.academic_identity_repository import RepositorioIdentidadAcademicaSQLAlchemy as Repo
 from app.modules.identity.infrastructure.credentials import obtener_hasheador
 from app.modules.identity.infrastructure.models import UsuarioORM
+from tests.unit.scheduling.ingress_support import restaurar_utc_solo_fixture_sqlite
 from app.modules.identity.infrastructure.repositories import RepositorioUsuariosSQLAlchemy
 from app.modules.identity.infrastructure.security import TokensJWT
 from app.modules.cases.api.router import router as cases_router
@@ -83,6 +84,8 @@ def login_sql(cuentas_identidades, monkeypatch):
     app.dependency_overrides[dependencies.obtener_dominios_login] = lambda: ("universidad.test",)
     def db():
         with c.sesiones() as s:
+            # Solo UTC escrito por ESTA fixture; no interpretación productiva.
+            event.listen(s,"loaded_as_persistent",restaurar_utc_solo_fixture_sqlite)
             yield s
     app.dependency_overrides[get_db] = db
 
@@ -135,6 +138,7 @@ def test_flujo_login_autorizado_jwt_y_notificaciones_reales(login_sql):
         "codigo_acceso": c.codigo,
     })
     assert ingreso.status_code == 403
+    # La hora programada no habilita la sesión: se exige EN_CURSO persistido.
     assert ingreso.json()["detail"] == "La sesión no está en curso."
     assert c.cliente.post("/api/v1/cases", headers=h, json={}).status_code == 403
 

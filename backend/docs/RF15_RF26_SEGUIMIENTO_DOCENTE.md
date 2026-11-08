@@ -1,5 +1,9 @@
 # RF-15 y RF-26 — Seguimiento y valoración docente
 
+> Continuidad del 5 de noviembre de 2026 en el repositorio original, rama
+> `feature/backend-continuidad`: ver sección final. Los resultados siguientes
+> corresponden al incremento histórico, no a una nueva ejecución.
+
 3 de noviembre de 2026, Bogotá. Worktree `C:\SPS\consolidacion`, rama
 `codex/consolidacion-backend`, base `3e09def`, cambios locales sin commit.
 
@@ -93,3 +97,107 @@ docentes ni se suplen asociaciones históricas ausentes con UUID inventados.
 Siguiente incremento recomendado, sujeto a revisión: conectar la lectura privada
 estudiantil del feedback general para intentos cerrados, reutilizando la consulta
 existente, manteniendo las notas y la ausencia oficial bloqueadas.
+
+## Continuidad: recorrido de lectura en app.main (5 de noviembre de 2026)
+
+RF-15 exige navegar casos realizados y consultar por estudiante sus respuestas,
+retroalimentación por respuesta y valoración general docente. No es RF-16
+(exportación/notas oficiales) ni autorización para inventar un login de personal.
+La matriz ya lo clasifica IMPLEMENTADO para el ámbito existente; no se crea otro
+servicio ni una ruta duplicada.
+
+Incremento seleccionado: caso → participaciones → detalle histórico mediante los
+tres GET existentes en `app.main.app`. La consulta SQL actual entra en `s.begin()`
+y confirma al terminar; se acreditará y sustituirá esa frontera por lectura sin
+autoflush ni commit, conservando la autorización y sus locks. Solo Identity cambia;
+el escritor RF-26 y Participation no se refactorizan.
+
+Criterios definidos antes de la corrección:
+
+- JWT real y roles/identidades persistidos; autenticación del personal preparada
+  solo en laboratorio, sin endpoint provisional ni cabecera de identidad.
+- Misma versión asignada, incluso tras publicar otra y archivar la anterior.
+- Datos propios, referencias exactas, respuestas registradas y valoración
+  existente; sin notas oficiales, rúbricas ni respuestas futuras. Explicaciones
+  conservan su regla actual: solo para intentos cerrados.
+- Repetición y concurrencia de los GET sin DML, flush ni commit y sin cambios en
+  participación, intento, respuestas o valoración. Los locks de ámbito se conservan;
+  no se afirma compatibilidad con una transacción PostgreSQL READ ONLY o réplica.
+- Rechazo de ajenos/no docentes y vínculos ausentes/ambiguos; fallo SQL saneado.
+- Reutilizar el contrato HTTP, Proxy, servicios y consultas; mantener RF-16 y el
+  inicio/calificaciones oficiales cerrados.
+
+El inicio de la fixture utiliza políticas explícitas LAB y la nueva edición se
+prepara administrativamente con el helper existente; ninguna de esas preparaciones
+acredita ingreso productivo ni una API nueva de versionamiento.
+
+### Corrección y aceptación actual
+
+Se confirmó el alcance aprobado en la matriz: RF-15 es consulta por caso/estudiante
+de respuestas y retroalimentación, no cálculo de notas oficiales ni exportación.
+Las rutas y servicios ya existían; no se creó otra implementación.
+
+Cambio productivo único: `identity/infrastructure/followup.py::_operar` sustituye
+`s.begin()` por `s.no_autoflush`. La Session se cierra y descarta su transacción
+de lectura, liberando locks, sin commit. No se elimina la comprobación del Proxy
+ni la revalidación dentro de la consulta. AmbitoFeedbackIndividual y la UoW del
+escritor RF-26 permanecen intactos.
+
+| Ejecución actual | Resultado |
+|---|---|
+| Reproducción `pruebas_seguridad_20261105T202708Z` | 2 fallidas, 0 aprobadas/omitidas/errores, 1 advertencia; 13.83 s. Se observaron seis COMMIT por recorrido (cuatro GET), tanto activo como cerrado; no DML. |
+| Aceptación `pruebas_casos_20261105T202801Z` | 11 aprobadas, 0 omitidas/fallos/errores, 1 advertencia; 33.35 s. |
+| Relacionada `pruebas_focal_20261105T202910Z` | 129 aprobadas, 0 omitidas/fallos/errores, 1 advertencia; 139.05 s. |
+
+No se suman suites solapadas ni se ocultan los fallos iniciales. La advertencia
+es Starlette/TestClient/httpx. No se repitió la general: no cambian puertos,
+DTOs, firmas públicas, router, autenticación ni contratos HTTP compartidos.
+2023/38 sigue siendo la general histórica, no el resultado de este incremento.
+
+Los once casos de `tests/integration/test_main_teacher_followup.py` acreditan:
+
+- Recorrido caso/listado/detalle repetido, activo y cerrado, con filas reales
+  PostgreSQL17 y aplicación principal. Cero DML, flush y commits; snapshots intactos.
+- Edición histórica exacta después de crear otra y archivar la asignada; explicación
+  y valoración confirmadas, sin notas ni rúbricas. En activo no se devuelven explicaciones.
+- Rechazo de anonimato, token inválido, estudiante, administrador sin rol docente,
+  docente ajeno con vínculos válidos, vínculo ausente y vínculo ambiguo. Cabecera
+  `X-Docente-Id` y parámetro `id_docente` no sustituyen el JWT.
+- Dos lecturas concurrentes con igual respuesta y sin escrituras; fallo SQL
+  controlado devuelve 503 saneado, sin marcador privado ni modificación de datos.
+
+La falla SQL se inyecta en la ejecución de una consulta real; no se presenta como
+caída física del servidor. Los demás controles no se sustituyen por mocks.
+La relacionada reutiliza pruebas de Proxy/HTTP Identity, seguimiento/feedback,
+consulta estudiantil de feedback, progreso y bloqueo seguro de notas RF-27.
+
+### Disponibilidad y evidencia
+
+Los tres GET están efectivamente registrados en main; la aceptación usa sus
+fábricas reales y JWT real. Solo el reloj de preparación estudiantil se sustituye
+en laboratorio. El token del docente se emite en la fixture con configuración
+sintética explícita: **no acredita login del personal ni integración productiva
+de extremo a extremo**. No se añadió una nueva ruta ni un emisor provisional.
+Las consultas históricas autorizadas siguen disponibles para un JWT legítimo,
+configuración válida y vínculos persistentes; usuarios sin esa autorización
+siguen rechazados. RF-16 devuelve 503 con su integración pendiente, y notas,
+repetición/inicio productivo y RF-22 conservan sus barreras.
+
+Paquete `evidencias/rf15_lectura_20261105T202511Z/`: inventario inicial, comandos,
+consolas, JUnit con detalles LAB activos/cerrados, aislamiento Docker y cierre.
+Para repetir únicamente aceptación y relacionada en laboratorios nuevos:
+
+```powershell
+& C:\Python313\python.exe -B .\evidencias\rf15_lectura_20261105T202511Z\ejecutar_validacion.py casos
+& C:\Python313\python.exe -B .\evidencias\rf15_lectura_20261105T202511Z\ejecutar_validacion.py focal
+```
+
+El ejecutor desactiva `.env` y URLs externas solo en el proceso de pruebas;
+reutiliza el creador de PG17 desechable. No conecta bases del equipo ni cambia
+credenciales permanentes. No se crea infraestructura, ORM ni migración.
+
+RF-15 conserva su clasificación IMPLEMENTADO para el alcance acreditado; se
+amplía la evidencia y pureza transaccional, no se incrementa el conteo de RF.
+El siguiente requisito de mayor impacto es RF-03, después de acordar el contrato
+de autenticación de personal y la granularidad administrativa. No se implementa
+ese siguiente requisito ni un login, multirrol o permiso individual aquí.

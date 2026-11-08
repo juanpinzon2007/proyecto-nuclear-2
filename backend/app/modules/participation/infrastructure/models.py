@@ -17,6 +17,7 @@ class ParticipacionModel(Base):
     convocatoria_id: Mapped[UUID] = mapped_column(ForeignKey("convocatoria.id"), nullable=False, unique=True)
     estado: Mapped[str] = mapped_column(String(20), nullable=False, server_default="pendiente")
     fecha_registro: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    id_consentimiento: Mapped[int | None] = mapped_column(ForeignKey('consentimiento.id_consentimiento', name='fk_participacion_consentimiento'), nullable=True)
 
 
 class IntentoModel(Base):

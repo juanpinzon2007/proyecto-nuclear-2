@@ -232,7 +232,9 @@ def test_previsualizacion_no_confirma_y_no_crea_tablas(registro):
     assert not commits and len(rollbacks)==2
     tablas=sa.inspect(c.engine).get_table_names()
     assert {"resultado_intento", "resultado_criterio"} <= set(tablas)
-    assert "resultado_participacion" not in tablas
+    # La previsualización no escribe en la tabla oficial incorporada después.
+    if "resultado_participacion" in tablas:
+        with c.engine.connect() as s:assert s.scalar(sa.text("SELECT count(*) FROM resultado_participacion")) == 0
     with c.engine.connect() as s:
         assert s.scalar(sa.text("SELECT count(*) FROM resultado_intento")) == 0
 

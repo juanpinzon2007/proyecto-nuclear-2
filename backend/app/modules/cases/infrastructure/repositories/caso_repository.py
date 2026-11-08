@@ -1,6 +1,7 @@
 """Repositorio SQLAlchemy del agregado Caso."""
 
 import uuid
+from decimal import Decimal, Context, localcontext
 from dataclasses import asdict
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -19,7 +20,7 @@ from app.modules.cases.domain.entities.caso import (
     Rubrica,
     VersionCaso,
 )
-from app.modules.cases.domain.exceptions import ErrorPersistenciaCaso
+from app.modules.cases.domain.exceptions import ErrorPersistenciaCaso, ErrorConstruccionCaso
 from app.modules.cases.domain.enums import EstadoCaso
 from app.modules.cases.domain.repositories import ICasoRepository
 from app.modules.cases.domain.validators.eslabones import construir_cadena_publicacion
@@ -43,6 +44,7 @@ class CasoRepository(ICasoRepository):
         self._session = session
 
     def guardar(self, version: VersionCaso) -> None:
+        self._validar_precision_puntajes(version)
         with self._transaccion():
             self._session.add(self._mapear(version))
 
@@ -80,6 +82,7 @@ class CasoRepository(ICasoRepository):
             modelo = self._para_escritura(version)
             self._a_dominio(modelo).asegurar_editable()
             version.asegurar_editable()
+            self._validar_precision_puntajes(version)
             from app.modules.cases.infrastructure.repositories.graph_repository import RepositorioGrafoSQLAlchemy
             if RepositorioGrafoSQLAlchemy(self._session).configurado(version.id):
                 raise ErrorPersistenciaCaso("El reemplazo de contenido descartaría el grafo; edite el borrador antes de configurarlo.")
@@ -100,6 +103,22 @@ class CasoRepository(ICasoRepository):
         with self._transaccion():
             self._aplicar_estado(version)
 
+    @staticmethod
+    def _validar_precision_puntajes(version: VersionCaso) -> None:
+        from app.modules.cases.application.scoring import REGLA_PREGUNTAS
+        if version.rubrica is None or version.rubrica.version_regla != REGLA_PREGUNTAS:
+            return
+        for escena in version.escenarios:
+            for pregunta in escena.preguntas:
+                for opcion in pregunta.opciones:
+                    for p in opcion.valoraciones.values():
+                        error = "Puntaje explícito 0–100 representable exactamente con dos decimales requerido; no se redondea al guardar."
+                        if not isinstance(p, Decimal) or not p.is_finite() or not Decimal(0) <= p <= Decimal(100):
+                            raise ErrorConstruccionCaso(error)
+                        with localcontext(Context(prec=32)):
+                            if p != p.quantize(Decimal('.01')):
+                                raise ErrorConstruccionCaso(error)
+
     def publicar_ejecutable(self, version: VersionCaso) -> None:
         with self._transaccion():
             self._aplicar_estado(version, exigir_recorrido=True)
@@ -111,6 +130,12 @@ class CasoRepository(ICasoRepository):
             raise ErrorPersistenciaCaso("El contenido cambió desde su lectura; vuelva a consultar la versión.")
         if version.estado == EstadoCaso.PUBLICADO:
             actual.publicar(construir_cadena_publicacion())
+            # Opt-in explícito en la rúbrica de NUEVAS ediciones. El mismo lock
+            # raíz protege contenido/grafo/puntajes hasta confirmar publicación.
+            from app.modules.cases.application.scoring import REGLA_PREGUNTAS
+            if actual.rubrica and actual.rubrica.version_regla == REGLA_PREGUNTAS:
+                from app.modules.cases.infrastructure.scoring import consultar_configuracion_preguntas
+                consultar_configuracion_preguntas(self._session, version_id=version.id, solo_publicada=False)
             if exigir_recorrido:
                 # Mismo lock raíz que configurar y los guards históricos.
                 self.obtener_recorrido(version).validar_ejecutable()

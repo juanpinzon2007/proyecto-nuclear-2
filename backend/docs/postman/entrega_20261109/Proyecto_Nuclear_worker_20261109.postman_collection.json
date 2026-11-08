@@ -1,0 +1,199 @@
+{
+  "info": {
+    "name": "WORKER — ejecutar Send por pasos; w en consola entre consultas",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Solo laboratorio nuevo y desechable. Sin secretos exportados. Consulte README.md; ninguna aprobación de políticas oficiales."
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.variables.get('laboratorio_confirmado') !== 'true') throw new Error('Confirme laboratorio propio, no una base permanente.');",
+          "const destino=pm.variables.replaceIn(pm.request.url.toString());",
+          "if (!/^http:\\/\\/(127\\.0\\.0\\.1|localhost):\\d+\\//.test(destino)) throw new Error('Solo loopback con puerto explícito de laboratorio.');",
+          "if (['POST','PUT','PATCH','DELETE'].includes(pm.request.method) && pm.variables.get('permitir_escrituras_laboratorio') !== 'true') throw new Error('Escrituras LAB no confirmadas.');",
+          "const bruto=pm.request.url.toString()+' '+JSON.stringify(pm.request.headers.toJSON())+' '+(pm.request.body ? pm.request.body.raw || '' : '')+' '+JSON.stringify(pm.request.auth ? pm.request.auth.toJSON() : {});",
+          "for (const m of bruto.matchAll(/\\{\\{([^{}]+)\\}\\}/g)) { const v=pm.variables.get(m[1]); if (v === undefined || v === '') throw new Error('Complete la variable local: '+m[1]); }"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "MAIN — login docente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/identity/auth/personal",
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{correo_docente}}\",\n  \"clave\": \"{{clave_docente}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.environment.set('token_docente',pm.response.json().access_token);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "WORKER 1 — antes de ejecutar: EN_CURSO",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/sesiones/{{worker_sesion_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_docente}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.test('Estado esperado',()=>pm.expect(pm.response.json().estado).to.eql('EN_CURSO'));pm.test('Edición histórica',()=>pm.expect(pm.response.json().version_caso_id).to.eql(pm.variables.get('version_id')));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "WORKER 2 — después de w: FINALIZADO",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/sesiones/{{worker_sesion_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_docente}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.test('Estado esperado',()=>pm.expect(pm.response.json().estado).to.eql('FINALIZADO'));pm.test('Edición histórica',()=>pm.expect(pm.response.json().version_caso_id).to.eql(pm.variables.get('version_id')));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "WORKER 3 — después de segundo w: FINALIZADO",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/scheduling/sesiones/{{worker_sesion_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token_docente}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": ""
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+              "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+              "const j=pm.response.json();",
+              "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+              "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+              "}",
+              "pm.test('Estado esperado',()=>pm.expect(pm.response.json().estado).to.eql('FINALIZADO'));pm.test('Edición histórica',()=>pm.expect(pm.response.json().version_caso_id).to.eql(pm.variables.get('version_id')));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}

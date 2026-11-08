@@ -256,6 +256,8 @@ def inicializar(e,revision):
     from app.modules.identity.infrastructure.models import RolORM
     with e.begin() as s:
         command.upgrade(config_alembic(s),revision)
+        from tests.identity.academic_identity_support import columnas_convocatoria_para_fixture_historica
+        columnas_convocatoria_para_fixture_historica(s)
         s.execute(sa.insert(RolORM),[dict(id_rol=1,nombre="DOCENTE"),dict(id_rol=2,nombre="ESTUDIANTE")])
 
 

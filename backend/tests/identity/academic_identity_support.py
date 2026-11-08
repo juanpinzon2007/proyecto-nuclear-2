@@ -52,13 +52,158 @@ def preparar_esquema_actual_aislado(conexion):
         return
     command.upgrade(config_alembic(conexion), "20261102_steps_uuid")
     preparar_grafo_sqlite(conexion)
+    preparar_admision_sqlite(conexion)
     from app.db.models import registrar_modelos_integrados
     metadata=registrar_modelos_integrados()
     metadata.create_all(conexion)
-    for nombre in ("criterio_rubrica", "nivel_rubrica"):
+    preparar_consentimiento_sqlite(conexion)
+    preparar_publicacion_sqlite(conexion)
+    for nombre in ("criterio_rubrica", "nivel_rubrica", "opcion_respuesta"):
         for indice in metadata.tables[nombre].indexes:
             if indice.name.startswith("uq_8c_"):
                 indice.create(conexion, checkfirst=True)
+
+
+
+def preparar_publicacion_sqlite(conexion):
+    from alembic.operations import Operations
+    from alembic.migration import MigrationContext
+    from app.db.models import registrar_modelos_integrados
+    ops=Operations(MigrationContext.configure(conexion));metadata=registrar_modelos_integrados()
+    for tabla in ('sesion_programada','notificacion'):
+        checks={c['name'] for c in inspect(conexion).get_check_constraints(tabla)}
+        objetivo='ck_sesion_visibilidad' if tabla=='sesion_programada' else 'ck_aviso_publicacion'
+        if objetivo in checks:continue
+        with ops.batch_alter_table(tabla,recreate='always') as b:
+            for c in metadata.tables[tabla].constraints:
+                if c.name in ('ck_sesion_visibilidad','ck_aviso_publicacion'):b.create_check_constraint(c.name,str(c.sqltext))
+            if tabla=='sesion_programada':b.create_foreign_key('fk_sesion_visibilidad_fixture','usuario',['visibilidad_docente_id'],['id_usuario'])
+            else:
+                b.create_foreign_key('fk_notificacion_publicacion_fixture','publicacion_evaluacion',['publicacion_evaluacion_id'],['id'])
+                b.create_unique_constraint('uq_notificacion_publicacion',['publicacion_evaluacion_id','convocatoria_id'])
+
+
+def columnas_publicacion_para_fixture_historica(conexion):
+    """Columnas nullable de compatibilidad de ORM, SOLO en fixtures históricos.
+
+    No instala publicación ni estampa la nueva revisión. Su migración se prueba
+    por separado en PG real; las comparaciones de head nunca usan este filtro.
+    """
+    import sqlalchemy as sa
+    from alembic.operations import Operations
+    from alembic.migration import MigrationContext
+    ops=Operations(MigrationContext.configure(conexion))
+    for tabla,columnas in {'sesion_programada': [('mostrar_resultados_provisionales',sa.Boolean()),('visibilidad_docente_id',sa.Integer()),('visibilidad_actualizada_en',sa.DateTime(timezone=True))],
+            'notificacion':[('publicacion_evaluacion_id',sa.Uuid())]}.items():
+        if not inspect(conexion).has_table(tabla):continue
+        existentes={c['name'] for c in inspect(conexion).get_columns(tabla)}
+        for nombre,tipo in columnas:
+            if nombre not in existentes:ops.add_column(tabla,sa.Column(nombre,tipo,nullable=True))
+
+
+def omitir_publicacion_futura(objeto,nombre,tipo,reflejado,comparado):
+    if tipo=='table' and nombre in {'ausencia_academica','publicacion_evaluacion','resultado_participacion'}:return False
+    nuevas={'mostrar_resultados_provisionales','visibilidad_docente_id','visibilidad_actualizada_en','publicacion_evaluacion_id'}
+    if tipo=='column' and nombre in nuevas:return False
+    if nombre in {'ck_sesion_visibilidad','uq_notificacion_publicacion','ck_aviso_publicacion'}:return False
+    if tipo in {'foreign_key_constraint','unique_constraint'} and any(c.name in nuevas for c in objeto.columns):return False
+    return True
+
+
+def columnas_consentimiento_para_fixture_historica(conexion):
+    """Solo columnas auxiliares para usar ORM actual en revisiones antiguas.
+
+    No estampa la revisión nueva ni instala evidencia, documentos o guards.
+    """
+    import sqlalchemy as sa
+    from alembic.operations import Operations
+    from alembic.migration import MigrationContext
+    columnas_publicacion_para_fixture_historica(conexion)
+    ops=Operations(MigrationContext.configure(conexion))
+    if inspect(conexion).has_table('consentimiento'):
+        existentes={c['name'] for c in inspect(conexion).get_columns('consentimiento')}
+        for n,t in [('id_version_documento',sa.Integer()),('aceptacion_explicita',sa.Boolean()),('huella_aceptada',sa.String(64))]:
+            if n not in existentes:ops.add_column('consentimiento',sa.Column(n,t,nullable=True))
+    if inspect(conexion).has_table('participacion') and 'id_consentimiento' not in {c['name'] for c in inspect(conexion).get_columns('participacion')}:
+        ops.add_column('participacion',sa.Column('id_consentimiento',sa.Integer(),nullable=True))
+
+
+def preparar_consentimiento_sqlite(conexion):
+    """FK/CHECK/índice reales SQLite; ninguna emulación de guards/locks PG."""
+    import sqlalchemy as sa
+    from alembic.operations import Operations
+    from alembic.migration import MigrationContext
+    if conexion.dialect.name!='sqlite':raise RuntimeError('Solo SQLite aislado.')
+    columnas_publicacion_para_fixture_historica(conexion)
+    if 'id_version_documento' in {c['name'] for c in inspect(conexion).get_columns('consentimiento')}:return
+    ops=Operations(MigrationContext.configure(conexion))
+    with ops.batch_alter_table('consentimiento',recreate='always') as b:
+        b.add_column(sa.Column('id_version_documento',sa.Integer(),nullable=True))
+        b.add_column(sa.Column('aceptacion_explicita',sa.Boolean(),nullable=True))
+        b.add_column(sa.Column('huella_aceptada',sa.String(64),nullable=True))
+        b.create_foreign_key('fk_consentimiento_documento','documento_consentimiento_version',['id_version_documento'],['id_version_documento'])
+        b.create_check_constraint('ck_consentimiento_evidencia','(id_version_documento IS NULL AND aceptacion_explicita IS NULL AND huella_aceptada IS NULL) OR (id_version_documento IS NOT NULL AND aceptacion_explicita IS TRUE AND huella_aceptada IS NOT NULL AND length(huella_aceptada)=64)')
+        b.create_index('uq_consentimiento_explicito_vigente',['id_estudiante','id_version_documento'],unique=True,sqlite_where=sa.text('aceptacion_explicita IS TRUE AND fecha_revocacion IS NULL'))
+    with ops.batch_alter_table('participacion',recreate='always') as b:
+        b.add_column(sa.Column('id_consentimiento',sa.Integer(),nullable=True))
+        b.create_foreign_key('fk_participacion_consentimiento','consentimiento',['id_consentimiento'],['id_consentimiento'])
+
+
+def preparar_admision_sqlite(conexion):
+    """DDL SQLite real para metadata; no emula locks ni triggers PostgreSQL."""
+    from alembic.operations import Operations
+    from alembic.migration import MigrationContext
+    import sqlalchemy as sa
+    if conexion.dialect.name!='sqlite':raise RuntimeError('Solo fixture SQLite.')
+    ops=Operations(MigrationContext.configure(conexion))
+    columnas={c['name'] for c in inspect(conexion).get_columns('convocatoria')}
+    if 'espera_registrada_en' in columnas:return
+    if conexion.scalar(sa.text('SELECT 1 FROM convocatoria LIMIT 1')) is not None:
+        raise RuntimeError('Preparación de admisión solo antes de datos de fixture.')
+    with ops.batch_alter_table('evento_auditoria',recreate='always') as batch:
+        batch.create_unique_constraint('uq_evento_id_sesion_admision',['id','sesion_id'])
+    with ops.batch_alter_table('convocatoria',recreate='always') as batch:
+        batch.add_column(sa.Column('espera_registrada_en',sa.DateTime(timezone=True),nullable=True))
+        batch.add_column(sa.Column('espera_version_caso_id',sa.Uuid(),nullable=True))
+        batch.add_column(sa.Column('admision_evento_id',sa.Uuid(),nullable=True))
+        batch.create_foreign_key('fk_espera_sesion_version','sesion_programada',
+            ['sesion_id','espera_version_caso_id'],['id','version_caso_id'])
+        batch.create_foreign_key('fk_admision_evento_sesion','evento_auditoria',
+            ['admision_evento_id','sesion_id'],['id','sesion_id'])
+        batch.create_check_constraint('ck_espera_pareja','(espera_registrada_en IS NULL) = (espera_version_caso_id IS NULL)')
+        batch.create_check_constraint('ck_admision_espera','admision_evento_id IS NULL OR espera_registrada_en IS NOT NULL')
+
+
+def columnas_convocatoria_para_fixture_historica(conexion):
+    """Adaptación explícita SOLO para probar migraciones anteriores con ORM actual.
+
+    Tres columnas nullable auxiliares; no estampa la revisión nueva, ni instala
+    constraints/guards ni acredita admisión. Las pruebas de la revisión nueva
+    ejecutan su upgrade real. Reservado a PG propio de los fixtures históricos.
+    """
+    import sqlalchemy as sa
+    from alembic.operations import Operations
+    from alembic.migration import MigrationContext
+    if conexion.dialect.name!='postgresql':raise RuntimeError('Solo laboratorio histórico PG.')
+    columnas={c['name'] for c in inspect(conexion).get_columns('convocatoria')}
+    ops=Operations(MigrationContext.configure(conexion))
+    for nombre,tipo in [('espera_registrada_en',sa.DateTime(timezone=True)),
+                        ('espera_version_caso_id',sa.Uuid()),('admision_evento_id',sa.Uuid())]:
+        if nombre not in columnas:ops.add_column('convocatoria',sa.Column(nombre,tipo,nullable=True))
+    columnas_consentimiento_para_fixture_historica(conexion)
+
+
+def omitir_solo_constraints_admision_futura(objeto,nombre,tipo,reflejado,comparado):
+    """Vista histórica anterior a admisión, consentimiento y detalle exacto.
+
+    Solo excluye objetos de revisiones posteriores. Los tests de la cabeza
+    actual comparan todo el metadata sin este filtro.
+    """
+    if not omitir_publicacion_futura(objeto,nombre,tipo,reflejado,comparado):return False
+    if tipo=='table' and nombre in {'documento_consentimiento_version','seleccion_consentimiento',
+            'resultado_calculo_preguntas','resultado_pregunta','resultado_criterio_exacto'}:return False
+    return nombre not in {'uq_8c_opcion_pregunta','fk_consentimiento_documento','fk_participacion_consentimiento','ck_consentimiento_evidencia','uq_consentimiento_explicito_vigente','fk_espera_sesion_version','fk_admision_evento_sesion',
+        'ck_espera_pareja','ck_admision_espera','uq_evento_id_sesion_admision'}
 
 
 def preparar_grafo_sqlite(conexion):
@@ -85,12 +230,12 @@ def retirar_ddl_resultados_sqlite(conexion):
         raise RuntimeError("Retirada DDL auxiliar reservada a SQLite en memoria.")
     from app.db.models import registrar_modelos_integrados
     metadata=registrar_modelos_integrados()
-    for nombre in ("docente_espacio_academico","retroalimentacion_docente","resultado_criterio","resultado_intento"):
+    for nombre in ("resultado_participacion","publicacion_evaluacion","ausencia_academica","resultado_criterio_exacto","resultado_pregunta","resultado_calculo_preguntas","seleccion_consentimiento","documento_consentimiento_version","docente_espacio_academico","retroalimentacion_docente","resultado_criterio","resultado_intento"):
         if inspect(conexion).has_table(nombre):
             if conexion.scalar(text(f"SELECT 1 FROM {nombre} LIMIT 1")) is not None:
                 raise RuntimeError("No eliminar resultados existentes.")
             metadata.tables[nombre].drop(conexion)
-    for nombre in ("nivel_rubrica","criterio_rubrica"):
+    for nombre in ("nivel_rubrica","criterio_rubrica","opcion_respuesta"):
         for indice in metadata.tables[nombre].indexes:
             if indice.name.startswith("uq_8c_"):
                 indice.drop(conexion,checkfirst=True)

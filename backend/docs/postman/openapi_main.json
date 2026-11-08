@@ -1,0 +1,5604 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SPS API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/cases": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Listar Casos",
+        "description": "Lista resumida de los casos del docente.",
+        "operationId": "listar_casos_api_v1_cases_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CasoResumenResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Casos Api V1 Cases Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Crear Borrador",
+        "description": "Guarda un caso en BORRADOR, incluso incompleto.",
+        "operationId": "crear_borrador_api_v1_cases_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CasoPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/cases/{version_id}": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Obtener Caso",
+        "description": "Detalle completo: escenarios, preguntas, opciones y rúbrica.",
+        "operationId": "obtener_caso_api_v1_cases__version_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Version Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CasoDetalleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Editar Borrador",
+        "description": "Reemplaza la estructura de un BORRADOR (400 si está PUBLICADO o ARCHIVADO).",
+        "operationId": "editar_borrador_api_v1_cases__version_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Version Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CasoPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{version_id}/publish": {
+      "post": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Publicar Caso",
+        "description": "Valida el borrador con el Chain of Responsibility y lo publica.",
+        "operationId": "publicar_caso_api_v1_cases__version_id__publish_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Version Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{version_id}/archive": {
+      "post": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Archivar Caso",
+        "description": "Archiva un caso PUBLICADO para evitar nuevas programaciones.",
+        "operationId": "archivar_caso_api_v1_cases__version_id__archive_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Version Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{version_id}/graph": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Consultar Grafo",
+        "description": "Detalle de la configuración propia, incluso del borrador incompleto.",
+        "operationId": "consultar_grafo_api_v1_cases__version_id__graph_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Version Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrafoResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Configurar Grafo",
+        "description": "Reemplazo completo y atómico de un recorrido ejecutable del borrador.",
+        "operationId": "configurar_grafo_api_v1_cases__version_id__graph_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Version Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrafoSolicitud"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrafoResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/auth/estudiantes": {
+      "post": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Autenticar Estudiante",
+        "operationId": "autenticar_estudiante_api_v1_identity_auth_estudiantes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaToken"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas"
+          },
+          "403": {
+            "description": "Operación denegada por el Proxy"
+          },
+          "503": {
+            "description": "Integración o configuración pendiente"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/auth/personal": {
+      "post": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Autenticar Personal",
+        "operationId": "autenticar_personal_api_v1_identity_auth_personal_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudLoginPersonal"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaToken"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas"
+          },
+          "403": {
+            "description": "Operación denegada por el Proxy"
+          },
+          "503": {
+            "description": "Integración o configuración pendiente"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/me": {
+      "get": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Consultar Identidad",
+        "operationId": "consultar_identidad_api_v1_identity_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioPublico"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas"
+          },
+          "403": {
+            "description": "Operación denegada por el Proxy"
+          },
+          "503": {
+            "description": "Integración o configuración pendiente"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/identity/docentes": {
+      "post": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Crear Docente",
+        "operationId": "crear_docente_api_v1_identity_docentes_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearDocente"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioPublico"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas"
+          },
+          "403": {
+            "description": "Operación denegada por el Proxy"
+          },
+          "503": {
+            "description": "Integración o configuración pendiente"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Consultar Docentes",
+        "description": "Cuentas docentes; no incluye permisos ni asociaciones académicas.",
+        "operationId": "consultar_docentes_api_v1_identity_docentes_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limite"
+            }
+          },
+          {
+            "name": "desplazamiento",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Desplazamiento"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaDocentesRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas"
+          },
+          "403": {
+            "description": "Operación denegada por el Proxy"
+          },
+          "503": {
+            "description": "Integración o configuración pendiente"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/docentes/{id_docente}/autorizaciones": {
+      "put": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Asignar Autorizaciones",
+        "operationId": "asignar_autorizaciones_api_v1_identity_docentes__id_docente__autorizaciones_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_docente",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^\\S+$",
+              "title": "Id Docente"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutorizacionesDocenteSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioPublico"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas"
+          },
+          "403": {
+            "description": "Operación denegada por el Proxy"
+          },
+          "503": {
+            "description": "Integración o configuración pendiente"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/seguimiento/casos": {
+      "get": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Listar Casos Realizados",
+        "operationId": "listar_casos_realizados_api_v1_identity_seguimiento_casos_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ResumenCaso"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Casos Realizados Api V1 Identity Seguimiento Casos Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas"
+          },
+          "403": {
+            "description": "Operación denegada por el Proxy"
+          },
+          "503": {
+            "description": "Integración o configuración pendiente"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/identity/seguimiento/participaciones/{id_participacion}": {
+      "get": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Consultar Participacion",
+        "operationId": "consultar_participacion_api_v1_identity_seguimiento_participaciones__id_participacion__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_participacion",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^\\S+$",
+              "title": "Id Participacion"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetalleParticipacion"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas"
+          },
+          "403": {
+            "description": "Operación denegada por el Proxy"
+          },
+          "503": {
+            "description": "Integración o configuración pendiente"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/seguimiento/casos/{id_caso}/participaciones": {
+      "get": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Listar Participaciones",
+        "operationId": "listar_participaciones_api_v1_identity_seguimiento_casos__id_caso__participaciones_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_caso",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^\\S+$",
+              "title": "Id Caso"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResumenParticipacion"
+                  },
+                  "title": "Response Listar Participaciones Api V1 Identity Seguimiento Casos  Id Caso  Participaciones Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas"
+          },
+          "403": {
+            "description": "Operación denegada por el Proxy"
+          },
+          "503": {
+            "description": "Integración o configuración pendiente"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/seguimiento/sesiones/{id_sesion}/reporte": {
+      "get": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Descargar Reporte",
+        "operationId": "descargar_reporte_api_v1_identity_seguimiento_sesiones__id_sesion__reporte_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_sesion",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^\\S+$",
+              "title": "Id Sesion"
+            }
+          },
+          {
+            "name": "formato",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "xlsx",
+                    "pdf"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Formato"
+            }
+          },
+          {
+            "name": "version_publicacion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Version Publicacion"
+            }
+          },
+          {
+            "name": "id_grupo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Id Grupo"
+            }
+          },
+          {
+            "name": "id_estudiante",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Id Estudiante"
+            }
+          },
+          {
+            "name": "estado",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "COMPLETA",
+                    "PARCIAL",
+                    "AUSENTE"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Estado"
+            }
+          },
+          {
+            "name": "agrupar_por",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "grupo",
+                "estudiante"
+              ],
+              "type": "string",
+              "default": "grupo",
+              "title": "Agrupar Por"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Publicación oficial histórica: seleccionar formato=xlsx o formato=pdf",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas"
+          },
+          "403": {
+            "description": "Operación denegada por el Proxy"
+          },
+          "503": {
+            "description": "Integración o configuración pendiente"
+          },
+          "404": {
+            "description": "Publicación oficial o versión inexistente"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/seguimiento/participaciones/{id_participacion}/feedback": {
+      "post": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Registrar Feedback",
+        "operationId": "registrar_feedback_api_v1_identity_seguimiento_participaciones__id_participacion__feedback_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_participacion",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^\\S+$",
+              "title": "Id Participacion"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudFeedback"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackDocente"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas"
+          },
+          "403": {
+            "description": "Operación denegada por el Proxy"
+          },
+          "503": {
+            "description": "Integración o configuración pendiente"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Consultar Feedback Estudiantil",
+        "description": "Valoración general propia; no devuelve respuestas, correcciones ni notas.",
+        "operationId": "consultar_feedback_estudiantil_api_v1_identity_seguimiento_participaciones__id_participacion__feedback_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id_participacion",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^\\S+$",
+              "title": "Id Participacion"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackDocente"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas"
+          },
+          "403": {
+            "description": "Operación denegada por el Proxy"
+          },
+          "503": {
+            "description": "Integración o configuración pendiente"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/excepciones/repeticiones": {
+      "post": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Autorizar Repeticion",
+        "operationId": "autorizar_repeticion_api_v1_identity_excepciones_repeticiones_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudRepeticion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutorizacionRepeticion"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas"
+          },
+          "403": {
+            "description": "Operación denegada por el Proxy"
+          },
+          "503": {
+            "description": "Integración o configuración pendiente"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/scheduling/espacios": {
+      "get": {
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Listar Espacios",
+        "description": "Lista todos los espacios académicos disponibles.",
+        "operationId": "listar_espacios_scheduling_espacios_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EspacioAcademicoResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Espacios Scheduling Espacios Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Crear Espacio",
+        "description": "Registra un nuevo espacio académico (requiere autorización docente).",
+        "operationId": "crear_espacio_scheduling_espacios_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearEspacioAcademicoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EspacioAcademicoResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/scheduling/sesiones": {
+      "get": {
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Listar Sesiones",
+        "description": "Lista las sesiones programadas con filtros opcionales.",
+        "operationId": "listar_sesiones_scheduling_sesiones_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "docente_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Docente Id"
+            }
+          },
+          {
+            "name": "espacio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Espacio Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SesionResponse"
+                  },
+                  "title": "Response Listar Sesiones Scheduling Sesiones Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Crear Sesion",
+        "description": "Programa una sesión académica (RF-18).",
+        "operationId": "crear_sesion_scheduling_sesiones_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgramarSesionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/sesiones/{sesion_id}": {
+      "get": {
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Obtener Sesion",
+        "description": "Obtiene el detalle de una sesión académica.",
+        "operationId": "obtener_sesion_scheduling_sesiones__sesion_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/sesiones/{sesion_id}/estado": {
+      "post": {
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Actualizar Estado",
+        "description": "Inicia o finaliza una sesión de su docente (RF-19).",
+        "operationId": "actualizar_estado_scheduling_sesiones__sesion_id__estado_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CambiarEstadoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/sesiones/{sesion_id}/convocatorias": {
+      "get": {
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Listar Convocatorias",
+        "description": "Lista las convocatorias de una sesión perteneciente al docente (RF-20).",
+        "operationId": "listar_convocatorias_scheduling_sesiones__sesion_id__convocatorias_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConvocatoriaDetalleResponse"
+                  },
+                  "title": "Response Listar Convocatorias Scheduling Sesiones  Sesion Id  Convocatorias Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Convocar Estudiante",
+        "description": "Convoca a un estudiante a una sesión académica (RF-20).",
+        "operationId": "convocar_estudiante_scheduling_sesiones__sesion_id__convocatorias_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearConvocatoriaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConvocatoriaResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/sesiones/{sesion_id}/convocatorias/{convocatoria_id}": {
+      "delete": {
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Retirar Estudiante",
+        "description": "Retiro lógico idempotente; conserva código hash y referencias históricas.",
+        "operationId": "retirar_estudiante_scheduling_sesiones__sesion_id__convocatorias__convocatoria_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          },
+          {
+            "name": "convocatoria_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Convocatoria Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConvocatoriaDetalleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/validar-ingreso": {
+      "post": {
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Validar Ingreso Estudiante",
+        "description": "Requiere titular autenticado además de código, convocatoria y horario.",
+        "operationId": "validar_ingreso_estudiante_scheduling_validar_ingreso_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidarIngresoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SesionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/scheduling/notificaciones": {
+      "get": {
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Listar Notificaciones",
+        "description": "Solo las notificaciones del estudiante resuelto por el servidor.",
+        "operationId": "listar_notificaciones_scheduling_notificaciones_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "destinatario_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Destinatario Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotificacionResponse"
+                  },
+                  "title": "Response Listar Notificaciones Scheduling Notificaciones Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/calificaciones/notificar": {
+      "post": {
+        "tags": [
+          "Scheduling"
+        ],
+        "summary": "Notificar Calificacion Participacion",
+        "description": "RF-27 cerrado hasta verificar resultado oficial, titularidad y publicación.\n\nEl rol docente y dos UUID del cliente no prueban esas relaciones. Se conserva\nla ruta para responder explícitamente sin anunciar notas ni escribir avisos.\nNo confundir este contrato pendiente con los avisos de feedback ya compuestos.",
+        "operationId": "notificar_calificacion_participacion_scheduling_calificaciones_notificar_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificarCalificacionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Publicación oficial no disponible; operación sin escritura.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/scheduling/convocatorias/{convocatoria_id}/espera": {
+      "post": {
+        "tags": [
+          "Scheduling",
+          "Admisión"
+        ],
+        "summary": "Esperar",
+        "operationId": "esperar_scheduling_convocatorias__convocatoria_id__espera_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "convocatoria_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Convocatoria Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudEspera"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/convocatorias/{convocatoria_id}/admision": {
+      "get": {
+        "tags": [
+          "Scheduling",
+          "Admisión"
+        ],
+        "summary": "Consultar",
+        "operationId": "consultar_scheduling_convocatorias__convocatoria_id__admision_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "convocatoria_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Convocatoria Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/sesiones/{sesion_id}/evaluacion/preparacion": {
+      "get": {
+        "tags": [
+          "Scheduling",
+          "Preparación académica docente"
+        ],
+        "summary": "Preparación privada; sin notas ni permiso de publicación",
+        "operationId": "consultar_preparacion_scheduling_sesiones__sesion_id__evaluacion_preparacion_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreparacionSesionRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "JWT ausente/inválido o cuenta inactiva"
+          },
+          "403": {
+            "description": "Docente sin ámbito o recurso no accesible"
+          },
+          "503": {
+            "description": "Integridad, matrícula o configuración no acreditadas"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/sesiones/{sesion_id}/evaluacion/intentos/{id_intento}/resultado-tecnico": {
+      "get": {
+        "tags": [
+          "Scheduling",
+          "Resultados técnicos docentes"
+        ],
+        "summary": "Resultado técnico persistido, privado y no oficial",
+        "operationId": "consultar_resultado_scheduling_sesiones__sesion_id__evaluacion_intentos__id_intento__resultado_tecnico_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          },
+          {
+            "name": "id_intento",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "title": "Id Intento"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoTecnicoRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Autenticación inválida"
+          },
+          "403": {
+            "description": "Fuera del ámbito docente"
+          },
+          "404": {
+            "description": "Resultado aún no disponible"
+          },
+          "503": {
+            "description": "Configuración o integridad no acreditadas"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Scheduling",
+          "Resultados técnicos docentes"
+        ],
+        "summary": "Evaluar explícitamente un intento cerrado, sin publicación oficial",
+        "operationId": "evaluar_resultado_scheduling_sesiones__sesion_id__evaluacion_intentos__id_intento__resultado_tecnico_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          },
+          {
+            "name": "id_intento",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "title": "Id Intento"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoTecnicoRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Autenticación inválida"
+          },
+          "403": {
+            "description": "Fuera del ámbito docente"
+          },
+          "409": {
+            "description": "Intento abierto, resultado de otro motor o conflicto recuperable"
+          },
+          "503": {
+            "description": "Cálculo/configuración/persistencia no disponibles; reintento explícito"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/sesiones/{sesion_id}/evaluacion/consolidacion": {
+      "get": {
+        "tags": [
+          "Scheduling",
+          "Consolidación académica"
+        ],
+        "summary": "Revisar",
+        "operationId": "revisar_scheduling_sesiones__sesion_id__evaluacion_consolidacion_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia": {
+      "post": {
+        "tags": [
+          "Scheduling",
+          "Consolidación académica"
+        ],
+        "summary": "Ausencia",
+        "operationId": "ausencia_scheduling_sesiones__sesion_id__evaluacion_convocatorias__convocatoria_id__ausencia_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          },
+          {
+            "name": "convocatoria_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Convocatoria Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Motivo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia/rectificacion": {
+      "post": {
+        "tags": [
+          "Scheduling",
+          "Consolidación académica"
+        ],
+        "summary": "Rectificar",
+        "operationId": "rectificar_scheduling_sesiones__sesion_id__evaluacion_convocatorias__convocatoria_id__ausencia_rectificacion_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          },
+          {
+            "name": "convocatoria_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Convocatoria Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Rectificacion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/sesiones/{sesion_id}/evaluacion/visibilidad": {
+      "put": {
+        "tags": [
+          "Scheduling",
+          "Consolidación académica"
+        ],
+        "summary": "Visibilidad",
+        "operationId": "visibilidad_scheduling_sesiones__sesion_id__evaluacion_visibilidad_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Visibilidad"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/sesiones/{sesion_id}/evaluacion/publicaciones": {
+      "post": {
+        "tags": [
+          "Scheduling",
+          "Consolidación académica"
+        ],
+        "summary": "Publicar",
+        "operationId": "publicar_scheduling_sesiones__sesion_id__evaluacion_publicaciones_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Publicar"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Scheduling",
+          "Consolidación académica"
+        ],
+        "summary": "Consultar Publicacion",
+        "operationId": "consultar_publicacion_scheduling_sesiones__sesion_id__evaluacion_publicaciones_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/convocatorias/{convocatoria_id}/resultado": {
+      "get": {
+        "tags": [
+          "Scheduling",
+          "Consolidación académica"
+        ],
+        "summary": "Resultado Propio",
+        "operationId": "resultado_propio_scheduling_convocatorias__convocatoria_id__resultado_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "convocatoria_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Convocatoria Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attempt_id}/current-scenario": {
+      "get": {
+        "tags": [
+          "Participación — lectura privada"
+        ],
+        "summary": "Provisional: consulta privada del escenario actualmente habilitado",
+        "operationId": "consultar_escenario_actual_api_v1_attempts__attempt_id__current_scenario_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "title": "Attempt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EscenarioActualRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorHTTP"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorHTTP"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorHTTP"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorHTTP"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorHTTP"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorHTTP"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attempt_id}/progress": {
+      "get": {
+        "tags": [
+          "Participación — lectura privada"
+        ],
+        "summary": "Consultar Progreso Privado",
+        "operationId": "consultar_progreso_privado_api_v1_attempts__attempt_id__progress_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "title": "Attempt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgresoRespuesta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attempt_id}/decisions/{decision_id}": {
+      "post": {
+        "tags": [
+          "Participación — intento existente"
+        ],
+        "summary": "Registrar Primera Decision",
+        "operationId": "registrar_primera_decision_api_v1_attempts__attempt_id__decisions__decision_id__post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "title": "Attempt Id"
+            }
+          },
+          {
+            "name": "decision_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Decision Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeleccionSolicitud"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntentoRespuesta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{attempt_id}/finish": {
+      "post": {
+        "tags": [
+          "Participación — intento existente"
+        ],
+        "summary": "Finalizar Intento Existente",
+        "operationId": "finalizar_intento_existente_api_v1_attempts__attempt_id__finish_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "title": "Attempt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntentoRespuesta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "technical"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AutorizacionRepeticion": {
+        "properties": {
+          "id_sesion": {
+            "type": "string",
+            "title": "Id Sesion"
+          },
+          "id_estudiante": {
+            "type": "string",
+            "title": "Id Estudiante"
+          },
+          "id_docente_autorizador": {
+            "type": "string",
+            "title": "Id Docente Autorizador"
+          },
+          "fecha_autorizacion": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fecha Autorizacion"
+          },
+          "id_permiso_extra": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Permiso Extra"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_sesion",
+          "id_estudiante",
+          "id_docente_autorizador",
+          "fecha_autorizacion"
+        ],
+        "title": "AutorizacionRepeticion"
+      },
+      "AutorizacionesDocenteSchema": {
+        "properties": {
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/Rol"
+            },
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Roles",
+            "default": [
+              "DOCENTE"
+            ]
+          },
+          "permisos": {
+            "items": {
+              "type": "string",
+              "maxLength": 100,
+              "minLength": 1
+            },
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Permisos",
+            "default": []
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "AutorizacionesDocenteSchema"
+      },
+      "CambiarEstadoRequest": {
+        "properties": {
+          "accion": {
+            "type": "string",
+            "enum": [
+              "iniciar",
+              "finalizar"
+            ],
+            "title": "Accion"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accion"
+        ],
+        "title": "CambiarEstadoRequest"
+      },
+      "CasoDetalleResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "caso_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Caso Id"
+          },
+          "numero": {
+            "type": "integer",
+            "title": "Numero"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "desarrollo_situacional": {
+            "type": "string",
+            "title": "Desarrollo Situacional"
+          },
+          "contexto_historia": {
+            "type": "string",
+            "title": "Contexto Historia"
+          },
+          "tiempo_estimado_min": {
+            "type": "integer",
+            "title": "Tiempo Estimado Min"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoCaso"
+          },
+          "escenarios": {
+            "items": {
+              "$ref": "#/components/schemas/EscenarioResponse"
+            },
+            "type": "array",
+            "title": "Escenarios"
+          },
+          "rubrica": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RubricaResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "caso_id",
+          "numero",
+          "nombre",
+          "desarrollo_situacional",
+          "contexto_historia",
+          "tiempo_estimado_min",
+          "estado",
+          "escenarios",
+          "rubrica"
+        ],
+        "title": "CasoDetalleResponse"
+      },
+      "CasoPayload": {
+        "properties": {
+          "case": {
+            "$ref": "#/components/schemas/DatosCasoSchema"
+          },
+          "scenarios": {
+            "items": {
+              "$ref": "#/components/schemas/EscenarioSchema"
+            },
+            "type": "array",
+            "title": "Scenarios"
+          },
+          "rubric": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RubricaSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "case"
+        ],
+        "title": "CasoPayload",
+        "description": "Raíz del DSL: ``case``, ``scenarios`` (con ``questions`` y ``options``) y ``rubric``."
+      },
+      "CasoResumenResponse": {
+        "properties": {
+          "version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Version Id"
+          },
+          "caso_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Caso Id"
+          },
+          "numero": {
+            "type": "integer",
+            "title": "Numero"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "tiempo_estimado_min": {
+            "type": "integer",
+            "title": "Tiempo Estimado Min"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoCaso"
+          },
+          "creado_en": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Creado En"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version_id",
+          "caso_id",
+          "numero",
+          "nombre",
+          "tiempo_estimado_min",
+          "estado",
+          "creado_en"
+        ],
+        "title": "CasoResumenResponse"
+      },
+      "ConvocatoriaDetalleResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "sesion_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Sesion Id"
+          },
+          "estudiante_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Estudiante Id"
+          },
+          "estado": {
+            "type": "string",
+            "title": "Estado"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "sesion_id",
+          "estudiante_id",
+          "estado"
+        ],
+        "title": "ConvocatoriaDetalleResponse"
+      },
+      "ConvocatoriaPreparacionRespuesta": {
+        "properties": {
+          "id_convocatoria": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id Convocatoria"
+          },
+          "id_estudiante": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Estudiante"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "ACTIVA",
+              "RETIRADA"
+            ],
+            "title": "Estado"
+          },
+          "id_participacion": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Participacion"
+          },
+          "intentos": {
+            "items": {
+              "$ref": "#/components/schemas/IntentoPreparacionRespuesta"
+            },
+            "type": "array",
+            "title": "Intentos"
+          },
+          "pendientes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pendientes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_convocatoria",
+          "id_estudiante",
+          "estado",
+          "id_participacion",
+          "intentos",
+          "pendientes"
+        ],
+        "title": "ConvocatoriaPreparacionRespuesta"
+      },
+      "ConvocatoriaResponse": {
+        "properties": {
+          "convocatoria_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Convocatoria Id"
+          },
+          "codigo_acceso": {
+            "type": "string",
+            "title": "Codigo Acceso"
+          }
+        },
+        "type": "object",
+        "required": [
+          "convocatoria_id",
+          "codigo_acceso"
+        ],
+        "title": "ConvocatoriaResponse"
+      },
+      "CrearConvocatoriaRequest": {
+        "properties": {
+          "estudiante_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Estudiante Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "estudiante_id"
+        ],
+        "title": "CrearConvocatoriaRequest"
+      },
+      "CrearDocente": {
+        "properties": {
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/Rol"
+            },
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Roles",
+            "default": [
+              "DOCENTE"
+            ]
+          },
+          "permisos": {
+            "items": {
+              "type": "string",
+              "maxLength": 100,
+              "minLength": 1
+            },
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Permisos",
+            "default": []
+          },
+          "correo": {
+            "type": "string",
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Correo"
+          },
+          "nombre": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nombre"
+          },
+          "clave": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024,
+                "minLength": 1,
+                "format": "password",
+                "writeOnly": true
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clave"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "correo"
+        ],
+        "title": "CrearDocente"
+      },
+      "CrearEspacioAcademicoRequest": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Nombre"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nombre"
+        ],
+        "title": "CrearEspacioAcademicoRequest"
+      },
+      "CriterioResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "peso": {
+            "type": "string",
+            "title": "Peso"
+          },
+          "niveles": {
+            "items": {
+              "$ref": "#/components/schemas/NivelResponse"
+            },
+            "type": "array",
+            "title": "Niveles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "nombre",
+          "peso",
+          "niveles"
+        ],
+        "title": "CriterioResponse"
+      },
+      "CriterioSchema": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "peso": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Peso"
+          },
+          "niveles": {
+            "items": {
+              "$ref": "#/components/schemas/NivelSchema"
+            },
+            "type": "array",
+            "title": "Niveles"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "nombre",
+          "peso"
+        ],
+        "title": "CriterioSchema"
+      },
+      "CriterioTecnicoRespuesta": {
+        "properties": {
+          "criterio_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Criterio Id"
+          },
+          "suma_puntajes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suma Puntajes"
+          },
+          "preguntas_evaluables": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preguntas Evaluables"
+          },
+          "numerador": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numerador"
+          },
+          "denominador": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[1-9]\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Denominador"
+          },
+          "nivel_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nivel Id"
+          },
+          "puntaje_obtenido": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Puntaje Obtenido"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "criterio_id"
+        ],
+        "title": "CriterioTecnicoRespuesta"
+      },
+      "CuentaDocenteRespuesta": {
+        "properties": {
+          "id_usuario": {
+            "type": "string",
+            "title": "Id Usuario"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "correo": {
+            "type": "string",
+            "title": "Correo"
+          },
+          "activo": {
+            "type": "boolean",
+            "title": "Activo"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_usuario",
+          "nombre",
+          "correo",
+          "activo"
+        ],
+        "title": "CuentaDocenteRespuesta"
+      },
+      "DatosCasoSchema": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "desarrolloSituacional": {
+            "type": "string",
+            "title": "Desarrollosituacional"
+          },
+          "contextoHistoria": {
+            "type": "string",
+            "title": "Contextohistoria"
+          },
+          "tiempoEstimadoMin": {
+            "type": "integer",
+            "title": "Tiempoestimadomin"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "nombre",
+          "desarrolloSituacional",
+          "contextoHistoria",
+          "tiempoEstimadoMin"
+        ],
+        "title": "DatosCasoSchema",
+        "description": "Bloque ``case`` del payload."
+      },
+      "DetalleErrorHTTP": {
+        "properties": {
+          "codigo": {
+            "type": "string",
+            "title": "Codigo"
+          },
+          "mensaje": {
+            "type": "string",
+            "title": "Mensaje"
+          },
+          "campos": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campos"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "codigo",
+          "mensaje"
+        ],
+        "title": "DetalleErrorHTTP"
+      },
+      "DetalleParticipacion": {
+        "properties": {
+          "id_participacion": {
+            "type": "string",
+            "title": "Id Participacion"
+          },
+          "id_estudiante": {
+            "type": "string",
+            "title": "Id Estudiante"
+          },
+          "id_caso": {
+            "type": "string",
+            "title": "Id Caso"
+          },
+          "respuestas": {
+            "items": {
+              "$ref": "#/components/schemas/RespuestaSeguimiento"
+            },
+            "type": "array",
+            "title": "Respuestas"
+          },
+          "feedback_docente": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback Docente"
+          },
+          "intentos": {
+            "items": {
+              "$ref": "#/components/schemas/IntentoSeguimiento"
+            },
+            "type": "array",
+            "title": "Intentos",
+            "default": []
+          },
+          "version_caso_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Caso Id"
+          },
+          "id_convocatoria": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Convocatoria"
+          },
+          "id_sesion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Sesion"
+          },
+          "estado": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estado"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_participacion",
+          "id_estudiante",
+          "id_caso",
+          "respuestas",
+          "feedback_docente"
+        ],
+        "title": "DetalleParticipacion"
+      },
+      "ErrorHTTP": {
+        "properties": {
+          "detail": {
+            "$ref": "#/components/schemas/DetalleErrorHTTP"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorHTTP"
+      },
+      "EscenaGrafoResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "inicial": {
+            "type": "boolean",
+            "title": "Inicial"
+          },
+          "contexto": {
+            "type": "string",
+            "title": "Contexto"
+          },
+          "preguntas": {
+            "items": {
+              "$ref": "#/components/schemas/PreguntaGrafoResponse"
+            },
+            "type": "array",
+            "title": "Preguntas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "inicial",
+          "contexto",
+          "preguntas"
+        ],
+        "title": "EscenaGrafoResponse"
+      },
+      "EscenarioActualRespuesta": {
+        "properties": {
+          "id_escenario": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Escenario"
+          },
+          "contexto": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contexto"
+          },
+          "pregunta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PreguntaActualRespuesta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recorrido_finalizado": {
+            "type": "boolean",
+            "title": "Recorrido Finalizado"
+          },
+          "respondidas": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Respondidas"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_escenario",
+          "contexto",
+          "pregunta",
+          "recorrido_finalizado",
+          "respondidas"
+        ],
+        "title": "EscenarioActualRespuesta"
+      },
+      "EscenarioResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "orden": {
+            "type": "integer",
+            "title": "Orden"
+          },
+          "contexto_situacional": {
+            "type": "string",
+            "title": "Contexto Situacional"
+          },
+          "preguntas": {
+            "items": {
+              "$ref": "#/components/schemas/PreguntaResponse"
+            },
+            "type": "array",
+            "title": "Preguntas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "orden",
+          "contexto_situacional",
+          "preguntas"
+        ],
+        "title": "EscenarioResponse"
+      },
+      "EscenarioSchema": {
+        "properties": {
+          "orden": {
+            "type": "integer",
+            "title": "Orden"
+          },
+          "contextoSituacional": {
+            "type": "string",
+            "title": "Contextosituacional"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/PreguntaSchema"
+            },
+            "type": "array",
+            "title": "Questions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "orden",
+          "contextoSituacional"
+        ],
+        "title": "EscenarioSchema"
+      },
+      "EspacioAcademicoResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "nombre"
+        ],
+        "title": "EspacioAcademicoResponse"
+      },
+      "EstadoCaso": {
+        "type": "string",
+        "enum": [
+          "BORRADOR",
+          "PUBLICADO",
+          "ARCHIVADO"
+        ],
+        "title": "EstadoCaso",
+        "description": "Ciclo de vida de una versión de caso (``version_caso.estado``)."
+      },
+      "EstadoIntento": {
+        "type": "string",
+        "enum": [
+          "EN_CURSO",
+          "FINALIZADO",
+          "VENCIDO"
+        ],
+        "title": "EstadoIntento"
+      },
+      "FeedbackDocente": {
+        "properties": {
+          "id_participacion": {
+            "type": "string",
+            "title": "Id Participacion"
+          },
+          "id_docente": {
+            "type": "string",
+            "title": "Id Docente"
+          },
+          "texto": {
+            "type": "string",
+            "title": "Texto"
+          },
+          "fecha": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fecha"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_participacion",
+          "id_docente",
+          "texto",
+          "fecha"
+        ],
+        "title": "FeedbackDocente"
+      },
+      "GrafoResponse": {
+        "properties": {
+          "version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Version Id"
+          },
+          "escenas": {
+            "items": {
+              "$ref": "#/components/schemas/EscenaGrafoResponse"
+            },
+            "type": "array",
+            "title": "Escenas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version_id",
+          "escenas"
+        ],
+        "title": "GrafoResponse"
+      },
+      "GrafoSolicitud": {
+        "properties": {
+          "escenario_inicial_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Escenario Inicial Id"
+          },
+          "transiciones": {
+            "items": {
+              "$ref": "#/components/schemas/TransicionSolicitud"
+            },
+            "type": "array",
+            "title": "Transiciones"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "escenario_inicial_id",
+          "transiciones"
+        ],
+        "title": "GrafoSolicitud",
+        "description": "UUID recuperados del detalle de la versión; nunca orden editorial."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "IntentoPreparacionRespuesta": {
+        "properties": {
+          "id_intento": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Intento"
+          },
+          "numero": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Numero"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "EN_CURSO",
+              "FINALIZADO",
+              "VENCIDO"
+            ],
+            "title": "Estado"
+          },
+          "resultado_tecnico_disponible": {
+            "type": "boolean",
+            "title": "Resultado Tecnico Disponible"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_intento",
+          "numero",
+          "estado",
+          "resultado_tecnico_disponible"
+        ],
+        "title": "IntentoPreparacionRespuesta"
+      },
+      "IntentoRespuesta": {
+        "properties": {
+          "id_intento": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Intento"
+          },
+          "id_participacion": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Participacion"
+          },
+          "numero_intento": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Numero Intento"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoIntento"
+          },
+          "inicio": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Inicio"
+          },
+          "fin": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fin"
+          },
+          "vence_en": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Vence En"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_intento",
+          "id_participacion",
+          "numero_intento",
+          "estado",
+          "inicio",
+          "fin",
+          "vence_en"
+        ],
+        "title": "IntentoRespuesta"
+      },
+      "IntentoSeguimiento": {
+        "properties": {
+          "id_intento": {
+            "type": "string",
+            "title": "Id Intento"
+          },
+          "numero_intento": {
+            "type": "integer",
+            "title": "Numero Intento"
+          },
+          "estado": {
+            "type": "string",
+            "title": "Estado"
+          },
+          "inicio": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Inicio"
+          },
+          "fin": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fin"
+          },
+          "respondidas": {
+            "type": "integer",
+            "title": "Respondidas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_intento",
+          "numero_intento",
+          "estado",
+          "inicio",
+          "fin",
+          "respondidas"
+        ],
+        "title": "IntentoSeguimiento"
+      },
+      "Motivo": {
+        "properties": {
+          "motivo": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Motivo"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "motivo"
+        ],
+        "title": "Motivo"
+      },
+      "NivelResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "puntaje": {
+            "type": "string",
+            "title": "Puntaje"
+          },
+          "descriptor": {
+            "type": "string",
+            "title": "Descriptor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "nombre",
+          "puntaje",
+          "descriptor"
+        ],
+        "title": "NivelResponse"
+      },
+      "NivelSchema": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "puntaje": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Puntaje"
+          },
+          "descriptor": {
+            "type": "string",
+            "title": "Descriptor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "nombre",
+          "puntaje",
+          "descriptor"
+        ],
+        "title": "NivelSchema"
+      },
+      "NotificacionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "convocatoria_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Convocatoria Id"
+          },
+          "destinatario_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Destinatario Id"
+          },
+          "tipo": {
+            "type": "string",
+            "title": "Tipo"
+          },
+          "canal": {
+            "type": "string",
+            "title": "Canal"
+          },
+          "mensaje": {
+            "type": "string",
+            "title": "Mensaje"
+          },
+          "estado": {
+            "type": "string",
+            "title": "Estado"
+          },
+          "creada_en": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Creada En"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "convocatoria_id",
+          "destinatario_id",
+          "tipo",
+          "canal",
+          "mensaje",
+          "estado",
+          "creada_en"
+        ],
+        "title": "NotificacionResponse"
+      },
+      "NotificarCalificacionRequest": {
+        "properties": {
+          "estudiante_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Estudiante Id"
+          },
+          "participacion_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Participacion Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "estudiante_id",
+          "participacion_id"
+        ],
+        "title": "NotificarCalificacionRequest"
+      },
+      "OpcionActualRespuesta": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "texto": {
+            "type": "string",
+            "title": "Texto"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "texto"
+        ],
+        "title": "OpcionActualRespuesta"
+      },
+      "OpcionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "orden": {
+            "type": "integer",
+            "title": "Orden"
+          },
+          "texto": {
+            "type": "string",
+            "title": "Texto"
+          },
+          "es_correcta": {
+            "type": "boolean",
+            "title": "Es Correcta"
+          },
+          "justificacion": {
+            "type": "string",
+            "title": "Justificacion"
+          },
+          "valoraciones": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "format": "uuid"
+            },
+            "type": "object",
+            "title": "Valoraciones"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "orden",
+          "texto",
+          "es_correcta",
+          "justificacion",
+          "valoraciones"
+        ],
+        "title": "OpcionResponse"
+      },
+      "OpcionSchema": {
+        "properties": {
+          "orden": {
+            "type": "integer",
+            "title": "Orden"
+          },
+          "texto": {
+            "type": "string",
+            "title": "Texto"
+          },
+          "esCorrecta": {
+            "type": "boolean",
+            "title": "Escorrecta"
+          },
+          "justificacion": {
+            "type": "string",
+            "title": "Justificacion"
+          },
+          "valoraciones": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Valoraciones"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "orden",
+          "texto",
+          "esCorrecta",
+          "justificacion"
+        ],
+        "title": "OpcionSchema"
+      },
+      "PaginaDocentesRespuesta": {
+        "properties": {
+          "docentes": {
+            "items": {
+              "$ref": "#/components/schemas/CuentaDocenteRespuesta"
+            },
+            "type": "array",
+            "title": "Docentes"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limite": {
+            "type": "integer",
+            "title": "Limite"
+          },
+          "desplazamiento": {
+            "type": "integer",
+            "title": "Desplazamiento"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "docentes",
+          "total",
+          "limite",
+          "desplazamiento"
+        ],
+        "title": "PaginaDocentesRespuesta"
+      },
+      "PreguntaActualRespuesta": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "enunciado": {
+            "type": "string",
+            "title": "Enunciado"
+          },
+          "opciones": {
+            "items": {
+              "$ref": "#/components/schemas/OpcionActualRespuesta"
+            },
+            "type": "array",
+            "title": "Opciones"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "enunciado",
+          "opciones"
+        ],
+        "title": "PreguntaActualRespuesta"
+      },
+      "PreguntaGrafoResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "enunciado": {
+            "type": "string",
+            "title": "Enunciado"
+          },
+          "opciones": {
+            "items": {
+              "$ref": "#/components/schemas/TransicionResponse"
+            },
+            "type": "array",
+            "title": "Opciones"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "enunciado",
+          "opciones"
+        ],
+        "title": "PreguntaGrafoResponse"
+      },
+      "PreguntaResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "orden": {
+            "type": "integer",
+            "title": "Orden"
+          },
+          "enunciado": {
+            "type": "string",
+            "title": "Enunciado"
+          },
+          "opciones": {
+            "items": {
+              "$ref": "#/components/schemas/OpcionResponse"
+            },
+            "type": "array",
+            "title": "Opciones"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "orden",
+          "enunciado",
+          "opciones"
+        ],
+        "title": "PreguntaResponse"
+      },
+      "PreguntaSchema": {
+        "properties": {
+          "orden": {
+            "type": "integer",
+            "title": "Orden"
+          },
+          "enunciado": {
+            "type": "string",
+            "title": "Enunciado"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/OpcionSchema"
+            },
+            "type": "array",
+            "title": "Options"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "orden",
+          "enunciado"
+        ],
+        "title": "PreguntaSchema"
+      },
+      "PreguntaTecnicaRespuesta": {
+        "properties": {
+          "pregunta_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Pregunta Id"
+          },
+          "opcion_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Opcion Id"
+          },
+          "puntaje": {
+            "type": "string",
+            "title": "Puntaje"
+          },
+          "numero_paso": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Numero Paso"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "pregunta_id",
+          "opcion_id",
+          "puntaje",
+          "numero_paso"
+        ],
+        "title": "PreguntaTecnicaRespuesta"
+      },
+      "PreparacionSesionRespuesta": {
+        "properties": {
+          "id_sesion": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id Sesion"
+          },
+          "version_caso_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Version Caso Id"
+          },
+          "estado_sesion": {
+            "type": "string",
+            "enum": [
+              "SIN_INICIAR",
+              "EN_CURSO",
+              "FINALIZADO"
+            ],
+            "title": "Estado Sesion"
+          },
+          "convocatorias": {
+            "items": {
+              "$ref": "#/components/schemas/ConvocatoriaPreparacionRespuesta"
+            },
+            "type": "array",
+            "title": "Convocatorias"
+          },
+          "pendientes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pendientes"
+          },
+          "publicable": {
+            "type": "boolean",
+            "const": false,
+            "title": "Publicable"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_sesion",
+          "version_caso_id",
+          "estado_sesion",
+          "convocatorias",
+          "pendientes",
+          "publicable"
+        ],
+        "title": "PreparacionSesionRespuesta"
+      },
+      "ProgramarSesionRequest": {
+        "properties": {
+          "espacio_academico_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Espacio Academico Id"
+          },
+          "version_caso_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Version Caso Id"
+          },
+          "fecha_inicio": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fecha Inicio"
+          },
+          "fecha_fin": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fecha Fin"
+          },
+          "tiempo_maximo_minutos": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Tiempo Maximo Minutos"
+          },
+          "lugar": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lugar"
+          },
+          "mensaje_personalizado": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mensaje Personalizado"
+          }
+        },
+        "type": "object",
+        "required": [
+          "espacio_academico_id",
+          "version_caso_id",
+          "fecha_inicio",
+          "fecha_fin",
+          "tiempo_maximo_minutos"
+        ],
+        "title": "ProgramarSesionRequest"
+      },
+      "ProgresoRespuesta": {
+        "properties": {
+          "intento": {
+            "$ref": "#/components/schemas/IntentoRespuesta"
+          },
+          "decisiones_aplicables": {
+            "anyOf": [
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0.0
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisiones Aplicables"
+          },
+          "selecciones": {
+            "items": {
+              "$ref": "#/components/schemas/SeleccionRespuesta"
+            },
+            "type": "array",
+            "title": "Selecciones"
+          },
+          "pendientes": {
+            "anyOf": [
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0.0
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pendientes"
+          },
+          "total_aplicable": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Aplicable"
+          },
+          "respondidas": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Respondidas"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "intento",
+          "decisiones_aplicables",
+          "selecciones",
+          "pendientes",
+          "total_aplicable",
+          "respondidas"
+        ],
+        "title": "ProgresoRespuesta"
+      },
+      "Publicar": {
+        "properties": {
+          "revision_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Revision Sha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision_sha256"
+        ],
+        "title": "Publicar"
+      },
+      "Rectificacion": {
+        "properties": {
+          "motivo": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Motivo"
+          },
+          "id_confirmacion": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id Confirmacion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "motivo",
+          "id_confirmacion"
+        ],
+        "title": "Rectificacion"
+      },
+      "RespuestaSeguimiento": {
+        "properties": {
+          "id_pregunta": {
+            "type": "string",
+            "title": "Id Pregunta"
+          },
+          "id_opcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Opcion"
+          },
+          "retroalimentacion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retroalimentacion"
+          },
+          "id_intento": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Intento"
+          },
+          "numero_paso": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numero Paso"
+          },
+          "reflexion_estudiante": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reflexion Estudiante"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_pregunta",
+          "id_opcion",
+          "retroalimentacion"
+        ],
+        "title": "RespuestaSeguimiento"
+      },
+      "RespuestaToken": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "const": "bearer",
+            "title": "Token Type",
+            "default": "bearer"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "access_token"
+        ],
+        "title": "RespuestaToken"
+      },
+      "ResultadoTecnicoRespuesta": {
+        "properties": {
+          "id_sesion": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id Sesion"
+          },
+          "id_convocatoria": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id Convocatoria"
+          },
+          "id_participacion": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Participacion"
+          },
+          "id_intento": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Intento"
+          },
+          "id_resultado": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Resultado"
+          },
+          "version_caso_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Version Caso Id"
+          },
+          "rubrica_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Rubrica Id"
+          },
+          "version_regla": {
+            "type": "string",
+            "title": "Version Regla"
+          },
+          "modalidad": {
+            "type": "string",
+            "enum": [
+              "COMPLETA",
+              "PARCIAL"
+            ],
+            "title": "Modalidad"
+          },
+          "ambito": {
+            "type": "string",
+            "enum": [
+              "TECNICO",
+              "LABORATORIO"
+            ],
+            "title": "Ambito"
+          },
+          "oficial": {
+            "type": "boolean",
+            "const": false,
+            "title": "Oficial"
+          },
+          "fecha_calculo": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fecha Calculo"
+          },
+          "nota_final": {
+            "type": "string",
+            "title": "Nota Final"
+          },
+          "procedencia_sha256": {
+            "type": "string",
+            "title": "Procedencia Sha256"
+          },
+          "preguntas_exigidas": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preguntas Exigidas"
+          },
+          "preguntas_respondidas": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preguntas Respondidas"
+          },
+          "pendientes_con_cero": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pendientes Con Cero"
+          },
+          "suma_puntajes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suma Puntajes"
+          },
+          "preguntas": {
+            "items": {
+              "$ref": "#/components/schemas/PreguntaTecnicaRespuesta"
+            },
+            "type": "array",
+            "title": "Preguntas"
+          },
+          "criterios": {
+            "items": {
+              "$ref": "#/components/schemas/CriterioTecnicoRespuesta"
+            },
+            "type": "array",
+            "title": "Criterios"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_sesion",
+          "id_convocatoria",
+          "id_participacion",
+          "id_intento",
+          "id_resultado",
+          "version_caso_id",
+          "rubrica_id",
+          "version_regla",
+          "modalidad",
+          "ambito",
+          "oficial",
+          "fecha_calculo",
+          "nota_final",
+          "procedencia_sha256",
+          "preguntas",
+          "criterios"
+        ],
+        "title": "ResultadoTecnicoRespuesta"
+      },
+      "ResumenCaso": {
+        "properties": {
+          "id_caso": {
+            "type": "string",
+            "title": "Id Caso"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "version_caso_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Caso Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_caso",
+          "nombre"
+        ],
+        "title": "ResumenCaso"
+      },
+      "ResumenParticipacion": {
+        "properties": {
+          "id_participacion": {
+            "type": "string",
+            "title": "Id Participacion"
+          },
+          "id_estudiante": {
+            "type": "string",
+            "title": "Id Estudiante"
+          },
+          "id_caso": {
+            "type": "string",
+            "title": "Id Caso"
+          },
+          "version_caso_id": {
+            "type": "string",
+            "title": "Version Caso Id"
+          },
+          "id_convocatoria": {
+            "type": "string",
+            "title": "Id Convocatoria"
+          },
+          "id_sesion": {
+            "type": "string",
+            "title": "Id Sesion"
+          },
+          "estado": {
+            "type": "string",
+            "title": "Estado"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id_participacion",
+          "id_estudiante",
+          "id_caso",
+          "version_caso_id",
+          "id_convocatoria",
+          "id_sesion",
+          "estado"
+        ],
+        "title": "ResumenParticipacion"
+      },
+      "Rol": {
+        "type": "string",
+        "enum": [
+          "ADMINISTRADOR",
+          "DOCENTE",
+          "ESTUDIANTE"
+        ],
+        "title": "Rol"
+      },
+      "RubricaResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "version_regla": {
+            "type": "string",
+            "title": "Version Regla"
+          },
+          "criterios": {
+            "items": {
+              "$ref": "#/components/schemas/CriterioResponse"
+            },
+            "type": "array",
+            "title": "Criterios"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "nombre",
+          "version_regla",
+          "criterios"
+        ],
+        "title": "RubricaResponse"
+      },
+      "RubricaSchema": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "versionRegla": {
+            "type": "string",
+            "title": "Versionregla"
+          },
+          "criterios": {
+            "items": {
+              "$ref": "#/components/schemas/CriterioSchema"
+            },
+            "type": "array",
+            "title": "Criterios"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "nombre",
+          "versionRegla"
+        ],
+        "title": "RubricaSchema"
+      },
+      "SeleccionRespuesta": {
+        "properties": {
+          "id_decision": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              }
+            ],
+            "title": "Id Decision"
+          },
+          "id_opcion": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              }
+            ],
+            "title": "Id Opcion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_decision",
+          "id_opcion"
+        ],
+        "title": "SeleccionRespuesta"
+      },
+      "SeleccionSolicitud": {
+        "properties": {
+          "id_opcion": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              }
+            ],
+            "title": "Id Opcion"
+          },
+          "reflexion_estudiante": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reflexion Estudiante"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_opcion"
+        ],
+        "title": "SeleccionSolicitud"
+      },
+      "SesionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "espacio_academico_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Espacio Academico Id"
+          },
+          "version_caso_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Version Caso Id"
+          },
+          "docente_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Docente Id"
+          },
+          "fecha_inicio": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fecha Inicio"
+          },
+          "fecha_fin": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fecha Fin"
+          },
+          "tiempo_maximo_minutos": {
+            "type": "integer",
+            "title": "Tiempo Maximo Minutos"
+          },
+          "lugar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lugar"
+          },
+          "mensaje_personalizado": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mensaje Personalizado"
+          },
+          "estado": {
+            "type": "string",
+            "title": "Estado"
+          },
+          "finalizado_en": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalizado En"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "espacio_academico_id",
+          "version_caso_id",
+          "docente_id",
+          "fecha_inicio",
+          "fecha_fin",
+          "tiempo_maximo_minutos",
+          "lugar",
+          "mensaje_personalizado",
+          "estado",
+          "finalizado_en"
+        ],
+        "title": "SesionResponse"
+      },
+      "SolicitudEspera": {
+        "properties": {
+          "codigo_acceso": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "format": "password",
+            "title": "Codigo Acceso",
+            "writeOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "codigo_acceso"
+        ],
+        "title": "SolicitudEspera"
+      },
+      "SolicitudFeedback": {
+        "properties": {
+          "texto": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Texto"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "texto"
+        ],
+        "title": "SolicitudFeedback"
+      },
+      "SolicitudLogin": {
+        "properties": {
+          "correo": {
+            "type": "string",
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Correo"
+          },
+          "codigo_convocatoria": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "format": "password",
+            "title": "Codigo Convocatoria",
+            "writeOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "correo",
+          "codigo_convocatoria"
+        ],
+        "title": "SolicitudLogin"
+      },
+      "SolicitudLoginPersonal": {
+        "properties": {
+          "correo": {
+            "type": "string",
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Correo"
+          },
+          "clave": {
+            "type": "string",
+            "maxLength": 1024,
+            "minLength": 1,
+            "format": "password",
+            "title": "Clave",
+            "writeOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "correo",
+          "clave"
+        ],
+        "title": "SolicitudLoginPersonal"
+      },
+      "SolicitudRepeticion": {
+        "properties": {
+          "id_sesion": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Id Sesion"
+          },
+          "id_estudiante": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Id Estudiante"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_sesion",
+          "id_estudiante"
+        ],
+        "title": "SolicitudRepeticion"
+      },
+      "TransicionResponse": {
+        "properties": {
+          "opcion_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Opcion Id"
+          },
+          "tipo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo"
+          },
+          "destino_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destino Id"
+          },
+          "texto": {
+            "type": "string",
+            "title": "Texto"
+          }
+        },
+        "type": "object",
+        "required": [
+          "opcion_id",
+          "tipo",
+          "destino_id",
+          "texto"
+        ],
+        "title": "TransicionResponse"
+      },
+      "TransicionSolicitud": {
+        "properties": {
+          "opcion_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Opcion Id"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "ESCENA",
+              "FIN"
+            ],
+            "title": "Tipo"
+          },
+          "destino_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destino Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "opcion_id",
+          "tipo"
+        ],
+        "title": "TransicionSolicitud"
+      },
+      "UsuarioPublico": {
+        "properties": {
+          "id_usuario": {
+            "type": "string",
+            "title": "Id Usuario"
+          },
+          "correo": {
+            "type": "string",
+            "title": "Correo"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/Rol"
+            },
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Roles"
+          },
+          "permisos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Permisos"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_usuario",
+          "correo",
+          "roles",
+          "permisos"
+        ],
+        "title": "UsuarioPublico"
+      },
+      "ValidarIngresoRequest": {
+        "properties": {
+          "convocatoria_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Convocatoria Id"
+          },
+          "estudiante_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Estudiante Id"
+          },
+          "codigo_acceso": {
+            "type": "string",
+            "title": "Codigo Acceso"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "convocatoria_id",
+          "estudiante_id",
+          "codigo_acceso"
+        ],
+        "title": "ValidarIngresoRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VersionResponse": {
+        "properties": {
+          "caso_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Caso Id"
+          },
+          "version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Version Id"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoCaso"
+          }
+        },
+        "type": "object",
+        "required": [
+          "caso_id",
+          "version_id",
+          "estado"
+        ],
+        "title": "VersionResponse",
+        "description": "Respuesta de las operaciones de escritura."
+      },
+      "Visibilidad": {
+        "properties": {
+          "mostrar_provisional": {
+            "type": "boolean",
+            "title": "Mostrar Provisional"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mostrar_provisional"
+        ],
+        "title": "Visibilidad"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

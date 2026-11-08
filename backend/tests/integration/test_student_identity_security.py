@@ -9,6 +9,7 @@ con una Session que falla. Las identidades son fixtures explícitas.
 """
 
 from dataclasses import replace
+from contextlib import nullcontext
 from datetime import datetime, timedelta, timezone
 import hashlib
 from types import SimpleNamespace
@@ -47,7 +48,13 @@ def estudiante(entorno):
     entorno.app.include_router(router)
     entorno.app.dependency_overrides[exigir_politica_ingreso_configurada] = lambda: politica_fixture(15)
     entorno.app.dependency_overrides[exigir_contexto_convocatoria] = lambda: None
+    # Solo contrato aislado anterior con política LAB; admisión real se acredita en main.
+    from app.modules.scheduling.api.dependencies import obtener_admision
+    entorno.app.dependency_overrides[obtener_admision] = lambda: None
     db = Mock(spec=Session)
+    db.no_autoflush = nullcontext()
+    # Doble de ámbito SQL explícito; PG real se acredita en test_main_early_ingress.
+    db.scalar.return_value = 1
     consulta = Mock(spec=ConsultaVinculosAcademicos)
     consulta.obtener.return_value = (VinculoAcademico("7", SistemaAcademico.SCHEDULING, PROPIO),)
     resolver = ResolverIdentidadAcademica(consulta)
@@ -163,6 +170,7 @@ def test_notificaciones_filtra_por_estudiante_del_servidor(estudiante):
 
 
 def test_ingreso_correcto_usa_servicio_real_y_no_confia_en_headers(estudiante):
+    estudiante.db.scalars.return_value.all.return_value = [1]  # Matrícula del doble SQL.
     cabeceras = {**headers(estudiante), "X-Estudiante-Id": str(AJENO)}
     respuesta = solicitar(estudiante, "ingreso", cabeceras)
     assert respuesta.status_code == 200 and respuesta.json()["id"] == str(SESION)

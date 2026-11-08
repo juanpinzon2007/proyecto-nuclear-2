@@ -23,6 +23,12 @@ class RespuestaToken(EsquemaIdentity):
     token_type: Literal["bearer"] = "bearer"
 
 
+class SolicitudLoginPersonal(EsquemaIdentity):
+    correo: Annotated[str, Field(strict=True, min_length=3, max_length=254)]
+    # Compatible con el alta existente; sin inventar complejidad o caducidad.
+    clave: Annotated[SecretStr, Field(min_length=1, max_length=1024)]
+
+
 class AutorizacionesDocenteSchema(EsquemaIdentity):
     roles: frozenset[Rol] = frozenset({Rol.DOCENTE})
     permisos: frozenset[CodigoPermiso] = frozenset()
@@ -59,6 +65,20 @@ class UsuarioPublico(EsquemaIdentity):
     def desde_contexto(cls, contexto):
         return cls(id_usuario=contexto.id_usuario, correo=contexto.correo,
                    roles=contexto.roles, permisos=contexto.permisos)
+
+
+class CuentaDocenteRespuesta(EsquemaIdentity):
+    id_usuario: str
+    nombre: str
+    correo: str
+    activo: bool
+
+
+class PaginaDocentesRespuesta(EsquemaIdentity):
+    docentes: tuple[CuentaDocenteRespuesta, ...]
+    total: int
+    limite: int
+    desplazamiento: int
 
 
 class SolicitudRepeticion(EsquemaIdentity):

@@ -23,6 +23,7 @@ from app.modules.cases.infrastructure.models import CasoModel, VersionCasoModel
 from app.modules.identity.api import dependencies as identity
 from app.modules.identity.api.router import router as identity_router
 from app.modules.identity.infrastructure.models import UsuarioORM
+from app.modules.identity.infrastructure.repositories import RepositorioUsuariosSQLAlchemy
 from app.modules.identity.infrastructure.academic_identity_models import IdentidadAcademicaORM
 from app.modules.identity.infrastructure.academic_base_models import GrupoAcademicoORM, GrupoEstudianteORM, ConsentimientoORM
 from app.modules.identity.infrastructure.academic_models import PermisoIntentoExtraORM
@@ -39,10 +40,12 @@ from app.modules.scheduling.infrastructure.assignment_models import AsignacionCa
 from app.modules.scheduling.infrastructure.models import SesionProgramadaModel as S, ConvocatoriaModel as C
 from app.modules.scheduling.infrastructure.models import DocenteEspacioAcademicoModel
 from app.modules.scheduling.domain.ingress_policy import PoliticaIngresoNoConfigurada
+from app.modules.scheduling.infrastructure.admission import registrar_espera
 from tests.integration.test_cases_graph_authoring import pg_autoria, autor, crear, configurar  # noqa: F401
 from tests.integration.cases.conftest import payload_valido  # noqa: F401
 from tests.integration.test_attempt_start import IngresoLaboratorio, InicioLaboratorio
 from tests.integration.test_participation_provision import VinculacionLaboratorio
+from tests.integration.consent_support import FuenteConsentimientoLaboratorio
 
 
 class InicioExtraLaboratorio(InicioLaboratorio):
@@ -59,7 +62,7 @@ class InicioExtraLaboratorio(InicioLaboratorio):
 def integracion(autor, request):
     a=autor
     opciones=dict(politica_ingreso=IngresoLaboratorio(),politica_inicio=InicioLaboratorio(),
-                  politica_vinculacion=VinculacionLaboratorio())
+                  politica_vinculacion=VinculacionLaboratorio(),fuente_consentimiento=FuenteConsentimientoLaboratorio())
     opciones.update(getattr(request,"param",{}))
     reloj=SimpleNamespace(ahora=lambda:datetime(2026,11,2,12,1,tzinfo=timezone.utc))
     app=FastAPI()
@@ -69,6 +72,9 @@ def integracion(autor, request):
     app.dependency_overrides[identity.obtener_dominios_login]=lambda:("universidad.test",)
     app.dependency_overrides[exigir_politica_ingreso_configurada]=lambda:opciones["politica_ingreso"] or PoliticaIngresoNoConfigurada()
     app.dependency_overrides[obtener_reloj_ingreso]=lambda:reloj
+    # Solo contrato aislado anterior con política LAB; admisión real se acredita en main.
+    from app.modules.scheduling.api.dependencies import obtener_admision
+    app.dependency_overrides[obtener_admision] = lambda: None
     app.dependency_overrides[obtener_facade]=crear_dependencia_facade_8b(crear_sesion=a.sesiones,
         fechas=FechasPersistencia(timezone.utc),reloj=reloj)
     app.dependency_overrides[obtener_consulta_escenario]=crear_dependencia_escenario_8b(crear_sesion=a.sesiones,
@@ -118,6 +124,11 @@ def integracion(autor, request):
             json={'estudiante_id':str(uuid_estudiante)})
         assert conv.status_code==201,conv.text
         cid=conv.json()['convocatoria_id'];codigo=conv.json()['codigo_acceso']
+        # Preparación administrativa LAB: la concesión debe originarse en una
+        # espera real anterior a la habilitación; no inferirla de EN_CURSO.
+        with a.sesiones.begin() as s:
+            usuario=replace(RepositorioUsuariosSQLAlchemy(s).obtener(str(estudiante)),id_convocatoria=cid)
+            registrar_espera(s,usuario=usuario,convocatoria_id=UUID(cid),codigo=codigo,reloj=reloj)
         estado=client.post(f'/scheduling/sesiones/{sid}/estado',headers=a.headers,json={'accion':'iniciar'})
         assert estado.status_code==200,estado.text
         login=client.post('/api/v1/identity/auth/estudiantes',json={

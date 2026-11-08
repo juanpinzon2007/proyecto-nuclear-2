@@ -1,0 +1,495 @@
+{
+  "fecha_local": "2026-11-05T20:50:54.461583-05:00",
+  "rama": "feature/backend-continuidad",
+  "base": "33981c8da00996e4091d9dde9c0288bbac50c5ab",
+  "estado": "PROPUESTA SIN STAGING NI COMMITS",
+  "archivos_por_tipo": {
+    "codigo": [
+      {
+        "ruta": "backend/app/modules/identity/api/dependencies.py",
+        "bytes": 12151,
+        "sha256": "5602315147a8f407e4a453514e00725961cee217e354f7f4d118f3286f5ced2b",
+        "estado": "modificado",
+        "bloque": "Identity_login"
+      },
+      {
+        "ruta": "backend/app/modules/identity/api/router.py",
+        "bytes": 6211,
+        "sha256": "b4d02d79dc158e2944c7a696354ee5fae38562c98b9cb0ea76705bf80ada00c8",
+        "estado": "modificado",
+        "bloque": "Identity_login"
+      },
+      {
+        "ruta": "backend/app/modules/identity/api/schemas.py",
+        "bytes": 2673,
+        "sha256": "87cf7bdd9ef2cd3b644d9c502b745a3ffd9dd681c30595ee6d36f7a04c1aeb07",
+        "estado": "modificado",
+        "bloque": "Identity_login"
+      },
+      {
+        "ruta": "backend/app/modules/identity/application/authentication.py",
+        "bytes": 3057,
+        "sha256": "25b52f2b70ff01337747d411f18ef25ef8bdcab28aa7a0964eac35a52bcaf610",
+        "estado": "modificado",
+        "bloque": "Identity_login"
+      },
+      {
+        "ruta": "backend/app/modules/identity/application/consent.py",
+        "bytes": 1354,
+        "sha256": "b0734a28671839fa2c8c6fdac465ba6603b994a9c74b001913e47f6bd17ef47c",
+        "estado": "no_rastreado",
+        "bloque": "Consentimiento_inicio"
+      },
+      {
+        "ruta": "backend/app/modules/identity/application/ports.py",
+        "bytes": 5923,
+        "sha256": "90d722e7a7d6d8629b41e11714fd1b2be9d0d037d5541f226d024929b744c0fd",
+        "estado": "modificado",
+        "bloque": "Identity_login"
+      },
+      {
+        "ruta": "backend/app/modules/identity/application/services.py",
+        "bytes": 7507,
+        "sha256": "f7b52397ac35fe8b4ffa8ee4e3997c6fb3f1595c8cf67e8f33fd2aa0c9c19d78",
+        "estado": "modificado",
+        "bloque": "RF16"
+      },
+      {
+        "ruta": "backend/app/modules/identity/infrastructure/consent.py",
+        "bytes": 5513,
+        "sha256": "aad133e55f6cf01ee63d0b1bcb3338584f8acadbc282a66b5af1374c86a147eb",
+        "estado": "no_rastreado",
+        "bloque": "Consentimiento_inicio"
+      },
+      {
+        "ruta": "backend/app/modules/identity/infrastructure/credentials.py",
+        "bytes": 2585,
+        "sha256": "ab946696676cd8654847619034dc0c817444ee9f9031b9515e185979a79412ea",
+        "estado": "modificado",
+        "bloque": "Identity_login"
+      },
+      {
+        "ruta": "backend/app/modules/identity/infrastructure/followup.py",
+        "bytes": 7737,
+        "sha256": "ebcf4a2f9fdb89e005b49f37b48c5ca91122ddb16a8e1c71a559751bb8fb53b9",
+        "estado": "modificado",
+        "bloque": "RF15"
+      },
+      {
+        "ruta": "backend/app/modules/participation/api/dependencies.py",
+        "bytes": 8631,
+        "sha256": "f0e0ea8f96b519aae0878e91bd8196ff444e2d4c7ed262d0810621f6663c7821",
+        "estado": "modificado",
+        "bloque": "Consentimiento_inicio"
+      },
+      {
+        "ruta": "backend/app/modules/participation/api/provision_router.py",
+        "bytes": 3354,
+        "sha256": "afe5f0e613c2df0fd18e5594ca4bd886c3514ac0d634b0049f5e77a598e82474",
+        "estado": "modificado",
+        "bloque": "Consentimiento_inicio"
+      },
+      {
+        "ruta": "backend/app/modules/participation/application/start_policy.py",
+        "bytes": 1522,
+        "sha256": "e80185cf890e6e0fc2d565bffd5106f6233518cff5faa5152cf5ede4687f7575",
+        "estado": "modificado",
+        "bloque": "Consentimiento_inicio"
+      },
+      {
+        "ruta": "backend/app/modules/participation/infrastructure/provision.py",
+        "bytes": 12091,
+        "sha256": "59ab032719fbaefddd02959195f8c2900a0722b659e3f6cef5520ccb95e716ec",
+        "estado": "modificado",
+        "bloque": "Consentimiento_inicio"
+      },
+      {
+        "ruta": "backend/app/modules/scheduling/api/router.py",
+        "bytes": 16927,
+        "sha256": "e0f0a216d32894188003c55e80f4dd2366c92ce5f83b934b8694c8c2aecb40f2",
+        "estado": "modificado",
+        "bloque": "RF22"
+      },
+      {
+        "ruta": "backend/app/modules/scheduling/application/validar_ingreso.py",
+        "bytes": 2494,
+        "sha256": "84525ebcb3c2eb4fe1565e68aa45ea5f4f0d6fd90092212499c7f58699684049",
+        "estado": "modificado",
+        "bloque": "RF22"
+      },
+      {
+        "ruta": "backend/app/modules/scheduling/infrastructure/ingress_access.py",
+        "bytes": 1794,
+        "sha256": "6fa41c127e015c3fb30dfd12da02d87fa138fce53ee536950554ea2505658420",
+        "estado": "no_rastreado",
+        "bloque": "RF22"
+      },
+      {
+        "ruta": "backend/app/modules/scheduling/infrastructure/worker_runner.py",
+        "bytes": 2149,
+        "sha256": "08b3426f8f8ce4e9458377e260e3e5c8ed46a0a4d2a5c5411fe13f19ab4ffe30",
+        "estado": "modificado",
+        "bloque": "RF19_operativo"
+      }
+    ],
+    "pruebas": [
+      {
+        "ruta": "backend/tests/identity/test_ingress_temporal_sql.py",
+        "bytes": 9403,
+        "sha256": "7b37f14d766d1b1793e09fb7934dd5f07b870179917ee67a0100930c71a33902",
+        "estado": "modificado",
+        "bloque": "RF22"
+      },
+      {
+        "ruta": "backend/tests/identity/test_report_integrity.py",
+        "bytes": 2495,
+        "sha256": "96b257b5e52b80162c616c3d38a71907e3d27730f4cac32957c9bd7b79844f05",
+        "estado": "no_rastreado",
+        "bloque": "RF16"
+      },
+      {
+        "ruta": "backend/tests/identity/test_student_login_scheduling.py",
+        "bytes": 15583,
+        "sha256": "426938ae070c943f971f2ab1839b563c24f4b651ceb1791c129436af9a553eb7",
+        "estado": "modificado",
+        "bloque": "RF22"
+      },
+      {
+        "ruta": "backend/tests/integration/consent_support.py",
+        "bytes": 819,
+        "sha256": "94d5913973a454a8956f34930b6de9cbbb87ab984fc9f0decbb115d78a994ad9",
+        "estado": "no_rastreado",
+        "bloque": "Consentimiento_inicio"
+      },
+      {
+        "ruta": "backend/tests/integration/test_consent_before_provision.py",
+        "bytes": 8286,
+        "sha256": "68b6bcace64ec3cc9aac40deccc7ee63dbeb143582afa9b5492dbd6c2dd72746",
+        "estado": "no_rastreado",
+        "bloque": "Consentimiento_inicio"
+      },
+      {
+        "ruta": "backend/tests/integration/test_main_early_ingress.py",
+        "bytes": 14648,
+        "sha256": "d1778d10a021620498f279cce4ed2993997ffba2576cb7b963d2a0cded50fe5b",
+        "estado": "no_rastreado",
+        "bloque": "RF22"
+      },
+      {
+        "ruta": "backend/tests/integration/test_main_report_closed.py",
+        "bytes": 4884,
+        "sha256": "b989c4e651bd6b12dc10c1d2d221d20ae8f13f1533eb220756c9e64b29f1c100",
+        "estado": "no_rastreado",
+        "bloque": "RF16"
+      },
+      {
+        "ruta": "backend/tests/integration/test_main_staff_login.py",
+        "bytes": 11113,
+        "sha256": "5ac32e0b94b212491dd6f36f67f20a560853c7a2f72f5eb458b86318a69380b1",
+        "estado": "no_rastreado",
+        "bloque": "Identity_login"
+      },
+      {
+        "ruta": "backend/tests/integration/test_main_teacher_followup.py",
+        "bytes": 8204,
+        "sha256": "908545916397fb2c1ea01b4c101b1426280b855b7e43d56ef6e6805cbb12b487",
+        "estado": "no_rastreado",
+        "bloque": "RF15"
+      },
+      {
+        "ruta": "backend/tests/integration/test_participation_http_composition.py",
+        "bytes": 16977,
+        "sha256": "67fa909ef06d963e8530b8c0c63139f9483f0ee38964fa0246488db2a4b65262",
+        "estado": "modificado",
+        "bloque": "Consentimiento_inicio"
+      },
+      {
+        "ruta": "backend/tests/integration/test_participation_provision.py",
+        "bytes": 15525,
+        "sha256": "0907020d940f5d0a883f61b998f75d862e201311fecddd6fbd8ce30bf403b797",
+        "estado": "modificado",
+        "bloque": "Consentimiento_inicio"
+      },
+      {
+        "ruta": "backend/tests/integration/test_student_identity_security.py",
+        "bytes": 12355,
+        "sha256": "807f55054e458bbf62e0e1a1bfaa8e128f0c53789e464848b3e898bcab4869dd",
+        "estado": "modificado",
+        "bloque": "RF22"
+      },
+      {
+        "ruta": "backend/tests/integration/test_worker_process.py",
+        "bytes": 9376,
+        "sha256": "a9cdb3e63937197580f5d8a4cbe00ffcaf19936ed8c318a09d701ee524615ca1",
+        "estado": "no_rastreado",
+        "bloque": "RF19_operativo"
+      },
+      {
+        "ruta": "backend/tests/unit/scheduling/test_api_endpoints.py",
+        "bytes": 10963,
+        "sha256": "a5a926987358f966fc62ef1a1683e4f8fbdf00daa294154ebc3a1d6e79744221",
+        "estado": "modificado",
+        "bloque": "RF22"
+      },
+      {
+        "ruta": "backend/tests/unit/scheduling/test_ingress_policy.py",
+        "bytes": 5843,
+        "sha256": "23f5d760ae2f1afdd401919fcb4ab87a01320b972de415fc373b1719651f24ed",
+        "estado": "modificado",
+        "bloque": "RF22"
+      },
+      {
+        "ruta": "backend/tests/unit/scheduling/test_worker_runner.py",
+        "bytes": 893,
+        "sha256": "98734717afa927b17744287e22f2177d19b677ba94f1b78431c15a1d6a472e83",
+        "estado": "no_rastreado",
+        "bloque": "RF19_operativo"
+      }
+    ],
+    "documentacion": [
+      {
+        "ruta": "backend/app/modules/identity/README.md",
+        "bytes": 14898,
+        "sha256": "ac9e6fdd649d18d7b6b1c4dbbe16ccaa240d81bde54d614459f3285d1853fe20",
+        "estado": "modificado",
+        "bloque": "Identity_login"
+      },
+      {
+        "ruta": "backend/app/modules/participation/api/HTTP.md",
+        "bytes": 16621,
+        "sha256": "662a6372e75f2f1ab648d069bb30d80215f553f8c6a1bfaac4130eac2d29383b",
+        "estado": "modificado",
+        "bloque": "Consentimiento_inicio"
+      },
+      {
+        "ruta": "backend/app/modules/scheduling/POLITICA_TEMPORAL_INGRESO.md",
+        "bytes": 14645,
+        "sha256": "5e3d1cf25f5f50267cfe7e5fe57b52591f343dcd19d91cbef8de4e2a68192013",
+        "estado": "modificado",
+        "bloque": "RF22"
+      },
+      {
+        "ruta": "backend/docs/AUDITORIA_COBERTURA_BACKEND_20261105.md",
+        "bytes": 80769,
+        "sha256": "3ef1f1d168ae2af760679a94033a3b5bd3d205920133d80e3dd867a4dc7b6169",
+        "estado": "modificado",
+        "bloque": "Documentacion_compartida"
+      },
+      {
+        "ruta": "backend/docs/AUTENTICACION_PERSONAL_CONTRATO_PENDIENTE.md",
+        "bytes": 12207,
+        "sha256": "241f9659c5267be3ca423e53e3987ee30d6486e90e57e9d46a7df0e01382d61b",
+        "estado": "no_rastreado",
+        "bloque": "Identity_login"
+      },
+      {
+        "ruta": "backend/docs/BORRADOR_CONSENTIMIENTO_INFORMADO.md",
+        "bytes": 4275,
+        "sha256": "5b22764fd297f952def2ec944bb76094d9c547b5ea7902be587c8f80f721a2dd",
+        "estado": "no_rastreado",
+        "bloque": "Consentimiento_inicio"
+      },
+      {
+        "ruta": "backend/docs/CHECKPOINT_LOCAL_PROPUESTO_20261105.json",
+        "bytes": 8158,
+        "sha256": "e4b3c819b983a7cf6f734ecdb609cf341a1bdbf8100f5dbfc9207521179280c0",
+        "estado": "no_rastreado",
+        "bloque": "Documentacion_compartida"
+      },
+      {
+        "ruta": "backend/docs/CIERRE_CONTRATOS_INICIO_PRODUCTIVO_PROPUESTA.md",
+        "bytes": 23306,
+        "sha256": "95d01307dd20dae062768a8b3a9a28805049affbd226b8861b36909360332f51",
+        "estado": "no_rastreado",
+        "bloque": "Documentacion_compartida"
+      },
+      {
+        "ruta": "backend/docs/CONSENTIMIENTO_CONTRATO_Y_CHECKPOINT_20261105.md",
+        "bytes": 17269,
+        "sha256": "dea3da41e4f8ecb87500e954257058de4f219ea2b3b5db5bd6e6e5edfba37d07",
+        "estado": "no_rastreado",
+        "bloque": "Consentimiento_inicio"
+      },
+      {
+        "ruta": "backend/docs/CONSENTIMIENTO_E_INICIO_INTERNO.md",
+        "bytes": 13351,
+        "sha256": "aeff5a722ae271a6c585ae7972046fb95177aa85f3ccd78a0dfc652c5efe7885",
+        "estado": "no_rastreado",
+        "bloque": "Consentimiento_inicio"
+      },
+      {
+        "ruta": "backend/docs/DECISIONES_FUNCIONALES_RF22.md",
+        "bytes": 3475,
+        "sha256": "78c98a4196804a6ddd3613845c9c03fd2f9399db1cff507c96cc5e86bba586f5",
+        "estado": "no_rastreado",
+        "bloque": "RF22"
+      },
+      {
+        "ruta": "backend/docs/FASE_9B_INICIO_DESDE_CONVOCATORIA.md",
+        "bytes": 25907,
+        "sha256": "55b388265779737e34e10be53e2963b61f338ccd375fd77754fc4caebd963fe0",
+        "estado": "modificado",
+        "bloque": "Consentimiento_inicio"
+      },
+      {
+        "ruta": "backend/docs/LOGIN_PERSONAL_CORREO_CLAVE.md",
+        "bytes": 7513,
+        "sha256": "b9b83216f527ae3408c93cdd806d9df9e2c2c8a9b0abb0997ea607e2bd8d800a",
+        "estado": "no_rastreado",
+        "bloque": "Identity_login"
+      },
+      {
+        "ruta": "backend/docs/RF15_RF26_SEGUIMIENTO_DOCENTE.md",
+        "bytes": 13144,
+        "sha256": "de9ddf5605dac657d424ffd579e77fc2978ff6ff6b404f8fc77c1dfdae6bef21",
+        "estado": "modificado",
+        "bloque": "RF15"
+      },
+      {
+        "ruta": "backend/docs/RF16_REPORTE_Y_BLOQUEOS.md",
+        "bytes": 9221,
+        "sha256": "c81436319c45d3c94d881f214a54518f89ffdeda00d1103412d629d12f396e90",
+        "estado": "no_rastreado",
+        "bloque": "RF16"
+      },
+      {
+        "ruta": "backend/docs/RF19_WORKER_OPERATIVO.md",
+        "bytes": 6124,
+        "sha256": "a88190321c1107e263fdacd3d1c34da98ac748950076339e2f519ae1cced35ac",
+        "estado": "no_rastreado",
+        "bloque": "RF19_operativo"
+      },
+      {
+        "ruta": "backend/docs/RF22_INGRESO_ANTICIPADO.md",
+        "bytes": 19456,
+        "sha256": "bb9b2df22451f3ac6dc7a68a5b4e898f69f28fc074ce6d45a75d7a064f1ec8c0",
+        "estado": "no_rastreado",
+        "bloque": "RF22"
+      }
+    ]
+  },
+  "cantidad": 51,
+  "propuesta_commits": [
+    {
+      "orden": 1,
+      "bloque": "RF19_operativo",
+      "rutas": [
+        "backend/app/modules/scheduling/infrastructure/worker_runner.py",
+        "backend/docs/RF19_WORKER_OPERATIVO.md",
+        "backend/tests/integration/test_worker_process.py",
+        "backend/tests/unit/scheduling/test_worker_runner.py"
+      ],
+      "estado": "NO ejecutado, requiere aprobacion y verificacion por commit"
+    },
+    {
+      "orden": 2,
+      "bloque": "RF15",
+      "rutas": [
+        "backend/app/modules/identity/infrastructure/followup.py",
+        "backend/docs/RF15_RF26_SEGUIMIENTO_DOCENTE.md",
+        "backend/tests/integration/test_main_teacher_followup.py"
+      ],
+      "estado": "NO ejecutado, requiere aprobacion y verificacion por commit"
+    },
+    {
+      "orden": 3,
+      "bloque": "RF16",
+      "rutas": [
+        "backend/app/modules/identity/application/services.py",
+        "backend/docs/RF16_REPORTE_Y_BLOQUEOS.md",
+        "backend/tests/identity/test_report_integrity.py",
+        "backend/tests/integration/test_main_report_closed.py"
+      ],
+      "estado": "NO ejecutado, requiere aprobacion y verificacion por commit"
+    },
+    {
+      "orden": 4,
+      "bloque": "Identity_login",
+      "rutas": [
+        "backend/app/modules/identity/README.md",
+        "backend/app/modules/identity/api/dependencies.py",
+        "backend/app/modules/identity/api/router.py",
+        "backend/app/modules/identity/api/schemas.py",
+        "backend/app/modules/identity/application/authentication.py",
+        "backend/app/modules/identity/application/ports.py",
+        "backend/app/modules/identity/infrastructure/credentials.py",
+        "backend/docs/AUTENTICACION_PERSONAL_CONTRATO_PENDIENTE.md",
+        "backend/docs/LOGIN_PERSONAL_CORREO_CLAVE.md",
+        "backend/tests/integration/test_main_staff_login.py"
+      ],
+      "estado": "NO ejecutado, requiere aprobacion y verificacion por commit"
+    },
+    {
+      "orden": 5,
+      "bloque": "Consentimiento_inicio",
+      "rutas": [
+        "backend/app/modules/identity/application/consent.py",
+        "backend/app/modules/identity/infrastructure/consent.py",
+        "backend/app/modules/participation/api/HTTP.md",
+        "backend/app/modules/participation/api/dependencies.py",
+        "backend/app/modules/participation/api/provision_router.py",
+        "backend/app/modules/participation/application/start_policy.py",
+        "backend/app/modules/participation/infrastructure/provision.py",
+        "backend/docs/BORRADOR_CONSENTIMIENTO_INFORMADO.md",
+        "backend/docs/CONSENTIMIENTO_CONTRATO_Y_CHECKPOINT_20261105.md",
+        "backend/docs/CONSENTIMIENTO_E_INICIO_INTERNO.md",
+        "backend/docs/FASE_9B_INICIO_DESDE_CONVOCATORIA.md",
+        "backend/tests/integration/consent_support.py",
+        "backend/tests/integration/test_consent_before_provision.py",
+        "backend/tests/integration/test_participation_http_composition.py",
+        "backend/tests/integration/test_participation_provision.py"
+      ],
+      "estado": "NO ejecutado, requiere aprobacion y verificacion por commit"
+    },
+    {
+      "orden": 6,
+      "bloque": "RF22",
+      "rutas": [
+        "backend/app/modules/scheduling/POLITICA_TEMPORAL_INGRESO.md",
+        "backend/app/modules/scheduling/api/router.py",
+        "backend/app/modules/scheduling/application/validar_ingreso.py",
+        "backend/app/modules/scheduling/infrastructure/ingress_access.py",
+        "backend/docs/DECISIONES_FUNCIONALES_RF22.md",
+        "backend/docs/RF22_INGRESO_ANTICIPADO.md",
+        "backend/tests/identity/test_ingress_temporal_sql.py",
+        "backend/tests/identity/test_student_login_scheduling.py",
+        "backend/tests/integration/test_main_early_ingress.py",
+        "backend/tests/integration/test_student_identity_security.py",
+        "backend/tests/unit/scheduling/test_api_endpoints.py",
+        "backend/tests/unit/scheduling/test_ingress_policy.py"
+      ],
+      "estado": "NO ejecutado, requiere aprobacion y verificacion por commit"
+    },
+    {
+      "orden": 7,
+      "bloque": "Documentacion_compartida",
+      "rutas": [
+        "backend/docs/AUDITORIA_COBERTURA_BACKEND_20261105.md",
+        "backend/docs/CHECKPOINT_LOCAL_PROPUESTO_20261105.json",
+        "backend/docs/CIERRE_CONTRATOS_INICIO_PRODUCTIVO_PROPUESTA.md",
+        "backend/docs/CHECKPOINT_BACKEND_CONTRATOS_20261105.json"
+      ],
+      "estado": "NO ejecutado, requiere aprobacion y verificacion por commit"
+    }
+  ],
+  "fuera_seleccion": {
+    "inventario_completo": "evidencias/cierre_contratos_20261106T014534Z/inventario_completo.json",
+    "exclusiones": [
+      ".env",
+      "secretos",
+      "evidencias temporales",
+      "respaldos",
+      "ZIP",
+      "Word y documentos universitarios ajenos",
+      "caches",
+      "backend/scripts/run_unit_tests.py"
+    ],
+    "rutas_aprobadas_ya_identicas_a_HEAD": [
+      "backend/app/modules/scheduling/domain/ingress_policy.py"
+    ],
+    "python_runtime_tests_pendientes_fuera": []
+  },
+  "control_seguridad": "Patrones de claves privadas, JWT literales y URL con clave no detectados; credenciales sinteticas de pruebas no son productivas. No equivale a auditoria exhaustiva.",
+  "manifiesto_sin_autorreferencia": "backend/docs/CHECKPOINT_BACKEND_CONTRATOS_20261105.json",
+  "nota_manifiesto": "El propio manifiesto se propone en el ultimo commit documental, sin autorreferencia de hash. Se preserva el manifiesto historico anterior."
+}

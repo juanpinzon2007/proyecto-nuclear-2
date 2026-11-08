@@ -172,7 +172,7 @@ def test_flujo_completo_programacion_y_ciclo_vida(
     assert resp_fin.json()["estado"] == "FINALIZADO"
     assert resp_fin.json()["finalizado_en"] is not None
 
-    # 10. Notificar calificación al estudiante
+    # 10. El cierre de sesión no acredita una calificación oficial persistida.
     participacion_id = uuid.uuid4()
     resp_calif = client.post(
         "/scheduling/calificaciones/notificar",
@@ -181,5 +181,5 @@ def test_flujo_completo_programacion_y_ciclo_vida(
             "participacion_id": str(participacion_id),
         },
     )
-    assert resp_calif.status_code == 201
-    assert resp_calif.json()["tipo"] == "CALIFICACION"
+    assert resp_calif.status_code == 503
+    assert resp_calif.headers['Cache-Control'] == 'no-store'

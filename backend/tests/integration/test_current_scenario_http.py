@@ -110,13 +110,11 @@ def test_rama_alternativa_y_fin_solo_reflejan_respuestas_confirmadas(integracion
     assert snapshot(h, ik) == antes and antes[0][0].estado == 'EN_CURSO'
 
 
-def test_otra_edicion_publicada_y_archivo_no_sustituyen_escenario_historico(integracion):
+def publicar_segunda_edicion_y_archivar(h):
     from app.modules.cases.infrastructure.repositories.caso_repository import CasoRepository
     from app.modules.cases.infrastructure.models import VersionCasoModel, CasoModel
     from tests.integration.test_cases_history import nuevo
     from tests.integration.test_cases_graph_authoring import configurar
-    h = integracion; ik, path = comenzar(h)
-    original = h.client.get(path, headers=h.headers)
     # Falta API de nueva edición: preparación administrativa explícita, reutilizada de RF18.
     with h.sesiones.begin() as s:
         anterior = s.get(VersionCasoModel, h.version); caso = s.get(CasoModel, anterior.caso_id)
@@ -130,9 +128,16 @@ def test_otra_edicion_publicada_y_archivo_no_sustituyen_escenario_historico(inte
     assert configurar(h.a, str(v.id), g).status_code == 200
     assert h.client.post(f'/api/v1/cases/{v.id}/publish', headers=h.a.headers).status_code == 200
     assert h.client.post(f'/api/v1/cases/{h.version}/archive', headers=h.a.headers).status_code == 200
+    return e['id']
+
+
+def test_otra_edicion_publicada_y_archivo_no_sustituyen_escenario_historico(integracion):
+    h = integracion; ik, path = comenzar(h)
+    original = h.client.get(path, headers=h.headers)
+    nueva_escena = publicar_segunda_edicion_y_archivar(h)
     actual = h.client.get(path, headers=h.headers)
     assert actual.status_code == 200 and actual.json() == original.json()
-    assert e['id'] not in actual.text
+    assert nueva_escena not in actual.text
 
 
 @pytest.mark.parametrize('fallo', ['grafo', 'sql'])

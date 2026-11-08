@@ -1,4 +1,38 @@
+> Actualización vigente: sala de espera y admisión aprobadas por el equipo.
+> Se registran solicitudes propias antes de habilitar y se congela el conjunto
+> elegible en la transacción docente SIN_INICIAR → EN_CURSO. EN_CURSO sin concesión
+> individual rechaza con 403. No hay tolerancia anticipada ni tardía ni presencia
+> online inferida. Las afirmaciones anteriores sobre falta de señal de admisión
+> quedan como historia; se conserva el cierre del inicio por consentimiento oficial.
+> Contrato, migración y evidencia: `backend/docs/SALA_ESPERA_ADMISION_DISENO.md`.
+
+---
+
+> Regla definitiva: sin anticipación ni tolerancia tardía. EN_CURSO no basta para
+> comprobar oportunidad; falta señal de apertura/cierre de admisión o equivalente
+> aprobado. Se conserva 503, sin intervalos inventados ni igualdad de timestamps.
+> Ver `backend/docs/CONSENTIMIENTO_E_INICIO_INTERNO.md` para el contrato pendiente.
+
+# Corrección vigente RF-22: ingreso solo después de habilitación
+
+**La anticipación de diez minutos fue descartada por corrección del requisito.**
+Se exige EN_CURSO persistido tras habilitación efectiva; la hora programada no
+habilita. No hay tolerancia anticipada ni posterior nueva. El proveedor temporal
+productivo sigue cerrado si falta una regla completa. Contrato y evidencia:
+[RF22_INGRESO_ANTICIPADO.md](../../../docs/RF22_INGRESO_ANTICIPADO.md) (nombre histórico).
+Registro: [DECISIONES_FUNCIONALES_RF22.md](../../../docs/DECISIONES_FUNCIONALES_RF22.md).
+
+---
+
+## Notas históricas: la autorización anticipada citada abajo queda sustituida
+
 # Fase 7: contrato temporal seguro, política académica pendiente
+
+> Antecedente histórico. La decisión funcional posterior del equipo autoriza
+> validar ingreso desde diez minutos antes del inicio programado, sin autorizar
+> inicio de simulación ni definir tolerancia posterior. Implementación actual,
+> límites y pruebas: [RF22_INGRESO_ANTICIPADO.md](../../../docs/RF22_INGRESO_ANTICIPADO.md).
+> Las afirmaciones siguientes sobre ausencia de toda política describen Fase 7.
 
 Rama feature/integracion-backend. Se conservan las fases anteriores sin commit y
 la carpeta evidencias. No se modificaron .env, ORM, migraciones, identificadores,
