@@ -136,7 +136,7 @@ class ConsultaPreparacionEvaluacionSQLAlchemy:
                         fechas=self.fechas, lecturas=lector).obtener_tecnico(id_intento=i.id_intento)
                     if tecnico.id_resultado != rid or tecnico.datos.id_participacion != p.id_participacion:
                         raise IntegracionPendiente()
-                    pendientes.append('RESULTADO_LABORATORIO_NO_OFICIAL')
+                    pendientes.append('RESULTADO_TECNICO_NO_OFICIAL' if tecnico.ambito=='TECNICO' else 'RESULTADO_LABORATORIO_NO_OFICIAL')
                 detalle.append(IntentoParaRevision(i.id_intento, i.numero_intento, i.estado, rid))
             filas.append(ConvocatoriaParaRevision(c.id, propietario, c.estado,
                 p.id_participacion if p is not None else None, tuple(detalle), tuple(dict.fromkeys(pendientes))))

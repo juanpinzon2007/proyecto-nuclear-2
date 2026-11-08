@@ -176,8 +176,8 @@ def test_columnas_y_claves_coinciden_con_el_dbml_original(modelo):
 
 def test_inventario_aprobado_metadata_y_limites_de_la_revision():
     m = registrar_modelos_integrados()
-    assert set(m.tables) == ANTERIORES | NUEVAS | {"asignacion_caso", "participacion", "intento", "permiso_intento_extra", "paso_simulacion", "resultado_intento", "resultado_criterio", "retroalimentacion_docente", "docente_espacio_academico", "documento_consentimiento_version", "seleccion_consentimiento"}
-    assert len(m.tables) == 33
+    assert set(m.tables) == ANTERIORES | NUEVAS | {"asignacion_caso", "participacion", "intento", "permiso_intento_extra", "paso_simulacion", "resultado_intento", "resultado_criterio", "retroalimentacion_docente", "docente_espacio_academico", "documento_consentimiento_version", "seleccion_consentimiento", "resultado_calculo_preguntas", "resultado_pregunta", "resultado_criterio_exacto"}
+    assert len(m.tables) == 36
     assert {t.name for t in m.sorted_tables} == set(m.tables)
     assert set(academic_metadata.tables) == set()
     assert not NUEVAS & set(academic_metadata.tables)
@@ -186,7 +186,7 @@ def test_inventario_aprobado_metadata_y_limites_de_la_revision():
     assert len(re.findall(r"^Table ", DBML.read_text(encoding="utf-8"), re.M)) == 28
 
     script = ScriptDirectory.from_config(config_alembic(None))
-    assert script.get_heads() == ["20261106_consent_versions"]
+    assert script.get_heads() == ["20261107_question_results"]
     assert script.get_revision("20261102_steps_uuid").down_revision == "20261102_participation_history"
     assert script.get_revision("20261102_participation_history").down_revision == "20261102_assignment_bridge"
     assert script.get_revision("20261102_assignment_bridge").down_revision == "20261102_cases_history_guard"

@@ -57,7 +57,7 @@ def preparar_esquema_actual_aislado(conexion):
     metadata=registrar_modelos_integrados()
     metadata.create_all(conexion)
     preparar_consentimiento_sqlite(conexion)
-    for nombre in ("criterio_rubrica", "nivel_rubrica"):
+    for nombre in ("criterio_rubrica", "nivel_rubrica", "opcion_respuesta"):
         for indice in metadata.tables[nombre].indexes:
             if indice.name.startswith("uq_8c_"):
                 indice.create(conexion, checkfirst=True)
@@ -146,9 +146,14 @@ def columnas_convocatoria_para_fixture_historica(conexion):
 
 
 def omitir_solo_constraints_admision_futura(objeto,nombre,tipo,reflejado,comparado):
-    """Comparación de una revisión histórica que aún NO instala esta admisión."""
-    if tipo=='table' and nombre in {'documento_consentimiento_version','seleccion_consentimiento'}:return False
-    return nombre not in {'fk_consentimiento_documento','fk_participacion_consentimiento','ck_consentimiento_evidencia','uq_consentimiento_explicito_vigente','fk_espera_sesion_version','fk_admision_evento_sesion',
+    """Vista histórica anterior a admisión, consentimiento y detalle exacto.
+
+    Solo excluye objetos de revisiones posteriores. Los tests de la cabeza
+    actual comparan todo el metadata sin este filtro.
+    """
+    if tipo=='table' and nombre in {'documento_consentimiento_version','seleccion_consentimiento',
+            'resultado_calculo_preguntas','resultado_pregunta','resultado_criterio_exacto'}:return False
+    return nombre not in {'uq_8c_opcion_pregunta','fk_consentimiento_documento','fk_participacion_consentimiento','ck_consentimiento_evidencia','uq_consentimiento_explicito_vigente','fk_espera_sesion_version','fk_admision_evento_sesion',
         'ck_espera_pareja','ck_admision_espera','uq_evento_id_sesion_admision'}
 
 
@@ -176,12 +181,12 @@ def retirar_ddl_resultados_sqlite(conexion):
         raise RuntimeError("Retirada DDL auxiliar reservada a SQLite en memoria.")
     from app.db.models import registrar_modelos_integrados
     metadata=registrar_modelos_integrados()
-    for nombre in ("seleccion_consentimiento","documento_consentimiento_version","docente_espacio_academico","retroalimentacion_docente","resultado_criterio","resultado_intento"):
+    for nombre in ("resultado_criterio_exacto","resultado_pregunta","resultado_calculo_preguntas","seleccion_consentimiento","documento_consentimiento_version","docente_espacio_academico","retroalimentacion_docente","resultado_criterio","resultado_intento"):
         if inspect(conexion).has_table(nombre):
             if conexion.scalar(text(f"SELECT 1 FROM {nombre} LIMIT 1")) is not None:
                 raise RuntimeError("No eliminar resultados existentes.")
             metadata.tables[nombre].drop(conexion)
-    for nombre in ("nivel_rubrica","criterio_rubrica"):
+    for nombre in ("nivel_rubrica","criterio_rubrica","opcion_respuesta"):
         for indice in metadata.tables[nombre].indexes:
             if indice.name.startswith("uq_8c_"):
                 indice.drop(conexion,checkfirst=True)

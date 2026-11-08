@@ -1,8 +1,12 @@
 """Resultados técnicos inmutables, sin vía de lectura/publicación oficial."""
+from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, Context, localcontext
 import json
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.modules.participation.infrastructure.question_evaluation import CalificacionTecnicaPreguntas
 
 from sqlalchemy import select, text
 
@@ -26,7 +30,8 @@ class ResultadoTecnico:
     fecha_calculo: datetime
     procedencia: str
     sha256: str
-    datos: DatosEvaluacion
+    datos: DatosEvaluacion | CalificacionTecnicaPreguntas
+    ambito: str = 'LABORATORIO'
 
     @property
     def oficial(self) -> bool:
@@ -45,6 +50,10 @@ class RepositorioResultadosTecnicosSQLAlchemy:
             raise PoliticaEvaluacionPendiente("La persistencia técnica exige transacción PostgreSQL de laboratorio.")
         if self.sesion.scalar(text("SELECT current_database()"))!="sps_identity_test_resolver":
             raise PoliticaEvaluacionPendiente("La base no está identificada como laboratorio desechable.")
+
+    def _tecnico(self):
+        if not self.sesion.in_transaction() or self.sesion.get_bind().dialect.name!='postgresql':
+            raise PoliticaEvaluacionPendiente('La persistencia exacta exige una transacción PostgreSQL.')
 
     def _verificar(self, documento):
         try:
@@ -112,9 +121,13 @@ class RepositorioResultadosTecnicosSQLAlchemy:
         return ResultadoTecnico(identificador,fecha_calculo,procedencia,huella(procedencia),datos)
 
     def obtener_tecnico(self, *, id_intento):
-        self._laboratorio()
+        self._tecnico()
         r=self.sesion.execute(select(R.__table__).where(R.id_intento==id_intento)).mappings().one_or_none()
         if r is None: raise RecursoNoDisponible("Resultado técnico no disponible.")
+        if r['ambito']=='TECNICO':
+            from app.modules.participation.infrastructure.question_result_repository import DetallesPreguntasSQLAlchemy
+            return DetallesPreguntasSQLAlchemy(self).leer(r)
+        self._laboratorio()
         if r["ambito"]!="LABORATORIO" or huella(r["procedencia"])!=r["procedencia_sha256"]:
             raise EvaluacionInconsistente("Ámbito o huella del resultado incompatible.")
         datos,definicion,ev=self._verificar(r["procedencia"])

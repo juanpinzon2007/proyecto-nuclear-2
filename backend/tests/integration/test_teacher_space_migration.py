@@ -36,6 +36,7 @@ def test_upgrade_integridad_sin_autoconcesion_y_downgrade_controlado():
             assert c.scalar(select(func.count()).select_from(G))==0
             assert len(inspect(c).get_foreign_keys(G.__tablename__))==2
             assert inspect(c).get_pk_constraint(G.__tablename__)['constrained_columns']==['id_docente','espacio_academico_id']
+            assert not {'resultado_calculo_preguntas', 'resultado_pregunta', 'resultado_criterio_exacto'} & set(inspect(c).get_table_names())
             from tests.identity.academic_identity_support import omitir_solo_constraints_admision_futura
             assert compare_metadata(MigrationContext.configure(c,opts={'include_object':omitir_solo_constraints_admision_futura}),registrar_modelos_integrados())==[]
             assert c.execute(select(S.__table__).where(S.id==h.sesion)).one()==sesion
