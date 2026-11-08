@@ -1,3 +1,153 @@
+# RF-16: reportes oficiales Excel y PDF — corte vigente 8/11/2026
+
+## Contrato acreditable y fuente
+
+RF-16 (fuente académica central, p. 4) exige descargar resultados académicos,
+parciales y ausencias. UC-07 (p. 12) exige seleccionar sesión/estudiantes,
+aplicar alcance docente en backend y emitir encabezados/mensaje explícito sin datos.
+RN-18 restringe exportación al ámbito docente. La solicitud vigente exige XLSX/PDF.
+No se crea un estado APROBADO ni una fórmula en el exportador.
+
+Se reutiliza el GET de Identity y el Proxy. El lector oficial comparte con
+`CicloAcademicoSQL` la autorización sesión/caso/grupos y la verificación del
+snapshot canónico publicado (`publicacion_evaluacion` + `resultado_participacion`).
+La selección del máximo, ausencia confirmada, exclusión de retiradas y autorización
+de publicación ya fueron resueltas por ese servicio. El reporte copia el resultado;
+no invoca estrategias, consolidación ni publicación. Una rectificación sin nueva
+publicación conserva la última versión oficial. Puede descargarse una versión previa.
+
+## HTTP registrado en app.main
+
+`GET /api/v1/identity/seguimiento/sesiones/{id_sesion}/reporte`
+
+| Parámetro | Contrato |
+|---|---|
+| formato | `xlsx` o `pdf`; sin él, el antiguo CSV conserva su 503 |
+| version_publicacion | Entero positivo; omitido selecciona última publicación oficial |
+| id_grupo | Entero positivo presente en la publicación autorizada |
+| id_estudiante | Entero positivo repetible; selección de estudiantes de la publicación |
+| estado | COMPLETA, PARCIAL o AUSENTE; sin inventar aprobación académica |
+| agrupar_por | grupo (predeterminado de presentación) o estudiante; orden estable por nombre/ID |
+
+200 binario con Content-Disposition, MIME específico, Cache-Control:no-store,
+X-Content-Type-Options:nosniff, X-Publicacion-Id/Version/SHA256. 401 sin autenticación,
+JWT inválido o cuenta inactiva; 403 rol/ámbito/selección ajenos; 404 sin publicación
+o versión inexistente; 422 parámetros inválidos; 503 configuración histórica ausente,
+fuente inconsistente o fallo de exportador. No devuelve detalles internos de error.
+Docente administrador no recibe privilegios implícitos. Cliente no aporta identidad.
+
+La lectura usa una Session propia, snapshot REPEATABLE READ, READ ONLY y
+no_autoflush; termina mediante rollback al cerrar, nunca flush ni commit. El archivo
+se genera en memoria una vez cerrada la transacción de lectura. No hay DML, archivos
+temporales con datos estudiantiles ni llamadas de red externas en el serializador.
+
+## Contenido y privacidad
+
+XLSX real: Publicacion, Resultados, Intentos y Antecedentes. Nota oficial numérica
+con dos decimales; fechas de intentos son valores datetime UTC con etiqueta explícita;
+ID y conteos enteros. Texto siempre literal, nunca fórmula/hipervínculo; cabeceras,
+ancho/alto de filas, filtros, panel inmovilizado y configuración de impresión.
+PDF real: título neutro sin logos/aprobaciones inventadas, versión/huella/fecha UTC,
+resultados, intentos históricos, antecedentes y páginas con encabezados repetidos.
+Fuentes Vera distribuidas por ReportLab para caracteres españoles. No se incluyen
+correos, contraseñas, JWT, respuestas, rúbricas ni explicaciones.
+
+Fechas/duraciones reales se leen solo de los intentos cerrados incluidos por ID en
+la publicación, comprobando participación/número/estado. No se agregan duraciones
+entre intentos para inventar otra medida. Las ausencias no fabrican intento o fecha.
+El nombre histórico del caso proviene de su versión inmutable; alumno y grupo,
+del snapshot. Las retiradas solo tienen UUID en la fuente: se conservan como
+antecedentes RETIRADA sin nota ni nombre inventado. Esta limitación de metadatos
+históricos no se oculta mediante un join al padrón actual.
+
+## Dependencias y alcance de cambios
+
+Producción: openpyxl 3.1.5 (MIT) y ReportLab 5.1.0 (BSD), compatibles con Python 3.13
+del laboratorio. Rangos en pyproject. Pruebas: pypdf 6.x para lectura real de PDF.
+Fuentes de licencia: https://pypi.org/project/openpyxl/ y https://pypi.org/project/reportlab/.
+No se agregan modelos, tablas ni revisiones Alembic. El CSV de componente conserva
+sus pruebas históricas y no se presenta como exportación oficial alternativa.
+
+## Validación y evidencia
+
+Evidencia local: `evidencias/rf16_reportes_20261108/` (no versionar).
+21 casos focalizados aprobados con el código estabilizado; 450 pruebas relacionadas
+aprobadas en la ejecución previa de integración (sin sumar suites solapadas). Quedan
+registrados JUnit, consola y archivos descargados. Configuración temporal ausente o
+inválida y error SQL de lectura también se rechazan sin escrituras, con recuperación posterior. Las ejecuciones iniciales fallidas
+se conservan: guard CSV antiguo todavía cerrado en Proxy, un dato de ruta inválido
+en la fixture y conteos de pruebas sin restringir a la sesión. Se corrigieron el
+encaminamiento al lector oficial y las aserciones/fixture sin debilitar autorización.
+
+Resultados definitivos de esta ejecución, sobre base fee07cb + incremento local:
+
+| Validación | Aprobadas | Omitidas | Fallos/errores |
+|---|---:|---:|---:|
+| Focalizada final RF-16 | 21 | 0 | 0 / 0 |
+| Relacionada, ejecución anterior al último ajuste de presentación y tres casos defensivos | 450 | 0 | 0 / 0 |
+| General final: 115 módulos, cuatro particiones disjuntas | 2457 | 38 | 0 / 0 |
+
+No sumar las filas: se solapan. General = 2495 casos nominales, incluye las 21
+aceptaciones RF-16 finales. Particiones: 654/0, 567/3, 736/29, 500/6
+(aprobadas/omitidas). Un tipo de advertencia conocido de Starlette/httpx se repite
+por proceso. Las 38 omisiones corresponden a pruebas opcionales que requieren
+URLs/activación PostgreSQL externas; no son aprobaciones. Las pruebas PG17 de
+RF-16 y sus integraciones sí ejecutaron contenedores propios nuevos.
+
+JUnit consolidado y sin duplicados: `general_junit.xml`; resultados/omisiones,
+logs y huellas por partición, en la carpeta local de evidencia. Fuentes invariables
+durante cada ejecución. Una prueba histórica BD2 generó su JSON de evidencia con
+nombre UUID, conservado sin versionar; ningún archivo preexistente cambió por pytest.
+Tras las pruebas no quedan contenedores propios: los ajenos detenidos se conservaron.
+No se aplicaron cambios sobre bases permanentes ni se alteró .env.
+
+15 solicitudes HTTP TCP ejecutadas con httpx siguiendo la colección de entrega:
+login real, consolidación/publicación explícitas, replay y lectura; ambas descargas
+pertenecen a la misma publicación v1 (PARCIAL 33.33) y tres rechazos adicionales.
+`demostracion_http.json` identifica PostgreSQL 17.11 y las respuestas reales,
+sin tokens. XLSX leído con openpyxl y cuatro hojas renderizadas; PDF leído con
+pypdf y páginas renderizadas/inspeccionadas (incluida tabla multipágina).
+Node compiló 243 scripts de catálogo/entrega sin errores. Postman CLI y Newman
+no están instalados: **no se ejecutó pm.test ni Postman Runner**; la evidencia
+HTTP Python y las comprobaciones binarias no se presentan como Runner.
+
+RF-16 queda IMPLEMENTADO en app.main para publicaciones oficiales existentes.
+Sin fuente oficial se devuelve 404; sin formato, CSV legado 503. El incremento
+no permite calificar cierres voluntarios sin FIN, ni habilita inicio productivo,
+ni resuelve por suposición los once RF que siguen PARCIAL. La matriz cambia solo
+RF-16: 16 IMPLEMENTADO y 11 PARCIAL, no una declaración de backend terminado.
+Guía de demostración: `postman/entrega_20261109/RF16_REPORTES.md`.
+
+## Archivos del incremento (23 rutas explícitas)
+
+- `backend/app/modules/identity/api/dependencies.py`
+- `backend/app/modules/identity/api/router.py`
+- `backend/app/modules/identity/application/ports.py`
+- `backend/app/modules/identity/application/proxy_seguimiento.py`
+- `backend/app/modules/identity/application/services.py`
+- `backend/docs/AUDITORIA_COBERTURA_BACKEND_20261105.md`
+- `backend/docs/RF16_REPORTE_Y_BLOQUEOS.md`
+- `backend/docs/postman/INVENTARIO.md`
+- `backend/docs/postman/Proyecto_Nuclear_laboratorio.postman_environment.json`
+- `backend/docs/postman/Proyecto_Nuclear_main.postman_collection.json`
+- `backend/docs/postman/entrega_20261109/Proyecto_Nuclear_entrega_20261109.postman_collection.json`
+- `backend/docs/postman/entrega_20261109/Proyecto_Nuclear_entrega_20261109.postman_environment.json`
+- `backend/docs/postman/entrega_20261109/generar.py`
+- `backend/docs/postman/generar_colecciones.py`
+- `backend/docs/postman/inventario_endpoints.json`
+- `backend/docs/postman/openapi_main.json`
+- `backend/pyproject.toml`
+- `backend/app/modules/identity/application/official_reports.py`
+- `backend/app/modules/identity/infrastructure/official_reports.py`
+- `backend/app/modules/identity/infrastructure/report_exporters.py`
+- `backend/tests/integration/test_official_reports_http.py`
+- `backend/docs/postman/entrega_20261109/Proyecto_Nuclear_reportes_oficiales.postman_collection.json`
+- `backend/docs/postman/entrega_20261109/RF16_REPORTES.md`
+
+---
+
+# Historial conservado: diagnóstico del 5 de noviembre (ya no describe el corte vigente)
+
 # RF-16: reporte académico y validación del exportador existente
 
 5 de noviembre de 2026. Rama `feature/backend-continuidad`, base `33981c8`.

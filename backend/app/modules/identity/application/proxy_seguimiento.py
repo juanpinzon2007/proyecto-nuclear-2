@@ -24,7 +24,12 @@ class ProxySeguimiento:
         self._autorizacion.exigir_participacion(contexto, id_participacion)
         return self._real().consultar_participacion(contexto, id_participacion)
 
-    def descargar_reporte(self, contexto: ContextoAcceso, id_sesion: str) -> str:
+    def descargar_reporte(self, contexto: ContextoAcceso, id_sesion: str, *, formato=None, filtros=None):
+        if formato is not None:
+            # El lector oficial verifica sesión/caso/grupos en su propia snapshot RO.
+            # El contrato CSV anterior conserva su guard de integración pendiente.
+            self._autorizacion.exigir_rol(contexto, Rol.DOCENTE)
+            return self._real().descargar_reporte(contexto, id_sesion, formato=formato, filtros=filtros)
         self._autorizacion.exigir_sesion(contexto, id_sesion)
         return self._real().descargar_reporte(contexto, id_sesion)
 

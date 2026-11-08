@@ -68,7 +68,8 @@ def construir_seguimiento(*, usuario, crear_sesion) -> IServicioSeguimiento:
     from app.modules.identity.infrastructure.followup import ConsultaSeguimientoSQLAlchemy
     from app.modules.participation.infrastructure.individual_feedback import crear_servicio_feedback_individual
     return ServicioSeguimiento(ConsultaSeguimientoSQLAlchemy(usuario=usuario,crear_sesion=crear_sesion),
-        None,crear_servicio_feedback_individual(usuario=usuario,crear_sesion=crear_sesion))
+        None,crear_servicio_feedback_individual(usuario=usuario,crear_sesion=crear_sesion),
+        reportes_oficiales=lambda: construir_reporte_oficial(usuario=usuario,crear_sesion=crear_sesion))
 
 
 def construir_excepciones() -> IServicioExcepciones:
@@ -256,3 +257,22 @@ def obtener_proxy_administracion() -> ProxyAdministracionUsuarios:
     from app.modules.identity.infrastructure.teacher_directory import ConsultaDocentesSQLAlchemy
     return ProxyAdministracionUsuarios(construir_administracion, ServicioAutorizacion(construir_consulta_ambito),
         ConsultaDocentesSQLAlchemy(obtener_fabrica_sesiones_seguimiento()))
+
+
+def construir_reporte_oficial(*,usuario,crear_sesion):
+    from datetime import datetime, UTC
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+    from app.modules.identity.application.official_reports import ServicioReporteOficial
+    from app.modules.identity.infrastructure.official_reports import ConsultaReporteOficialSQLAlchemy
+    from app.modules.identity.infrastructure.report_exporters import ExportadorReportesOficiales
+    from app.modules.participation.infrastructure.academic_cycle import CicloAcademicoSQL
+    from app.modules.participation.infrastructure.codecs import FechasPersistencia
+    zona=get_settings().participation_timestamp_zone
+    try:
+        if not zona:raise ValueError()
+        fechas=FechasPersistencia(ZoneInfo(zona))
+    except (ValueError,ZoneInfoNotFoundError):raise IntegracionPendiente() from None
+    class RelojReporte:
+        def ahora(self):return datetime.now(UTC)
+    ciclo=CicloAcademicoSQL(usuario=usuario,crear_sesion=crear_sesion,fechas=fechas,reloj=RelojReporte())
+    return ServicioReporteOficial(ConsultaReporteOficialSQLAlchemy(ciclo),ExportadorReportesOficiales())

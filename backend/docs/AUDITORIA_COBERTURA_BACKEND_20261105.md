@@ -1,6 +1,6 @@
 # Auditoría de cobertura y siguiente incremento — 5 de noviembre de 2026
 
-> Corte vigente 8/11: 15 IMPLEMENTADO, 11 PARCIAL, 1 BLOQUEADO. Tabla central y §34 actualizados con el ciclo académico. Las secciones anteriores conservan resultados históricos, no nuevas ejecuciones.
+> Corte vigente 8/11: 16 IMPLEMENTADO, 11 PARCIAL, 0 BLOQUEADO. Tabla central y §35 actualizados con RF-16. Las secciones anteriores conservan resultados históricos, no nuevas ejecuciones.
 
 Repositorio original, rama `feature/backend-continuidad`, HEAD
 `ac92b7251c96f81ddcb6f390ef21435ab74b6131`, más cambios locales preservados.
@@ -157,7 +157,7 @@ pruebas se verifican en el código; los parámetros concretos figuran en el JUni
 | RF-13 Calcular y almacenar nota por rúbrica | Motor PREGUNTAS_100_V1, persistencia exacta y lector técnico reutilizados; consolidación por participación y snapshot oficial versionado | GET/POST resultado-tecnico; GET consolidacion y GET/POST publicaciones en main, ámbito docente persistente | PARCIAL | test_academic_cycle_http.py y pruebas previas del motor: PG17/JWT, exactitud, máximo, fuentes, rollback, historia y TCP | Tramo soportado calculado/persistido/publicable por autorización expresa. Cierre voluntario antes de FIN sigue sin clasificación aprobada; no se recalifica ni publica por suposición. Ver §34 y EVALUATION_CICLO_ACADEMICO.md. |
 | RF-14 Mostrar nota/aciertos/errores/explicaciones tras cerrar | Consulta propia de resultado oficial o provisional explícitamente habilitado; reutiliza feedback de selecciones de versión exacta | GET /scheduling/convocatorias/{convocatoria_id}/resultado, main; PUT visibilidad docente | PARCIAL | test_provisional_configurable_sin_correctas_durante_sesion_activa; test_provisional_no_revela_resultados_con_intento_activo; publicación privada/TCP PG17 | No se filtra corrección durante sesión activa ni notas con intentos abiertos. Falta resolver calificación de cierres sin FIN e integración productiva del inicio; no se afirma cobertura universal. |
 | RF-15 Seguimiento docente por estudiante y caso | Identity `infrastructure/followup.py::ConsultaSeguimientoSQLAlchemy`, ProxySeguimiento y servicios existentes; joins P/I/pasos/feedback | Tres GET `/api/v1/identity/seguimiento/casos`, `/casos/{id}/participaciones`, `/participaciones/{id}` en main | IMPLEMENTADO | Pruebas históricas de `test_teacher_followup_http.py` y 11 casos actuales PG17 sobre main en `test_main_teacher_followup.py`: recorrido, versión histórica, privacidad, ámbito, concurrencia y cero DML/flush/commit; sección 14 | Lectura sin commit acreditada; no publica notas ni RF-16. Login personal sigue pendiente y JWT docente de aceptación se emite solo dentro del laboratorio. No equivale a integración productiva completa desde credenciales. |
-| RF-16 Descargar resultados, parciales y ausentes | ServicioReportes/CSV reforzado: rechaza duplicados/contradicciones y nota fuera de 0–100; consulta cruda no compuesta, `reportes=None`, exportador todavía no conectado a resultado_participacion | GET `/api/v1/identity/seguimiento/sesiones/{id}/reporte` registrado y cerrado con 503 para docente válido | BLOQUEADO | Seis pruebas de componente `test_report_integrity.py` con CSV sintético explícito; siete PG17/main `test_main_report_closed.py` de cierre seguro, autorización, padrón sin P, concurrencia y cero escrituras; sección 15 | La mejora no publica un reporte ni certifica procedencia oficial. §34 incorpora fuente oficial, cohortes activas/retiros y ausencia confirmada; falta conectar Excel/PDF y su autorización a ese snapshot, sin CSV LAB alternativo. No hay descarga oficial disponible. |
+| RF-16 Descargar resultados, parciales y ausentes | ServicioReporteOficial, ConsultaReporteOficialSQLAlchemy y exportadores openpyxl/ReportLab; snapshot oficial verificado por CicloAcademicoSQL, sin recalcular | GET `/api/v1/identity/seguimiento/sesiones/{id_sesion}/reporte?formato=xlsx` o `pdf`, main | IMPLEMENTADO | `test_official_reports_http.py`: 21 casos PG17/JWT real, archivos leídos, versiones, ausencias/retiros, máximo, autorización y cero DML/flush/commit; §35 | Publicación oficial previa indispensable. Filtros por grupo, estudiante y estado; orden estable; versión de publicación seleccionable. Retiradas como identificadores históricos sin nota, sin inventar nombres ausentes de la fuente; CSV sin formato conserva 503. |
 | RF-17 Registrar/asociar rúbrica | Cases: ConstructorCaso, `rubrica`, `criterio_rubrica`, `nivel_rubrica`, `valoracion_opcion` por versión | DSL `/api/v1/cases`; sí | IMPLEMENTADO | Autoría HTTP PG y `tests/integration/test_evaluation_persisted.py::test_evidencias_historicas_reales_sin_calificacion` | Historia preservada; ponderación efectiva igualitaria aprobada no reescribe rúbricas anteriores. La semántica de puntajes para evaluar sigue pendiente en RF-13. |
 | RF-18 Programar horarios, duración, lugar y mensaje con caso publicado | Scheduling `programming_access.py::programar_sesion_autorizada`; docente_espacio_academico/sesion_programada con versión UUID exacta | POST `/scheduling/sesiones`, GET listado/detalle; sí | IMPLEMENTADO | `tests/integration/test_session_programming_http.py::test_programacion_autorizada_persiste_datos_y_uuid_de_scheduling`, `test_publicacion_posterior_no_sustituye_uuid_de_version_programada` PG | Grants son administrativos, no autovinculación; login personal acreditado en main, sin conceder grants implícitos. No se deduce autorización de matrícula ni RF-22 de programar una sesión. |
 | RF-19 Estados de sesión y cierre automático +24h | Scheduling State, coordinador transaccional, Observer SQL y worker_runner; evento_auditoria/notificacion | POST `/scheduling/sesiones/{id}/estado` en main; cierre automático en proceso separado/perfil worker optativo | IMPLEMENTADO | Diez casos PG17 de State, seis de atomicidad y cuatro nuevos de proceso real en `test_worker_process.py`, incluidos dos ciclos separados por 60 s, fallo/reintento y competencia de procesos; sección 12 | Comportamiento funcional acreditado sin dobles en los procesos. Activar/supervisar el worker es una condición de despliegue: no arranca dentro de main ni se instaló en un servidor permanente. Callbacks externos/correo siguen fuera de esta garantía |
@@ -172,9 +172,9 @@ pruebas se verifican en el código; los parámetros concretos figuran en el JUni
 
 ### Lectura cuantitativa sin porcentajes inventados
 
-La clasificación actual contiene **15 IMPLEMENTADO, 11 PARCIAL y 1 BLOQUEADO**;
+La clasificación actual contiene **16 IMPLEMENTADO, 11 PARCIAL y 0 BLOQUEADO**;
 ningún RF está enteramente sin componentes. No hay pesos de esfuerzo aprobados
-para convertir esas categorías a un porcentaje global. **15/27 = 55,6 %** es
+para convertir esas categorías a un porcentaje global. **16/27 = 59,3 %** es
 únicamente la proporción de RF con comportamiento acreditado bajo la definición
 anterior, no un porcentaje de código, despliegue ni recorridos de producto cerrados.
 Los quince siguen sujetos a las dependencias transversales expresadas. El login
@@ -1315,3 +1315,25 @@ EVALUATION_CICLO_ACADEMICO.md. General por grupos disjuntos con prueba de cobert
 no suma de suites solapadas. Postman preparado; HTTP TCP Python acreditado, Runner no ejecutado.
 
 Validación final §34: **2436 aprobadas, 38 omitidas, cero fallos/errores**, 2474 casos y 114 módulos en cuatro grupos disjuntos. Cuatro avisos de la misma advertencia conocida (una por proceso). No sumar focalizadas/relacionadas. Ningún nuevo skip/xfail. Ver RESUMEN_GENERAL_FINAL.json; no son cifras históricas reutilizadas.
+
+
+## 35. RF-16: descargas oficiales Excel y PDF — 8 de noviembre de 2026
+
+El GET existente admite `formato=xlsx|pdf`. Usa la publicación oficial inmutable,
+verificación de huella y filas canónicas, autorización actual docente/sesión/caso/grupos
+y transacción propia REPEATABLE READ / READ ONLY. No recalcula ni publica resultados.
+Fechas y duración provienen exclusivamente de los intentos cerrados referidos por
+esa publicación. El alumno/grupo se conserva con el nombre del snapshot, aunque el
+registro actual cambie. No deduce ausencia ni reemplaza nota ausente por cero.
+
+21 pruebas focalizadas aprobadas; 450 relacionadas aprobadas; general final
+2457 aprobadas, 38 omitidas, 0 fallos/errores. Un tipo conocido de advertencia.
+No sumar suites solapadas. JUnit y evidencia visual/TCP se describen en
+`RF16_REPORTE_Y_BLOQUEOS.md`. Las primeras ejecuciones fallidas se conservan.
+RF-16 pasa de BLOQUEADO a IMPLEMENTADO por descarga binaria real, autorización,
+procedencia oficial y lectura del contenido. No cambia ningún otro RF.
+
+Las convocatorias retiradas se identifican como antecedentes sin nota: el snapshot
+oficial conserva sus UUID, no sus nombres históricos. No se consulta el nombre
+actual para aparentar que fue publicado. CSV sin formato sigue cerrado. No hay
+migraciones ni cambios en Evaluation/Participation, fórmulas, consentimiento o DBML.

@@ -1620,8 +1620,8 @@
     "ruta": "/api/v1/identity/seguimiento/sesiones/{id_sesion}/reporte",
     "rol": "DOCENTE",
     "autenticacion": "Bearer JWT real",
-    "estado": "REGISTRADO_BLOQUEADO",
-    "dependencias_academicas": "Ámbito persistente de caso/sesión/participación; seguimiento de casos realizados. No hay notas oficiales.",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "RF-16: formato=xlsx o pdf desde publicación oficial inmutable; JWT/cuenta/rol y ámbito docente/sesión/caso/grupos. RR/READ ONLY. Sin formato conserva 503, sin publicación 404. No recalcula notas.",
     "parametros": [
       {
         "name": "id_sesion",
@@ -1634,14 +1634,133 @@
           "pattern": "^\\S+$",
           "title": "Id Sesion"
         }
+      },
+      {
+        "name": "formato",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "enum": [
+                "xlsx",
+                "pdf"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Formato"
+        }
+      },
+      {
+        "name": "version_publicacion",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Version Publicacion"
+        }
+      },
+      {
+        "name": "id_grupo",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Id Grupo"
+        }
+      },
+      {
+        "name": "id_estudiante",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Id Estudiante"
+        }
+      },
+      {
+        "name": "estado",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "anyOf": [
+            {
+              "enum": [
+                "COMPLETA",
+                "PARCIAL",
+                "AUSENTE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Estado"
+        }
+      },
+      {
+        "name": "agrupar_por",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "enum": [
+            "grupo",
+            "estudiante"
+          ],
+          "type": "string",
+          "default": "grupo",
+          "title": "Agrupar Por"
+        }
       }
     ],
     "body": null,
     "respuestas_openapi": {
       "200": {
-        "description": "Reporte CSV académico",
+        "description": "Publicación oficial histórica: seleccionar formato=xlsx o formato=pdf",
         "content": {
-          "text/csv": {}
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            }
+          },
+          "application/pdf": {
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            }
+          }
         }
       },
       "401": {
@@ -1652,6 +1771,9 @@
       },
       "503": {
         "description": "Integración o configuración pendiente"
+      },
+      "404": {
+        "description": "Publicación oficial o versión inexistente"
       },
       "422": {
         "description": "Validation Error",
@@ -1664,7 +1786,7 @@
         }
       }
     },
-    "respuesta_funcional_preparada": 503,
+    "respuesta_funcional_preparada": 200,
     "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
     "archivo": "backend/app/modules/identity/api/router.py",
     "funcion": "descargar_reporte",

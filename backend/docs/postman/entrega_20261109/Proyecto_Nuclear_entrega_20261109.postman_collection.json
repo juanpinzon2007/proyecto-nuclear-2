@@ -2,7 +2,7 @@
   "info": {
     "name": "ENTREGA 9 noviembre — recorrido técnico — MAIN y LAB explícitos",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Solo laboratorio nuevo y desechable. Sin secretos exportados. Consulte README.md; ninguna aprobación de políticas oficiales."
+    "description": "Solo laboratorio nuevo y desechable. Sin secretos exportados. Consulte README.md; ninguna aprobación de políticas oficiales. RF-16 oficial: usar la colección adicional Proyecto_Nuclear_reportes_oficiales del mismo directorio con laboratorio_publicacion.py; no ejecutar ambos recorridos sobre el mismo estado."
   },
   "event": [
     {

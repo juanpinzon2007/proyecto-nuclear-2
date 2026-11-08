@@ -21,7 +21,7 @@ Fuente: openapi_main.json y dependencias de los routers. No acredita despliegue 
 | GET | /api/v1/identity/seguimiento/casos | DOCENTE | REGISTRADO_CON_PRECONDICIONES | Ámbito persistente de caso/sesión/participación; seguimiento de casos realizados. No hay notas oficiales. |
 | GET | /api/v1/identity/seguimiento/participaciones/{id_participacion} | DOCENTE | REGISTRADO_CON_PRECONDICIONES | Ámbito persistente de caso/sesión/participación; seguimiento de casos realizados. No hay notas oficiales. |
 | GET | /api/v1/identity/seguimiento/casos/{id_caso}/participaciones | DOCENTE | REGISTRADO_CON_PRECONDICIONES | Ámbito persistente de caso/sesión/participación; seguimiento de casos realizados. No hay notas oficiales. |
-| GET | /api/v1/identity/seguimiento/sesiones/{id_sesion}/reporte | DOCENTE | REGISTRADO_BLOQUEADO | Ámbito persistente de caso/sesión/participación; seguimiento de casos realizados. No hay notas oficiales. |
+| GET | /api/v1/identity/seguimiento/sesiones/{id_sesion}/reporte | DOCENTE | REGISTRADO_CON_PRECONDICIONES | RF-16: formato=xlsx o pdf desde publicación oficial inmutable; JWT/cuenta/rol y ámbito docente/sesión/caso/grupos. RR/READ ONLY. Sin formato conserva 503, sin publicación 404. No recalcula notas. |
 | POST | /api/v1/identity/seguimiento/participaciones/{id_participacion}/feedback | DOCENTE | REGISTRADO_CON_PRECONDICIONES | Ámbito persistente de caso/sesión/participación; seguimiento de casos realizados. No hay notas oficiales. |
 | GET | /api/v1/identity/seguimiento/participaciones/{id_participacion}/feedback | ESTUDIANTE | REGISTRADO_CON_PRECONDICIONES | Participación propia y condiciones de visibilidad; no muestra notas ni correcciones. |
 | POST | /api/v1/identity/excepciones/repeticiones | DOCENTE | REGISTRADO_CON_PRECONDICIONES | RF-25: permiso nativo individual de un uso, misma participación histórica, sesión EN_CURSO e intentos anteriores cerrados. Idempotente si existe permiso pendiente; no inicia intentos ni concede consentimiento. |
@@ -64,5 +64,5 @@ Fuente: openapi_main.json y dependencias de los routers. No acredita despliegue 
 | HEAD | /docs/oauth2-redirect | PUBLICO | DOCUMENTACION_AUTOMATICA |  |
 
 Parámetros, cuerpos y esquemas de respuesta completos: inventario_endpoints.json y openapi_main.json.
-Preparación y resultado técnico docente están registrados; no hay publicación oficial. Inicio/provisión/consentimiento no están en main. PUT de decisiones no está montado: 405, no una operación disponible.
+Preparación, resultado técnico, publicación manual autorizada y RF-16 Excel/PDF están registrados. Sin formato, el CSV anterior conserva 503. Inicio/provisión/consentimiento no están en main. PUT de decisiones no está montado: 405, no una operación disponible.
 OpenAPI no enumera todos los errores funcionales: revisar archivo/función/dependencias indicados y README.

@@ -904,13 +904,132 @@
               "pattern": "^\\S+$",
               "title": "Id Sesion"
             }
+          },
+          {
+            "name": "formato",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "xlsx",
+                    "pdf"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Formato"
+            }
+          },
+          {
+            "name": "version_publicacion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Version Publicacion"
+            }
+          },
+          {
+            "name": "id_grupo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Id Grupo"
+            }
+          },
+          {
+            "name": "id_estudiante",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Id Estudiante"
+            }
+          },
+          {
+            "name": "estado",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "COMPLETA",
+                    "PARCIAL",
+                    "AUSENTE"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Estado"
+            }
+          },
+          {
+            "name": "agrupar_por",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "grupo",
+                "estudiante"
+              ],
+              "type": "string",
+              "default": "grupo",
+              "title": "Agrupar Por"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Reporte CSV académico",
+            "description": "Publicación oficial histórica: seleccionar formato=xlsx o formato=pdf",
             "content": {
-              "text/csv": {}
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
             }
           },
           "401": {
@@ -921,6 +1040,9 @@
           },
           "503": {
             "description": "Integración o configuración pendiente"
+          },
+          "404": {
+            "description": "Publicación oficial o versión inexistente"
           },
           "422": {
             "description": "Validation Error",

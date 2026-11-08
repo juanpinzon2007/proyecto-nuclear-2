@@ -74,6 +74,7 @@ def example(s, spec, name='dato'):
 
 
 def policy(path,method):
+    if path.endswith('/reporte'):return 'DOCENTE','RF-16: formato=xlsx o pdf desde publicación oficial inmutable; JWT/cuenta/rol y ámbito docente/sesión/caso/grupos. RR/READ ONLY. Sin formato conserva 503, sin publicación 404. No recalcula notas.'
     if path in TECH or '/auth/' in path:return 'PUBLICO','Ninguna para acceder; el login valida credenciales y cuenta persistente.'
     if path.startswith('/api/v1/cases'):return 'DOCENTE','Identidad CASES inequívoca, titularidad; CREAR_CASOS en escrituras. Publicación exige grafo ejecutable; publicados inmutables.'
     if path.endswith('/identity/me'):return 'AUTENTICADO','Cuenta activa y rol vigente desde PostgreSQL.'
@@ -179,7 +180,7 @@ def main():
         for method,op in ops.items():
             if method not in METHODS:continue
             role,notes=policy(path,method)
-            blocked=path in BLOCKED or path.endswith('/reporte')
+            blocked=path in BLOCKED
             status=503 if blocked else int(next(k for k in op['responses'] if k.startswith('2')))
             body_schema=op.get('requestBody',{}).get('content',{}).get('application/json',{}).get('schema')
             body=example(body_schema,spec) if body_schema else None
@@ -196,6 +197,7 @@ def main():
             params=op.get('parameters',[])
             query=[p for p in params if p['in']=='query']
             target=path+('?'+'&'.join(p['name']+'='+reference(p['name']) for p in query) if query else '')
+            if path.endswith('/reporte'):target=path+'?formato=xlsx'
             schema=op['responses'].get(str(status),{}).get('content',{}).get('application/json',{}).get('schema')
             if schema:schema=resolve(schema,spec)
             group='Cases' if path.startswith('/api/v1/cases') else 'Participation' if '/attempts/' in path else 'Scheduling' if path.startswith('/scheduling') else 'Identity'
@@ -223,6 +225,16 @@ if(j.ambito==='TECNICO')pm.test('Fracciones exactas como cadenas',()=>j.criterio
 """
             positive=request(f'{method.upper()} {path}'+(' [CIERRE SEGURO]' if blocked else ' [POSITIVA/PRECONDICIONES]'),method,target,role,body,status,schema=schema,private='/attempts/' in path,description=desc,extra=extra)
             variants=[positive]
+            if path.endswith('/reporte'):
+                for formato,item in [('xlsx',positive),('pdf',request('GET reporte oficial PDF','get',path+'?formato=pdf','DOCENTE'))]:
+                    item['event'][0]['script']['exec'] += [
+                        "pm.test('Archivo adjunto no vacío',()=>{pm.expect(pm.response.size().body).to.be.above(100);pm.expect(pm.response.headers.get('Content-Disposition')).to.include('attachment;');});",
+                        "pm.test('Fuente oficial identificada',()=>{pm.expect(pm.response.headers.get('X-Publicacion-Id')).to.match(/^[0-9a-f-]{36}$/);pm.expect(pm.response.headers.get('X-Publicacion-Version')).to.match(/^[1-9][0-9]*$/);pm.expect(pm.response.headers.get('X-Publicacion-SHA256')).to.match(/^[0-9a-f]{64}$/);});"]
+                    mime='application/pdf' if formato=='pdf' else 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    item['request']['header']=[{'key':'Accept','value':mime}]
+                    item['event'][0]['script']['exec'].append("pm.test('MIME correcto',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('"+mime+"'));")
+                    if formato=='pdf':variants.append(item)
+                variants.append(request('GET reporte sin formato [CSV CERRADO]','get',path,'DOCENTE',status=503))
             if body_schema and resolve(body_schema,spec).get('required'):
                 variants.append(request(f'{method.upper()} {path} [BODY INVALIDO]',method,target,role,{},422))
             if role!='PUBLICO':
@@ -286,7 +298,7 @@ if(j.ambito==='TECNICO')pm.test('Fracciones exactas como cadenas',()=>j.criterio
     rows=['# Endpoints registrados en app.main','','Fuente: openapi_main.json y dependencias de los routers. No acredita despliegue ni ejecución HTTP.','','| Método | Ruta | Rol | Estado | Dependencias |','|---|---|---|---|---|']
     for i in inventory:rows.append('| '+ ' | '.join(str(i.get(k,'')) for k in ('metodo','ruta','rol','estado','dependencias_academicas'))+' |')
     rows+=['','Parámetros, cuerpos y esquemas de respuesta completos: inventario_endpoints.json y openapi_main.json.',
-           'Preparación y resultado técnico docente están registrados; no hay publicación oficial. Inicio/provisión/consentimiento no están en main. PUT de decisiones no está montado: 405, no una operación disponible.',
+           'Preparación, resultado técnico, publicación manual autorizada y RF-16 Excel/PDF están registrados. Sin formato, el CSV anterior conserva 503. Inicio/provisión/consentimiento no están en main. PUT de decisiones no está montado: 405, no una operación disponible.',
            'OpenAPI no enumera todos los errores funcionales: revisar archivo/función/dependencias indicados y README.']
     (OUT/'INVENTARIO.md').write_text('\n'.join(rows)+'\n',encoding='utf-8')
     print(json.dumps({'operaciones_openapi':sum(m in METHODS for v in spec['paths'].values() for m in v),'rutas_documentacion':4,'colecciones':6}))

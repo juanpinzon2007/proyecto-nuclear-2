@@ -1,7 +1,7 @@
 from collections.abc import Callable
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Response, Request, HTTPException
 
 from app.modules.identity.api.dependencies import (
     obtener_fabrica_autenticacion, obtener_proxy_administracion,
@@ -99,10 +99,34 @@ def listar_participaciones(id_caso: IdPublico, usuario: UsuarioActual, proxy: Se
 
 
 @router.get("/seguimiento/sesiones/{id_sesion}/reporte", response_class=Response,
-            responses={200: {"content": {"text/csv": {}}, "description": "Reporte CSV académico"}})
-def descargar_reporte(id_sesion: IdPublico, usuario: UsuarioActual, proxy: Seguimiento) -> Response:
-    return Response(proxy.descargar_reporte(usuario, id_sesion), media_type="text/csv",
-                    headers={"Content-Disposition": 'attachment; filename="reporte-participacion.csv"'})
+    responses={200: {"content": {
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {"schema": {"type": "string", "format": "binary"}},
+        "application/pdf": {"schema": {"type": "string", "format": "binary"}}},
+        "description": "Publicación oficial histórica: seleccionar formato=xlsx o formato=pdf"},
+        404: {"description": "Publicación oficial o versión inexistente"}})
+def descargar_reporte(id_sesion: IdPublico, usuario: UsuarioActual, proxy: Seguimiento,
+    request: Request, formato: Literal['xlsx','pdf'] | None = None,
+    version_publicacion: Annotated[int | None, Query(gt=0)] = None,
+    id_grupo: Annotated[int | None, Query(gt=0)] = None,
+    id_estudiante: Annotated[list[int] | None, Query()] = None,
+    estado: Literal['COMPLETA','PARCIAL','AUSENTE'] | None = None,
+    agrupar_por: Literal['grupo','estudiante'] = 'grupo') -> Response:
+    from app.modules.identity.application.official_reports import FiltrosReporte
+    permitidos={'formato','version_publicacion','id_grupo','id_estudiante','estado','agrupar_por'}
+    if set(request.query_params)-permitidos or any(i<=0 for i in id_estudiante or []):
+        raise HTTPException(422, 'Parámetros de reporte inválidos')
+    if formato is None:
+        if request.query_params:raise HTTPException(422, 'Se requiere formato=xlsx o formato=pdf')
+        # Contrato anterior conservado; no habilita CSV sin fuente oficial.
+        return Response(proxy.descargar_reporte(usuario,id_sesion),media_type='text/csv',
+            headers={'Content-Disposition':'attachment; filename="reporte-participacion.csv"'})
+    filtros=FiltrosReporte(version_publicacion,id_grupo,tuple(sorted(set(id_estudiante or []))),estado,agrupar_por)
+    archivo=proxy.descargar_reporte(usuario,id_sesion,formato=formato,filtros=filtros)
+    return Response(archivo.contenido,media_type=archivo.media_type,headers={
+        'Content-Disposition':f'attachment; filename="{archivo.nombre}"',
+        'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
+        'X-Publicacion-Id':str(archivo.publicacion_id),'X-Publicacion-Version':str(archivo.version),
+        'X-Publicacion-SHA256':archivo.sha256})
 
 
 @router.post("/seguimiento/participaciones/{id_participacion}/feedback", response_model=FeedbackDocente, status_code=201)

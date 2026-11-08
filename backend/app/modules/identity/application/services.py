@@ -68,7 +68,8 @@ class ServicioFeedbackDocente:
 
 class ServicioSeguimiento:
     def __init__(self, lecturas: LecturaSeguimiento, reportes: ServicioReportes | None,
-                 feedback: ServicioFeedbackDocente) -> None:
+                 feedback: ServicioFeedbackDocente, *, reportes_oficiales=None) -> None:
+        self.reportes_oficiales = reportes_oficiales
         self.lecturas = lecturas
         self.reportes = reportes
         self.feedback = feedback
@@ -84,7 +85,11 @@ class ServicioSeguimiento:
         validar_id(id_participacion)
         return self.lecturas.consultar_participacion(contexto.id_usuario, id_participacion)
 
-    def descargar_reporte(self, contexto: ContextoAcceso, id_sesion: str) -> str:
+    def descargar_reporte(self, contexto: ContextoAcceso, id_sesion: str, *, formato=None, filtros=None):
+        if formato is not None:
+            if self.reportes_oficiales is None:
+                raise IntegracionPendiente()
+            return self.reportes_oficiales().descargar(id_sesion, formato, filtros)
         if self.reportes is None:
             raise IntegracionPendiente()
         return self.reportes.descargar(contexto, id_sesion)

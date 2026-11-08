@@ -9085,7 +9085,95 @@
           "name": "GET /api/v1/identity/seguimiento/sesiones/{id_sesion}/reporte",
           "item": [
             {
-              "name": "GET /api/v1/identity/seguimiento/sesiones/{id_sesion}/reporte [CIERRE SEGURO]",
+              "name": "GET /api/v1/identity/seguimiento/sesiones/{id_sesion}/reporte [POSITIVA/PRECONDICIONES]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  }
+                ],
+                "url": "{{base_url}}/api/v1/identity/seguimiento/sesiones/{{sesion_id}}/reporte?formato=xlsx",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_docente}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "RF-16: formato=xlsx o pdf desde publicación oficial inmutable; JWT/cuenta/rol y ámbito docente/sesión/caso/grupos. RR/READ ONLY. Sin formato conserva 503, sin publicación 404. No recalcula notas. Disponible en app.main; requiere configuración y recursos válidos."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}",
+                      "pm.test('Archivo adjunto no vacío',()=>{pm.expect(pm.response.size().body).to.be.above(100);pm.expect(pm.response.headers.get('Content-Disposition')).to.include('attachment;');});",
+                      "pm.test('Fuente oficial identificada',()=>{pm.expect(pm.response.headers.get('X-Publicacion-Id')).to.match(/^[0-9a-f-]{36}$/);pm.expect(pm.response.headers.get('X-Publicacion-Version')).to.match(/^[1-9][0-9]*$/);pm.expect(pm.response.headers.get('X-Publicacion-SHA256')).to.match(/^[0-9a-f]{64}$/);});",
+                      "pm.test('MIME correcto',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET reporte oficial PDF",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/pdf"
+                  }
+                ],
+                "url": "{{base_url}}/api/v1/identity/seguimiento/sesiones/{{sesion_id}}/reporte?formato=pdf",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_docente}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}",
+                      "pm.test('Archivo adjunto no vacío',()=>{pm.expect(pm.response.size().body).to.be.above(100);pm.expect(pm.response.headers.get('Content-Disposition')).to.include('attachment;');});",
+                      "pm.test('Fuente oficial identificada',()=>{pm.expect(pm.response.headers.get('X-Publicacion-Id')).to.match(/^[0-9a-f-]{36}$/);pm.expect(pm.response.headers.get('X-Publicacion-Version')).to.match(/^[1-9][0-9]*$/);pm.expect(pm.response.headers.get('X-Publicacion-SHA256')).to.match(/^[0-9a-f]{64}$/);});",
+                      "pm.test('MIME correcto',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf'));"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET reporte sin formato [CSV CERRADO]",
               "request": {
                 "method": "GET",
                 "header": [
@@ -9105,7 +9193,7 @@
                     }
                   ]
                 },
-                "description": "Ámbito persistente de caso/sesión/participación; seguimiento de casos realizados. No hay notas oficiales. BLOQUEADO: 503 con identidad y referencias válidas; no se afirma éxito funcional."
+                "description": ""
               },
               "event": [
                 {
@@ -9135,7 +9223,7 @@
                     "value": "application/json"
                   }
                 ],
-                "url": "{{base_url}}/api/v1/identity/seguimiento/sesiones/{{sesion_id}}/reporte",
+                "url": "{{base_url}}/api/v1/identity/seguimiento/sesiones/{{sesion_id}}/reporte?formato=xlsx",
                 "auth": {
                   "type": "noauth"
                 },
@@ -9169,7 +9257,7 @@
                     "value": "application/json"
                   }
                 ],
-                "url": "{{base_url}}/api/v1/identity/seguimiento/sesiones/{{sesion_id}}/reporte",
+                "url": "{{base_url}}/api/v1/identity/seguimiento/sesiones/{{sesion_id}}/reporte?formato=xlsx",
                 "auth": {
                   "type": "bearer",
                   "bearer": [
@@ -9210,7 +9298,7 @@
                     "value": "application/json"
                   }
                 ],
-                "url": "{{base_url}}/api/v1/identity/seguimiento/sesiones/{{sesion_id}}/reporte",
+                "url": "{{base_url}}/api/v1/identity/seguimiento/sesiones/{{sesion_id}}/reporte?formato=xlsx",
                 "auth": {
                   "type": "bearer",
                   "bearer": [
