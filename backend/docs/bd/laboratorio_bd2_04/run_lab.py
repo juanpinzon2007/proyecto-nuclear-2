@@ -91,6 +91,7 @@ def main(*, revision_guard=None):
                 ev['laboratory']['database']=c.scalar(text('SELECT current_database()'))
                 ev['laboratory']['postgresql']=c.scalar(text('SHOW server_version'))
                 command.upgrade(support.config_alembic(c),baseline)
+                support.columnas_publicacion_para_fixture_historica(c)  # ORM actual en laboratorio histórico, sin instalar publicación.
             factory=sessionmaker(engine,expire_on_commit=False)
 
             def seed():

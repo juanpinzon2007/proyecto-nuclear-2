@@ -110,7 +110,15 @@ class ServicioExcepciones:
             autorizacion = AutorizacionRepeticion(
                 id_sesion, id_estudiante, contexto.id_usuario, datetime.now(UTC),
             )
-            trabajo.autorizaciones.guardar(autorizacion)
+            permiso = trabajo.autorizaciones.guardar(autorizacion)
+            if isinstance(permiso,AutorizacionRepeticion):
+                if (permiso.id_sesion,permiso.id_estudiante,permiso.id_docente_autorizador)!=(id_sesion,id_estudiante,contexto.id_usuario) or type(permiso.id_permiso_extra) is not int or permiso.id_permiso_extra<=0:
+                    raise IntegracionPendiente()
+                autorizacion=permiso
+            elif permiso is not None:
+                from dataclasses import replace
+                if type(permiso) is not int or permiso <= 0:raise IntegracionPendiente()
+                autorizacion = replace(autorizacion,id_permiso_extra=permiso)
             trabajo.commit()
         return autorizacion
 

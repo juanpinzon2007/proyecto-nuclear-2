@@ -177,6 +177,7 @@ class AutorizacionRepeticion:
     id_estudiante: str
     id_docente_autorizador: str
     fecha_autorizacion: datetime
+    id_permiso_extra: int | None = None
 
 
 @dataclass(frozen=True)

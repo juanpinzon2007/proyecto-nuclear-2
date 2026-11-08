@@ -55,7 +55,7 @@ class ConsultaPreparacionEvaluacionSQLAlchemy:
         except SQLAlchemyError:
             raise IntegracionPendiente() from None
 
-    def _consultar(self, s, id_sesion):
+    def _autorizar_contexto(self, s, id_sesion):
         actual = RepositorioUsuariosSQLAlchemy(s).obtener(self.usuario.id_usuario)
         if actual is None or not actual.activo or Rol.DOCENTE not in actual.roles:
             raise AccesoDenegado()
@@ -81,6 +81,10 @@ class ConsultaPreparacionEvaluacionSQLAlchemy:
             if (grupo is None or grupo.id_profesor != id_entero(actual.id_usuario)
                     or a.id_caso != caso.id_caso or a.version_caso_id != version.id):
                 raise IntegracionPendiente()
+        return actual,resolver,sesion,version,caso,rubrica,asignaciones
+
+    def _consultar(self, s, id_sesion):
+        actual,resolver,sesion,version,caso,rubrica,asignaciones = self._autorizar_contexto(s,id_sesion)
         convocatorias = s.scalars(select(C).where(C.sesion_id == id_sesion).order_by(C.id)).all()
         participaciones = s.scalars(select(P).where(P.id_asignacion.in_(a.id_asignacion for a in asignaciones))).all()
         por_convocatoria = {p.convocatoria_id: p for p in participaciones}

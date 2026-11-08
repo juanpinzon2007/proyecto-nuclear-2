@@ -1829,8 +1829,8 @@
     "ruta": "/api/v1/identity/excepciones/repeticiones",
     "rol": "DOCENTE",
     "autenticacion": "Bearer JWT real",
-    "estado": "REGISTRADO_BLOQUEADO",
-    "dependencias_academicas": "Ámbito persistente de caso/sesión/participación; seguimiento de casos realizados. No hay notas oficiales.",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "RF-25: permiso nativo individual de un uso, misma participación histórica, sesión EN_CURSO e intentos anteriores cerrados. Idempotente si existe permiso pendiente; no inicia intentos ni concede consentimiento.",
     "parametros": [],
     "body": {
       "properties": {
@@ -1888,7 +1888,7 @@
         }
       }
     },
-    "respuesta_funcional_preparada": 503,
+    "respuesta_funcional_preparada": 201,
     "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
     "archivo": "backend/app/modules/identity/api/router.py",
     "funcion": "autorizar_repeticion",
@@ -3072,6 +3072,473 @@
       "obtener_fabrica_sesiones_seguimiento",
       "obtener_fabrica_tokens",
       "obtener_fabrica_usuarios"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/scheduling/sesiones/{sesion_id}/evaluacion/consolidacion",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "RF-24/RF-25/RF-27: ámbito persistente sesión/caso/grupos. Ausencia explícita sin intentos ficticios; retiradas excluidas; máximo en misma participación. Publicación manual completa, hash de revisión y aviso interno atómicos. GET RR/READ ONLY.",
+    "parametros": [
+      {
+        "name": "sesion_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Sesion Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/academic_results.py",
+    "funcion": "revisar",
+    "dependencias": [
+      "HTTPBearer",
+      "docente",
+      "obtener_consulta_preparacion",
+      "obtener_docente_actual",
+      "obtener_fabrica_sesiones_seguimiento",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "sin_parametros"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "RF-24/RF-25/RF-27: ámbito persistente sesión/caso/grupos. Ausencia explícita sin intentos ficticios; retiradas excluidas; máximo en misma participación. Publicación manual completa, hash de revisión y aviso interno atómicos. GET RR/READ ONLY.",
+    "parametros": [
+      {
+        "name": "sesion_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Sesion Id"
+        }
+      },
+      {
+        "name": "convocatoria_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Convocatoria Id"
+        }
+      }
+    ],
+    "body": {
+      "properties": {
+        "motivo": {
+          "type": "string",
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Motivo"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "motivo"
+      ],
+      "title": "Motivo"
+    },
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/academic_results.py",
+    "funcion": "ausencia",
+    "dependencias": [
+      "HTTPBearer",
+      "docente",
+      "obtener_consulta_preparacion",
+      "obtener_docente_actual",
+      "obtener_fabrica_sesiones_seguimiento",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "sin_parametros"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia/rectificacion",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "RF-24/RF-25/RF-27: ámbito persistente sesión/caso/grupos. Ausencia explícita sin intentos ficticios; retiradas excluidas; máximo en misma participación. Publicación manual completa, hash de revisión y aviso interno atómicos. GET RR/READ ONLY.",
+    "parametros": [
+      {
+        "name": "sesion_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Sesion Id"
+        }
+      },
+      {
+        "name": "convocatoria_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Convocatoria Id"
+        }
+      }
+    ],
+    "body": {
+      "properties": {
+        "motivo": {
+          "type": "string",
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Motivo"
+        },
+        "id_confirmacion": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Id Confirmacion"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "motivo",
+        "id_confirmacion"
+      ],
+      "title": "Rectificacion"
+    },
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/academic_results.py",
+    "funcion": "rectificar",
+    "dependencias": [
+      "HTTPBearer",
+      "docente",
+      "obtener_consulta_preparacion",
+      "obtener_docente_actual",
+      "obtener_fabrica_sesiones_seguimiento",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "sin_parametros"
+    ]
+  },
+  {
+    "metodo": "PUT",
+    "ruta": "/scheduling/sesiones/{sesion_id}/evaluacion/visibilidad",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "RF-24/RF-25/RF-27: ámbito persistente sesión/caso/grupos. Ausencia explícita sin intentos ficticios; retiradas excluidas; máximo en misma participación. Publicación manual completa, hash de revisión y aviso interno atómicos. GET RR/READ ONLY.",
+    "parametros": [
+      {
+        "name": "sesion_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Sesion Id"
+        }
+      }
+    ],
+    "body": {
+      "properties": {
+        "mostrar_provisional": {
+          "type": "boolean",
+          "title": "Mostrar Provisional"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "mostrar_provisional"
+      ],
+      "title": "Visibilidad"
+    },
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/academic_results.py",
+    "funcion": "visibilidad",
+    "dependencias": [
+      "HTTPBearer",
+      "docente",
+      "obtener_consulta_preparacion",
+      "obtener_docente_actual",
+      "obtener_fabrica_sesiones_seguimiento",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "sin_parametros"
+    ]
+  },
+  {
+    "metodo": "POST",
+    "ruta": "/scheduling/sesiones/{sesion_id}/evaluacion/publicaciones",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "RF-24/RF-25/RF-27: ámbito persistente sesión/caso/grupos. Ausencia explícita sin intentos ficticios; retiradas excluidas; máximo en misma participación. Publicación manual completa, hash de revisión y aviso interno atómicos. GET RR/READ ONLY.",
+    "parametros": [
+      {
+        "name": "sesion_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Sesion Id"
+        }
+      }
+    ],
+    "body": {
+      "properties": {
+        "revision_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Revision Sha256"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "revision_sha256"
+      ],
+      "title": "Publicar"
+    },
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/academic_results.py",
+    "funcion": "publicar",
+    "dependencias": [
+      "HTTPBearer",
+      "docente",
+      "obtener_consulta_preparacion",
+      "obtener_docente_actual",
+      "obtener_fabrica_sesiones_seguimiento",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "sin_parametros"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/scheduling/sesiones/{sesion_id}/evaluacion/publicaciones",
+    "rol": "DOCENTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "RF-24/RF-25/RF-27: ámbito persistente sesión/caso/grupos. Ausencia explícita sin intentos ficticios; retiradas excluidas; máximo en misma participación. Publicación manual completa, hash de revisión y aviso interno atómicos. GET RR/READ ONLY.",
+    "parametros": [
+      {
+        "name": "sesion_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Sesion Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/academic_results.py",
+    "funcion": "consultar_publicacion",
+    "dependencias": [
+      "HTTPBearer",
+      "docente",
+      "obtener_consulta_preparacion",
+      "obtener_docente_actual",
+      "obtener_fabrica_sesiones_seguimiento",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "sin_parametros"
+    ]
+  },
+  {
+    "metodo": "GET",
+    "ruta": "/scheduling/convocatorias/{convocatoria_id}/resultado",
+    "rol": "ESTUDIANTE",
+    "autenticacion": "Bearer JWT real",
+    "estado": "REGISTRADO_CON_PRECONDICIONES",
+    "dependencias_academicas": "RF-14: solo titular con JWT real y convocatoria del token. Provisional exige configuración expresa y todos sus intentos cerrados. Sin correctas durante sesión activa. Oficial: última publicación explícita; no calcula ni escribe.",
+    "parametros": [
+      {
+        "name": "convocatoria_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Convocatoria Id"
+        }
+      }
+    ],
+    "body": null,
+    "respuestas_openapi": {
+      "200": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        }
+      },
+      "422": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      }
+    },
+    "respuesta_funcional_preparada": 200,
+    "errores_fuera_de_openapi": "401 autenticación; 403 ámbito/rol; 404 recurso según módulo; 409 conflictos según módulo; 400 reglas Cases; 422 validación; 503 integración/política. No todos aplican a todas las rutas.",
+    "archivo": "backend/app/modules/scheduling/api/academic_results.py",
+    "funcion": "resultado_propio",
+    "dependencias": [
+      "HTTPBearer",
+      "estudiante",
+      "obtener_estudiante_actual",
+      "obtener_fabrica_sesiones_seguimiento",
+      "obtener_fabrica_tokens",
+      "obtener_fabrica_usuarios",
+      "sin_parametros"
     ]
   },
   {

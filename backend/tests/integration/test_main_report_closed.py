@@ -4,7 +4,7 @@ from threading import Barrier
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select,func,inspect
+from sqlalchemy import select,func,inspect,text
 
 from app.modules.identity.api.dependencies import construir_tokens
 from app.modules.identity.domain.errors import IntegracionPendiente
@@ -63,7 +63,7 @@ def test_convocado_sin_participacion_no_se_convierte_en_ausencia_o_nota(reporte,
         convocados = s.scalar(select(func.count()).select_from(C).where(C.sesion_id==h.sesion))
         participaciones = s.scalar(select(func.count()).select_from(P).join(C,C.id==P.convocatoria_id).where(C.sesion_id==h.sesion))
         assert (convocados,participaciones) == (2,1)
-        assert 'resultado_participacion' not in inspect(s.get_bind()).get_table_names()
+        assert s.scalar(text('SELECT count(*) FROM resultado_participacion'))==0  # La consulta no infiere ausencia ni escribe una nota.
         assert s.scalar(select(func.count()).select_from(R)) == 0
     with observar_lectura() as operaciones:
         r = h.principal.get(h.reporte,headers=h.propietario)

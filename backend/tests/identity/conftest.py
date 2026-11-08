@@ -34,6 +34,7 @@ def escenario():
     trabajo.usuarios = usuarios
     trabajo.academia = academia
     trabajo.autorizaciones = Mock(spec=RepositorioAutorizaciones)
+    trabajo.autorizaciones.guardar.return_value = None  # Contrato histórico void; sin Mock implícito como ID.
     trabajo.feedback = Mock(spec=RepositorioFeedback)
     return SimpleNamespace(
         estudiante=estudiante, docente=docente, administrador=administrador,

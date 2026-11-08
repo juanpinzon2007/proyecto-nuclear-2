@@ -57,11 +57,57 @@ def preparar_esquema_actual_aislado(conexion):
     metadata=registrar_modelos_integrados()
     metadata.create_all(conexion)
     preparar_consentimiento_sqlite(conexion)
+    preparar_publicacion_sqlite(conexion)
     for nombre in ("criterio_rubrica", "nivel_rubrica", "opcion_respuesta"):
         for indice in metadata.tables[nombre].indexes:
             if indice.name.startswith("uq_8c_"):
                 indice.create(conexion, checkfirst=True)
 
+
+
+def preparar_publicacion_sqlite(conexion):
+    from alembic.operations import Operations
+    from alembic.migration import MigrationContext
+    from app.db.models import registrar_modelos_integrados
+    ops=Operations(MigrationContext.configure(conexion));metadata=registrar_modelos_integrados()
+    for tabla in ('sesion_programada','notificacion'):
+        checks={c['name'] for c in inspect(conexion).get_check_constraints(tabla)}
+        objetivo='ck_sesion_visibilidad' if tabla=='sesion_programada' else 'ck_aviso_publicacion'
+        if objetivo in checks:continue
+        with ops.batch_alter_table(tabla,recreate='always') as b:
+            for c in metadata.tables[tabla].constraints:
+                if c.name in ('ck_sesion_visibilidad','ck_aviso_publicacion'):b.create_check_constraint(c.name,str(c.sqltext))
+            if tabla=='sesion_programada':b.create_foreign_key('fk_sesion_visibilidad_fixture','usuario',['visibilidad_docente_id'],['id_usuario'])
+            else:
+                b.create_foreign_key('fk_notificacion_publicacion_fixture','publicacion_evaluacion',['publicacion_evaluacion_id'],['id'])
+                b.create_unique_constraint('uq_notificacion_publicacion',['publicacion_evaluacion_id','convocatoria_id'])
+
+
+def columnas_publicacion_para_fixture_historica(conexion):
+    """Columnas nullable de compatibilidad de ORM, SOLO en fixtures históricos.
+
+    No instala publicación ni estampa la nueva revisión. Su migración se prueba
+    por separado en PG real; las comparaciones de head nunca usan este filtro.
+    """
+    import sqlalchemy as sa
+    from alembic.operations import Operations
+    from alembic.migration import MigrationContext
+    ops=Operations(MigrationContext.configure(conexion))
+    for tabla,columnas in {'sesion_programada': [('mostrar_resultados_provisionales',sa.Boolean()),('visibilidad_docente_id',sa.Integer()),('visibilidad_actualizada_en',sa.DateTime(timezone=True))],
+            'notificacion':[('publicacion_evaluacion_id',sa.Uuid())]}.items():
+        if not inspect(conexion).has_table(tabla):continue
+        existentes={c['name'] for c in inspect(conexion).get_columns(tabla)}
+        for nombre,tipo in columnas:
+            if nombre not in existentes:ops.add_column(tabla,sa.Column(nombre,tipo,nullable=True))
+
+
+def omitir_publicacion_futura(objeto,nombre,tipo,reflejado,comparado):
+    if tipo=='table' and nombre in {'ausencia_academica','publicacion_evaluacion','resultado_participacion'}:return False
+    nuevas={'mostrar_resultados_provisionales','visibilidad_docente_id','visibilidad_actualizada_en','publicacion_evaluacion_id'}
+    if tipo=='column' and nombre in nuevas:return False
+    if nombre in {'ck_sesion_visibilidad','uq_notificacion_publicacion','ck_aviso_publicacion'}:return False
+    if tipo in {'foreign_key_constraint','unique_constraint'} and any(c.name in nuevas for c in objeto.columns):return False
+    return True
 
 
 def columnas_consentimiento_para_fixture_historica(conexion):
@@ -72,6 +118,7 @@ def columnas_consentimiento_para_fixture_historica(conexion):
     import sqlalchemy as sa
     from alembic.operations import Operations
     from alembic.migration import MigrationContext
+    columnas_publicacion_para_fixture_historica(conexion)
     ops=Operations(MigrationContext.configure(conexion))
     if inspect(conexion).has_table('consentimiento'):
         existentes={c['name'] for c in inspect(conexion).get_columns('consentimiento')}
@@ -87,6 +134,7 @@ def preparar_consentimiento_sqlite(conexion):
     from alembic.operations import Operations
     from alembic.migration import MigrationContext
     if conexion.dialect.name!='sqlite':raise RuntimeError('Solo SQLite aislado.')
+    columnas_publicacion_para_fixture_historica(conexion)
     if 'id_version_documento' in {c['name'] for c in inspect(conexion).get_columns('consentimiento')}:return
     ops=Operations(MigrationContext.configure(conexion))
     with ops.batch_alter_table('consentimiento',recreate='always') as b:
@@ -151,6 +199,7 @@ def omitir_solo_constraints_admision_futura(objeto,nombre,tipo,reflejado,compara
     Solo excluye objetos de revisiones posteriores. Los tests de la cabeza
     actual comparan todo el metadata sin este filtro.
     """
+    if not omitir_publicacion_futura(objeto,nombre,tipo,reflejado,comparado):return False
     if tipo=='table' and nombre in {'documento_consentimiento_version','seleccion_consentimiento',
             'resultado_calculo_preguntas','resultado_pregunta','resultado_criterio_exacto'}:return False
     return nombre not in {'uq_8c_opcion_pregunta','fk_consentimiento_documento','fk_participacion_consentimiento','ck_consentimiento_evidencia','uq_consentimiento_explicito_vigente','fk_espera_sesion_version','fk_admision_evento_sesion',
@@ -181,7 +230,7 @@ def retirar_ddl_resultados_sqlite(conexion):
         raise RuntimeError("Retirada DDL auxiliar reservada a SQLite en memoria.")
     from app.db.models import registrar_modelos_integrados
     metadata=registrar_modelos_integrados()
-    for nombre in ("resultado_criterio_exacto","resultado_pregunta","resultado_calculo_preguntas","seleccion_consentimiento","documento_consentimiento_version","docente_espacio_academico","retroalimentacion_docente","resultado_criterio","resultado_intento"):
+    for nombre in ("resultado_participacion","publicacion_evaluacion","ausencia_academica","resultado_criterio_exacto","resultado_pregunta","resultado_calculo_preguntas","seleccion_consentimiento","documento_consentimiento_version","docente_espacio_academico","retroalimentacion_docente","resultado_criterio","resultado_intento"):
         if inspect(conexion).has_table(nombre):
             if conexion.scalar(text(f"SELECT 1 FROM {nombre} LIMIT 1")) is not None:
                 raise RuntimeError("No eliminar resultados existentes.")

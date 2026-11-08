@@ -33,6 +33,10 @@ def registrar_error(error: Exception) -> None:
 async def ejecutar_revision() -> int:
     """Ejecuta una revisión de sesiones vencidas."""
 
+    # Registro compartido antes de cualquier flush: el proceso separado no
+    # importa app.main y debe resolver también las FK de publicación.
+    from app.db.models import registrar_modelos_integrados
+    registrar_modelos_integrados()
     session_factory = get_session_factory()
     gestor = crear_gestor_eventos(session_factory)
 

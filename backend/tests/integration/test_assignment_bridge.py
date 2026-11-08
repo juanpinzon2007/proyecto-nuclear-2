@@ -49,6 +49,8 @@ def laboratorio():
 
 
 def preparar(engine):
+    from tests.identity.academic_identity_support import columnas_publicacion_para_fixture_historica
+    with engine.begin() as conexion:columnas_publicacion_para_fixture_historica(conexion)
     fabrica = sessionmaker(engine, expire_on_commit=False)
     v = nuevo()
     with fabrica() as s:
@@ -86,7 +88,7 @@ def test_metadata_SQLite_y_downgrade_sin_generacion_ficticia():
         with engine.begin() as c:
             c.exec_driver_sql("PRAGMA foreign_keys=ON")
             command.upgrade(config_alembic(c), HEAD)
-            assert len(registrar_modelos_integrados().tables) == 36
+            assert len(registrar_modelos_integrados().tables) == 39
             preparar_esquema_actual_aislado(c)
             assert compare_metadata(MigrationContext.configure(c), registrar_modelos_integrados()) == []
             identificador = uuid4()

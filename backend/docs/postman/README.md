@@ -254,3 +254,8 @@ banderas LAB locales para ejecutar POST. Reiniciar el laboratorio para repetir
 la secuencia inicial GET404; nunca borrar resultados para forzar una captura.
 La superficie OpenAPI pasa a 43 operaciones; no se modifican las 30 del recorrido
 LAB ni las nueve de consulta técnica anterior. Los informes previos son históricos.
+
+
+## Publicación académica explícita (8/11)
+
+`Proyecto_Nuclear_publicacion_academica.postman_collection.json`: solo esta colección, una iteración con `laboratorio_publicacion.py --puerto 8765`. App.main real, JWT/PG17 nuevos; preparación administrativa sintética de sesión cerrada y resultado 33.33. Revisión → autorización por hash → replay → lectura privada → rechazos. Sin consentimiento/inicio productivos. Secretos solo locales; no capturar login ni Authorization. Enter limpia recursos propios. Comandos/capturas/limitaciones: `../EVALUATION_CICLO_ACADEMICO.md`. CLI/Newman ausentes; no se declara pm.test ejecutado: sí HTTP TCP Python y validación de sintaxis/estructura.

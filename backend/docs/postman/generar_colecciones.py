@@ -25,8 +25,7 @@ from fastapi.routing import APIRoute
 SCHEMA = 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
 METHODS = {'get','post','put','patch','delete'}
 TECH = {'/health','/openapi.json','/docs','/redoc','/docs/oauth2-redirect'}
-BLOCKED = {'/api/v1/identity/excepciones/repeticiones',
- '/scheduling/calificaciones/notificar'}
+BLOCKED = {'/scheduling/calificaciones/notificar'}
 VARS = {'base_url':'http://127.0.0.1:8765','base_url_laboratorio':'http://127.0.0.1:8766',
  'laboratorio_confirmado':'false','permitir_escrituras_laboratorio':'false',
  'limite':'25','desplazamiento':'0','accion':'finalizar'}
@@ -80,6 +79,12 @@ def policy(path,method):
     if path.endswith('/identity/me'):return 'AUTENTICADO','Cuenta activa y rol vigente desde PostgreSQL.'
     if path.startswith('/api/v1/identity/docentes'):return 'ADMINISTRADOR','Cuentas de Identity; no concede ámbito académico ni DOCENTE ADMINISTRADOR.'
     if path.startswith('/api/v1/attempts'):return 'ESTUDIANTE','JWT con convocatoria propia activa, matrícula, intento propio, versión histórica, zona explícita y condiciones temporales del caso de uso.'
+    if path.endswith('/convocatorias/{convocatoria_id}/resultado'):
+        return 'ESTUDIANTE','RF-14: solo titular con JWT real y convocatoria del token. Provisional exige configuración expresa y todos sus intentos cerrados. Sin correctas durante sesión activa. Oficial: última publicación explícita; no calcula ni escribe.'
+    if '/evaluacion/' in path and not path.endswith(('/resultado-tecnico','/evaluacion/preparacion')):
+        return 'DOCENTE','RF-24/RF-25/RF-27: ámbito persistente sesión/caso/grupos. Ausencia explícita sin intentos ficticios; retiradas excluidas; máximo en misma participación. Publicación manual completa, hash de revisión y aviso interno atómicos. GET RR/READ ONLY.'
+    if path.endswith('/identity/excepciones/repeticiones'):
+        return 'DOCENTE','RF-25: permiso nativo individual de un uso, misma participación histórica, sesión EN_CURSO e intentos anteriores cerrados. Idempotente si existe permiso pendiente; no inicia intentos ni concede consentimiento.'
     if path.endswith('/resultado-tecnico') and method=='post':
         return 'DOCENTE','RF-13/RF-24: comando explícito sobre intento cerrado. Identidad/rol y ámbito persistentes bajo locks; UoW independiente del cierre. Idempotente 200; activo u otro motor 409; fallo 503 recuperable. Sin cuerpo ni puntajes del cliente, sin notas oficiales.'
     if path.endswith('/resultado-tecnico'):
@@ -140,6 +145,19 @@ def collection(name, items):
             'event':[{'listen':'prerequest','script':{'type':'text/javascript','exec':GUARD.splitlines()}}], 'item':items}
 
 
+def ciclo_academico(logins,login_ajeno):
+    b='/scheduling/sesiones/{sesion_id}/evaluacion'
+    items=copy.deepcopy(logins)+[copy.deepcopy(login_ajeno)]
+    items.append(request('1 — revisar cohorte y capturar hash','get',b+'/consolidacion','DOCENTE',extra="const j=pm.response.json();pm.test('Todas resueltas',()=>pm.expect(j.publicable).to.eql(true));pm.variables.set('revision_publicacion_sha256',j.revision_sha256);"))
+    items.append(request('2 — autorizar publicación completa','post',b+'/publicaciones','DOCENTE',{'revision_sha256':reference('revision_publicacion_sha256')},extra="const j=pm.response.json();pm.test('Oficial por autorización explícita',()=>pm.expect(j.oficial).to.eql(true));pm.variables.set('publicacion_id',j.id);pm.test('Sin duplicados',()=>pm.expect(new Set(j.resultados.map(x=>x.convocatoria_id)).size).to.eql(j.resultados.length));"))
+    items.append(request('3 — reintento de misma publicación','post',b+'/publicaciones','DOCENTE',{'revision_sha256':reference('revision_publicacion_sha256')},extra="pm.test('Misma publicación',()=>pm.expect(pm.response.json().id).to.eql(pm.variables.get('publicacion_id')));"))
+    items.append(request('4 — lectura oficial docente','get',b+'/publicaciones','DOCENTE',extra="pm.test('Publicación autorizada',()=>pm.expect(pm.response.json().oficial).to.eql(true));"))
+    items.append(request('5 — consulta privada titular','get','/scheduling/convocatorias/{convocatoria_id}/resultado','ESTUDIANTE',extra="const j=pm.response.json();pm.test('Oficial y decimal',()=>{pm.expect(j.oficial).to.eql(true);pm.expect(j.nota).to.match(/^\\d+\\.\\d{2}$/);});"))
+    items.append(request('6 — docente ajeno rechazado','get',b+'/publicaciones','DOCENTE',status=403,auth='token_docente_ajeno'))
+    items.append(request('7 — sin autenticación','get',b+'/publicaciones',status=401))
+    write('Proyecto_Nuclear_publicacion_academica.postman_collection.json',collection('Proyecto Nuclear — publicación académica explícita — app.main',items))
+
+
 def main():
     spec=app.openapi();write('openapi_main.json',spec)
     deps={}
@@ -154,7 +172,7 @@ def main():
             matches=[p for p,ops in spec['paths'].items() if m.lower() in ops and (p==r.path or p.endswith(r.path))]
             assert len(matches)==1,('Revisar inclusión de router',r.path,m)
             deps[(matches[0],m.lower())]={'archivo':str(Path(inspect.getsourcefile(r.endpoint)).relative_to(ROOT)).replace('\\','/'),'funcion':r.endpoint.__name__,'dependencias':names(r.dependant)}
-    assert len(deps)==43,'Cambió la superficie registrada; conciliar inventario antes de regenerar.'
+    assert len(deps)==50,'Cambió la superficie registrada; conciliar inventario antes de regenerar.'
     groups={n:[] for n in ('Identity','Cases','Scheduling','Participation','Seguimiento y notificaciones','Tecnico')}
     inventory=[];preparacion_items=[];resultados_items=[];evaluacion_items=[]
     for path,ops in spec['paths'].items():
@@ -173,6 +191,8 @@ def main():
                 from tests.integration.cases.conftest import payload_valido
                 body=payload_valido.__wrapped__()
             if path.endswith('/graph') and method=='put':body=reference('grafo_body')
+            if path.endswith('/publicaciones') and method=='post':body={'revision_sha256':reference('revision_publicacion_sha256')}
+            if path.endswith('/rectificacion'):body={'id_confirmacion':reference('ausencia_id'),'motivo':'Rectificación docente explícita LAB'}
             params=op.get('parameters',[])
             query=[p for p in params if p['in']=='query']
             target=path+('?'+'&'.join(p['name']+'='+reference(p['name']) for p in query) if query else '')
@@ -183,6 +203,8 @@ def main():
             if path in TECH:group='Tecnico'
             desc=notes+(' BLOQUEADO: 503 con identidad y referencias válidas; no se afirma éxito funcional.' if blocked else ' Disponible en app.main; requiere configuración y recursos válidos.')
             extra=''
+            if path.endswith('/consolidacion'):
+                extra="const j=pm.response.json();pm.test('Revisión explícita',()=>{pm.expect(j.publicable).to.be.a('boolean');pm.expect(j.revision_sha256).to.match(/^[0-9a-f]{64}$/);});pm.variables.set('revision_publicacion_sha256',j.revision_sha256);"
             if path.endswith('/evaluacion/preparacion'):
                 extra="""const j=pm.response.json();
 pm.test('Preparación no autoriza publicación',()=>pm.expect(j.publicable).to.eql(false));
@@ -258,6 +280,7 @@ if(j.ambito==='TECNICO')pm.test('Fracciones exactas como cadenas',()=>j.criterio
     write('Proyecto_Nuclear_evaluacion_tecnica.postman_collection.json',collection(
         'Proyecto Nuclear — cierre confirmado y evaluación explícita, NO oficial',
         logins+[login_ajeno,pendiente,primero,repetir,copy.deepcopy(resultados_items[0])]+evaluacion_items[1:]))
+    ciclo_academico(logins,login_ajeno)
     workflow(spec)
     write('Proyecto_Nuclear_laboratorio.postman_environment.json',{'name':'Proyecto Nuclear LAB — SIN SECRETOS','values':[{'key':k,'value':v,'type':'secret' if k in SECRET or any(x in k for x in ('clave','codigo','token')) else 'default','enabled':True} for k,v in sorted(VARS.items())], '_postman_variable_scope':'environment'})
     rows=['# Endpoints registrados en app.main','','Fuente: openapi_main.json y dependencias de los routers. No acredita despliegue ni ejecución HTTP.','','| Método | Ruta | Rol | Estado | Dependencias |','|---|---|---|---|---|']
@@ -266,7 +289,7 @@ if(j.ambito==='TECNICO')pm.test('Fracciones exactas como cadenas',()=>j.criterio
            'Preparación y resultado técnico docente están registrados; no hay publicación oficial. Inicio/provisión/consentimiento no están en main. PUT de decisiones no está montado: 405, no una operación disponible.',
            'OpenAPI no enumera todos los errores funcionales: revisar archivo/función/dependencias indicados y README.']
     (OUT/'INVENTARIO.md').write_text('\n'.join(rows)+'\n',encoding='utf-8')
-    print(json.dumps({'operaciones_openapi':sum(m in METHODS for v in spec['paths'].values() for m in v),'rutas_documentacion':4,'colecciones':5}))
+    print(json.dumps({'operaciones_openapi':sum(m in METHODS for v in spec['paths'].values() for m in v),'rutas_documentacion':4,'colecciones':6}))
 
 
 def workflow(spec):

@@ -8,7 +8,7 @@ import warnings
 import laboratorio_http as lab
 
 
-def preparar(secretos, stack, *, evaluar=True):
+def preparar(secretos, stack, *, evaluar=True, incluir_abierto=True):
     import pytest
     import sqlalchemy as sa
     from tests.integration.test_question_result_storage import pg_resultados, crear_registro, cerrar, guardar
@@ -39,7 +39,7 @@ def preparar(secretos, stack, *, evaluar=True):
         s.add(permiso);s.flush();pid=permiso.id_permiso_extra
         recursos=dict(correo_docente=docente.correo,correo_docente_ajeno=ajeno.correo,
             correo_estudiante=s.get(U,c.alumno).correo,sesion_id=str(c.sesion),version_id=str(c.version.id),id_intento=c.ik)
-    recursos['intento_sin_resultado_id']=intento(c,c.pk,numero_intento=2,id_permiso_extra=pid)
+    if incluir_abierto:recursos['intento_sin_resultado_id']=intento(c,c.pk,numero_intento=2,id_permiso_extra=pid)
     return h,recursos
 
 

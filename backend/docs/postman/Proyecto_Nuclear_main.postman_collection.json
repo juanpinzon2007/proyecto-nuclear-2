@@ -997,7 +997,7 @@
           "name": "POST /api/v1/identity/excepciones/repeticiones",
           "item": [
             {
-              "name": "POST /api/v1/identity/excepciones/repeticiones [CIERRE SEGURO]",
+              "name": "POST /api/v1/identity/excepciones/repeticiones [POSITIVA/PRECONDICIONES]",
               "request": {
                 "method": "POST",
                 "header": [
@@ -1021,7 +1021,7 @@
                     }
                   ]
                 },
-                "description": "Ámbito persistente de caso/sesión/participación; seguimiento de casos realizados. No hay notas oficiales. BLOQUEADO: 503 con identidad y referencias válidas; no se afirma éxito funcional.",
+                "description": "RF-25: permiso nativo individual de un uso, misma participación histórica, sesión EN_CURSO e intentos anteriores cerrados. Idempotente si existe permiso pendiente; no inicia intentos ni concede consentimiento. Disponible en app.main; requiere configuración y recursos válidos.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"id_sesion\": \"Dato sintético LAB\",\n  \"id_estudiante\": \"Dato sintético LAB\"\n}",
@@ -1038,7 +1038,8 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "pm.test('HTTP exacto 503',()=>pm.response.to.have.status(503));",
+                      "pm.test('HTTP exacto 201',()=>pm.response.to.have.status(201));",
+                      "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({\"properties\": {\"id_sesion\": {\"type\": \"string\", \"title\": \"Id Sesion\"}, \"id_estudiante\": {\"type\": \"string\", \"title\": \"Id Estudiante\"}, \"id_docente_autorizador\": {\"type\": \"string\", \"title\": \"Id Docente Autorizador\"}, \"fecha_autorizacion\": {\"type\": \"string\", \"format\": \"date-time\", \"title\": \"Fecha Autorizacion\"}, \"id_permiso_extra\": {\"anyOf\": [{\"type\": \"integer\"}, {\"type\": \"null\"}], \"title\": \"Id Permiso Extra\"}}, \"type\": \"object\", \"required\": [\"id_sesion\", \"id_estudiante\", \"id_docente_autorizador\", \"fecha_autorizacion\"], \"title\": \"AutorizacionRepeticion\"}));",
                       "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
                       "const j=pm.response.json();",
                       "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
@@ -6240,6 +6241,1572 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('HTTP exacto 422',()=>pm.response.to.have.status(422));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/consolidacion",
+          "item": [
+            {
+              "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/consolidacion [POSITIVA/PRECONDICIONES]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/consolidacion",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_docente}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "RF-24/RF-25/RF-27: ámbito persistente sesión/caso/grupos. Ausencia explícita sin intentos ficticios; retiradas excluidas; máximo en misma participación. Publicación manual completa, hash de revisión y aviso interno atómicos. GET RR/READ ONLY. Disponible en app.main; requiere configuración y recursos válidos."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+                      "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({}));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}",
+                      "const j=pm.response.json();pm.test('Revisión explícita',()=>{pm.expect(j.publicable).to.be.a('boolean');pm.expect(j.revision_sha256).to.match(/^[0-9a-f]{64}$/);});pm.variables.set('revision_publicacion_sha256',j.revision_sha256);"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/consolidacion [SIN JWT]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/consolidacion",
+                "auth": {
+                  "type": "noauth"
+                },
+                "description": ""
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/consolidacion [JWT INVALIDO]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/consolidacion",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "invalido-LAB",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/consolidacion [ROL NO AUTORIZADO]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/consolidacion",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_estudiante}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 403',()=>pm.response.to.have.status(403));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia",
+          "item": [
+            {
+              "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia [POSITIVA/PRECONDICIONES]",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/convocatorias/{{convocatoria_id}}/ausencia",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_docente}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "RF-24/RF-25/RF-27: ámbito persistente sesión/caso/grupos. Ausencia explícita sin intentos ficticios; retiradas excluidas; máximo en misma participación. Publicación manual completa, hash de revisión y aviso interno atómicos. GET RR/READ ONLY. Disponible en app.main; requiere configuración y recursos válidos.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"motivo\": \"Dato sintético LAB\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+                      "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({}));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia [BODY INVALIDO]",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/convocatorias/{{convocatoria_id}}/ausencia",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_docente}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 422',()=>pm.response.to.have.status(422));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia [SIN JWT]",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/convocatorias/{{convocatoria_id}}/ausencia",
+                "auth": {
+                  "type": "noauth"
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"motivo\": \"Dato sintético LAB\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia [JWT INVALIDO]",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/convocatorias/{{convocatoria_id}}/ausencia",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "invalido-LAB",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"motivo\": \"Dato sintético LAB\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia [ROL NO AUTORIZADO]",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/convocatorias/{{convocatoria_id}}/ausencia",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_estudiante}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"motivo\": \"Dato sintético LAB\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 403',()=>pm.response.to.have.status(403));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia/rectificacion",
+          "item": [
+            {
+              "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia/rectificacion [POSITIVA/PRECONDICIONES]",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/convocatorias/{{convocatoria_id}}/ausencia/rectificacion",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_docente}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "RF-24/RF-25/RF-27: ámbito persistente sesión/caso/grupos. Ausencia explícita sin intentos ficticios; retiradas excluidas; máximo en misma participación. Publicación manual completa, hash de revisión y aviso interno atómicos. GET RR/READ ONLY. Disponible en app.main; requiere configuración y recursos válidos.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_confirmacion\": \"{{ausencia_id}}\",\n  \"motivo\": \"Rectificación docente explícita LAB\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+                      "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({}));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia/rectificacion [BODY INVALIDO]",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/convocatorias/{{convocatoria_id}}/ausencia/rectificacion",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_docente}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 422',()=>pm.response.to.have.status(422));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia/rectificacion [SIN JWT]",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/convocatorias/{{convocatoria_id}}/ausencia/rectificacion",
+                "auth": {
+                  "type": "noauth"
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_confirmacion\": \"{{ausencia_id}}\",\n  \"motivo\": \"Rectificación docente explícita LAB\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia/rectificacion [JWT INVALIDO]",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/convocatorias/{{convocatoria_id}}/ausencia/rectificacion",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "invalido-LAB",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_confirmacion\": \"{{ausencia_id}}\",\n  \"motivo\": \"Rectificación docente explícita LAB\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia/rectificacion [ROL NO AUTORIZADO]",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/convocatorias/{{convocatoria_id}}/ausencia/rectificacion",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_estudiante}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id_confirmacion\": \"{{ausencia_id}}\",\n  \"motivo\": \"Rectificación docente explícita LAB\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 403',()=>pm.response.to.have.status(403));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PUT /scheduling/sesiones/{sesion_id}/evaluacion/visibilidad",
+          "item": [
+            {
+              "name": "PUT /scheduling/sesiones/{sesion_id}/evaluacion/visibilidad [POSITIVA/PRECONDICIONES]",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/visibilidad",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_docente}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "RF-24/RF-25/RF-27: ámbito persistente sesión/caso/grupos. Ausencia explícita sin intentos ficticios; retiradas excluidas; máximo en misma participación. Publicación manual completa, hash de revisión y aviso interno atómicos. GET RR/READ ONLY. Disponible en app.main; requiere configuración y recursos válidos.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"mostrar_provisional\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+                      "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({}));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "PUT /scheduling/sesiones/{sesion_id}/evaluacion/visibilidad [BODY INVALIDO]",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/visibilidad",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_docente}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 422',()=>pm.response.to.have.status(422));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "PUT /scheduling/sesiones/{sesion_id}/evaluacion/visibilidad [SIN JWT]",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/visibilidad",
+                "auth": {
+                  "type": "noauth"
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"mostrar_provisional\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "PUT /scheduling/sesiones/{sesion_id}/evaluacion/visibilidad [JWT INVALIDO]",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/visibilidad",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "invalido-LAB",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"mostrar_provisional\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "PUT /scheduling/sesiones/{sesion_id}/evaluacion/visibilidad [ROL NO AUTORIZADO]",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/visibilidad",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_estudiante}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"mostrar_provisional\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 403',()=>pm.response.to.have.status(403));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/publicaciones",
+          "item": [
+            {
+              "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/publicaciones [POSITIVA/PRECONDICIONES]",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/publicaciones",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_docente}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "RF-24/RF-25/RF-27: ámbito persistente sesión/caso/grupos. Ausencia explícita sin intentos ficticios; retiradas excluidas; máximo en misma participación. Publicación manual completa, hash de revisión y aviso interno atómicos. GET RR/READ ONLY. Disponible en app.main; requiere configuración y recursos válidos.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"revision_sha256\": \"{{revision_publicacion_sha256}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+                      "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({}));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/publicaciones [BODY INVALIDO]",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/publicaciones",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_docente}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 422',()=>pm.response.to.have.status(422));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/publicaciones [SIN JWT]",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/publicaciones",
+                "auth": {
+                  "type": "noauth"
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"revision_sha256\": \"{{revision_publicacion_sha256}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/publicaciones [JWT INVALIDO]",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/publicaciones",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "invalido-LAB",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"revision_sha256\": \"{{revision_publicacion_sha256}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/publicaciones [ROL NO AUTORIZADO]",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/publicaciones",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_estudiante}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"revision_sha256\": \"{{revision_publicacion_sha256}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 403',()=>pm.response.to.have.status(403));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/publicaciones",
+          "item": [
+            {
+              "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/publicaciones [POSITIVA/PRECONDICIONES]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/publicaciones",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_docente}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "RF-24/RF-25/RF-27: ámbito persistente sesión/caso/grupos. Ausencia explícita sin intentos ficticios; retiradas excluidas; máximo en misma participación. Publicación manual completa, hash de revisión y aviso interno atómicos. GET RR/READ ONLY. Disponible en app.main; requiere configuración y recursos válidos."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+                      "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({}));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/publicaciones [SIN JWT]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/publicaciones",
+                "auth": {
+                  "type": "noauth"
+                },
+                "description": ""
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/publicaciones [JWT INVALIDO]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/publicaciones",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "invalido-LAB",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/publicaciones [ROL NO AUTORIZADO]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/publicaciones",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_estudiante}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 403',()=>pm.response.to.have.status(403));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "GET /scheduling/convocatorias/{convocatoria_id}/resultado",
+          "item": [
+            {
+              "name": "GET /scheduling/convocatorias/{convocatoria_id}/resultado [POSITIVA/PRECONDICIONES]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/convocatorias/{{convocatoria_id}}/resultado",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_estudiante}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "RF-14: solo titular con JWT real y convocatoria del token. Provisional exige configuración expresa y todos sus intentos cerrados. Sin correctas durante sesión activa. Oficial: última publicación explícita; no calcula ni escribe. Disponible en app.main; requiere configuración y recursos válidos."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 200',()=>pm.response.to.have.status(200));",
+                      "pm.test('Contrato JSON',()=>pm.response.to.have.jsonSchema({}));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /scheduling/convocatorias/{convocatoria_id}/resultado [SIN JWT]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/convocatorias/{{convocatoria_id}}/resultado",
+                "auth": {
+                  "type": "noauth"
+                },
+                "description": ""
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /scheduling/convocatorias/{convocatoria_id}/resultado [JWT INVALIDO]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/convocatorias/{{convocatoria_id}}/resultado",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "invalido-LAB",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 401',()=>pm.response.to.have.status(401));",
+                      "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
+                      "const j=pm.response.json();",
+                      "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
+                      "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "GET /scheduling/convocatorias/{convocatoria_id}/resultado [ROL NO AUTORIZADO]",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/scheduling/convocatorias/{{convocatoria_id}}/resultado",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token_docente}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP exacto 403',()=>pm.response.to.have.status(403));",
                       "if (pm.request.method !== 'HEAD' && (pm.response.headers.get('Content-Type')||'').includes('json')) {",
                       "const j=pm.response.json();",
                       "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",

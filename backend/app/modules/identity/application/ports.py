@@ -90,8 +90,8 @@ class ConsultaEscrituraAcademica(ConsultaAmbitoAcademico, Protocol):
 
 
 class RepositorioAutorizaciones(Protocol):
-    def guardar(self, autorizacion: AutorizacionRepeticion) -> None:
-        """Sin commit propio ni upsert implícito. No equivale a permiso_intento_extra."""
+    def guardar(self, autorizacion: AutorizacionRepeticion) -> int | AutorizacionRepeticion | None:
+        """Sin commit propio. Devuelve ID nativo o concesión persistida (fecha original en replay)."""
         ...
 
 

@@ -30,6 +30,7 @@ def registrar_modelos_integrados() -> MetaData:
     from app.modules.scheduling.infrastructure import assignment_models  # noqa: F401
     from app.modules.participation.infrastructure import models as participation_models  # noqa: F401
     from app.modules.participation.infrastructure import result_models  # noqa: F401
+    from app.modules.participation.infrastructure import academic_results_models  # noqa: F401
     from app.modules.participation.infrastructure import question_result_models  # noqa: F401
     from app.modules.identity.infrastructure.academic_models import PermisoIntentoExtraORM, RetroalimentacionDocenteORM  # noqa: F401
 

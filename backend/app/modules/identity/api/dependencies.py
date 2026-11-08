@@ -72,8 +72,15 @@ def construir_seguimiento(*, usuario, crear_sesion) -> IServicioSeguimiento:
 
 
 def construir_excepciones() -> IServicioExcepciones:
-    # Requiere UoW común y contrato transaccional con Cases/Participation/Scheduling.
-    raise IntegracionPendiente()
+    from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
+    from app.modules.participation.infrastructure.codecs import FechasPersistencia
+    from app.modules.identity.infrastructure.repetition import crear_servicio_repeticion
+    zona=get_settings().participation_timestamp_zone
+    try:
+        if not zona:raise ValueError()
+        fechas=FechasPersistencia(ZoneInfo(zona))
+        return crear_servicio_repeticion(sesiones=obtener_fabrica_sesiones_seguimiento(),fechas=fechas)
+    except (ValueError,ZoneInfoNotFoundError):raise IntegracionPendiente() from None
 
 
 def construir_administracion() -> IServicioAdministracion:

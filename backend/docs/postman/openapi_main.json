@@ -2039,6 +2039,393 @@
         }
       }
     },
+    "/scheduling/sesiones/{sesion_id}/evaluacion/consolidacion": {
+      "get": {
+        "tags": [
+          "Scheduling",
+          "Consolidación académica"
+        ],
+        "summary": "Revisar",
+        "operationId": "revisar_scheduling_sesiones__sesion_id__evaluacion_consolidacion_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia": {
+      "post": {
+        "tags": [
+          "Scheduling",
+          "Consolidación académica"
+        ],
+        "summary": "Ausencia",
+        "operationId": "ausencia_scheduling_sesiones__sesion_id__evaluacion_convocatorias__convocatoria_id__ausencia_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          },
+          {
+            "name": "convocatoria_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Convocatoria Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Motivo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/sesiones/{sesion_id}/evaluacion/convocatorias/{convocatoria_id}/ausencia/rectificacion": {
+      "post": {
+        "tags": [
+          "Scheduling",
+          "Consolidación académica"
+        ],
+        "summary": "Rectificar",
+        "operationId": "rectificar_scheduling_sesiones__sesion_id__evaluacion_convocatorias__convocatoria_id__ausencia_rectificacion_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          },
+          {
+            "name": "convocatoria_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Convocatoria Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Rectificacion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/sesiones/{sesion_id}/evaluacion/visibilidad": {
+      "put": {
+        "tags": [
+          "Scheduling",
+          "Consolidación académica"
+        ],
+        "summary": "Visibilidad",
+        "operationId": "visibilidad_scheduling_sesiones__sesion_id__evaluacion_visibilidad_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Visibilidad"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/sesiones/{sesion_id}/evaluacion/publicaciones": {
+      "post": {
+        "tags": [
+          "Scheduling",
+          "Consolidación académica"
+        ],
+        "summary": "Publicar",
+        "operationId": "publicar_scheduling_sesiones__sesion_id__evaluacion_publicaciones_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Publicar"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Scheduling",
+          "Consolidación académica"
+        ],
+        "summary": "Consultar Publicacion",
+        "operationId": "consultar_publicacion_scheduling_sesiones__sesion_id__evaluacion_publicaciones_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduling/convocatorias/{convocatoria_id}/resultado": {
+      "get": {
+        "tags": [
+          "Scheduling",
+          "Consolidación académica"
+        ],
+        "summary": "Resultado Propio",
+        "operationId": "resultado_propio_scheduling_convocatorias__convocatoria_id__resultado_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "convocatoria_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Convocatoria Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/attempts/{attempt_id}/current-scenario": {
       "get": {
         "tags": [
@@ -2347,6 +2734,17 @@
             "type": "string",
             "format": "date-time",
             "title": "Fecha Autorizacion"
+          },
+          "id_permiso_extra": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Permiso Extra"
           }
         },
         "type": "object",
@@ -3513,6 +3911,22 @@
         ],
         "title": "IntentoSeguimiento"
       },
+      "Motivo": {
+        "properties": {
+          "motivo": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Motivo"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "motivo"
+        ],
+        "title": "Motivo"
+      },
       "NivelResponse": {
         "properties": {
           "id": {
@@ -4138,6 +4552,43 @@
           "respondidas"
         ],
         "title": "ProgresoRespuesta"
+      },
+      "Publicar": {
+        "properties": {
+          "revision_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Revision Sha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision_sha256"
+        ],
+        "title": "Publicar"
+      },
+      "Rectificacion": {
+        "properties": {
+          "motivo": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Motivo"
+          },
+          "id_confirmacion": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id Confirmacion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "motivo",
+          "id_confirmacion"
+        ],
+        "title": "Rectificacion"
       },
       "RespuestaSeguimiento": {
         "properties": {
@@ -5005,6 +5456,20 @@
         ],
         "title": "VersionResponse",
         "description": "Respuesta de las operaciones de escritura."
+      },
+      "Visibilidad": {
+        "properties": {
+          "mostrar_provisional": {
+            "type": "boolean",
+            "title": "Mostrar Provisional"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mostrar_provisional"
+        ],
+        "title": "Visibilidad"
       }
     },
     "securitySchemes": {

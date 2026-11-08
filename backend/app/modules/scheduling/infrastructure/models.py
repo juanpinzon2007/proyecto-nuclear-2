@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -50,6 +51,10 @@ class SesionProgramadaModel(Base):
     """Representa una sesión académica programada."""
 
     __tablename__ = "sesion_programada"
+    mostrar_resultados_provisionales:Mapped[bool|None]=mapped_column(Boolean,nullable=True)
+    visibilidad_docente_id:Mapped[int|None]=mapped_column(ForeignKey('usuario.id_usuario'),nullable=True)
+    visibilidad_actualizada_en:Mapped[datetime|None]=mapped_column(DateTime(timezone=True),nullable=True)
+
 
     id: Mapped[uuid.UUID] = uuid_pk()
 
@@ -205,6 +210,10 @@ class NotificacionModel(Base):
     """Representa una notificación académica."""
 
     __tablename__ = "notificacion"
+    publicacion_evaluacion_id:Mapped[uuid.UUID|None]=mapped_column(ForeignKey('publicacion_evaluacion.id'),nullable=True)
+    __table_args__=(UniqueConstraint('publicacion_evaluacion_id','convocatoria_id',name='uq_notificacion_publicacion'),
+        CheckConstraint("publicacion_evaluacion_id IS NULL OR (tipo='CALIFICACION' AND canal='INTERNA' AND convocatoria_id IS NOT NULL)",name='ck_aviso_publicacion'))
+
 
     # Identificador único
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -319,3 +328,7 @@ class EventoAuditoriaModel(Base):
     sesion: Mapped["SesionProgramadaModel"] = relationship()
 
 
+
+
+SesionProgramadaModel.__table__.append_constraint(CheckConstraint(
+    "(mostrar_resultados_provisionales IS NULL AND visibilidad_docente_id IS NULL AND visibilidad_actualizada_en IS NULL) OR (mostrar_resultados_provisionales IS NOT NULL AND visibilidad_docente_id IS NOT NULL AND visibilidad_actualizada_en IS NOT NULL)",name='ck_sesion_visibilidad'))

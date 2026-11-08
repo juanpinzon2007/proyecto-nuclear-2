@@ -498,3 +498,6 @@ router.include_router(readiness_router)
 
 from app.modules.scheduling.api.technical_results import router as resultados_tecnicos_router
 router.include_router(resultados_tecnicos_router)
+
+from app.modules.scheduling.api.academic_results import router as academic_results_router
+router.include_router(academic_results_router)
