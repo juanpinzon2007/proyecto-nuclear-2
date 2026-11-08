@@ -229,3 +229,16 @@ $salidaPostman = "evidencias/postman_validacion_$(Get-Date -Format yyyyMMdd_HHmm
 Los pm.test requieren ejecución manual en Desktop; Node solo comprueba sintaxis.
 La regresión Backend de este nuevo incremento se registra en el informe HTTP,
 no se atribuye a la ejecución histórica del catálogo.
+
+
+## Incremento: resultado técnico docente
+
+Colección `Proyecto_Nuclear_resultados_tecnicos.postman_collection.json`, nueve
+solicitudes; autenticación real, resultado privado 200 y rechazos 401/403/404.
+Solo docentes con ámbito persistente. GET READ ONLY; oficial=false. Las cadenas
+Decimal y fracciones no deben convertirse a Number en las aserciones de precisión.
+Guía, comandos de laboratorio propio y capturas: `../RESULTADO_TECNICO_DOCENTE_HTTP.md`.
+Las variables nuevas están vacías; no exportar secretos ni JWT de la demostración.
+El catálogo/OpenAPI tienen 42 operaciones registradas; los informes anteriores
+son históricos. No se modifica el recorrido LAB de 30 solicitudes ni se añade
+publicación oficial. Node comprueba sintaxis; no se atribuyen ejecuciones Postman.

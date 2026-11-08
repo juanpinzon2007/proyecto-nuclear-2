@@ -495,3 +495,6 @@ router.include_router(admission_router)
 # Solo lectura docente acreditada; no monta Evaluation ni Participation general.
 from app.modules.scheduling.api.evaluation_readiness import router as readiness_router
 router.include_router(readiness_router)
+
+from app.modules.scheduling.api.technical_results import router as resultados_tecnicos_router
+router.include_router(resultados_tecnicos_router)

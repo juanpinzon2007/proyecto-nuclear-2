@@ -34,6 +34,10 @@ class ConsultaPreparacionEvaluacionSQLAlchemy:
     def consultar(self, *, id_sesion: UUID) -> PreparacionEvaluacionSesion:
         if not isinstance(id_sesion, UUID):
             raise AccesoDenegado()
+        return self._lectura(lambda s: self._consultar(s, id_sesion))
+
+    def _lectura(self, operacion):
+        """Una única instantánea propia, sin efectos de escritura."""
         try:
             s = self.crear_sesion()
             if s.in_transaction():
@@ -47,7 +51,7 @@ class ConsultaPreparacionEvaluacionSQLAlchemy:
                 s.connection(execution_options={'isolation_level': 'REPEATABLE READ'})
                 s.execute(text('SET TRANSACTION READ ONLY'))
                 with s.no_autoflush:
-                    return self._consultar(s, id_sesion)
+                    return operacion(s)
         except SQLAlchemyError:
             raise IntegracionPendiente() from None
 
@@ -127,13 +131,7 @@ class ConsultaPreparacionEvaluacionSQLAlchemy:
                 else:
                     # Reutiliza reproducción, huellas y FK históricas; no basta
                     # encontrar una cabecera para declarar válido un resultado.
-                    alcance = _Alcance(lambda: s, self.usuario, i.id_intento, self.fechas)
-                    lector = LecturasParticipacionSQLAlchemy(s,
-                        TablasLecturaParticipacion(P.__table__, I.__table__, PasoSimulacionModel.__table__),
-                        fechas=self.fechas, estados={e.value: e for e in EstadoIntento},
-                        duracion_historica=consultar_duracion_historica)
-                    tecnico = RepositorioResultadosTecnicosSQLAlchemy(s, alcance=alcance,
-                        fechas=self.fechas, lecturas=lector).obtener_tecnico(id_intento=i.id_intento)
+                    tecnico = self._resultado_tecnico(s, i.id_intento)
                     if tecnico.id_resultado != rid or tecnico.datos.id_participacion != p.id_participacion:
                         raise IntegracionPendiente()
                     pendientes.append('RESULTADO_TECNICO_NO_OFICIAL' if tecnico.ambito=='TECNICO' else 'RESULTADO_LABORATORIO_NO_OFICIAL')
@@ -149,3 +147,12 @@ class ConsultaPreparacionEvaluacionSQLAlchemy:
             pendientes.append('SIN_CONVOCATORIAS')
         return PreparacionEvaluacionSesion(id_sesion, version.id, rubrica.id,
             rubrica.version_regla, sesion.estado, tuple(filas), tuple(pendientes))
+
+    def _resultado_tecnico(self, s, id_intento):
+        alcance = _Alcance(lambda: s, self.usuario, id_intento, self.fechas)
+        lector = LecturasParticipacionSQLAlchemy(s,
+            TablasLecturaParticipacion(P.__table__, I.__table__, PasoSimulacionModel.__table__),
+            fechas=self.fechas, estados={e.value: e for e in EstadoIntento},
+            duracion_historica=consultar_duracion_historica)
+        return RepositorioResultadosTecnicosSQLAlchemy(s, alcance=alcance,
+            fechas=self.fechas, lecturas=lector).obtener_tecnico(id_intento=id_intento)

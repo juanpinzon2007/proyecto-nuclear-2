@@ -40,6 +40,7 @@ Fuente: openapi_main.json y dependencias de los routers. No acredita despliegue 
 | POST | /scheduling/convocatorias/{convocatoria_id}/espera | ESTUDIANTE | REGISTRADO_CON_PRECONDICIONES | Identidad SCHEDULING, convocatoria propia y matrícula; ingreso exige concesión de admisión y EN_CURSO, nunca crea P/I. |
 | GET | /scheduling/convocatorias/{convocatoria_id}/admision | ESTUDIANTE | REGISTRADO_CON_PRECONDICIONES | Identidad SCHEDULING, convocatoria propia y matrícula; ingreso exige concesión de admisión y EN_CURSO, nunca crea P/I. |
 | GET | /scheduling/sesiones/{sesion_id}/evaluacion/preparacion | DOCENTE | REGISTRADO_CON_PRECONDICIONES | RF-13/RF-24/RF-16: preparación, no notas. Cuenta activa, identidades CASES/SCHEDULING inequívocas, sesión/caso/grupos propios y matrículas ciertas; zona histórica explícita. READ ONLY; publicable=false. |
+| GET | /scheduling/sesiones/{sesion_id}/evaluacion/intentos/{id_intento}/resultado-tecnico | DOCENTE | REGISTRADO_CON_PRECONDICIONES | RF-13/RF-24: resultado técnico previamente persistido, no oficial. JWT/cuenta/rol y ámbito sesión/caso/grupos/participación/intento. REPEATABLE READ/READ ONLY; GET no genera resultados; 404 si no existe. |
 | GET | /api/v1/attempts/{attempt_id}/current-scenario | ESTUDIANTE | REGISTRADO_CON_PRECONDICIONES | JWT con convocatoria propia activa, matrícula, intento propio, versión histórica, zona explícita y condiciones temporales del caso de uso. |
 | GET | /api/v1/attempts/{attempt_id}/progress | ESTUDIANTE | REGISTRADO_CON_PRECONDICIONES | JWT con convocatoria propia activa, matrícula, intento propio, versión histórica, zona explícita y condiciones temporales del caso de uso. |
 | POST | /api/v1/attempts/{attempt_id}/decisions/{decision_id} | ESTUDIANTE | REGISTRADO_CON_PRECONDICIONES | JWT con convocatoria propia activa, matrícula, intento propio, versión histórica, zona explícita y condiciones temporales del caso de uso. |
@@ -55,5 +56,5 @@ Fuente: openapi_main.json y dependencias de los routers. No acredita despliegue 
 | HEAD | /docs/oauth2-redirect | PUBLICO | DOCUMENTACION_AUTOMATICA |  |
 
 Parámetros, cuerpos y esquemas de respuesta completos: inventario_endpoints.json y openapi_main.json.
-No hay rutas Evaluation. Inicio/provisión/consentimiento no están en main. PUT de decisiones no está montado: 405, no una operación disponible.
+Preparación y resultado técnico docente están registrados; no hay publicación oficial. Inicio/provisión/consentimiento no están en main. PUT de decisiones no está montado: 405, no una operación disponible.
 OpenAPI no enumera todos los errores funcionales: revisar archivo/función/dependencias indicados y README.

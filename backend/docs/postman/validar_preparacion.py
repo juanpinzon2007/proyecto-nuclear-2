@@ -62,7 +62,8 @@ def main(salida=None):
             for path,status in [('/health',200),('/openapi.json',200),
                 ('/api/v1/identity/docentes',401),('/api/v1/identity/me',401),
                 ('/api/v1/attempts/1/current-scenario',401),('/api/v1/attempts/1/progress',401),
-                ('/scheduling/sesiones/00000000-0000-0000-0000-000000000001/evaluacion/preparacion',401)]:
+                ('/scheduling/sesiones/00000000-0000-0000-0000-000000000001/evaluacion/preparacion',401),
+                ('/scheduling/sesiones/00000000-0000-0000-0000-000000000001/evaluacion/intentos/1/resultado-tecnico',401)]:
                 r=client.get(path);assert r.status_code==status,(path,r.status_code)
                 if path=='/health':assert r.json()=={'status':'ok'}
                 http.append({'metodo':'GET','ruta':path,'esperado':status,'observado':r.status_code,'medio':'ASGI/TestClient sin SQL'})

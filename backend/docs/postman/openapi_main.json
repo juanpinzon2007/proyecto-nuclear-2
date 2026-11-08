@@ -1899,6 +1899,77 @@
         }
       }
     },
+    "/scheduling/sesiones/{sesion_id}/evaluacion/intentos/{id_intento}/resultado-tecnico": {
+      "get": {
+        "tags": [
+          "Scheduling",
+          "Resultados técnicos docentes"
+        ],
+        "summary": "Resultado técnico persistido, privado y no oficial",
+        "operationId": "consultar_resultado_scheduling_sesiones__sesion_id__evaluacion_intentos__id_intento__resultado_tecnico_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sesion_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Sesion Id"
+            }
+          },
+          {
+            "name": "id_intento",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "title": "Id Intento"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoTecnicoRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Autenticación inválida"
+          },
+          "403": {
+            "description": "Fuera del ámbito docente"
+          },
+          "404": {
+            "description": "Resultado aún no disponible"
+          },
+          "503": {
+            "description": "Configuración o integridad no acreditadas"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/attempts/{attempt_id}/current-scenario": {
       "get": {
         "tags": [
@@ -2676,6 +2747,91 @@
           "peso"
         ],
         "title": "CriterioSchema"
+      },
+      "CriterioTecnicoRespuesta": {
+        "properties": {
+          "criterio_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Criterio Id"
+          },
+          "suma_puntajes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suma Puntajes"
+          },
+          "preguntas_evaluables": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preguntas Evaluables"
+          },
+          "numerador": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numerador"
+          },
+          "denominador": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[1-9]\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Denominador"
+          },
+          "nivel_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nivel Id"
+          },
+          "puntaje_obtenido": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Puntaje Obtenido"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "criterio_id"
+        ],
+        "title": "CriterioTecnicoRespuesta"
       },
       "CuentaDocenteRespuesta": {
         "properties": {
@@ -3680,6 +3836,38 @@
         ],
         "title": "PreguntaSchema"
       },
+      "PreguntaTecnicaRespuesta": {
+        "properties": {
+          "pregunta_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Pregunta Id"
+          },
+          "opcion_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Opcion Id"
+          },
+          "puntaje": {
+            "type": "string",
+            "title": "Puntaje"
+          },
+          "numero_paso": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Numero Paso"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "pregunta_id",
+          "opcion_id",
+          "puntaje",
+          "numero_paso"
+        ],
+        "title": "PreguntaTecnicaRespuesta"
+      },
       "PreparacionSesionRespuesta": {
         "properties": {
           "id_sesion": {
@@ -3971,6 +4159,165 @@
           "access_token"
         ],
         "title": "RespuestaToken"
+      },
+      "ResultadoTecnicoRespuesta": {
+        "properties": {
+          "id_sesion": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id Sesion"
+          },
+          "id_convocatoria": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id Convocatoria"
+          },
+          "id_participacion": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Participacion"
+          },
+          "id_intento": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Intento"
+          },
+          "id_resultado": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Resultado"
+          },
+          "version_caso_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Version Caso Id"
+          },
+          "rubrica_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Rubrica Id"
+          },
+          "version_regla": {
+            "type": "string",
+            "title": "Version Regla"
+          },
+          "modalidad": {
+            "type": "string",
+            "enum": [
+              "COMPLETA",
+              "PARCIAL"
+            ],
+            "title": "Modalidad"
+          },
+          "ambito": {
+            "type": "string",
+            "enum": [
+              "TECNICO",
+              "LABORATORIO"
+            ],
+            "title": "Ambito"
+          },
+          "oficial": {
+            "type": "boolean",
+            "const": false,
+            "title": "Oficial"
+          },
+          "fecha_calculo": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fecha Calculo"
+          },
+          "nota_final": {
+            "type": "string",
+            "title": "Nota Final"
+          },
+          "procedencia_sha256": {
+            "type": "string",
+            "title": "Procedencia Sha256"
+          },
+          "preguntas_exigidas": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preguntas Exigidas"
+          },
+          "preguntas_respondidas": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preguntas Respondidas"
+          },
+          "pendientes_con_cero": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pendientes Con Cero"
+          },
+          "suma_puntajes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suma Puntajes"
+          },
+          "preguntas": {
+            "items": {
+              "$ref": "#/components/schemas/PreguntaTecnicaRespuesta"
+            },
+            "type": "array",
+            "title": "Preguntas"
+          },
+          "criterios": {
+            "items": {
+              "$ref": "#/components/schemas/CriterioTecnicoRespuesta"
+            },
+            "type": "array",
+            "title": "Criterios"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_sesion",
+          "id_convocatoria",
+          "id_participacion",
+          "id_intento",
+          "id_resultado",
+          "version_caso_id",
+          "rubrica_id",
+          "version_regla",
+          "modalidad",
+          "ambito",
+          "oficial",
+          "fecha_calculo",
+          "nota_final",
+          "procedencia_sha256",
+          "preguntas",
+          "criterios"
+        ],
+        "title": "ResultadoTecnicoRespuesta"
       },
       "ResumenCaso": {
         "properties": {
