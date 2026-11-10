@@ -10,7 +10,7 @@ Cada carpeta se prepara en una base nueva. Las precondiciones repetidas por RF s
 |---|---|---|---:|---:|---|
 | RF-01 | Autenticar estudiantes | **APROBADO** | 6 | 18 | [RF-01](RF-01.md) |
 | RF-02 | Controlar acceso por rol | **APROBADO** | 15 | 49 | [RF-02](RF-02.md) |
-| RF-03 | Administrar docentes, roles y permisos | **BLOQUEADO** | 9 | 27 | [RF-03](RF-03.md) |
+| RF-03 | Administrar docentes, roles y permisos | **BLOQUEADO** | 17 | 54 | [RF-03](RF-03.md) |
 | RF-04 | Asociar espacio académico y estudiantes | **BLOQUEADO** | 13 | 42 | [RF-04](RF-04.md) |
 | RF-05 | Registrar estructura académica del caso | **APROBADO** | 15 | 49 | [RF-05](RF-05.md) |
 | RF-06 | Registrar contextos y preguntas por escenario | **APROBADO** | 15 | 49 | [RF-06](RF-06.md) |
@@ -36,9 +36,14 @@ Cada carpeta se prepara en una base nueva. Las precondiciones repetidas por RF s
 | RF-26 | Registrar feedback general docente | **APROBADO** | 38 | 161 | [RF-26](RF-26.md) |
 | RF-27 | Notificar calificaciones y feedback | **APROBADO** | 21 | 73 | [RF-27](RF-27.md) |
 
-**Total: 16 APROBADOS, 11 BLOQUEADOS, 0 FALLIDOS y 0 NO EJECUTADOS.** 545 solicitudes ejecutadas y 2080 aserciones pm.test; no significa 27 RF aprobados.
+**Total: 16 APROBADOS, 11 BLOQUEADOS, 0 FALLIDOS y 0 NO EJECUTADOS.** 553 solicitudes ejecutadas y 2107 aserciones pm.test; no significa 27 RF aprobados.
 
 La matriz CSV contiene una fila por caso, método, endpoint, aserciones reales, veredicto, evidencia nominal y referencias pytest acreditadas. Las fichas PT-DCP-01 no se renumeraron: los identificadores PM son nuevos, con conciliación documental pendiente donde no hay ficha equivalente.
+
+
+## Antecedentes preservados del checkpoint RF-10
+
+Las siguientes secciones pertenecen a incrementos anteriores; la ejecución vigente de esta fase usa seleccion_final, 553 solicitudes y 2107 aserciones.
 
 ## Complemento main condicionado RF-12/RF-23/RF-25
 

@@ -1158,7 +1158,7 @@
     },
     {
       "name": "RF-03 — Administrar docentes, roles y permisos",
-      "description": "RF-03 Acceso Administrar docentes, roles y permisos El administrador crea usuarios docentes y les asigna roles y permisos.\n\nPrecondición: preparar laboratorio principal mediante preparar-27rf.ps1 -RF RF-03. No usar environment de otra carpeta. RF-03 completo incluye roles/permisos: no hay contrato de multirrol ni DOCENTE ADMINISTRADOR aprobado. El alta, consulta y permiso CREAR_CASOS sí se demuestran.",
+      "description": "RF-03 Acceso Administrar docentes, roles y permisos El administrador crea usuarios docentes y les asigna roles y permisos.\n\nPrecondición: preparar laboratorio principal mediante preparar-27rf.ps1 -RF RF-03. No usar environment de otra carpeta. Alta, consulta y validación del perfil del catálogo están acreditadas. Falta precisar la configuración/asignación operativa de permisos globales por rol frente a excepciones individuales. Multirrol y DOCENTE ADMINISTRADOR no se presuponen requisitos expresos del RF original.",
       "item": [
         {
           "name": "PM-RF-03-01 | MAIN — login admin",
@@ -1676,6 +1676,454 @@
                 "type": "text/javascript",
                 "exec": [
                   "if(pm.environment.get('rf_activo')!=='RF-03'||(Number(pm.environment.get('rf_paso'))||0)<8){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-03 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-03-10 | Validar perfil existente sin cambiar catálogo global",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/identity/docentes/{{rf_docente_creado}}/autorizaciones",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"roles\": [\"DOCENTE\"], \"permisos\": [\"CREAR_CASOS\"]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "RF-03; caso HTTP nuevo PM-RF-03-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "const j=pm.response.json();pm.test('Identidad y permisos SQL del nuevo docente',()=>{pm.expect(j.id_usuario).to.eql(pm.environment.get('rf_docente_creado'));pm.expect(j.roles).to.deep.eql(['DOCENTE']);pm.expect(j.permisos).to.deep.eql(['CREAR_CASOS']);});",
+                  "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,10));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-03'||(Number(pm.environment.get('rf_paso'))||0)<9){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-03 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-03-11 | Login real del docente recién creado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/identity/auth/personal",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo\": \"{{rf_nuevo_correo}}\", \"clave\": \"{{rf_clave_nueva}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "RF-03; caso HTTP nuevo PM-RF-03-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.environment.set('token_rf_docente_creado',pm.response.json().access_token);",
+                  "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,11));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-03'||(Number(pm.environment.get('rf_paso'))||0)<10){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-03 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-03-12 | Recuperar permisos en otra solicitud",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/identity/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_rf_docente_creado}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "RF-03; caso HTTP nuevo PM-RF-03-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "const j=pm.response.json();pm.test('Identidad y permisos SQL del nuevo docente',()=>{pm.expect(j.id_usuario).to.eql(pm.environment.get('rf_docente_creado'));pm.expect(j.roles).to.deep.eql(['DOCENTE']);pm.expect(j.permisos).to.deep.eql(['CREAR_CASOS']);});",
+                  "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,12));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-03'||(Number(pm.environment.get('rf_paso'))||0)<11){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-03 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-03-13 | Rechazar asignación por estudiante",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/identity/docentes/{{rf_docente_creado}}/autorizaciones",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"roles\": [\"DOCENTE\"], \"permisos\": [\"CREAR_CASOS\"]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "RF-03; caso HTTP nuevo PM-RF-03-13 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 403. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 403',()=>pm.expect(pm.response.code).to.eql(403));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===403)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,13));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-03'||(Number(pm.environment.get('rf_paso'))||0)<12){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-03 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-03-14 | No simular revocación individual incompatible con el catálogo LAB",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/identity/docentes/{{rf_docente_creado}}/autorizaciones",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"roles\": [\"DOCENTE\"], \"permisos\": []}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "RF-03; caso HTTP nuevo PM-RF-03-14 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 422. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 422',()=>pm.expect(pm.response.code).to.eql(422));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===422)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,14));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-03'||(Number(pm.environment.get('rf_paso'))||0)<13){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-03 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-03-15 | Rechazar escalamiento o multirrol no soportado",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/identity/docentes/{{rf_docente_creado}}/autorizaciones",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"roles\": [\"DOCENTE\", \"ADMINISTRADOR\"], \"permisos\": [\"CREAR_CASOS\"]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "RF-03; caso HTTP nuevo PM-RF-03-15 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 422. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 422',()=>pm.expect(pm.response.code).to.eql(422));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===422)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,15));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-03'||(Number(pm.environment.get('rf_paso'))||0)<14){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-03 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-03-16 | Rechazar permiso que no existe en el catálogo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/identity/docentes/{{rf_docente_creado}}/autorizaciones",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"roles\": [\"DOCENTE\"], \"permisos\": [\"NO_EXISTE_RF03\"]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "RF-03; caso HTTP nuevo PM-RF-03-16 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 422. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 422',()=>pm.expect(pm.response.code).to.eql(422));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===422)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,16));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-03'||(Number(pm.environment.get('rf_paso'))||0)<15){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-03 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-03-17 | Rechazos conservan el perfil original",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/identity/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_rf_docente_creado}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "RF-03; caso HTTP nuevo PM-RF-03-17 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "const j=pm.response.json();pm.test('Identidad y permisos SQL del nuevo docente',()=>{pm.expect(j.id_usuario).to.eql(pm.environment.get('rf_docente_creado'));pm.expect(j.roles).to.deep.eql(['DOCENTE']);pm.expect(j.permisos).to.deep.eql(['CREAR_CASOS']);});",
+                  "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,17));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-03'||(Number(pm.environment.get('rf_paso'))||0)<16){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-03 y ejecute en orden.');}"
                 ]
               }
             }

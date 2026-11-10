@@ -2,7 +2,7 @@
 
 Las capacidades parciales se ejecutaron, pero no se aprueba íntegramente su RF. Ningún 503 fue aceptado como cumplimiento.
 
-- **RF-03 — Administrar docentes, roles y permisos:** RF-03 completo incluye roles/permisos: no hay contrato de multirrol ni DOCENTE ADMINISTRADOR aprobado. El alta, consulta y permiso CREAR_CASOS sí se demuestran.
+- **RF-03 — Administrar docentes, roles y permisos:** Alta, consulta y validación del perfil del catálogo están acreditadas. Falta precisar la configuración/asignación operativa de permisos globales por rol frente a excepciones individuales. Multirrol y DOCENTE ADMINISTRADOR no se presuponen requisitos expresos del RF original.
 - **RF-04 — Asociar espacio académico y estudiantes:** Asociaciones y grants explícitos requieren preparación administrativa; falta una API aprobada de vinculación docente/grupo/asignación. No se confunde agendar sesión con crear ese vínculo.
 - **RF-10 — Responder y modificar respuestas:** El PDF RF-10/RN-10/11 permite modificar; la profesora aclaró después respuestas inmutables. Se prueba la inmutabilidad vigente ya confirmada; faltan conciliar el documento y definir recorridos con varias preguntas/ciclos/revisitas, no reabrir PUT.
 - **RF-12 — Registrar inicio y fin de participación:** Composición main condicionada presente; faltan documento institucional aprobado y políticas productivas definitivas de provisión/inicio. El recorrido positivo con puertos LAB no acredita disponibilidad productiva ni feedback por pregunta completo.
@@ -22,12 +22,18 @@ Las capacidades parciales se ejecutaron, pero no se aprueba íntegramente su RF.
 - RF-20/RF-21: se exige un contrato y proveedor de correo seguro; no se sustituye entrega externa por una fila INTERNA ni se fabrican códigos recuperables.
 - Consentimiento: se necesita la fuente institucional publicada y su composición productiva. Un documento sintético y una clase InicioLaboratorio no satisfacen esa aprobación.
 
-## Fallos reales conservados y corrección
+## Diagnósticos históricos de la auditoría Postman original
+
+Estos antecedentes no describen el cambio productivo RF-03 de esta fase.
 
 Los dos primeros ciclos RF-07 rechazaron correctamente una opción de orden 3 duplicada por el generador. Se corrigió la copia de la fixture; no se cambió el esperado 200 de una edición válida. El primer ciclo integral falló al convocar sobre EN_CURSO (RF-04/18/20/21) y preparar una ausencia después del cierre (RF-24). Se corrigieron exclusivamente precondiciones/orden de laboratorio. Los JSON, JUnit y logs diagnósticos se conservan. Ningún archivo productivo se modificó para evitar esos rechazos.
 
 Las pruebas complementarias de permisos, concurrencia, rollback y guards PostgreSQL se conservan en los JUnit de pytest; no se presentan como capturas de Postman ni se suman sus conteos con pm.test.
 
+
+## Antecedentes preservados del checkpoint RF-10
+
+Las siguientes secciones pertenecen a incrementos anteriores; la ejecución vigente de esta fase usa seleccion_final, 553 solicitudes y 2107 aserciones.
 
 ## Continuidad RF-10: contrato Angular y recorrido main
 

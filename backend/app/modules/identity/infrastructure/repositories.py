@@ -78,6 +78,26 @@ class RepositorioUsuariosSQLAlchemy:
         except SQLAlchemyError:
             raise IntegracionPendiente() from None
 
+    def obtener_para_escritura(self, id_usuario: str) -> ContextoAcceso | None:
+        """Locks compartidos de cuenta y rol, retenidos por la UoW existente.
+
+        FOR SHARE bloquea UPDATE de activo/id_rol y renombrado del rol hasta el
+        commit/rollback. populate_existing evita la identidad ORM precargada.
+        Solo lo usa la administración escritora, no las consultas READ ONLY.
+        """
+        identificador = id_entero(id_usuario)
+        try:
+            with self.sesion.no_autoflush:
+                usuario = self.sesion.get(UsuarioORM, identificador,
+                    with_for_update={'read': True}, populate_existing=True)
+                if usuario is None:
+                    return None
+                self.sesion.get(RolORM, usuario.id_rol,
+                    with_for_update={'read': True}, populate_existing=True)
+                return self._contexto(usuario)
+        except SQLAlchemyError:
+            raise IntegracionPendiente() from None
+
     def permisos_existentes(self, permisos: frozenset[str]) -> bool:
         if any(not p.strip() or len(p) > 80 for p in permisos):
             return False

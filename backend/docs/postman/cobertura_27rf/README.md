@@ -97,3 +97,12 @@ Nueva evidencia de regresión: `evidencias/participation_fase1_20261109T215053Z/
 Consentimiento e inicio están ahora registrados en app.main, pero sus proveedores productivos obligatorios permanecen cerrados por falta de aprobación/documento y políticas. La provisión independiente no se publica. La colección complementaria `../participation_fase1/` demuestra los mecanismos main con puertos explícitos LAB, además del cierre sin esos proveedores: 79 solicitudes / 291 aserciones reales. No se suma con la colección maestra.
 
 RF-12, RF-23 y RF-25 siguen BLOQUEADOS para aceptación integral. Su matriz complementaria nominal es `../participation_fase1/matriz_fase1.csv`. Guía, contratos, pruebas, diagnósticos preservados y decisiones que debe aportar el equipo: `backend/docs/PARTICIPATION_FASE1_MAIN_CONDICIONADO.md`. No se reutiliza como oficial el borrador NO APROBADO.
+
+
+## Fase 3 — RF-03 y regresión vigente
+
+Evidencia: evidencias/rf03_fase3_20261109/. Se ejecutaron las 27 carpetas originales con PostgreSQL17 y Newman (545 HTTP / 2080 pm.test). Después se amplió RF-03 de 9 a 17 solicitudes para cubrir PUT, login/lectura posterior, rechazo por estudiante, catálogo incompatible, rol combinado no soportado y permiso inexistente. La selección final sustituye solo RF-03: **553 solicitudes / 2107 aserciones**, 16 APROBADOS y 11 BLOQUEADOS, cero FALLIDOS/NO EJECUTADOS. No sumar 545 + 17: los primeros nueve se solapan. Los requests/scripts de los otros 26 RF son idénticos.
+
+RF-03 ampliado: 17/54 aprobados técnicamente; sigue BLOQUEADO integralmente por definición operativa de configuración/asignación de permisos. No por presumir que RF-03 exija multirrol o DOCENTE ADMINISTRADOR. El catálogo LAB incluye CREAR_CASOS para DOCENTE; el PUT válido conserva ese perfil, no representa una concesión individual distinta ni una operación de edición global del catálogo.
+
+Código corregido: revalidación del administrador SQL y bloqueos en la UoW de alta/asignación. Informe, fuentes y límites: backend/docs/RF03_AUTORIZACION_TRANSACCIONAL.md. General backend nueva: 2518 aprobadas/38 omitidas, cero fallos/errores. Los párrafos previos describen ejecuciones históricas y no se suman con esta fase. No se ejecutó Postman Desktop.

@@ -18,6 +18,13 @@ from app.modules.identity.domain.entities import (
 
 class RepositorioUsuarios(Protocol):
     def obtener(self, id_usuario: str) -> ContextoAcceso | None: ...
+    def obtener_para_escritura(self, id_usuario: str) -> ContextoAcceso | None:
+        """Relee cuenta/rol y los estabiliza hasta finalizar la UoW escritora.
+
+        No reutiliza la identidad anterior de JWT/Proxy ni permite revocaciones
+        concurrentes entre autorización y commit. No confirma la transacción.
+        """
+        ...
     def permisos_existentes(self, permisos: frozenset[str]) -> bool: ...
     def crear_docente(self, correo: str, autorizaciones: AutorizacionesDocente,
                       *, datos: DatosAltaDocente | None = None) -> ContextoAcceso: ...

@@ -199,13 +199,19 @@
     "nombre": "Administrar docentes, roles y permisos",
     "fuente": "RF-03 Acceso Administrar docentes, roles y permisos El administrador crea usuarios docentes y les asigna roles y permisos.",
     "modo": "principal",
-    "bloqueo": "RF-03 completo incluye roles/permisos: no hay contrato de multirrol ni DOCENTE ADMINISTRADOR aprobado. El alta, consulta y permiso CREAR_CASOS sí se demuestran.",
+    "bloqueo": "Alta, consulta y validación del perfil del catálogo están acreditadas. Falta precisar la configuración/asignación operativa de permisos globales por rol frente a excepciones individuales. Multirrol y DOCENTE ADMINISTRADOR no se presuponen requisitos expresos del RF original.",
     "tests": [
       "tests/integration/test_admin_teacher_directory.py::test_listado_main_privado_paginado_sin_dml_hashes_ni_vinculos_academicos",
       "tests/integration/test_admin_teacher_directory.py::test_listado_no_admite_identidad_o_rol_no_autorizados",
       "tests/integration/test_admin_teacher_directory.py::test_limites_y_fallo_de_infraestructura_no_exponen_datos",
       "tests/integration/test_admin_teacher_directory.py::test_lector_revalida_contexto_previamente_acreditado_en_otra_sesion",
-      "tests/integration/test_admin_teacher_directory.py::test_alta_existente_se_refleja_sin_otra_escritura_al_consultar"
+      "tests/integration/test_admin_teacher_directory.py::test_alta_existente_se_refleja_sin_otra_escritura_al_consultar",
+      "tests/unit/identity/test_admin_write_authorization.py::test_servicio_revalida_antes_de_cualquier_mutacion",
+      "tests/unit/identity/test_admin_write_authorization.py::test_adapter_sin_puerto_transaccional_falla_cerrado",
+      "tests/integration/test_admin_write_authorization.py::test_revocacion_confirmada_tras_proxy_impide_escritura",
+      "tests/integration/test_admin_write_authorization.py::test_sesion_precargada_relee_cuenta_revocada",
+      "tests/integration/test_admin_write_authorization.py::test_revocacion_concurrente_espera_commit_de_operacion_autorizada",
+      "tests/integration/test_admin_write_authorization.py::test_fallo_sql_despues_insert_revierte_alta_y_permite_reintento"
     ],
     "casos": [
       {
@@ -269,6 +275,62 @@
         "nombre": "PM-RF-03-09 | Consultar docentes por administrador",
         "metodo": "GET",
         "ruta": "{{base_url}}/api/v1/identity/docentes",
+        "esperado": 200
+      },
+      {
+        "caso": "PM-RF-03-10",
+        "nombre": "PM-RF-03-10 | Validar perfil existente sin cambiar catálogo global",
+        "metodo": "PUT",
+        "ruta": "{{base_url}}/api/v1/identity/docentes/{{rf_docente_creado}}/autorizaciones",
+        "esperado": 200
+      },
+      {
+        "caso": "PM-RF-03-11",
+        "nombre": "PM-RF-03-11 | Login real del docente recién creado",
+        "metodo": "POST",
+        "ruta": "{{base_url}}/api/v1/identity/auth/personal",
+        "esperado": 200
+      },
+      {
+        "caso": "PM-RF-03-12",
+        "nombre": "PM-RF-03-12 | Recuperar permisos en otra solicitud",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/api/v1/identity/me",
+        "esperado": 200
+      },
+      {
+        "caso": "PM-RF-03-13",
+        "nombre": "PM-RF-03-13 | Rechazar asignación por estudiante",
+        "metodo": "PUT",
+        "ruta": "{{base_url}}/api/v1/identity/docentes/{{rf_docente_creado}}/autorizaciones",
+        "esperado": 403
+      },
+      {
+        "caso": "PM-RF-03-14",
+        "nombre": "PM-RF-03-14 | No simular revocación individual incompatible con el catálogo LAB",
+        "metodo": "PUT",
+        "ruta": "{{base_url}}/api/v1/identity/docentes/{{rf_docente_creado}}/autorizaciones",
+        "esperado": 422
+      },
+      {
+        "caso": "PM-RF-03-15",
+        "nombre": "PM-RF-03-15 | Rechazar escalamiento o multirrol no soportado",
+        "metodo": "PUT",
+        "ruta": "{{base_url}}/api/v1/identity/docentes/{{rf_docente_creado}}/autorizaciones",
+        "esperado": 422
+      },
+      {
+        "caso": "PM-RF-03-16",
+        "nombre": "PM-RF-03-16 | Rechazar permiso que no existe en el catálogo",
+        "metodo": "PUT",
+        "ruta": "{{base_url}}/api/v1/identity/docentes/{{rf_docente_creado}}/autorizaciones",
+        "esperado": 422
+      },
+      {
+        "caso": "PM-RF-03-17",
+        "nombre": "PM-RF-03-17 | Rechazos conservan el perfil original",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/api/v1/identity/me",
         "esperado": 200
       }
     ]

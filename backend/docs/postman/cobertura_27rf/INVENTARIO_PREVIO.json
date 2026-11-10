@@ -1297,7 +1297,13 @@
     "tests/unit/scheduling/test_worker_cierre.py::test_sin_sesiones_pendientes",
     "tests/unit/scheduling/test_worker_cierre.py::test_rechazar_fecha_sin_zona_horaria",
     "tests/unit/scheduling/test_worker_runner.py::test_opcion_invalida_no_ejecuta_revision",
-    "tests/unit/scheduling/test_worker_runner.py::test_interrupcion_de_usuario_se_informa_sin_traceback"
+    "tests/unit/scheduling/test_worker_runner.py::test_interrupcion_de_usuario_se_informa_sin_traceback",
+    "tests/unit/identity/test_admin_write_authorization.py::test_servicio_revalida_antes_de_cualquier_mutacion",
+    "tests/unit/identity/test_admin_write_authorization.py::test_adapter_sin_puerto_transaccional_falla_cerrado",
+    "tests/integration/test_admin_write_authorization.py::test_revocacion_confirmada_tras_proxy_impide_escritura",
+    "tests/integration/test_admin_write_authorization.py::test_sesion_precargada_relee_cuenta_revocada",
+    "tests/integration/test_admin_write_authorization.py::test_revocacion_concurrente_espera_commit_de_operacion_autorizada",
+    "tests/integration/test_admin_write_authorization.py::test_fallo_sql_despues_insert_revierte_alta_y_permite_reintento"
   ],
   "nota": "Inventario estático; no acredita ejecución. No se atribuyen CP-I sin correspondencia individual."
 }

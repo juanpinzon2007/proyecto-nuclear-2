@@ -109,6 +109,12 @@ def comprobar_sql(p,rf,ids,esperado):
     for o in q.opciones:
      op=next(x for x in src['questions'][0]['options'] if x['orden']==o.orden);assert (o.texto,o.es_correcta,o.justificacion)==(op['texto'],op['esCorrecta'],op['justificacion'])
    r['autoria_confirmada_otra_session']=dict(version=str(v.id),escenarios=2,preguntas=2,opciones=6,estado=v.estado.value,justificaciones_exactas=True,rubrica_historica=str(v.rubrica.id))
+  if rf=='RF-03':
+   from app.modules.identity.infrastructure.repositories import RepositorioUsuariosSQLAlchemy
+   from app.modules.identity.domain.entities import Rol
+   teacher=RepositorioUsuariosSQLAlchemy(s).obtener(ids['rf_docente_creado'])
+   assert teacher.roles==frozenset({Rol.DOCENTE}) and teacher.permisos==frozenset({'CREAR_CASOS'})
+   r['perfil_confirmado_otra_session']={'id_usuario':teacher.id_usuario,'roles':['DOCENTE'],'permisos':['CREAR_CASOS']}
   if rf=='RF-24':
    from app.modules.participation.infrastructure.academic_results_models import AusenciaAcademicaModel as Aus
    aus=s.scalars(sa.select(Aus)).all();assert len(aus)==1
