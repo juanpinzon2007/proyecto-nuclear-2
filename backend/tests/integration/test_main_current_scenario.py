@@ -116,7 +116,7 @@ def test_principal_rechaza_sin_divulgar_y_sin_escribir(principal, monkeypatch, p
     assert r.headers['cache-control'] == 'no-store'
 
 
-def test_principal_conserva_version_archivada_y_no_expone_otras_operaciones(principal):
+def test_principal_conserva_version_archivada_y_bloquea_inicio_sin_politicas(principal):
     h = principal
     from app.main import app
     from tests.integration.test_current_scenario_http import publicar_segunda_edicion_y_archivar
@@ -129,8 +129,11 @@ def test_principal_conserva_version_archivada_y_no_expone_otras_operaciones(prin
     paths=app.openapi()['paths']
     rutas=[p for p in paths if p.startswith(('/api/v1/attempts/', '/api/v1/participations/', '/api/v1/convocatorias/'))]
     assert set(rutas) == {'/api/v1/attempts/{attempt_id}/current-scenario','/api/v1/attempts/{attempt_id}/progress',
-        '/api/v1/attempts/{attempt_id}/decisions/{decision_id}','/api/v1/attempts/{attempt_id}/finish'}
-    assert set(paths[rutas[0]]) == {'get'}
-    for method,path in [('post',f'/api/v1/convocatorias/{h.convocatoria}/intentos'),
-        ('get',f'/api/v1/participations/1/attempts/{h.ik}/result')]:
-        assert getattr(h.principal,method)(path,headers=h.main_headers).status_code == 404
+        '/api/v1/attempts/{attempt_id}/decisions/{decision_id}','/api/v1/attempts/{attempt_id}/finish',
+        '/api/v1/convocatorias/{convocatoria_id}/intentos'}
+    assert set(paths['/api/v1/attempts/{attempt_id}/current-scenario']) == {'get'}
+    # El contrato posterior registra el inicio condicionado: no lo habilita.
+    # Se conserva el rechazo y el router general sigue sin estar montado.
+    bloqueado = h.principal.post(f'/api/v1/convocatorias/{h.convocatoria}/intentos',headers=h.main_headers)
+    assert bloqueado.status_code == 503 and bloqueado.headers['Cache-Control'] == 'no-store'
+    assert h.principal.get(f'/api/v1/participations/1/attempts/{h.ik}/result',headers=h.main_headers).status_code == 404

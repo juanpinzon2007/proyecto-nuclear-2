@@ -80,6 +80,10 @@ class RepositorioDocumentosConsentimientoSQLAlchemy:
 
 
 class FuenteConsentimientoSQLAlchemy(RepositorioDocumentosConsentimientoSQLAlchemy):
+    def __init__(self, db, *, politica_aprobacion=None):
+        super().__init__(db)
+        self.politica_aprobacion = politica_aprobacion
+
     def vigente(self, *, id_asignacion, ahora):
         with self.db.no_autoflush:
             bloquear_selector(self.db,id_asignacion)
@@ -88,4 +92,9 @@ class FuenteConsentimientoSQLAlchemy(RepositorioDocumentosConsentimientoSQLAlche
             fecha=fecha_utc(ahora)
             if (d is None or fecha<fecha_utc(s.seleccionado_en) or fecha<fecha_utc(d.vigente_desde)
                     or fecha<fecha_utc(d.publicado_en)):raise IntegracionPendiente()
-            return self._documento(d,True)
+            documento = self._documento(d,True)
+            if self.politica_aprobacion is not None:
+                if self.politica_aprobacion.autorizar(documento,
+                        id_asignacion=id_asignacion, ahora=fecha) is not None:
+                    raise IntegracionPendiente()
+            return documento

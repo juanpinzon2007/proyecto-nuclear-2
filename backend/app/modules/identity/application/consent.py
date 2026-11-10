@@ -38,3 +38,16 @@ class FuenteConsentimiento(Protocol):
         Fuente ausente/ambigua o sin documento aprobado falla cerrada.
         """
         ...
+
+
+class PoliticaAprobacionConsentimiento(Protocol):
+    def autorizar(self, documento: DocumentoConsentimiento, *, id_asignacion: int,
+                  ahora: datetime) -> None:
+        """Acredita la aprobación del documento resuelto por el servidor.
+
+        No basta un hash ni metadatos declarativos de aprobación. El proveedor
+        deberá proceder del proceso institucional autorizado; no hay uno por
+        defecto, ni se acepta un proveedor/flag enviado por HTTP.
+        Consulta sin efectos: devuelve None o rechaza mediante una excepción.
+        """
+        ...

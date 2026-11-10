@@ -1,4 +1,4 @@
-"""Composición HTTP explícita de 8B; no instalada en app.main.
+"""Composición HTTP explícita de 8B; main expone solo inicio condicionado.
 
 Contrato de integración condicionado a políticas del servidor. Validar ingreso
 pertenece a Scheduling; estos dos casos de uso sí escriben en una única UoW.
@@ -20,7 +20,8 @@ from app.modules.participation.infrastructure.provision import ServicioVinculaci
 
 def crear_router_inicio_8b(*, crear_sesion, fechas, reloj,
                          politica_ingreso=None, politica_vinculacion=None,
-                         politica_inicio=None, fuente_consentimiento=None, crear_fuente_consentimiento=None) -> APIRouter:
+                         politica_inicio=None, fuente_consentimiento=None, crear_fuente_consentimiento=None,
+                         dependencia_servicio=None, incluir_provision=True) -> APIRouter:
     """El servidor aporta conexiones/reloj/políticas; None conserva el cierre.
 
     Puede incluirse en una app de integración sin modificar dependencias globales.
@@ -30,14 +31,11 @@ def crear_router_inicio_8b(*, crear_sesion, fechas, reloj,
         fechas=fechas, reloj=reloj, politica_ingreso=politica_ingreso,
         politica_vinculacion=politica_vinculacion, politica_inicio=politica_inicio,
         fuente_consentimiento=fuente_consentimiento, crear_fuente_consentimiento=crear_fuente_consentimiento)
-    Servicio = Annotated[ServicioVinculacionSQLAlchemy, Depends(dependencia)]
+    Servicio = Annotated[ServicioVinculacionSQLAlchemy, Depends(dependencia_servicio or dependencia)]
     router = APIRouter(prefix="/api/v1", route_class=RutaParticipacion,
         tags=["Participación — integración condicionada"],
         responses={c:{"model":ErrorHTTP} for c in (401,403,409,422,503)})
 
-    @router.post("/convocatorias/{convocatoria_id}/participacion",
-                 response_model=VinculacionRespuesta, status_code=201,
-                 responses={200:{"model":VinculacionRespuesta,"description":"Participación existente autorizada"}})
     def vincular(convocatoria_id: UUID, solicitud: VinculacionConvocatoriaSolicitud,
                  respuesta: Response, servicio: Servicio):
         resultado = servicio.obtener_o_crear(convocatoria_id=convocatoria_id,
@@ -46,6 +44,11 @@ def crear_router_inicio_8b(*, crear_sesion, fechas, reloj,
         respuesta.status_code = 201 if resultado.creada else 200
         return VinculacionRespuesta(id_participacion=resultado.participacion.id_participacion,
             creada=resultado.creada, estado=resultado.participacion.estado)
+
+    if incluir_provision:
+        router.add_api_route("/convocatorias/{convocatoria_id}/participacion", vincular,
+            methods=["POST"], response_model=VinculacionRespuesta, status_code=201,
+            responses={200:{"model":VinculacionRespuesta,"description":"Participación existente autorizada"}})
 
     @router.post("/convocatorias/{convocatoria_id}/intentos",
                  response_model=IntentoRespuesta, status_code=201)
@@ -57,3 +60,9 @@ def crear_router_inicio_8b(*, crear_sesion, fechas, reloj,
             id_permiso_extra=solicitud.id_permiso_extra))
 
     return router
+
+
+from app.modules.participation.api.start_dependencies import obtener_servicio_inicio
+
+router_principal = crear_router_inicio_8b(crear_sesion=None, fechas=None, reloj=None,
+    dependencia_servicio=obtener_servicio_inicio, incluir_provision=False)

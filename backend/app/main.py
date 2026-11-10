@@ -10,6 +10,8 @@ from app.modules.scheduling.api.router import router as scheduling_router
 from app.modules.participation.api.current_scenario_router import router as escenario_router
 from app.modules.participation.api.progress_router import router as progreso_router
 from app.modules.participation.api.attempt_operations_router import router as operaciones_router
+from app.modules.identity.api.consent import router_principal as consentimiento_router
+from app.modules.participation.api.provision_router import router_principal as inicio_router
 
 
 # Registrar los modelos compartidos.
@@ -31,10 +33,15 @@ app.include_router(identity_router)
 # Módulo de Programación - Maicol.
 app.include_router(scheduling_router)
 
-# Operaciones verificadas del intento existente; sin inicio, PUT ni resultados.
+# Operaciones del intento existente; el inicio condicionado se compone debajo.
 app.include_router(escenario_router, prefix="/api/v1")
 app.include_router(progreso_router, prefix="/api/v1")
 app.include_router(operaciones_router, prefix="/api/v1")
+
+# Composiciones explícitas: aprobaciones/políticas ausentes bloquean sin escribir.
+# No se monta la provisión independiente ni un router general de Participation.
+app.include_router(consentimiento_router)
+app.include_router(inicio_router)
 
 
 # Endpoint de salud de la aplicación.

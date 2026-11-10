@@ -25,8 +25,9 @@ from app.modules.participation.infrastructure.errors import MapeoPersistenciaPen
 
 
 class ConsentimientoEstudiantilSQLAlchemy:
-    def __init__(self, *, usuario, crear_sesion, fechas, reloj):
+    def __init__(self, *, usuario, crear_sesion, fechas, reloj, politica_aprobacion=None):
         self.usuario, self.crear_sesion, self.fechas, self.reloj = usuario, crear_sesion, fechas, reloj
+        self.politica_aprobacion = politica_aprobacion
 
     def _ambito(self, db, convocatoria_id, id_asignacion, escribir):
         if self.usuario is None or type(id_asignacion) is not int or id_asignacion <= 0:
@@ -71,7 +72,7 @@ class ConsentimientoEstudiantilSQLAlchemy:
             with self.crear_sesion() as db, db.no_autoflush:
                 cuenta = self._ambito(db, convocatoria_id, id_asignacion, escribir)
                 ahora = fecha_utc(self.reloj.ahora())
-                fuente = FuenteConsentimientoSQLAlchemy(db)
+                fuente = FuenteConsentimientoSQLAlchemy(db, politica_aprobacion=self.politica_aprobacion)
                 documento = fuente.vigente(id_asignacion=id_asignacion, ahora=ahora)
                 if operacion == 'documento':
                     return dict(id_version_documento=documento.id_version_documento,

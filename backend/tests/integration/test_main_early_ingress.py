@@ -249,14 +249,17 @@ def test_habilitada_sin_admision_rechaza_concurrentemente_sin_escribir(ingreso_m
     assert operaciones == [] and cantidades(h) == ([], [])
 
 
-def test_rechazo_sin_habilitar_no_inicia_y_main_no_expone_inicio(ingreso_main):
+def test_rechazo_sin_habilitar_no_inicia_y_main_bloquea_inicio_sin_politicas(ingreso_main):
     h = ingreso_main
     assert pedir(h).status_code == 403
     # Incluso la composición con políticas explícitas LAB conserva EN_CURSO.
     assert iniciar(h).status_code == 403
     assert cantidades(h) == ([], [])
     r = h.main.post(h.base+'/intentos', headers=h.main_headers,json=h.body)
-    assert r.status_code == 404 and cantidades(h) == ([], [])
+    # La composición main posterior existe, pero carece de políticas productivas.
+    # 503/no-store sustituye exclusivamente la antigua ausencia de ruta (404).
+    assert r.status_code == 503 and r.headers['Cache-Control'] == 'no-store'
+    assert cantidades(h) == ([], [])
 
 
 def test_fallo_sql_no_valida_ingreso_ni_filtra_diagnostico(habilitada_lab):
