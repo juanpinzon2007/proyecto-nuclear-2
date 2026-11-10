@@ -18,7 +18,7 @@ def main(evidencias):
  resumen=[];filas=[];total=ET.Element('testsuites');aserciones=0;solicitudes=0
  portada=['# Matriz de trazabilidad RF-01 a RF-27','','Fuente literal: `REQUISITOS_FUENTE.json`, PDF central pp. 4–5 con SHA-256. Se conservan las decisiones posteriores y sus discrepancias; no se declara aprobación institucional por una implementación o fixture.','','APROBADO significa aceptación funcional del RF en el alcance académico vigente documentado, mediante backend real y PG17 de laboratorio. No acredita despliegue permanente. BLOQUEADO puede contener operaciones técnicas aprobadas: no representa cumplimiento integral. FALLIDO conserva un defecto observado; NO EJECUTADO no tiene veredicto.','','Cada carpeta se prepara en una base nueva. Las precondiciones repetidas por RF son solicitudes reales, pero no se contabilizan como funcionalidades distintas. Un HTTP negativo esperado es aceptación de seguridad; 503 no es un caso positivo de funcionalidad.','','| RF | Requisito | Veredicto integral | HTTP ejecutadas | pm.test | Evidencia / detalle |','|---|---|---|---:|---:|---|']
  junit_py=[]
- for modo in ('focal','relacionada'):
+ for modo in ('focal','relacionada','general'):
   p=evidencias/('pytest_'+modo)/'junit.xml'
   if p.exists():junit_py+=ET.parse(p).findall('.//testcase')
  for c,folder in zip(contratos,col['item']):

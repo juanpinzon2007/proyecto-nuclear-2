@@ -36,6 +36,7 @@ from app.modules.scheduling.application.cambiar_estado_sesion import SesionNoEnc
 from app.modules.identity.domain.errors import AccesoDenegado, IntegracionPendiente
 from app.modules.identity.api.dependencies import obtener_estudiante_actual
 from app.modules.identity.domain.entities import ContextoAcceso
+from app.modules.identity.infrastructure.repositories import id_entero
 from app.modules.scheduling.infrastructure.ingress_access import exigir_matricula_ingreso
 from app.modules.scheduling.application.programar_sesion import (
     ErrorProgramacion,
@@ -63,6 +64,7 @@ from app.modules.scheduling.infrastructure.models import (
     SesionProgramadaModel,
     ConvocatoriaModel,
     NotificacionModel,
+    DocenteEspacioAcademicoModel,
 )
 from app.modules.scheduling.application.crear_notificacion import (
     crear_notificacion,
@@ -117,10 +119,24 @@ FabricaSesion = Annotated[
     "/espacios",
     response_model=list[EspacioAcademicoResponse],
 )
-def listar_espacios(docente_id: Docente, db: BaseDatos):
-    """Lista todos los espacios académicos disponibles."""
-    consulta = select(EspacioAcademicoModel).order_by(EspacioAcademicoModel.nombre)
-    return db.scalars(consulta).all()
+def listar_espacios(docente_id: Docente, db: BaseDatos, usuario: DocenteActual):
+    """Selecciona espacios concedidos explícitamente al docente autenticado.
+
+    El INTEGER de Identity procede del JWT revalidado, nunca del UUID de
+    Scheduling. Crear un espacio no concede permiso para programarlo.
+    """
+    consulta = (
+        select(EspacioAcademicoModel)
+        .join(DocenteEspacioAcademicoModel,
+              DocenteEspacioAcademicoModel.espacio_academico_id == EspacioAcademicoModel.id)
+        .where(DocenteEspacioAcademicoModel.id_docente == id_entero(usuario.id_usuario))
+        .order_by(EspacioAcademicoModel.nombre, EspacioAcademicoModel.id)
+    )
+    try:
+        with db.no_autoflush:
+            return db.scalars(consulta).all()
+    except SQLAlchemyError:
+        raise HTTPException(503, detail="Consulta académica no disponible.") from None
 
 
 @router.post(

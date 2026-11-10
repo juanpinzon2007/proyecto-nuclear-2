@@ -11,7 +11,7 @@ Cada carpeta se prepara en una base nueva. Las precondiciones repetidas por RF s
 | RF-01 | Autenticar estudiantes | **APROBADO** | 6 | 18 | [RF-01](RF-01.md) |
 | RF-02 | Controlar acceso por rol | **APROBADO** | 15 | 49 | [RF-02](RF-02.md) |
 | RF-03 | Administrar docentes, roles y permisos | **BLOQUEADO** | 17 | 54 | [RF-03](RF-03.md) |
-| RF-04 | Asociar espacio académico y estudiantes | **BLOQUEADO** | 13 | 42 | [RF-04](RF-04.md) |
+| RF-04 | Asociar espacio académico y estudiantes | **BLOQUEADO** | 16 | 53 | [RF-04](RF-04.md) |
 | RF-05 | Registrar estructura académica del caso | **APROBADO** | 15 | 49 | [RF-05](RF-05.md) |
 | RF-06 | Registrar contextos y preguntas por escenario | **APROBADO** | 15 | 49 | [RF-06](RF-06.md) |
 | RF-07 | Administrar preguntas y respuestas | **APROBADO** | 15 | 49 | [RF-07](RF-07.md) |
@@ -36,14 +36,14 @@ Cada carpeta se prepara en una base nueva. Las precondiciones repetidas por RF s
 | RF-26 | Registrar feedback general docente | **APROBADO** | 38 | 161 | [RF-26](RF-26.md) |
 | RF-27 | Notificar calificaciones y feedback | **APROBADO** | 21 | 73 | [RF-27](RF-27.md) |
 
-**Total: 16 APROBADOS, 11 BLOQUEADOS, 0 FALLIDOS y 0 NO EJECUTADOS.** 553 solicitudes ejecutadas y 2107 aserciones pm.test; no significa 27 RF aprobados.
+**Total: 16 APROBADOS, 11 BLOQUEADOS, 0 FALLIDOS y 0 NO EJECUTADOS.** 556 solicitudes ejecutadas y 2118 aserciones pm.test; no significa 27 RF aprobados.
 
 La matriz CSV contiene una fila por caso, método, endpoint, aserciones reales, veredicto, evidencia nominal y referencias pytest acreditadas. Las fichas PT-DCP-01 no se renumeraron: los identificadores PM son nuevos, con conciliación documental pendiente donde no hay ficha equivalente.
 
 
 ## Antecedentes preservados del checkpoint RF-10
 
-Las siguientes secciones pertenecen a incrementos anteriores; la ejecución vigente de esta fase usa seleccion_final, 553 solicitudes y 2107 aserciones.
+Las siguientes secciones pertenecen a incrementos anteriores; la ejecución de Fase 3 utilizó seleccion_final, 553 solicitudes y 2107 aserciones; son antecedentes históricos.
 
 ## Complemento main condicionado RF-12/RF-23/RF-25
 
@@ -57,3 +57,10 @@ Se conserva RF-10 **BLOQUEADO** integralmente. La aclaración de respuestas inmu
 Nuevo complemento: `backend/docs/postman/rf10_main/` y `backend/docs/RF10_CONTRATO_ANGULAR.md`. 21 solicitudes **solo app.main**, 76 aserciones Newman aprobadas y lectura SQL independiente. El intento y sus relaciones se preparan previamente SOLO LAB; no se acredita inicio productivo ni aprobación del consentimiento. La maestra RF-10 también se volvió a ejecutar: 32 solicitudes/141 aserciones, sin fallos técnicos, conservando su separación de 28 operaciones main y cuatro LAB. No se suman ambos recorridos ni se afirma reejecución de los demás RF en Postman.
 
 Evidencia nueva: `evidencias/rf10_contrato_20261109/newman_main_2/` y `newman_maestra_rf10/`. La trazabilidad nominal complementaria está en `backend/docs/postman/rf10_main/matriz_rf10_main.csv`. El único cambio de producción declara los errores HTTP ya existentes en OpenAPI, incluido el esquema real de 422; no añade endpoints ni cambia políticas.
+
+
+## Fase 4 — RF04: alcance vigente
+
+Ejecución nueva: evidencias/rf04_fase4_20261109/newman_27/. 556 solicitudes / 2118 pm.test, cero fallos técnicos, 16 APROBADOS y 11 BLOQUEADOS. RF04: 16 solicitudes / 53 aserciones; sigue BLOQUEADO. GET /scheduling/espacios (main) limita el listado a grants explícitos; las nuevas solicitudes PM-RF-04-10/11/12 acreditan selección propia, exclusión del espacio ajeno y rechazo sin JWT.
+
+No se afirma asociación integral: rf_sesion se crea por HTTP, pero las convocatorias se demuestran sobre rf_sesion_convocatoria, otra sesión preparada con asignación en LAB. Falta el contrato productivo de fecha_limite_ingreso, intentos_base y estado del puente académico; no se promueven defaults/fixtures a políticas. No hay nueva ruta ni migración. Informe: backend/docs/RF04_SELECCION_ACADEMICA_Y_BLOQUEOS.md. General final nueva:2525 aprobadas/38 omitidas/cero fallos o errores; primera general de dos fallos unitarios preservada y corregida sin relajar HTTP esperados. No sumar ejecuciones.

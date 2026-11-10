@@ -106,3 +106,10 @@ Evidencia: evidencias/rf03_fase3_20261109/. Se ejecutaron las 27 carpetas origin
 RF-03 ampliado: 17/54 aprobados técnicamente; sigue BLOQUEADO integralmente por definición operativa de configuración/asignación de permisos. No por presumir que RF-03 exija multirrol o DOCENTE ADMINISTRADOR. El catálogo LAB incluye CREAR_CASOS para DOCENTE; el PUT válido conserva ese perfil, no representa una concesión individual distinta ni una operación de edición global del catálogo.
 
 Código corregido: revalidación del administrador SQL y bloqueos en la UoW de alta/asignación. Informe, fuentes y límites: backend/docs/RF03_AUTORIZACION_TRANSACCIONAL.md. General backend nueva: 2518 aprobadas/38 omitidas, cero fallos/errores. Los párrafos previos describen ejecuciones históricas y no se suman con esta fase. No se ejecutó Postman Desktop.
+
+
+## Fase 4 — RF04: alcance vigente
+
+Ejecución nueva: evidencias/rf04_fase4_20261109/newman_27/. 556 solicitudes / 2118 pm.test, cero fallos técnicos, 16 APROBADOS y 11 BLOQUEADOS. RF04: 16 solicitudes / 53 aserciones; sigue BLOQUEADO. GET /scheduling/espacios (main) limita el listado a grants explícitos; las nuevas solicitudes PM-RF-04-10/11/12 acreditan selección propia, exclusión del espacio ajeno y rechazo sin JWT.
+
+No se afirma asociación integral: rf_sesion se crea por HTTP, pero las convocatorias se demuestran sobre rf_sesion_convocatoria, otra sesión preparada con asignación en LAB. Falta el contrato productivo de fecha_limite_ingreso, intentos_base y estado del puente académico; no se promueven defaults/fixtures a políticas. No hay nueva ruta ni migración. Informe: backend/docs/RF04_SELECCION_ACADEMICA_Y_BLOQUEOS.md. General final nueva:2525 aprobadas/38 omitidas/cero fallos o errores; primera general de dos fallos unitarios preservada y corregida sin relajar HTTP esperados. No sumar ejecuciones.

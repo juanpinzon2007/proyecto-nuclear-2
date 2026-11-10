@@ -22,9 +22,7 @@ Las capacidades parciales se ejecutaron, pero no se aprueba íntegramente su RF.
 - RF-20/RF-21: se exige un contrato y proveedor de correo seguro; no se sustituye entrega externa por una fila INTERNA ni se fabrican códigos recuperables.
 - Consentimiento: se necesita la fuente institucional publicada y su composición productiva. Un documento sintético y una clase InicioLaboratorio no satisfacen esa aprobación.
 
-## Diagnósticos históricos de la auditoría Postman original
-
-Estos antecedentes no describen el cambio productivo RF-03 de esta fase.
+## Fallos reales conservados y corrección
 
 Los dos primeros ciclos RF-07 rechazaron correctamente una opción de orden 3 duplicada por el generador. Se corrigió la copia de la fixture; no se cambió el esperado 200 de una edición válida. El primer ciclo integral falló al convocar sobre EN_CURSO (RF-04/18/20/21) y preparar una ausencia después del cierre (RF-24). Se corrigieron exclusivamente precondiciones/orden de laboratorio. Los JSON, JUnit y logs diagnósticos se conservan. Ningún archivo productivo se modificó para evitar esos rechazos.
 
@@ -33,7 +31,7 @@ Las pruebas complementarias de permisos, concurrencia, rollback y guards Postgre
 
 ## Antecedentes preservados del checkpoint RF-10
 
-Las siguientes secciones pertenecen a incrementos anteriores; la ejecución vigente de esta fase usa seleccion_final, 553 solicitudes y 2107 aserciones.
+Las siguientes secciones pertenecen a incrementos anteriores; la ejecución de Fase 3 utilizó seleccion_final, 553 solicitudes y 2107 aserciones; son antecedentes históricos.
 
 ## Continuidad RF-10: contrato Angular y recorrido main
 
@@ -42,3 +40,10 @@ Se conserva RF-10 **BLOQUEADO** integralmente. La aclaración de respuestas inmu
 Nuevo complemento: `backend/docs/postman/rf10_main/` y `backend/docs/RF10_CONTRATO_ANGULAR.md`. 21 solicitudes **solo app.main**, 76 aserciones Newman aprobadas y lectura SQL independiente. El intento y sus relaciones se preparan previamente SOLO LAB; no se acredita inicio productivo ni aprobación del consentimiento. La maestra RF-10 también se volvió a ejecutar: 32 solicitudes/141 aserciones, sin fallos técnicos, conservando su separación de 28 operaciones main y cuatro LAB. No se suman ambos recorridos ni se afirma reejecución de los demás RF en Postman.
 
 Evidencia nueva: `evidencias/rf10_contrato_20261109/newman_main_2/` y `newman_maestra_rf10/`. La trazabilidad nominal complementaria está en `backend/docs/postman/rf10_main/matriz_rf10_main.csv`. El único cambio de producción declara los errores HTTP ya existentes en OpenAPI, incluido el esquema real de 422; no añade endpoints ni cambia políticas.
+
+
+## Fase 4 — RF04: alcance vigente
+
+Ejecución nueva: evidencias/rf04_fase4_20261109/newman_27/. 556 solicitudes / 2118 pm.test, cero fallos técnicos, 16 APROBADOS y 11 BLOQUEADOS. RF04: 16 solicitudes / 53 aserciones; sigue BLOQUEADO. GET /scheduling/espacios (main) limita el listado a grants explícitos; las nuevas solicitudes PM-RF-04-10/11/12 acreditan selección propia, exclusión del espacio ajeno y rechazo sin JWT.
+
+No se afirma asociación integral: rf_sesion se crea por HTTP, pero las convocatorias se demuestran sobre rf_sesion_convocatoria, otra sesión preparada con asignación en LAB. Falta el contrato productivo de fecha_limite_ingreso, intentos_base y estado del puente académico; no se promueven defaults/fixtures a políticas. No hay nueva ruta ni migración. Informe: backend/docs/RF04_SELECCION_ACADEMICA_Y_BLOQUEOS.md. General final nueva:2525 aprobadas/38 omitidas/cero fallos o errores; primera general de dos fallos unitarios preservada y corregida sin relajar HTTP esperados. No sumar ejecuciones.

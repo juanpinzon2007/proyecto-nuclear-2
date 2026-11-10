@@ -2651,7 +2651,140 @@
           ]
         },
         {
-          "name": "PM-RF-04-10 | Agregar convocatoria individual",
+          "name": "PM-RF-04-10 | Seleccionar espacios concedidos al docente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/scheduling/espacios",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_docente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "RF-04; caso HTTP nuevo PM-RF-04-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.test('Espacio autorizado seleccionable y contrato privado',()=>{const rows=pm.response.json();pm.expect(rows.some(x=>x.id===pm.environment.get('espacio_academico_id'))).to.eql(true);rows.forEach(x=>pm.expect(Object.keys(x).sort()).to.deep.eql(['id','nombre']));});",
+                  "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,10));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-04'||(Number(pm.environment.get('rf_paso'))||0)<9){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-04 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-04-11 | No revelar espacio ajeno",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/scheduling/espacios",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_docente_ajeno}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "RF-04; caso HTTP nuevo PM-RF-04-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.test('Espacio fuera del ámbito excluido',()=>pm.expect(pm.response.json().some(x=>x.id===pm.environment.get('espacio_academico_id'))).to.eql(false));",
+                  "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,11));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-04'||(Number(pm.environment.get('rf_paso'))||0)<10){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-04 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-04-12 | Selección sin autenticación rechazada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/scheduling/espacios",
+            "description": "RF-04; caso HTTP nuevo PM-RF-04-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 401. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 401',()=>pm.expect(pm.response.code).to.eql(401));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===401)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,12));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-04'||(Number(pm.environment.get('rf_paso'))||0)<11){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-04 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-04-13 | Agregar convocatoria individual",
           "request": {
             "method": "POST",
             "header": [
@@ -2684,7 +2817,7 @@
                 }
               }
             },
-            "description": "RF-04; caso HTTP nuevo PM-RF-04-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+            "description": "RF-04; caso HTTP nuevo PM-RF-04-13 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
           },
           "event": [
             {
@@ -2696,7 +2829,7 @@
                   "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
                   "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
                   "const j=pm.response.json();pm.environment.set('rf_convocatoria',j.convocatoria_id);pm.environment.set('rf_codigo_convocatoria',j.codigo_acceso);pm.test('Código individual generado',()=>pm.expect(j.codigo_acceso.length).to.be.above(10));",
-                  "if(pm.response.code===201)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,10));"
+                  "if(pm.response.code===201)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,13));"
                 ]
               }
             },
@@ -2705,14 +2838,14 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(pm.environment.get('rf_activo')!=='RF-04'||(Number(pm.environment.get('rf_paso'))||0)<9){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-04 y ejecute en orden.');}"
+                  "if(pm.environment.get('rf_activo')!=='RF-04'||(Number(pm.environment.get('rf_paso'))||0)<12){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-04 y ejecute en orden.');}"
                 ]
               }
             }
           ]
         },
         {
-          "name": "PM-RF-04-11 | Consultar estudiantes autorizados",
+          "name": "PM-RF-04-14 | Consultar estudiantes autorizados",
           "request": {
             "method": "GET",
             "header": [
@@ -2732,7 +2865,7 @@
                 }
               ]
             },
-            "description": "RF-04; caso HTTP nuevo PM-RF-04-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+            "description": "RF-04; caso HTTP nuevo PM-RF-04-14 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
           },
           "event": [
             {
@@ -2744,7 +2877,7 @@
                   "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
                   "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
                   "pm.test('Titular incluido',()=>pm.expect(pm.response.json().some(x=>x.id===pm.environment.get('rf_convocatoria')&&x.estudiante_id===pm.environment.get('rf_nuevo_alumno_uuid'))).to.eql(true));",
-                  "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,11));"
+                  "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,14));"
                 ]
               }
             },
@@ -2753,14 +2886,14 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(pm.environment.get('rf_activo')!=='RF-04'||(Number(pm.environment.get('rf_paso'))||0)<10){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-04 y ejecute en orden.');}"
+                  "if(pm.environment.get('rf_activo')!=='RF-04'||(Number(pm.environment.get('rf_paso'))||0)<13){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-04 y ejecute en orden.');}"
                 ]
               }
             }
           ]
         },
         {
-          "name": "PM-RF-04-12 | Rechazar alta por docente ajeno",
+          "name": "PM-RF-04-15 | Rechazar alta por docente ajeno",
           "request": {
             "method": "POST",
             "header": [
@@ -2793,7 +2926,7 @@
                 }
               }
             },
-            "description": "RF-04; caso HTTP nuevo PM-RF-04-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 403. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+            "description": "RF-04; caso HTTP nuevo PM-RF-04-15 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 403. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
           },
           "event": [
             {
@@ -2804,7 +2937,7 @@
                   "pm.test('HTTP exacto 403',()=>pm.expect(pm.response.code).to.eql(403));",
                   "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
                   "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
-                  "if(pm.response.code===403)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,12));"
+                  "if(pm.response.code===403)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,15));"
                 ]
               }
             },
@@ -2813,14 +2946,14 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(pm.environment.get('rf_activo')!=='RF-04'||(Number(pm.environment.get('rf_paso'))||0)<11){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-04 y ejecute en orden.');}"
+                  "if(pm.environment.get('rf_activo')!=='RF-04'||(Number(pm.environment.get('rf_paso'))||0)<14){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-04 y ejecute en orden.');}"
                 ]
               }
             }
           ]
         },
         {
-          "name": "PM-RF-04-13 | Agregar segundo estudiante autorizado",
+          "name": "PM-RF-04-16 | Agregar segundo estudiante autorizado",
           "request": {
             "method": "POST",
             "header": [
@@ -2853,7 +2986,7 @@
                 }
               }
             },
-            "description": "RF-04; caso HTTP nuevo PM-RF-04-13 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+            "description": "RF-04; caso HTTP nuevo PM-RF-04-16 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
           },
           "event": [
             {
@@ -2864,7 +2997,7 @@
                   "pm.test('HTTP exacto 201',()=>pm.expect(pm.response.code).to.eql(201));",
                   "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
                   "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
-                  "if(pm.response.code===201)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,13));"
+                  "if(pm.response.code===201)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,16));"
                 ]
               }
             },
@@ -2873,7 +3006,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(pm.environment.get('rf_activo')!=='RF-04'||(Number(pm.environment.get('rf_paso'))||0)<12){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-04 y ejecute en orden.');}"
+                  "if(pm.environment.get('rf_activo')!=='RF-04'||(Number(pm.environment.get('rf_paso'))||0)<15){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-04 y ejecute en orden.');}"
                 ]
               }
             }

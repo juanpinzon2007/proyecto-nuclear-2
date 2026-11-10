@@ -1245,7 +1245,7 @@
           "Scheduling"
         ],
         "summary": "Listar Espacios",
-        "description": "Lista todos los espacios académicos disponibles.",
+        "description": "Selecciona espacios concedidos explícitamente al docente autenticado.\n\nEl INTEGER de Identity procede del JWT revalidado, nunca del UUID de\nScheduling. Crear un espacio no concede permiso para programarlo.",
         "operationId": "listar_espacios_scheduling_espacios_get",
         "responses": {
           "200": {

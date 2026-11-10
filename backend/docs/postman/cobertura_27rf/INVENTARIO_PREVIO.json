@@ -1303,7 +1303,12 @@
     "tests/integration/test_admin_write_authorization.py::test_revocacion_confirmada_tras_proxy_impide_escritura",
     "tests/integration/test_admin_write_authorization.py::test_sesion_precargada_relee_cuenta_revocada",
     "tests/integration/test_admin_write_authorization.py::test_revocacion_concurrente_espera_commit_de_operacion_autorizada",
-    "tests/integration/test_admin_write_authorization.py::test_fallo_sql_despues_insert_revierte_alta_y_permite_reintento"
+    "tests/integration/test_admin_write_authorization.py::test_fallo_sql_despues_insert_revierte_alta_y_permite_reintento",
+    "tests/integration/test_authorized_academic_spaces.py::test_seleccion_solo_espacios_asignados_y_lectura_independiente",
+    "tests/integration/test_authorized_academic_spaces.py::test_crear_recurso_no_concede_permiso_y_revocacion_se_refleja",
+    "tests/integration/test_authorized_academic_spaces.py::test_seleccion_exige_jwt_y_docente_vigente",
+    "tests/integration/test_authorized_academic_spaces.py::test_consultas_concurrentes_no_hacen_dml_flush_commit",
+    "tests/integration/test_authorized_academic_spaces.py::test_fallo_sql_no_expone_detalles_y_siguiente_lectura_funciona"
   ],
   "nota": "Inventario estático; no acredita ejecución. No se atribuyen CP-I sin correspondencia individual."
 }

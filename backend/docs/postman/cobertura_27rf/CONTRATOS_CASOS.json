@@ -350,7 +350,12 @@
       "tests/integration/test_session_programming_http.py::test_autorizador_ausente_falla_cerrado_sin_proveedor_de_laboratorio",
       "tests/integration/test_session_programming_http.py::test_fallo_despues_del_insert_revierte_sesion_y_conserva_permiso",
       "tests/integration/test_session_programming_http.py::test_revocacion_concurrente_impide_programar_y_no_borra_sesion_historica",
-      "tests/integration/test_session_programming_http.py::test_publicacion_posterior_no_sustituye_uuid_de_version_programada"
+      "tests/integration/test_session_programming_http.py::test_publicacion_posterior_no_sustituye_uuid_de_version_programada",
+      "tests/integration/test_authorized_academic_spaces.py::test_seleccion_solo_espacios_asignados_y_lectura_independiente",
+      "tests/integration/test_authorized_academic_spaces.py::test_crear_recurso_no_concede_permiso_y_revocacion_se_refleja",
+      "tests/integration/test_authorized_academic_spaces.py::test_seleccion_exige_jwt_y_docente_vigente",
+      "tests/integration/test_authorized_academic_spaces.py::test_consultas_concurrentes_no_hacen_dml_flush_commit",
+      "tests/integration/test_authorized_academic_spaces.py::test_fallo_sql_no_expone_detalles_y_siguiente_lectura_funciona"
     ],
     "casos": [
       {
@@ -418,28 +423,49 @@
       },
       {
         "caso": "PM-RF-04-10",
-        "nombre": "PM-RF-04-10 | Agregar convocatoria individual",
+        "nombre": "PM-RF-04-10 | Seleccionar espacios concedidos al docente",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/scheduling/espacios",
+        "esperado": 200
+      },
+      {
+        "caso": "PM-RF-04-11",
+        "nombre": "PM-RF-04-11 | No revelar espacio ajeno",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/scheduling/espacios",
+        "esperado": 200
+      },
+      {
+        "caso": "PM-RF-04-12",
+        "nombre": "PM-RF-04-12 | Selección sin autenticación rechazada",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/scheduling/espacios",
+        "esperado": 401
+      },
+      {
+        "caso": "PM-RF-04-13",
+        "nombre": "PM-RF-04-13 | Agregar convocatoria individual",
         "metodo": "POST",
         "ruta": "{{base_url}}/scheduling/sesiones/{{rf_sesion_convocatoria}}/convocatorias",
         "esperado": 201
       },
       {
-        "caso": "PM-RF-04-11",
-        "nombre": "PM-RF-04-11 | Consultar estudiantes autorizados",
+        "caso": "PM-RF-04-14",
+        "nombre": "PM-RF-04-14 | Consultar estudiantes autorizados",
         "metodo": "GET",
         "ruta": "{{base_url}}/scheduling/sesiones/{{rf_sesion_convocatoria}}/convocatorias",
         "esperado": 200
       },
       {
-        "caso": "PM-RF-04-12",
-        "nombre": "PM-RF-04-12 | Rechazar alta por docente ajeno",
+        "caso": "PM-RF-04-15",
+        "nombre": "PM-RF-04-15 | Rechazar alta por docente ajeno",
         "metodo": "POST",
         "ruta": "{{base_url}}/scheduling/sesiones/{{rf_sesion_convocatoria}}/convocatorias",
         "esperado": 403
       },
       {
-        "caso": "PM-RF-04-13",
-        "nombre": "PM-RF-04-13 | Agregar segundo estudiante autorizado",
+        "caso": "PM-RF-04-16",
+        "nombre": "PM-RF-04-16 | Agregar segundo estudiante autorizado",
         "metodo": "POST",
         "ruta": "{{base_url}}/scheduling/sesiones/{{rf_sesion_convocatoria}}/convocatorias",
         "esperado": 201
