@@ -1,10 +1,21 @@
 {
   "info": {
-    "name": "ENTREGA — RF-16 publicación y reportes oficiales — app.main",
+    "name": "NUCLEAR DESKTOP — 2 Publicación y reportes RF-16",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Solo laboratorio nuevo y desechable. Sin secretos exportados. Consulte README.md; ninguna aprobación de políticas oficiales."
+    "description": "Solo laboratorio nuevo y desechable. Sin secretos exportados. Consulte README.md; ninguna aprobación de políticas oficiales. Windows/Desktop: preparar con preparar-postman.ps1, importar Environment temporal de este modo, seleccionar su nombre y pulsar Send en orden. Cada solicitud guarda variables en pm.environment; no requiere Runner. No compartir secretos sintéticos."
   },
   "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "function rechazarPreparacion(m){if(pm.execution&&typeof pm.execution.skipRequest==='function')pm.execution.skipRequest();throw new Error(m);}",
+          "if(pm.environment.get('laboratorio_modo')!=='reportes')rechazarPreparacion('Environment equivocado: prepare y seleccione el laboratorio reportes.');",
+          "if(!pm.environment.get('laboratorio_id'))rechazarPreparacion('Importe el Environment temporal generado por preparar-postman.ps1.');"
+        ]
+      }
+    },
     {
       "listen": "prerequest",
       "script": {
@@ -39,7 +50,7 @@
         "auth": {
           "type": "noauth"
         },
-        "description": "",
+        "description": "**Paso 1/15 — RF-02 — app.main**\n\nObjetivo: Login real; no capturar el token en la evidencia.\n\nHTTP esperado: 200. Response: JWT docente capturado.\n\nOperación: POST explícito: autenticación y emisión de token.\n\nDependencia: Preparación del laboratorio.\n\nSustentación: Login real; no capturar el token en la evidencia. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"correo\": \"{{correo_docente}}\",\n  \"clave\": \"{{clave_docente}}\"\n}",
@@ -52,6 +63,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_reportes'))||0)<0){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 0 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -62,7 +82,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "pm.environment.set('token_docente',pm.response.json().access_token);"
+              "pm.environment.set('token_docente',pm.response.json().access_token);",
+              "if(pm.response.code===200)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,1));"
             ]
           }
         }
@@ -87,7 +108,7 @@
         "auth": {
           "type": "noauth"
         },
-        "description": "",
+        "description": "**Paso 2/15 — RF-01 — app.main**\n\nObjetivo: Esta identidad comprobará la consulta privada y la negativa de exportación.\n\nHTTP esperado: 200. Response: JWT del estudiante titular capturado.\n\nOperación: POST explícito: autenticación y emisión de token.\n\nDependencia: Ejecutar antes la solicitud 1 con sus pruebas aprobadas.\n\nSustentación: Esta identidad comprobará la consulta privada y la negativa de exportación. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"correo\": \"{{correo_estudiante}}\",\n  \"codigo_convocatoria\": \"{{codigo_estudiante}}\"\n}",
@@ -100,6 +121,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_reportes'))||0)<1){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 1 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -110,7 +140,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "pm.environment.set('token_estudiante',pm.response.json().access_token);"
+              "pm.environment.set('token_estudiante',pm.response.json().access_token);",
+              "if(pm.response.code===200)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,2));"
             ]
           }
         }
@@ -135,7 +166,7 @@
         "auth": {
           "type": "noauth"
         },
-        "description": "",
+        "description": "**Paso 3/15 — RF-02 — app.main**\n\nObjetivo: No concede ámbito sobre la sesión del laboratorio.\n\nHTTP esperado: 200. Response: JWT de un docente ajeno capturado.\n\nOperación: POST explícito: autenticación y emisión de token.\n\nDependencia: Ejecutar antes la solicitud 2 con sus pruebas aprobadas.\n\nSustentación: No concede ámbito sobre la sesión del laboratorio. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"correo\": \"{{correo_docente_ajeno}}\",\n  \"clave\": \"{{clave_docente}}\"\n}",
@@ -148,6 +179,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_reportes'))||0)<2){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 2 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -158,7 +198,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "pm.environment.set('token_docente_ajeno',pm.response.json().access_token);"
+              "pm.environment.set('token_docente_ajeno',pm.response.json().access_token);",
+              "if(pm.response.code===200)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,3));"
             ]
           }
         }
@@ -186,9 +227,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 4/15 — RF-13/RF-24 — app.main**\n\nObjetivo: La fixture tiene un intento VENCIDO con una respuesta de tres; aún no está publicado.\n\nHTTP esperado: 200. Response: Cohorte publicable y nota técnica 33.33; captura de revisión_sha256.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 3 con sus pruebas aprobadas.\n\nSustentación: La fixture tiene un intento VENCIDO con una respuesta de tres; aún no está publicado. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_reportes'))||0)<3){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 3 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -200,7 +250,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "const j=pm.response.json();pm.test('Todas resueltas',()=>pm.expect(j.publicable).to.eql(true));pm.environment.set('revision_publicacion_sha256',j.revision_sha256);"
+              "const j=pm.response.json();pm.test('Todas resueltas',()=>pm.expect(j.publicable).to.eql(true));pm.environment.set('revision_publicacion_sha256',j.revision_sha256);",
+              "if(pm.response.code===200)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,4));"
             ]
           }
         }
@@ -232,7 +283,7 @@
             }
           ]
         },
-        "description": "",
+        "description": "**Paso 5/15 — RF-13/RF-24/RF-27 — app.main**\n\nObjetivo: El docente publica expresamente toda la cohorte; es un POST que escribe publicación y aviso internos.\n\nHTTP esperado: 200. Response: oficial=true, publicación v1 y hash de revisión autorizado.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 4 con sus pruebas aprobadas.\n\nSustentación: El docente publica expresamente toda la cohorte; es un POST que escribe publicación y aviso internos. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"revision_sha256\": \"{{revision_publicacion_sha256}}\"\n}",
@@ -245,6 +296,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_reportes'))||0)<4){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 4 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -255,7 +315,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "const j=pm.response.json();pm.test('Oficial por autorización explícita',()=>pm.expect(j.oficial).to.eql(true));pm.environment.set('publicacion_id',j.id);pm.test('Sin duplicados',()=>pm.expect(new Set(j.resultados.map(x=>x.convocatoria_id)).size).to.eql(j.resultados.length));"
+              "const j=pm.response.json();pm.test('Oficial por autorización explícita',()=>pm.expect(j.oficial).to.eql(true));pm.environment.set('publicacion_id',j.id);pm.test('Sin duplicados',()=>pm.expect(new Set(j.resultados.map(x=>x.convocatoria_id)).size).to.eql(j.resultados.length));",
+              "if(pm.response.code===200)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,5));"
             ]
           }
         }
@@ -287,7 +348,7 @@
             }
           ]
         },
-        "description": "",
+        "description": "**Paso 6/15 — RF-13/RF-27 — app.main**\n\nObjetivo: Repetir la misma autorización no duplica publicación ni avisos.\n\nHTTP esperado: 200. Response: Mismo id de publicación.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 5 con sus pruebas aprobadas.\n\nSustentación: Repetir la misma autorización no duplica publicación ni avisos. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"revision_sha256\": \"{{revision_publicacion_sha256}}\"\n}",
@@ -300,6 +361,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_reportes'))||0)<5){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 5 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -310,7 +380,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "pm.test('Misma publicación',()=>pm.expect(pm.response.json().id).to.eql(pm.variables.get('publicacion_id')));"
+              "pm.test('Misma publicación',()=>pm.expect(pm.response.json().id).to.eql(pm.variables.get('publicacion_id')));",
+              "if(pm.response.code===200)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,6));"
             ]
           }
         }
@@ -338,9 +409,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 7/15 — RF-13/RF-16 — app.main**\n\nObjetivo: Esta fuente inmutable es la que deben usar los dos archivos.\n\nHTTP esperado: 200. Response: Publicación oficial exacta; captura id, versión y huella.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 6 con sus pruebas aprobadas.\n\nSustentación: Esta fuente inmutable es la que deben usar los dos archivos. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_reportes'))||0)<6){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 6 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -353,7 +433,8 @@
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
               "pm.test('Publicación autorizada',()=>pm.expect(pm.response.json().oficial).to.eql(true));",
-              "const publicada=pm.response.json();pm.environment.set('publicacion_id',publicada.id);pm.environment.set('publicacion_version',publicada.version);pm.environment.set('publicacion_sha256',publicada.revision_sha256);"
+              "const publicada=pm.response.json();pm.environment.set('publicacion_id',publicada.id);pm.environment.set('publicacion_version',publicada.version);pm.environment.set('publicacion_sha256',publicada.revision_sha256);",
+              "if(pm.response.code===200)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,7));"
             ]
           }
         }
@@ -381,9 +462,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 8/15 — RF-14 — app.main**\n\nObjetivo: Solo el estudiante titular consulta su fila, sin acceso a las de otros.\n\nHTTP esperado: 200. Response: Resultado propio oficial 33.33.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 7 con sus pruebas aprobadas.\n\nSustentación: Solo el estudiante titular consulta su fila, sin acceso a las de otros. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_reportes'))||0)<7){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 7 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -395,7 +485,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "const j=pm.response.json();pm.test('Oficial y decimal',()=>{pm.expect(j.oficial).to.eql(true);pm.expect(j.nota).to.match(/^\\d+\\.\\d{2}$/);});"
+              "const j=pm.response.json();pm.test('Oficial y decimal',()=>{pm.expect(j.oficial).to.eql(true);pm.expect(j.nota).to.match(/^\\d+\\.\\d{2}$/);});",
+              "if(pm.response.code===200)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,8));"
             ]
           }
         }
@@ -423,9 +514,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 9/15 — RF-15/RF-16 — app.main**\n\nObjetivo: La publicación no es un recurso público por conocer el identificador.\n\nHTTP esperado: 403. Response: 403 para docente ajeno.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 8 con sus pruebas aprobadas.\n\nSustentación: La publicación no es un recurso público por conocer el identificador. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_reportes'))||0)<8){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 8 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -436,7 +536,9 @@
               "const j=pm.response.json();",
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
-              "}"
+              "}",
+              "if(pm.response.code===403)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,9));",
+              "pm.test('Error sin datos académicos',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','nota_final','selecciones','resultados');});"
             ]
           }
         }
@@ -457,9 +559,18 @@
         "auth": {
           "type": "noauth"
         },
-        "description": ""
+        "description": "**Paso 10/15 — RF-02/RF-16 — app.main**\n\nObjetivo: Este rechazo es una prueba aprobada, no un fallo de la demostración.\n\nHTTP esperado: 401. Response: 401 sin autenticación.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 9 con sus pruebas aprobadas.\n\nSustentación: Este rechazo es una prueba aprobada, no un fallo de la demostración. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_reportes'))||0)<9){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 9 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -470,7 +581,9 @@
               "const j=pm.response.json();",
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
-              "}"
+              "}",
+              "if(pm.response.code===401)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,10));",
+              "pm.test('Error sin datos académicos',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','nota_final','selecciones','resultados');});"
             ]
           }
         }
@@ -498,9 +611,18 @@
             }
           ]
         },
-        "description": "RF-16: archivo de publicación oficial previamente autorizada, sin cálculo ni escrituras. Send and Download para guardarlo y abrirlo. No publicar automáticamente."
+        "description": "**Paso 11/15 — RF-16 — app.main**\n\nObjetivo: Guardar con Send and Download y abrir Resultados: PARCIAL 33.33, misma publicación.\n\nHTTP esperado: 200. Response: Binario XLSX no vacío y cabeceras de la publicación capturada.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 10 con sus pruebas aprobadas.\n\nSustentación: Guardar con Send and Download y abrir Resultados: PARCIAL 33.33, misma publicación. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_reportes'))||0)<10){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 10 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -517,7 +639,8 @@
               "        pm.test('Descarga adjunta',()=>pm.expect(pm.response.headers.get('Content-Disposition')).to.match(/attachment;.*\\.xlsx\"$/));",
               "        pm.test('Publicación exacta',()=>{pm.expect(pm.response.headers.get('X-Publicacion-Id')).to.eql(pm.environment.get('publicacion_id'));pm.expect(pm.response.headers.get('X-Publicacion-Version')).to.eql(String(pm.environment.get('publicacion_version')));pm.expect(pm.response.headers.get('X-Publicacion-SHA256')).to.eql(pm.environment.get('publicacion_sha256'));});",
               "        pm.test('Privado',()=>pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'));",
-              "        "
+              "        ",
+              "if(pm.response.code===200)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,11));"
             ]
           }
         }
@@ -545,9 +668,18 @@
             }
           ]
         },
-        "description": "RF-16: archivo de publicación oficial previamente autorizada, sin cálculo ni escrituras. Send and Download para guardarlo y abrirlo. No publicar automáticamente."
+        "description": "**Paso 12/15 — RF-16 — app.main**\n\nObjetivo: Abrir el PDF y comparar id/versión/nota con Excel; no recalcula calificaciones.\n\nHTTP esperado: 200. Response: PDF no vacío y cabeceras de la misma publicación.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 11 con sus pruebas aprobadas.\n\nSustentación: Abrir el PDF y comparar id/versión/nota con Excel; no recalcula calificaciones. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_reportes'))||0)<11){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 11 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -564,7 +696,8 @@
               "        pm.test('Descarga adjunta',()=>pm.expect(pm.response.headers.get('Content-Disposition')).to.match(/attachment;.*\\.pdf\"$/));",
               "        pm.test('Publicación exacta',()=>{pm.expect(pm.response.headers.get('X-Publicacion-Id')).to.eql(pm.environment.get('publicacion_id'));pm.expect(pm.response.headers.get('X-Publicacion-Version')).to.eql(String(pm.environment.get('publicacion_version')));pm.expect(pm.response.headers.get('X-Publicacion-SHA256')).to.eql(pm.environment.get('publicacion_sha256'));});",
               "        pm.test('Privado',()=>pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'));",
-              "        "
+              "        ",
+              "if(pm.response.code===200)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,12));"
             ]
           }
         }
@@ -585,9 +718,18 @@
         "auth": {
           "type": "noauth"
         },
-        "description": ""
+        "description": "**Paso 13/15 — RF-16 — app.main**\n\nObjetivo: La exportación requiere JWT válido.\n\nHTTP esperado: 401. Response: 401 y JSON de error, sin archivo adjunto.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 12 con sus pruebas aprobadas.\n\nSustentación: La exportación requiere JWT válido. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_reportes'))||0)<12){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 12 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -599,7 +741,9 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "pm.test('No descarga datos',()=>pm.expect(pm.response.headers.get('Content-Disposition')).to.eql(undefined));"
+              "pm.test('No descarga datos',()=>pm.expect(pm.response.headers.get('Content-Disposition')).to.eql(undefined));",
+              "if(pm.response.code===401)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,13));",
+              "pm.test('Error sin datos académicos',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','nota_final','selecciones','resultados');});"
             ]
           }
         }
@@ -627,9 +771,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 14/15 — RF-15/RF-16 — app.main**\n\nObjetivo: Se rechaza al docente ajeno aunque esté autenticado.\n\nHTTP esperado: 403. Response: 403 y ningún archivo adjunto.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 13 con sus pruebas aprobadas.\n\nSustentación: Se rechaza al docente ajeno aunque esté autenticado. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_reportes'))||0)<13){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 13 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -641,7 +794,9 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "pm.test('No descarga datos',()=>pm.expect(pm.response.headers.get('Content-Disposition')).to.eql(undefined));"
+              "pm.test('No descarga datos',()=>pm.expect(pm.response.headers.get('Content-Disposition')).to.eql(undefined));",
+              "if(pm.response.code===403)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,14));",
+              "pm.test('Error sin datos académicos',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','nota_final','selecciones','resultados');});"
             ]
           }
         }
@@ -669,9 +824,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 15/15 — RF-02/RF-16 — app.main**\n\nObjetivo: El estudiante puede consultar su resultado, pero no exportar el reporte docente de la sesión.\n\nHTTP esperado: 403. Response: 403 y ningún archivo adjunto.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 14 con sus pruebas aprobadas.\n\nSustentación: El estudiante puede consultar su resultado, pero no exportar el reporte docente de la sesión. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_reportes'))||0)<14){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 14 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -683,7 +847,9 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "pm.test('No descarga datos',()=>pm.expect(pm.response.headers.get('Content-Disposition')).to.eql(undefined));"
+              "pm.test('No descarga datos',()=>pm.expect(pm.response.headers.get('Content-Disposition')).to.eql(undefined));",
+              "if(pm.response.code===403)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,15));",
+              "pm.test('Error sin datos académicos',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','nota_final','selecciones','resultados');});"
             ]
           }
         }

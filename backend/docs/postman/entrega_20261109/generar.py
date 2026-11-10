@@ -60,9 +60,12 @@ def main():
     env=json.loads((BASE/'Proyecto_Nuclear_laboratorio.postman_environment.json').read_text(encoding='utf-8'))
     env['name']='Entrega 9 noviembre — SOLO recursos temporales — SIN SECRETOS'
     keys={v['key'] for v in env['values']}
-    for k in ('worker_sesion_id','resultado_id_primero','resultado_hash_primero','resultado_fecha_primero','publicacion_version','publicacion_sha256'):
+    for k in ('worker_sesion_id','resultado_id_primero','resultado_hash_primero','resultado_fecha_primero','publicacion_version','publicacion_sha256','laboratorio_modo','laboratorio_id','paso_principal','paso_reportes','paso_worker','primera_decision_id','primera_opcion_id','opcion_alternativa_id','cierre_original'):
         if k not in keys:env['values'].append(dict(key=k,value='',type='default',enabled=True))
     guardar('Proyecto_Nuclear_entrega_20261109.postman_environment.json',env)
+    from contratos_desktop import enriquecer, generar_guia
+    enriquecer(OUT)
+    generar_guia(OUT)
     for file in OUT.glob('*.postman_collection.json'):
         c=json.loads(file.read_text(encoding='utf-8'))
         for item in c['item']:

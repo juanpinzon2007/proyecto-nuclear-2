@@ -1,0 +1,37 @@
+{
+  "ruta": "_referencias_locales/ProyectoNuclear-IngenieriaSoftwareII (1).pdf",
+  "sha256": "21501b8b1ab51922cdf11811ea35b8067da1e4cea2203d5d73a98bdc0be0e294",
+  "paginas": [
+    4,
+    5
+  ],
+  "requisitos": {
+    "RF-01": "RF-01 Acceso Autenticar estudiantes El estudiante ingresa con su correo electrónico institucional y el código de autorización de la convocatoria.",
+    "RF-02": "RF-02 Acceso Controlar acceso por rol El sistema restringe funciones según el rol (administrador, docente o estudiante) y el permiso específico de creación de casos.",
+    "RF-03": "RF-03 Acceso Administrar docentes, roles y permisos El administrador crea usuarios docentes y les asigna roles y permisos.",
+    "RF-04": "RF-04 Organización académica Asociar espacio académico y estudiantes Al agendar un caso, el docente asocia el nombre del espacio académico y uno o varios estudiantes autorizados.",
+    "RF-05": "RF-05 Diseño de casos Registrar estructura académica del caso El docente autorizado registra nombre, desarrollo situacional, contexto o historia, escenarios académicos y tiempo estimado de participación.",
+    "RF-06": "RF-06 Diseño de casos Registrar contextos y preguntas por escenario Cada escenario contiene un contexto situacional y una lista de preguntas con sus respuestas.",
+    "RF-07": "RF-07 Diseño de casos Administrar preguntas y respuestas El docente agrega preguntas por escenario, con opciones de respuesta e identificación de cuáles son correctas o incorrectas.",
+    "RF-08": "RF-08 Evaluación Justificar respuestas correctas e incorrectas El docente asocia a cada opción una explicación de por qué es correcta o incorrecta.",
+    "RF-09": "RF-09 Validación Validar estructura y rúbrica del caso Todo caso nuevo inicia como Borrador. Debe cumplir estructura académica y tener rúbrica asociada antes de publicarse. Solo casos publicados pueden agendarse; el docente puede archivar casos para evitar nuevas programaciones.",
+    "RF-10": "RF-10 Participación Responder y modificar respuestas El estudiante consulta los contextos académicos, responde preguntas y puede volver entre ellas para cambiar sus selecciones hasta finalizar.",
+    "RF-11": "RF-11 Persistencia Registrar respuestas y mostrar progreso El sistema guarda las respuestas del estudiante y muestra progreso durante la participación, sin anticipar la justificación o revelar la corrección antes del cierre.",
+    "RF-12": "RF-12 Trazabilidad Registrar inicio y fin de participación Cada participación guarda inicio, fin, calificación final y retroalimentación por pregunta.",
+    "RF-13": "RF-13 Evaluación Calcular nota con rúbrica El sistema calcula y almacena la calificación de cada intento a partir de las respuestas y de la rúbrica asociada.",
+    "RF-14": "RF-14 Retroalimentación Mostrar resultado y feedback final Al terminar, el sistema presenta aciertos, errores, sus explicaciones y nota final; no anticipa justificaciones durante la resolución.",
+    "RF-15": "RF-15 Seguimiento Consultar participaciones de estudiantes El docente navega por casos realizados y consulta, por estudiante, sus respuestas, retroalimentación por respuesta y retroalimentación general docente.",
+    "RF-16": "RF-16 Reportes Descargar reporte de participación El docente descarga un reporte con resultados académicos, avances parciales y ausencias, para registrar las notas en el sistema académico.",
+    "RF-17": "RF-17 Evaluación Registrar y asociar la rúbrica El docente registra la rúbrica correspondiente al caso y la asocia para sustentar la calificación final.",
+    "RF-18": "RF-18 Programación Agendar fecha, horario y condiciones El docente define inicio y fin, tiempo máximo no mayor al estimado del caso, lugar físico cuando aplique y mensaje personalizado.",
+    "RF-19": "RF-19 Programación Administrar estados de sesiones La sesión pasa por Sin iniciar, En curso y Finalizado. El docente la inicia y puede finalizarla; el sistema la cierra automáticamente un día después del fin previsto cuando corresponda.",
+    "RF-20": "RF-20 Acceso Asignar y validar código de autorización El sistema asocia un código de autorización al estudiante convocado e incluye el código en la notificación de programación.",
+    "RF-21": "RF-21 Notificaciones Notificar convocatoria y cambios El correo informa caso, mensaje personalizado, URL y código. El docente puede agregar o retirar estudiantes y cada afectado debe ser notificado.",
+    "RF-22": "RF-22 Participación Restringir ingreso tardío El sistema impide iniciar si pasó el tiempo definido por el docente en el que el estudiante debió comenzar. La base del umbral debe precisarse con el responsable académico antes de implementar.",
+    "RF-23": "RF-23 Participación Controlar tiempo máximo Al iniciar la participación, el sistema inicia el contador, aplica el límite máximo y conserva las respuestas para evaluación.",
+    "RF-24": "RF-24 Evaluación Evaluar incompletos y ausencias El sistema calcula la nota parcial de quien no termina y asigna cero a cada pregunta de quien no participa, aplicando las reglas de la rúbrica.",
+    "RF-25": "RF-25 Participación Autorizar repetición excepcional El sistema impide repetir una participación registrada, salvo autorización del docente creador del caso; tampoco permite participar en una sesión finalizada.",
+    "RF-26": "RF-26 Seguimiento Registrar feedback general docente El docente añade una valoración general a la participación individual del estudiante.",
+    "RF-27": "RF-27 Notificaciones Notificar calificaciones y feedback El sistema notifica al estudiante su nota y envía una notificación dentro del sistema cuando el docente agregue retroalimentación."
+  }
+}
