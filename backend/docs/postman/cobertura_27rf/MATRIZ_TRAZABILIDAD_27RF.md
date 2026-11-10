@@ -43,3 +43,12 @@ La matriz CSV contiene una fila por caso, método, endpoint, aserciones reales, 
 ## Complemento main condicionado RF-12/RF-23/RF-25
 
 La presente matriz usa la nueva regresión `evidencias/participation_fase1_20261109T215053Z/regresion_postman_27/`. Se conserva 16 APROBADOS/11 BLOQUEADOS. La composición principal de consentimiento e inicio permanece cerrada sin proveedores productivos aprobados. Las 79 solicitudes complementarias main (políticas positivas exclusivamente LAB y controles sin ellas) se trazan individualmente en `../participation_fase1/matriz_fase1.csv`; su informe es `backend/docs/PARTICIPATION_FASE1_MAIN_CONDICIONADO.md`. No se atribuye aprobación integral a esos tres RF ni se suman las ejecuciones.
+
+
+## Continuidad RF-10: contrato Angular y recorrido main
+
+Se conserva RF-10 **BLOQUEADO** integralmente. La aclaración de respuestas inmutables prevalece sobre el texto original; no se reabre PUT/PATCH. Las reglas de varias preguntas por escena, ciclos y revisitas siguen pendientes. Los estados de los otros 26 RF no cambian: total 16 APROBADOS y 11 BLOQUEADOS.
+
+Nuevo complemento: `backend/docs/postman/rf10_main/` y `backend/docs/RF10_CONTRATO_ANGULAR.md`. 21 solicitudes **solo app.main**, 76 aserciones Newman aprobadas y lectura SQL independiente. El intento y sus relaciones se preparan previamente SOLO LAB; no se acredita inicio productivo ni aprobación del consentimiento. La maestra RF-10 también se volvió a ejecutar: 32 solicitudes/141 aserciones, sin fallos técnicos, conservando su separación de 28 operaciones main y cuatro LAB. No se suman ambos recorridos ni se afirma reejecución de los demás RF en Postman.
+
+Evidencia nueva: `evidencias/rf10_contrato_20261109/newman_main_2/` y `newman_maestra_rf10/`. La trazabilidad nominal complementaria está en `backend/docs/postman/rf10_main/matriz_rf10_main.csv`. El único cambio de producción declara los errores HTTP ya existentes en OpenAPI, incluido el esquema real de 422; no añade endpoints ni cambia políticas.

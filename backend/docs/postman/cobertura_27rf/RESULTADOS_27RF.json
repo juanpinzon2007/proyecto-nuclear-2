@@ -282,5 +282,15 @@
       "tests_ejecutados": []
     }
   ],
-  "nota": "Aceptación por RF independiente, reutilizando solo carpetas sin cambios funcionales. No se suman ciclos diagnósticos ni suites pytest solapadas."
+  "nota": "Aceptación por RF independiente, reutilizando solo carpetas sin cambios funcionales. No se suman ciclos diagnósticos ni suites pytest solapadas.",
+  "complemento_rf10": {
+    "head": "84f05d55446acea22c2402f403156c200a927338",
+    "codigo": "HEAD más cambios locales RF10 verificados mediante SHA-256",
+    "http_main": 21,
+    "pm_test_main": 76,
+    "evidencia": "evidencias/rf10_contrato_20261109/newman_main_2/resultado.json",
+    "veredicto_integral": "BLOQUEADO",
+    "regresion_maestra_rf10": "evidencias/rf10_contrato_20261109/newman_maestra_rf10/resultado.json",
+    "nota": "32 HTTP / 141 pm.test de RF-10 repetidos. Los otros 26 RF conservan resultados históricos; no se afirma una nueva ejecución Postman completa de 545 requests."
+  }
 }

@@ -1366,3 +1366,12 @@ La colección complementaria y las pruebas main con JWT/PG17 usan proveedores ex
 RF-12, RF-23 y RF-25 conservan **PARCIAL** en esta matriz de implementación y **BLOQUEADO** en la matriz de aceptación integral Postman. Los 16 RF acreditados previamente no se reclasifican. No son dos mediciones equivalentes. Los conteos de ejecuciones anteriores siguen siendo históricos.
 
 Evidencia de esta continuación: 59 focalizadas y 763 relacionadas aprobadas; primera general 2492 aprobadas/38 omitidas/2 fallos por contrato histórico de ausencia de ruta. Ambos archivos se actualizaron al contrato main condicionado y su reverificación completa aprobó 41 casos. General conciliada sin solapamientos: 2494 aprobadas/38 omitidas, sin fallos/errores pendientes. Se conservan diagnósticos y la advertencia Starlette/httpx. Newman principal condicionado: 79/291; maestra 27 RF: 545/2080 y 16 APROBADOS/11 BLOQUEADOS. No se suman estas ejecuciones. Ruta de evidencia: evidencias/participation_fase1_20261109T215053Z/.
+
+
+### RF-10 — continuidad contractual Angular, 9 noviembre 2026 (Bogotá)
+
+RF-10 conserva PARCIAL en implementación y BLOQUEADO en aceptación integral. Se documentan los DTO actuales, INTEGER/UUID históricos, nulabilidad, FIN frente a cierre, errores y diferencia GET/POST al vencer. Se completan las respuestas de error de OpenAPI de decisiones/finish sin cambiar lógica ni montar nuevas rutas. Nuevas pruebas: tests/unit/participation/test_rf10_http_contract.py y tests/integration/test_rf10_angular_journey.py. Contrato: RF10_CONTRATO_ANGULAR.md.
+
+Aceptación nueva de contrato/recorrido: 8 aprobadas; focal ampliada: 124 aprobadas sin omisiones/fallos. Newman complementario: 21 HTTP / 76 aserciones sobre main con preparación del intento SOLO LAB; regresión maestra RF-10: 32/141, estado BLOQUEADO. Son ejecuciones solapadas, no se suman. La regresión general nueva se documentará al finalizar sus cuatro particiones; no se reutiliza la conciliación anterior de 2494/38. No cambian los estados de los otros 26 requisitos.
+
+Cierre de validación RF-10: relacionada 775 aprobadas/9 omitidas; general **nueva completa** 2502 aprobadas/38 omitidas, cero fallos/errores, 120 archivos y 2540 casos únicos en cuatro particiones sin solapamiento. Fuentes estables; advertencia Starlette/httpx conservada. No se suma con focal ni Newman y no se reutiliza la conciliación histórica 2494/38. Registro: evidencias/rf10_contrato_20261109/general_resultado.json. RF-10 sigue PARCIAL/BLOQUEADO según matriz; no cambia el estado de los otros 26 RF.
