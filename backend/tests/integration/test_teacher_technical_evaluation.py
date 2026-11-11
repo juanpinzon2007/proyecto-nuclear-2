@@ -54,9 +54,9 @@ def test_finish_http_independiente_seguido_calculo_docente(docente_http,monkeypa
 
 def test_reintento_no_invoca_un_calculo_nuevo(docente_http,monkeypatch):
     h=docente_http;r=enviar(h);assert r.status_code==200,r.text
-    from app.modules.participation.infrastructure import teacher_evaluation as motor
+    from app.modules.participation.infrastructure.question_result_repository import DetallesPreguntasSQLAlchemy
     def no_recalcular(*args,**kw):raise AssertionError('No se vuelve a generar un resultado')
-    monkeypatch.setattr(motor,'preparar_calculo_historico',no_recalcular)
+    monkeypatch.setattr(DetallesPreguntasSQLAlchemy,'preparar',no_recalcular)
     assert enviar(h).json()==r.json() and contar(h.c)==1
 
 
