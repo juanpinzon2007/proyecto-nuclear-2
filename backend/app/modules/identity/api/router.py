@@ -13,7 +13,7 @@ from app.modules.identity.api.errors import RutaIdentity
 from app.modules.identity.api.schemas import (
     AutorizacionesDocenteSchema, CrearDocente, IdPublico, RespuestaToken,
     SolicitudFeedback, SolicitudLogin, SolicitudLoginPersonal, SolicitudRepeticion, UsuarioPublico,
-    PaginaDocentesRespuesta,
+    PaginaDocentesRespuesta, SolicitudPermisosDocentes, PerfilPermisosDocentesRespuesta,
 )
 from app.modules.identity.application.authentication import ServicioAutenticacion
 from app.modules.identity.application.proxy_administracion import ProxyAdministracionUsuarios
@@ -81,6 +81,24 @@ def consultar_docentes(usuario: UsuarioActual, proxy: Administracion,
 def asignar_autorizaciones(id_docente: IdPublico, solicitud: AutorizacionesDocenteSchema,
                           usuario: UsuarioActual, proxy: Administracion) -> UsuarioPublico:
     return UsuarioPublico.desde_contexto(proxy.asignar_autorizaciones(usuario, id_docente, solicitud.a_dominio()))
+
+
+@router.get('/roles/docente/permisos', response_model=PerfilPermisosDocentesRespuesta)
+def consultar_permisos_docentes(request: Request, usuario: UsuarioActual, proxy: Administracion):
+    """Catálogo privado y perfil global vigente del rol docente."""
+    if request.query_params:
+        raise HTTPException(422, 'La consulta global no admite parámetros.')
+    return proxy.consultar_permisos_docentes(usuario)
+
+
+@router.put('/roles/docente/permisos', response_model=PerfilPermisosDocentesRespuesta)
+def configurar_permisos_docentes(
+    solicitud: SolicitudPermisosDocentes, request: Request, usuario: UsuarioActual, proxy: Administracion,
+):
+    """El cambio afecta a todas las cuentas del rol DOCENTE."""
+    if request.query_params:
+        raise HTTPException(422, 'La configuración global no admite parámetros.')
+    return proxy.configurar_permisos_docentes(usuario, solicitud.permisos)
 
 
 @router.get("/seguimiento/casos", response_model=list[ResumenCaso], response_model_exclude_none=True)

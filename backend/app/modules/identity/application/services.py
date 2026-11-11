@@ -182,3 +182,12 @@ class ServicioAdministracionUsuarios:
             docente = trabajo.usuarios.asignar_autorizaciones(id_docente, autorizaciones)
             trabajo.commit()
         return docente
+
+    def configurar_permisos_docentes(self, contexto: ContextoAcceso, permisos: frozenset[str]):
+        with self.uow() as trabajo:
+            self._exigir_administrador(trabajo, contexto)
+            if trabajo.usuarios.permisos_existentes(permisos) is not True:
+                raise ReglaIdentidadInvalida()
+            perfil = trabajo.usuarios.configurar_permisos_docentes(permisos)
+            trabajo.commit()
+        return perfil

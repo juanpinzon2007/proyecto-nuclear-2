@@ -199,7 +199,7 @@
     "nombre": "Administrar docentes, roles y permisos",
     "fuente": "RF-03 Acceso Administrar docentes, roles y permisos El administrador crea usuarios docentes y les asigna roles y permisos.",
     "modo": "principal",
-    "bloqueo": "Alta, consulta y validación del perfil del catálogo están acreditadas. Falta precisar la configuración/asignación operativa de permisos globales por rol frente a excepciones individuales. Multirrol y DOCENTE ADMINISTRADOR no se presuponen requisitos expresos del RF original.",
+    "bloqueo": null,
     "tests": [
       "tests/integration/test_admin_teacher_directory.py::test_listado_main_privado_paginado_sin_dml_hashes_ni_vinculos_academicos",
       "tests/integration/test_admin_teacher_directory.py::test_listado_no_admite_identidad_o_rol_no_autorizados",
@@ -329,6 +329,69 @@
       {
         "caso": "PM-RF-03-17",
         "nombre": "PM-RF-03-17 | Rechazos conservan el perfil original",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/api/v1/identity/me",
+        "esperado": 200
+      },
+      {
+        "caso": "PM-RF-03-18",
+        "nombre": "PM-RF-03-18 | Consultar perfil global DOCENTE",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/api/v1/identity/roles/docente/permisos",
+        "esperado": 200
+      },
+      {
+        "caso": "PM-RF-03-19",
+        "nombre": "PM-RF-03-19 | Retirar permisos globales del rol",
+        "metodo": "PUT",
+        "ruta": "{{base_url}}/api/v1/identity/roles/docente/permisos",
+        "esperado": 200
+      },
+      {
+        "caso": "PM-RF-03-20",
+        "nombre": "PM-RF-03-20 | Token emitido refleja revocación global",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/api/v1/identity/me",
+        "esperado": 200
+      },
+      {
+        "caso": "PM-RF-03-21",
+        "nombre": "PM-RF-03-21 | Restituir permisos globales",
+        "metodo": "PUT",
+        "ruta": "{{base_url}}/api/v1/identity/roles/docente/permisos",
+        "esperado": 200
+      },
+      {
+        "caso": "PM-RF-03-22",
+        "nombre": "PM-RF-03-22 | Configuración global idempotente",
+        "metodo": "PUT",
+        "ruta": "{{base_url}}/api/v1/identity/roles/docente/permisos",
+        "esperado": 200
+      },
+      {
+        "caso": "PM-RF-03-23",
+        "nombre": "PM-RF-03-23 | Docente no administra permisos globales",
+        "metodo": "PUT",
+        "ruta": "{{base_url}}/api/v1/identity/roles/docente/permisos",
+        "esperado": 403
+      },
+      {
+        "caso": "PM-RF-03-24",
+        "nombre": "PM-RF-03-24 | Estudiante no consulta el catálogo administrativo",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/api/v1/identity/roles/docente/permisos",
+        "esperado": 403
+      },
+      {
+        "caso": "PM-RF-03-25",
+        "nombre": "PM-RF-03-25 | Permiso global inexistente rechazado",
+        "metodo": "PUT",
+        "ruta": "{{base_url}}/api/v1/identity/roles/docente/permisos",
+        "esperado": 422
+      },
+      {
+        "caso": "PM-RF-03-26",
+        "nombre": "PM-RF-03-26 | Perfil final recuperado desde SQL",
         "metodo": "GET",
         "ruta": "{{base_url}}/api/v1/identity/me",
         "esperado": 200

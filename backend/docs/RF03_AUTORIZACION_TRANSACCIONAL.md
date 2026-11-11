@@ -101,6 +101,22 @@ Para demostrar en Postman: preparar-27rf.ps1 -RF RF-03, importar el entorno priv
 
 ## Decisión necesaria antes de cerrar RF-03
 
+Actualización del 11 de noviembre de 2026. El responsable funcional confirmó permisos globales del rol DOCENTE. El apartado siguiente conserva el diagnóstico previo. La implementación nueva utiliza rol_permiso y afecta a todas las cuentas de ese rol.
+
+GET y PUT `/api/v1/identity/roles/docente/permisos` están registrados mediante el router Identity de app.main. Exigen ADMINISTRADOR activo desde PostgreSQL. El PUT recibe `{"permisos":["CREAR_CASOS"]}` o una lista vacía explícita y acepta exclusivamente códigos existentes. La respuesta identifica `alcance=GLOBAL_ROL`, catálogo, permisos vigentes y cantidad de cuentas afectadas. No concede roles ni crea vínculos académicos.
+
+La UoW revalida al administrador, bloquea cuenta y rol, y serializa la actualización del rol DOCENTE. Altas y asignaciones existentes toman un bloqueo compartido sobre ese mismo rol. Los JWT existentes recuperan los permisos SQL vigentes en cada solicitud. Una escritura fallida revierte íntegramente el perfil. El GET utiliza una transacción REPEATABLE READ / READ ONLY, sin commit ni autoflush.
+
+Evidencia actual externa al repositorio en `C:/SPS/acelerado_nuclear_20261110/identidad/`. Focal inicial 12 aprobadas. Regresión relacionada posterior 401 aprobadas y 29 omitidas por conexiones externas no configuradas, sin fallos ni errores. Esta última incluye la comprobación efectiva de creación de casos antes y después de revocar permisos. Newman RF-03 ejecutó 26 solicitudes y 85 aserciones, sin fallos. Las ejecuciones se solapan y sus conteos se presentan por separado. Los logs y JUnit conservan las omisiones y la advertencia conocida de Starlette.
+
+Prueba específica reproducible con PostgreSQL 17 desechable y la configuración de aislamiento existente `SPS_TEST_IDENTITY_MAPPING_DOCKER=1`.
+
+```powershell
+python -m pytest -c backend/pyproject.toml backend/tests/integration/test_global_teacher_permissions.py -q
+```
+
+La autorización anterior queda resuelta para el alcance global confirmado. Las excepciones individuales y los roles compuestos conservan sus restricciones vigentes. Esta confirmación funcional del equipo no se atribuye a una aprobación institucional.
+
 Confirmar si configurar permisos debe operar sobre un rol global (y afectar a todos sus usuarios) o sobre un docente individual. En el segundo caso, concretar la relación de persistencia y aprobación del cambio de esquema antes de implementarlo; en el primero, concretar la operación autorizada sobre el catálogo y su alcance. No es una decisión sobre reabrir acceso a cuentas inactivas ni sobre la obligación de verificar roles, ya establecida por RF-02/RN-02. Tampoco se exige unilateralmente SSO, recuperación de contraseña, nuevos roles o mantenimiento de matrículas como condición del RF original.
 
 Siguiente incremento recomendado RF-04: comprobar/reutilizar las consultas de recursos propios que necesita el docente para elegir espacio, grupo y estudiantes matriculados al programar. Mantener identificadores INTEGER y UUID separados mediante sus vínculos persistidos. No introducir un directorio global o autovinculación. Implementar después únicamente la asociación faltante del flujo de programación con autorización de recurso, rechazo de ajenos, rollback y prueba main; las concesiones administrativas nuevas requieren definir responsable y ámbito primero.
