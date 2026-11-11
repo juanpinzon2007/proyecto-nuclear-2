@@ -7,7 +7,6 @@ Las capacidades parciales se ejecutaron, pero no se aprueba íntegramente su RF.
 - **RF-10 — Responder y modificar respuestas:** El PDF RF-10/RN-10/11 permite modificar; la profesora aclaró después respuestas inmutables. Se prueba la inmutabilidad vigente ya confirmada; faltan conciliar el documento y definir recorridos con varias preguntas/ciclos/revisitas, no reabrir PUT.
 - **RF-12 — Registrar inicio y fin de participación:** Composición main condicionada presente; faltan documento institucional aprobado y políticas productivas definitivas de provisión/inicio. El recorrido positivo con puertos LAB no acredita disponibilidad productiva ni feedback por pregunta completo.
 - **RF-13 — Calcular nota con rúbrica:** Cálculo/persistencia técnica PREGUNTAS_100_V1 acreditados en main. Conciliar UC05 con comando docente separado y la aplicabilidad a otras rúbricas/recorridos. La regla histórica distinta devuelve 503 sin nota; no se transforma ni se exige publicación oficial como parte de RF13. Auditoría nueva: RF13_AUDITORIA_Y_DTO_PROGRAMACION_20261110.md.
-- **RF-14 — Mostrar resultado y feedback final:** La demostración del resultado privado no cubre todas las explicaciones/aciertos tras cierre: visibilidad y soportes de recorrido tienen límites explícitos.
 - **RF-20 — Asignar y validar código de autorización:** Código de una sola entrega y hash sí; falta entrega externa segura al estudiante. Una notificación interna no es correo.
 - **RF-21 — Notificar convocatoria y cambios:** No existe proveedor/remitente/URL institucional y recuperación del código para envío seguro. No se inventa SMTP ni se considera enviado un correo.
 - **RF-23 — Controlar tiempo máximo:** Contador y vencimiento de intentos existentes tienen pruebas; el inicio productivo que lo activa permanece cerrado. Se acredita recorrido LAB, no requisito integral productivo.
@@ -47,3 +46,12 @@ Evidencia nueva: `evidencias/rf10_contrato_20261109/newman_main_2/` y `newman_ma
 Ejecución nueva: evidencias/rf04_fase4_20261109/newman_27/. 556 solicitudes / 2118 pm.test, cero fallos técnicos, 16 APROBADOS y 11 BLOQUEADOS. RF04: 16 solicitudes / 53 aserciones; sigue BLOQUEADO. GET /scheduling/espacios (main) limita el listado a grants explícitos; las nuevas solicitudes PM-RF-04-10/11/12 acreditan selección propia, exclusión del espacio ajeno y rechazo sin JWT.
 
 No se afirma asociación integral: rf_sesion se crea por HTTP, pero las convocatorias se demuestran sobre rf_sesion_convocatoria, otra sesión preparada con asignación en LAB. Falta el contrato productivo de fecha_limite_ingreso, intentos_base y estado del puente académico; no se promueven defaults/fixtures a políticas. No hay nueva ruta ni migración. Informe: backend/docs/RF04_SELECCION_ACADEMICA_Y_BLOQUEOS.md. General final nueva:2525 aprobadas/38 omitidas/cero fallos o errores; primera general de dos fallos unitarios preservada y corregida sin relajar HTTP esperados. No sumar ejecuciones.
+
+
+## Cierre RF14 Fase7 — evidencia y límites
+
+RF14 APROBADO para consulta de resultados válidos existentes, con política funcional de visibilidad confirmada.19 HTTP/68 pm.test; positivo de nota/acierto/error/explicación, recarga y privacidad. No se obliga a publicar ni se calcula desde GET. Nuevo404 cuando falta cálculo, sin DML.13 focales y180 relacionadas; general nueva2538 aprobadas/38 omitidas/cero fallos o errores.
+
+Selección final27RF:evidencias/rf14_fase7_20261110/seleccion_final/,560HTTP/2134aserciones;17 APROBADOS y10 BLOQUEADOS. Solo RF14 cambia de estado. RF13 continúa BLOQUEADO y no se cambian inicio/repetición/RF04/DTO. Los antecedentes16/11 son históricos. El primer RF14Newman falló por redeclaración JS; se conserva y se sustituye por la nueva ejecución sin cambiar HTTP esperados.
+
+Criterios y límites:backend/docs/RF14_CIERRE_CONTROLADO_20261110.md; contrato para Angular:backend/docs/RF14_CONTRATO_ANGULAR.md. MAIN no equivale a despliegue permanente; fixtures académicas son LAB, no aprobación de consentimiento ni de fórmulas fuera de alcance. Sin prueba de navegador.

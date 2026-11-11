@@ -14823,7 +14823,7 @@
     },
     {
       "name": "RF-14 — Mostrar resultado y feedback final",
-      "description": "RF-14 Retroalimentación Mostrar resultado y feedback final Al terminar, el sistema presenta aciertos, errores, sus explicaciones y nota final; no anticipa justificaciones durante la resolución.\n\nPrecondición: preparar laboratorio reportes mediante preparar-27rf.ps1 -RF RF-14. No usar environment de otra carpeta. La demostración del resultado privado no cubre todas las explicaciones/aciertos tras cierre: visibilidad y soportes de recorrido tienen límites explícitos.",
+      "description": "RF-14 Retroalimentación Mostrar resultado y feedback final Al terminar, el sistema presenta aciertos, errores, sus explicaciones y nota final; no anticipa justificaciones durante la resolución.\n\nPrecondición: preparar laboratorio reportes mediante preparar-27rf.ps1 -RF RF-14. No usar environment de otra carpeta. Cumplimiento sujeto a ejecución real y comprobación SQL complementaria.",
       "item": [
         {
           "name": "PM-RF-14-01 | MAIN — login docente",
@@ -15039,6 +15039,7 @@
                   "}",
                   "const j=pm.response.json();pm.test('Todas resueltas',()=>pm.expect(j.publicable).to.eql(true));pm.environment.set('revision_publicacion_sha256',j.revision_sha256);",
                   "if(pm.response.code===200)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,4));",
+                  "{const fila=pm.response.json().filas.find(x=>x.convocatoria_id===pm.environment.get('convocatoria_id'));pm.test('Fila propia y version historica',()=>pm.expect(fila).to.be.an('object'));if(fila)pm.environment.set('rf14_version_historica',fila.version_caso_id);}",
                   "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,4));"
                 ]
               }
@@ -15278,6 +15279,7 @@
                   "}",
                   "const j=pm.response.json();pm.test('Oficial y decimal',()=>{pm.expect(j.oficial).to.eql(true);pm.expect(j.nota).to.match(/^\\d+\\.\\d{2}$/);});",
                   "if(pm.response.code===200)pm.environment.set('paso_reportes',Math.max(Number(pm.environment.get('paso_reportes'))||0,8));",
+                  "{const j=pm.response.json();pm.test('Aciertos y explicaciones de selecciones historicas',()=>{pm.expect(j.oficial).to.eql(true);pm.expect(j.detalle.version_caso_id).to.eql(pm.environment.get('rf14_version_historica'));pm.expect(j.explicaciones.length).to.be.above(0);const rs=j.explicaciones.flatMap(x=>x.respuestas);pm.expect(rs.length).to.be.above(0);j.explicaciones.forEach(b=>pm.expect(new Set(b.respuestas.map(x=>x.pregunta_id)).size).to.eql(b.respuestas.length));rs.forEach(x=>{pm.expect(x.es_correcta).to.be.a('boolean');pm.expect(x.justificacion).to.be.a('string').and.not.empty;pm.expect(x.enunciado).to.be.a('string').and.not.empty;pm.expect(x.texto_seleccionado).to.be.a('string');});pm.expect(j).not.to.have.any.keys('resultados','retiradas');});pm.test('Sin documentos internos',()=>['politica_documento','motor_documento','fuente_documento','clave_hash','codigo_hash'].forEach(x=>pm.expect(pm.response.text()).not.to.include(x)));pm.environment.set('rf14_resultado_historico',JSON.stringify(j));}",
                   "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,8));"
                 ]
               }
@@ -15663,6 +15665,185 @@
             }
           ],
           "response": []
+        },
+        {
+          "name": "PM-RF-14-16 | Recargar resultado privado sin cambiar nota ni historial",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/scheduling/convocatorias/{{convocatoria_id}}/resultado",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "RF-14; caso HTTP nuevo PM-RF-14-16 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación reportes y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.test('Recarga identica',()=>pm.expect(pm.response.json()).to.deep.eql(JSON.parse(pm.environment.get('rf14_resultado_historico'))));",
+                  "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,16));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-14'||(Number(pm.environment.get('rf_paso'))||0)<15){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-14 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-14-17 | Rechazar consulta estudiantil por docente ajeno",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/scheduling/convocatorias/{{convocatoria_id}}/resultado",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_docente_ajeno}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "RF-14; caso HTTP nuevo PM-RF-14-17 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 403. Consulta de lectura. Dependencia: preparación reportes y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 403',()=>pm.expect(pm.response.code).to.eql(403));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===403)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,17));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-14'||(Number(pm.environment.get('rf_paso'))||0)<16){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-14 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-14-18 | Rechazar resultado sin autenticacion",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/scheduling/convocatorias/{{convocatoria_id}}/resultado",
+            "description": "RF-14; caso HTTP nuevo PM-RF-14-18 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 401. Consulta de lectura. Dependencia: preparación reportes y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 401',()=>pm.expect(pm.response.code).to.eql(401));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===401)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,18));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-14'||(Number(pm.environment.get('rf_paso'))||0)<17){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-14 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-14-19 | Rechazar parametros que simulan una nota",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/scheduling/convocatorias/{{convocatoria_id}}/resultado?nota_final=100",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "RF-14; caso HTTP nuevo PM-RF-14-19 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 422. Consulta de lectura. Dependencia: preparación reportes y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 422',()=>pm.expect(pm.response.code).to.eql(422));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===422)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,19));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-14'||(Number(pm.environment.get('rf_paso'))||0)<18){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-14 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
         }
       ]
     },

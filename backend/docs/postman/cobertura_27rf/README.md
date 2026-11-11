@@ -1,6 +1,6 @@
 # Cobertura verificable de los 27 RF — Postman
 
-Resultado de esta ejecución: **16 RF APROBADOS integralmente, 11 BLOQUEADOS, 0 FALLIDOS y 0 NO EJECUTADOS**. Los bloqueados tienen capacidades parciales ejecutadas; no equivalen a requisitos completos. Consulte [la matriz](MATRIZ_TRAZABILIDAD_27RF.md), [las brechas](BRECHAS_RF.md) y [los resultados JSON](RESULTADOS_27RF.json).
+Resultado de la selección final Fase7: **17 RF APROBADOS integralmente, 10 BLOQUEADOS, 0 FALLIDOS y 0 NO EJECUTADOS** en el alcance funcional documentado de laboratorio. Los bloqueados tienen capacidades parciales ejecutadas; no equivalen a requisitos completos. Consulte [la matriz](MATRIZ_TRAZABILIDAD_27RF.md), [las brechas](BRECHAS_RF.md) y [los resultados JSON](RESULTADOS_27RF.json).
 
 ## Qué está preparado
 
@@ -113,3 +113,10 @@ Código corregido: revalidación del administrador SQL y bloqueos en la UoW de a
 Ejecución nueva: evidencias/rf04_fase4_20261109/newman_27/. 556 solicitudes / 2118 pm.test, cero fallos técnicos, 16 APROBADOS y 11 BLOQUEADOS. RF04: 16 solicitudes / 53 aserciones; sigue BLOQUEADO. GET /scheduling/espacios (main) limita el listado a grants explícitos; las nuevas solicitudes PM-RF-04-10/11/12 acreditan selección propia, exclusión del espacio ajeno y rechazo sin JWT.
 
 No se afirma asociación integral: rf_sesion se crea por HTTP, pero las convocatorias se demuestran sobre rf_sesion_convocatoria, otra sesión preparada con asignación en LAB. Falta el contrato productivo de fecha_limite_ingreso, intentos_base y estado del puente académico; no se promueven defaults/fixtures a políticas. No hay nueva ruta ni migración. Informe: backend/docs/RF04_SELECCION_ACADEMICA_Y_BLOQUEOS.md. General final nueva:2525 aprobadas/38 omitidas/cero fallos o errores; primera general de dos fallos unitarios preservada y corregida sin relajar HTTP esperados. No sumar ejecuciones.
+
+
+## Fase 7 — RF14 acreditado y evidencia vigente
+
+Selección:evidencias/rf14_fase7_20261110/seleccion_final/.560 solicitudes/2134 aserciones,17 APROBADOS/10 BLOQUEADOS. Las cifras de Fases3/4 anteriores son históricas. RF14:19/68, incluye aciertos/explicaciones históricos, recarga idéntica y rechazos; el fallo inicial de sintaxis se conserva sin contar como aprobación ni sumarlo al definitivo. No se alteraron requests/scripts de los otros26RF.
+
+Backend:solo academic_cycle.py traduce resultado ausente a404; no calcula ni publica desde GET. General nueva2538/38,cero fallos/errores;13 focales y180 relacionadas, sin sumar. Guía y capturas:backend/docs/RF14_CONTRATO_ANGULAR.md y RF14_CIERRE_CONTROLADO_20261110.md. No se verificó Angular en navegador ni Postman Desktop.

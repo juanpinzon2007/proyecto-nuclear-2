@@ -1308,7 +1308,12 @@
     "tests/integration/test_authorized_academic_spaces.py::test_crear_recurso_no_concede_permiso_y_revocacion_se_refleja",
     "tests/integration/test_authorized_academic_spaces.py::test_seleccion_exige_jwt_y_docente_vigente",
     "tests/integration/test_authorized_academic_spaces.py::test_consultas_concurrentes_no_hacen_dml_flush_commit",
-    "tests/integration/test_authorized_academic_spaces.py::test_fallo_sql_no_expone_detalles_y_siguiente_lectura_funciona"
+    "tests/integration/test_authorized_academic_spaces.py::test_fallo_sql_no_expone_detalles_y_siguiente_lectura_funciona",
+    "tests/integration/test_rf14_student_results.py::test_feedback_historico_exacto_y_recargas_concurrentes_sin_escritura",
+    "tests/integration/test_rf14_student_results.py::test_parcial_muestra_solo_feedback_registrado_sin_preguntas_ficticias",
+    "tests/integration/test_rf14_student_results.py::test_consulta_estudiantil_privada_sin_filtrar_nota",
+    "tests/integration/test_rf14_student_results.py::test_cerrado_sin_calculo_pendiente_404_sin_generar_resultado",
+    "tests/integration/test_rf14_student_results.py::test_ausencia_no_consultable_hasta_publicacion_explicita_sin_intentos_ficticios"
   ],
   "nota": "Inventario estático; no acredita ejecución. No se atribuyen CP-I sin correspondencia individual."
 }

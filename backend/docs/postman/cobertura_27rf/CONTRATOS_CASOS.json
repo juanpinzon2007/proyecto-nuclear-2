@@ -2088,7 +2088,7 @@
     "nombre": "Mostrar resultado y feedback final",
     "fuente": "RF-14 Retroalimentación Mostrar resultado y feedback final Al terminar, el sistema presenta aciertos, errores, sus explicaciones y nota final; no anticipa justificaciones durante la resolución.",
     "modo": "reportes",
-    "bloqueo": "La demostración del resultado privado no cubre todas las explicaciones/aciertos tras cierre: visibilidad y soportes de recorrido tienen límites explícitos.",
+    "bloqueo": null,
     "tests": [
       "tests/integration/test_academic_cycle_http.py::test_publicacion_explicita_idempotente_y_lectura_privada",
       "tests/integration/test_academic_cycle_http.py::test_ausencia_explicita_sin_participacion_ni_intento_rectificacion_historica",
@@ -2105,7 +2105,12 @@
       "tests/integration/test_academic_cycle_http.py::test_migracion_real_subida_bajada_y_metadata_sin_filtro",
       "tests/integration/test_academic_cycle_http.py::test_downgrade_rechaza_perdida_de_publicacion",
       "tests/integration/test_academic_cycle_http.py::test_recorrido_tcp_reproducible_para_postman",
-      "tests/integration/test_academic_cycle_http.py::test_repeticion_historica_sin_permiso_no_se_publica"
+      "tests/integration/test_academic_cycle_http.py::test_repeticion_historica_sin_permiso_no_se_publica",
+      "tests/integration/test_rf14_student_results.py::test_feedback_historico_exacto_y_recargas_concurrentes_sin_escritura",
+      "tests/integration/test_rf14_student_results.py::test_parcial_muestra_solo_feedback_registrado_sin_preguntas_ficticias",
+      "tests/integration/test_rf14_student_results.py::test_consulta_estudiantil_privada_sin_filtrar_nota",
+      "tests/integration/test_rf14_student_results.py::test_cerrado_sin_calculo_pendiente_404_sin_generar_resultado",
+      "tests/integration/test_rf14_student_results.py::test_ausencia_no_consultable_hasta_publicacion_explicita_sin_intentos_ficticios"
     ],
     "casos": [
       {
@@ -2212,6 +2217,34 @@
         "metodo": "GET",
         "ruta": "{{base_url}}/api/v1/identity/seguimiento/sesiones/{{sesion_id}}/reporte?formato=xlsx",
         "esperado": 403
+      },
+      {
+        "caso": "PM-RF-14-16",
+        "nombre": "PM-RF-14-16 | Recargar resultado privado sin cambiar nota ni historial",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/scheduling/convocatorias/{{convocatoria_id}}/resultado",
+        "esperado": 200
+      },
+      {
+        "caso": "PM-RF-14-17",
+        "nombre": "PM-RF-14-17 | Rechazar consulta estudiantil por docente ajeno",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/scheduling/convocatorias/{{convocatoria_id}}/resultado",
+        "esperado": 403
+      },
+      {
+        "caso": "PM-RF-14-18",
+        "nombre": "PM-RF-14-18 | Rechazar resultado sin autenticacion",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/scheduling/convocatorias/{{convocatoria_id}}/resultado",
+        "esperado": 401
+      },
+      {
+        "caso": "PM-RF-14-19",
+        "nombre": "PM-RF-14-19 | Rechazar parametros que simulan una nota",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/scheduling/convocatorias/{{convocatoria_id}}/resultado?nota_final=100",
+        "esperado": 422
       }
     ]
   },
