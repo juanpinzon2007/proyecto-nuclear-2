@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
 
@@ -26,6 +26,20 @@ class Settings(BaseSettings):
     identity_institutional_domains: tuple[str, ...] = ()
     # Convención histórica verificada del despliegue; nunca inferir UTC/local.
     participation_timestamp_zone: str | None = None
+    scheduling_mail_enabled: bool = False
+    scheduling_mail_host: str | None = None
+    scheduling_mail_port: int | None = Field(default=None, ge=1, le=65535)
+    scheduling_mail_tls: str | None = None
+    scheduling_mail_from: str | None = None
+    scheduling_mail_username: str | None = None
+    scheduling_mail_password: SecretStr | None = None
+    scheduling_mail_encryption_key: SecretStr | None = None
+    scheduling_mail_public_url: str | None = None
+
+    @field_validator('scheduling_mail_port', mode='before')
+    @classmethod
+    def puerto_correo_opcional(cls, value):
+        return None if value == '' else value
 
     @property
     def database_url(self) -> URL:

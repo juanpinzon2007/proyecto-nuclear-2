@@ -230,7 +230,7 @@ def retirar_ddl_resultados_sqlite(conexion):
         raise RuntimeError("Retirada DDL auxiliar reservada a SQLite en memoria.")
     from app.db.models import registrar_modelos_integrados
     metadata=registrar_modelos_integrados()
-    for nombre in ("resultado_participacion","publicacion_evaluacion","ausencia_academica","resultado_criterio_exacto","resultado_pregunta","resultado_calculo_preguntas","seleccion_consentimiento","documento_consentimiento_version","docente_espacio_academico","retroalimentacion_docente","resultado_criterio","resultado_intento"):
+    for nombre in ("despacho_correo","resultado_participacion","publicacion_evaluacion","ausencia_academica","resultado_criterio_exacto","resultado_pregunta","resultado_calculo_preguntas","seleccion_consentimiento","documento_consentimiento_version","docente_espacio_academico","retroalimentacion_docente","resultado_criterio","resultado_intento"):
         if inspect(conexion).has_table(nombre):
             if conexion.scalar(text(f"SELECT 1 FROM {nombre} LIMIT 1")) is not None:
                 raise RuntimeError("No eliminar resultados existentes.")
