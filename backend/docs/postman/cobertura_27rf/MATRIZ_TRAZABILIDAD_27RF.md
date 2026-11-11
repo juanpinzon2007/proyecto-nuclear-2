@@ -73,3 +73,8 @@ RF14 APROBADO para consulta de resultados válidos existentes, con política fun
 Selección final27RF:evidencias/rf14_fase7_20261110/seleccion_final/,560HTTP/2134aserciones;17 APROBADOS y10 BLOQUEADOS. Solo RF14 cambia de estado. RF13 continúa BLOQUEADO y no se cambian inicio/repetición/RF04/DTO. Los antecedentes16/11 son históricos. El primer RF14Newman falló por redeclaración JS; se conserva y se sustituye por la nueva ejecución sin cambiar HTTP esperados.
 
 Criterios y límites:backend/docs/RF14_CIERRE_CONTROLADO_20261110.md; contrato para Angular:backend/docs/RF14_CONTRATO_ANGULAR.md. MAIN no equivale a despliegue permanente; fixtures académicas son LAB, no aprobación de consentimiento ni de fórmulas fuera de alcance. Sin prueba de navegador.
+
+
+## Fase9 — RF24, 10/11/2026
+
+RF24 mantiene BLOQUEADO; sus18HTTP/62aserciones ahora remiten a `evidencias/rf24_fase9_20261110/newman_rf24/resultado.json`. Focal116 y relacionada180 aprobadas (no sumar). Regresión nueva de17RF acreditados:314HTTP/1145pm.test, cero fallos; sus estados y las filas de los otros26RF no cambian. Los otros nueve bloqueados no fueron reejecutados. El total17APROBADOS/10BLOQUEADOS permanece. Véase `backend/docs/RF24_CIERRE_CONTROLADO_20261110.md` para fuente original, criterios, dependencias de RF13 y alternativas RF20/21. No hay nueva general ni código productivo.

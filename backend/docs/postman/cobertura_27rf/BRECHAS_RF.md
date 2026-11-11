@@ -55,3 +55,8 @@ RF14 APROBADO para consulta de resultados válidos existentes, con política fun
 Selección final27RF:evidencias/rf14_fase7_20261110/seleccion_final/,560HTTP/2134aserciones;17 APROBADOS y10 BLOQUEADOS. Solo RF14 cambia de estado. RF13 continúa BLOQUEADO y no se cambian inicio/repetición/RF04/DTO. Los antecedentes16/11 son históricos. El primer RF14Newman falló por redeclaración JS; se conserva y se sustituye por la nueva ejecución sin cambiar HTTP esperados.
 
 Criterios y límites:backend/docs/RF14_CIERRE_CONTROLADO_20261110.md; contrato para Angular:backend/docs/RF14_CONTRATO_ANGULAR.md. MAIN no equivale a despliegue permanente; fixtures académicas son LAB, no aprobación de consentimiento ni de fórmulas fuera de alcance. Sin prueba de navegador.
+
+
+## RF24 Fase9 — bloqueo preciso y alternativas
+
+Parcial vencido, persistencia, autorización y ausencia confirmada/rectificada pasan la ejecución nueva sobre main/PG17; no se cambia su estado integral. Falta conciliar UC05 con el disparador docente y delimitar las rúbricas académicamente evaluables fuera de PREGUNTAS_100_V1. El cierre voluntario v2 conserva procedencia de propuesta técnica. No basta una ausencia0.00 o un503 para declarar APROBADO. Informe: `backend/docs/RF24_CIERRE_CONTROLADO_20261110.md`. RF20/RF21 evaluados como alternativas: hash y avisos internos existen, pero falta entrega externa segura del código y contrato/proveedor/remitente/URL de correo; no se declaran libres de dependencias.

@@ -120,3 +120,8 @@ No se afirma asociación integral: rf_sesion se crea por HTTP, pero las convocat
 Selección:evidencias/rf14_fase7_20261110/seleccion_final/.560 solicitudes/2134 aserciones,17 APROBADOS/10 BLOQUEADOS. Las cifras de Fases3/4 anteriores son históricas. RF14:19/68, incluye aciertos/explicaciones históricos, recarga idéntica y rechazos; el fallo inicial de sintaxis se conserva sin contar como aprobación ni sumarlo al definitivo. No se alteraron requests/scripts de los otros26RF.
 
 Backend:solo academic_cycle.py traduce resultado ausente a404; no calcula ni publica desde GET. General nueva2538/38,cero fallos/errores;13 focales y180 relacionadas, sin sumar. Guía y capturas:backend/docs/RF14_CONTRATO_ANGULAR.md y RF14_CIERRE_CONTROLADO_20261110.md. No se verificó Angular en navegador ni Postman Desktop.
+
+
+## Complemento nuevo RF24 Fase9
+
+Se repitieron RF24 (18HTTP/62pm.test) y las17carpetas ya acreditadas (314HTTP/1145pm.test), sin fallos técnicos. No es una nueva ejecución de las27carpetas ni una general. RF24 sigue BLOQUEADO; total17APROBADOS/10BLOQUEADOS. La fila RF24 y su evidencia CSV se actualizaron; las demás filas conservan su selección histórica. Resultados actuales y preparación LAB: `backend/docs/RF24_CIERRE_CONTROLADO_20261110.md` y `evidencias/rf24_fase9_20261110/RESUMEN_EJECUCION.json`.

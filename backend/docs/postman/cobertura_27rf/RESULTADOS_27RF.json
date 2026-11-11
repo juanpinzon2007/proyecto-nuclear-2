@@ -1224,10 +1224,10 @@
       "rf": "RF-24",
       "nombre": "Evaluar incompletos y ausencias",
       "estado": "BLOQUEADO",
-      "bloqueo": "Ausencia explícita y parcial técnicos demostrables; políticas propuestas no se presentan como aprobación institucional ni ausencia inferida.",
+      "bloqueo": "Alcance de rúbricas válidas y disparador UC05 pendientes con RF13; voluntario incompleto v2 conserva procedencia de propuesta del equipo. Parcial y ausencia técnicos verificados.",
       "http": 18,
       "aserciones": 62,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-24/resultado.json",
+      "evidencia": "evidencias/rf24_fase9_20261110/newman_rf24/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_explicita_idempotente_y_lectura_privada",
@@ -1655,5 +1655,19 @@
       "nota": "Ejecución nueva completa en cuatro particiones disjuntas. Sin sustitución de casos ni reutilización de la resultados historicos. No sumar focal/relacionada/Newman."
     },
     "seleccion": "Solo RF14 sustituido tras error de sintaxis JS; conservar fallo original, no sumar ambas ejecuciones."
+  },
+  "complemento_rf24": {
+    "fase": 9,
+    "informe": "backend/docs/RF24_CIERRE_CONTROLADO_20261110.md",
+    "evidencia": "evidencias/rf24_fase9_20261110/RESUMEN_EJECUCION.json",
+    "estado": "BLOQUEADO",
+    "focal": 116,
+    "relacionada": 180,
+    "rf24_http": 18,
+    "rf24_aserciones": 62,
+    "regresion_17_http": 314,
+    "regresion_17_aserciones": 1145,
+    "nueva_general": false,
+    "nota": "Las cifras globales previas son selección histórica; este complemento es nuevo y no se suma a esas suites."
   }
 }
