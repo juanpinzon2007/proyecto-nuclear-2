@@ -60,3 +60,8 @@ Criterios y límites:backend/docs/RF14_CIERRE_CONTROLADO_20261110.md; contrato p
 ## RF24 Fase9 — bloqueo preciso y alternativas
 
 Parcial vencido, persistencia, autorización y ausencia confirmada/rectificada pasan la ejecución nueva sobre main/PG17; no se cambia su estado integral. Falta conciliar UC05 con el disparador docente y delimitar las rúbricas académicamente evaluables fuera de PREGUNTAS_100_V1. El cierre voluntario v2 conserva procedencia de propuesta técnica. No basta una ausencia0.00 o un503 para declarar APROBADO. Informe: `backend/docs/RF24_CIERRE_CONTROLADO_20261110.md`. RF20/RF21 evaluados como alternativas: hash y avisos internos existen, pero falta entrega externa segura del código y contrato/proveedor/remitente/URL de correo; no se declaran libres de dependencias.
+
+
+## Fase10 — RF20/RF21
+
+RF20 genera y valida la credencial, pero devolverla al docente no demuestra notificarla al estudiante. RF21 tiene avisos INTERNA, no emisor. Faltan canal/proveedor/remitente/URL y contrato durable del material secreto, retiro/reintento/ACK. Se recomienda revisar extensión de notificacion con payload cifrado, sin implementarla ni almacenar códigos en claro. No confundir una sola exposición en alta con credencial de un solo uso. Decisiones y alternativas: `backend/docs/RF20_RF21_ENTREGA_SEGURA_20261110.md`.

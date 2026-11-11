@@ -78,3 +78,8 @@ Criterios y límites:backend/docs/RF14_CIERRE_CONTROLADO_20261110.md; contrato p
 ## Fase9 — RF24, 10/11/2026
 
 RF24 mantiene BLOQUEADO; sus18HTTP/62aserciones ahora remiten a `evidencias/rf24_fase9_20261110/newman_rf24/resultado.json`. Focal116 y relacionada180 aprobadas (no sumar). Regresión nueva de17RF acreditados:314HTTP/1145pm.test, cero fallos; sus estados y las filas de los otros26RF no cambian. Los otros nueve bloqueados no fueron reejecutados. El total17APROBADOS/10BLOQUEADOS permanece. Véase `backend/docs/RF24_CIERRE_CONTROLADO_20261110.md` para fuente original, criterios, dependencias de RF13 y alternativas RF20/21. No hay nueva general ni código productivo.
+
+
+## Fase10 — RF20/RF21
+
+RF20/RF21 mantienen BLOQUEADO; cada uno16HTTP/53pm.test nuevos sin fallos, evidencia actualizada en sus fichas y CSV. No se modifican las otras25filas ni estados. Focal25 y relacionada74 aprobadas; no se acredita correo, reintento de transporte o entrega. Contrato: `backend/docs/RF20_RF21_ENTREGA_SEGURA_20261110.md`. Total17APROBADOS/10BLOQUEADOS sin cambios.

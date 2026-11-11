@@ -125,3 +125,8 @@ Backend:solo academic_cycle.py traduce resultado ausente a404; no calcula ni pub
 ## Complemento nuevo RF24 Fase9
 
 Se repitieron RF24 (18HTTP/62pm.test) y las17carpetas ya acreditadas (314HTTP/1145pm.test), sin fallos técnicos. No es una nueva ejecución de las27carpetas ni una general. RF24 sigue BLOQUEADO; total17APROBADOS/10BLOQUEADOS. La fila RF24 y su evidencia CSV se actualizaron; las demás filas conservan su selección histórica. Resultados actuales y preparación LAB: `backend/docs/RF24_CIERRE_CONTROLADO_20261110.md` y `evidencias/rf24_fase9_20261110/RESUMEN_EJECUCION.json`.
+
+
+## Fase10 — RF20/RF21
+
+RF20 yRF21 fueron reejecutados:16HTTP/53pm.test cada uno, sin fallos técnicos; ambos siguen BLOQUEADOS. No se ejecutó correo real ni un capturador sin emisor. Los otros25RF conservan sus estados/evidencias. Regresión17 de Fase9 y general2538/38 históricas, no reejecutadas. El checkpoint documental RF24 es578f86385c9118813f0c1a51104e00be5927be29. Véase `backend/docs/RF20_RF21_ENTREGA_SEGURA_20261110.md`.

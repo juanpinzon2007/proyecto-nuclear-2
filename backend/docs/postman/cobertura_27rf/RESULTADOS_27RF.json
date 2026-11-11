@@ -1007,7 +1007,7 @@
       "bloqueo": "Código de una sola entrega y hash sí; falta entrega externa segura al estudiante. Una notificación interna no es correo.",
       "http": 16,
       "aserciones": 53,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-20/resultado.json",
+      "evidencia": "evidencias/rf20_rf21_fase10_20261110/newman_RF-20/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_convocation_management_http.py::test_altas_individuales_y_avisos_personalizados_sin_correo_ni_codigos_persistidos",
@@ -1054,7 +1054,7 @@
       "bloqueo": "No existe proveedor/remitente/URL institucional y recuperación del código para envío seguro. No se inventa SMTP ni se considera enviado un correo.",
       "http": 16,
       "aserciones": 53,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-21/resultado.json",
+      "evidencia": "evidencias/rf20_rf21_fase10_20261110/newman_RF-21/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_convocation_management_http.py::test_altas_individuales_y_avisos_personalizados_sin_correo_ni_codigos_persistidos",
@@ -1669,5 +1669,21 @@
     "regresion_17_aserciones": 1145,
     "nueva_general": false,
     "nota": "Las cifras globales previas son selección histórica; este complemento es nuevo y no se suma a esas suites."
+  },
+  "complemento_rf20_rf21": {
+    "fase": 10,
+    "informe": "backend/docs/RF20_RF21_ENTREGA_SEGURA_20261110.md",
+    "checkpoint_rf24": "578f86385c9118813f0c1a51104e00be5927be29",
+    "evidencia": "evidencias/rf20_rf21_fase10_20261110/RESUMEN_EJECUCION.json",
+    "rf20_http": 16,
+    "rf20_aserciones": 53,
+    "rf21_http": 16,
+    "rf21_aserciones": 53,
+    "focal": 25,
+    "relacionada": 74,
+    "nuevo_codigo_productivo": false,
+    "nuevo_envio_correo": false,
+    "nueva_regresion_general": false,
+    "nota": "RF20 yRF21 BLOQUEADOS; pruebas aprobadas de código/avisos internos no equivalen a entrega externa. Otros25RF sin reclasificación."
   }
 }
