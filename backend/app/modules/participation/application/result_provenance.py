@@ -64,9 +64,21 @@ MOTOR_V1_COMPATIBLE = "00571eb465608fa91d158aa399882d744846c2ff4cf8f34f1cfaf9d87
 # anteriores de calcular y las estrategias se conservan byte a byte.
 MOTOR_V2_COMPATIBLE = "c3dcc7853b0db8809650707503e18abb3f4b955c8c14d756bfbd2ac9a00c2582"
 
+# Dos capturas verificadas del motor PREGUNTAS_100_V1. Las fuentes difieren
+# únicamente en cadenas explicativas de Strategy. Se aceptan sus documentos
+# exactos, conservando la fuente y el hash que acompañan a cada resultado.
+MOTORES_PREGUNTAS_COMPATIBLES = frozenset({
+    "88f16a1abdebbbe3367c40a13ce3255f10a7bdd6872d3df20ce487777c872960",
+    "38bbef396cb982fa6d32ab3f0620c9765a7fc32ab8ec4866d1668b842a706d08",
+})
+
+
+def motor_preguntas_compatible(motor):
+    return motor == fuentes_motor() or huella(canonico(motor)) in MOTORES_PREGUNTAS_COMPATIBLES
+
 
 def motor_compatible(motor, formula):
-    return motor==fuentes_motor() or (huella(canonico(motor))==MOTOR_V1_COMPATIBLE
+    return motor_preguntas_compatible(motor) or (huella(canonico(motor))==MOTOR_V1_COMPATIBLE
         and formula==FormulaCalculo.SUMA_PONDERADA_PORCENTUAL.value) or (
         huella(canonico(motor))==MOTOR_V2_COMPATIBLE and formula in (
             FormulaCalculo.SUMA_PONDERADA_PORCENTUAL.value, FormulaCalculo.PROMEDIO_IGUALITARIO_100.value))

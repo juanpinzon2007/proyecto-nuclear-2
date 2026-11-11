@@ -13,7 +13,6 @@ from app.modules.participation.infrastructure.individual_feedback import AmbitoF
 from app.modules.participation.infrastructure.result_models import ResultadoIntentoModel as R
 from app.modules.participation.infrastructure.result_repository import RepositorioResultadosTecnicosSQLAlchemy
 from app.modules.participation.infrastructure.question_result_repository import DetallesPreguntasSQLAlchemy
-from app.modules.participation.infrastructure.question_evaluation import preparar_calculo_historico
 from app.modules.cases.infrastructure.scoring import consultar_configuracion_preguntas
 from app.modules.cases.application.graph import GrafoNoDisponible
 from app.modules.cases.infrastructure.models import CasoModel as C, VersionCasoModel as V
@@ -71,6 +70,7 @@ class EvaluadorTecnicoDocente:
                 return
             historico=_evidencias(a,intento)
             config=consultar_configuracion_preguntas(s,version_id=historico.rubrica.version_id)
-            datos=preparar_calculo_historico(historico,config)
-            DetallesPreguntasSQLAlchemy(repo).guardar(datos,self.reloj.ahora())
+            detalles = DetallesPreguntasSQLAlchemy(repo)
+            datos=detalles.preparar(historico,config)
+            detalles.guardar(datos,self.reloj.ahora())
             t.commit()

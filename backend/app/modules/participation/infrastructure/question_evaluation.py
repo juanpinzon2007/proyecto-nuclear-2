@@ -9,7 +9,7 @@ import hashlib
 import inspect
 
 from app.modules.cases.infrastructure.scoring import consultar_configuracion_preguntas
-from app.modules.participation.application.result_provenance import canonico, fuentes_motor
+from app.modules.participation.application.result_provenance import canonico, fuentes_motor, motor_preguntas_compatible
 from app.modules.participation.application.evaluation_service import seleccionar_estrategia
 from app.modules.participation.domain.calculador_rubrica import CalculadorRubrica
 from app.modules.participation.domain.entities import EstadoIntento
@@ -47,8 +47,11 @@ def calcular_intento_por_preguntas(*, usuario, id_intento, fechas, crear_sesion)
         return preparar_calculo_historico(historico,config)
 
 
-def preparar_calculo_historico(historico,config):
+def preparar_calculo_historico(historico,config, *, motor_historico=None):
     """Mismo cálculo para preview, escritor y verificador; no autoriza actores."""
+    motor = fuentes_motor() if motor_historico is None else motor_historico
+    if not motor_preguntas_compatible(motor):
+        raise EvaluacionInconsistente('El motor histórico no tiene una implementación compatible registrada.')
     intento, rubrica = historico.intento, historico.rubrica
     # El llamador adjunta la configuración leída en SU transacción.
     selecciones = tuple((p.id_decision, p.id_opcion) for p in intento.pasos)
@@ -61,7 +64,7 @@ def preparar_calculo_historico(historico,config):
         modalidad, ruta.decisiones, intento))
     nota = CalculadorRubrica().calcular_preguntas(puntajes=puntos, total_exigidas=total)
     definicion = dict(id='PREGUNTAS_100_V1',version='1',formula='suma_puntajes/total_ruta',
-        redondeo='ROUND_HALF_UP',decimales=2,motor=fuentes_motor(),
+        redondeo='ROUND_HALF_UP',decimales=2,motor=motor,
         validador=inspect.getsource(type(config)),contabilidad=inspect.getsource(detalle_exacto))
     if voluntario_incompleto:
         # Otra versión de política: no cambia la huella de los resultados v1.
@@ -71,7 +74,7 @@ def preparar_calculo_historico(historico,config):
     documento = canonico(dict(formato='preguntas-100-v1',configuracion=config,intento=intento,
         rubrica=rubrica,denominador=total,puntajes=puntos,nota_final=nota,
         formula='suma_puntajes/total_ruta',redondeo='ROUND_HALF_UP',decimales=2,
-        motor=fuentes_motor(),validador=inspect.getsource(type(config)),
+        motor=motor,validador=inspect.getsource(type(config)),
         configuracion_documento=canonico(config),politica_documento=politica,
         exacto=detalle_exacto(config,selecciones)))
     return CalificacionTecnicaPreguntas(intento.id_intento, modalidad,total,len(puntos),total-len(puntos),nota,

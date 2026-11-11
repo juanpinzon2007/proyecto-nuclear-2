@@ -4,8 +4,9 @@ from decimal import Decimal
 from uuid import UUID
 import json
 
-from sqlalchemy import select
-from app.modules.participation.application.result_provenance import huella
+from sqlalchemy import select, text, cast
+from sqlalchemy.dialects.postgresql import JSONB
+from app.modules.participation.application.result_provenance import huella, canonico
 from app.modules.participation.application.errors import ConflictoActualizacion
 from app.modules.participation.domain.evaluation import EvaluacionInconsistente
 from app.modules.participation.infrastructure.result_models import ResultadoIntentoModel as R
@@ -20,7 +21,7 @@ class DetallesPreguntasSQLAlchemy:
         self.base=repositorio
         self.s= repositorio.sesion
 
-    def reproducir(self,id_intento):
+    def reproducir(self,id_intento, *, motor_historico=None):
         from app.modules.participation.infrastructure.repository import RepositorioParticipacionSQLAlchemy
         from app.modules.participation.infrastructure.evaluation import _evidencias
         from app.modules.participation.infrastructure.question_evaluation import preparar_calculo_historico
@@ -29,13 +30,46 @@ class DetallesPreguntasSQLAlchemy:
         intento=lector.obtener_intento(id_intento)
         historico=_evidencias(self.base.alcance,intento)
         config=consultar_configuracion_preguntas(self.s,version_id=historico.rubrica.version_id)
-        return preparar_calculo_historico(historico,config)
+        return preparar_calculo_historico(historico,config,motor_historico=motor_historico)
+
+    def preparar(self, historico, config):
+        """El escritor conserva la definición inmutable elegida por la primera UoW."""
+        from app.modules.participation.infrastructure.question_evaluation import preparar_calculo_historico
+
+        self.base._tecnico()
+        datos = preparar_calculo_historico(historico, config)
+        documento = json.loads(datos.procedencia)
+        politica = json.loads(documento['politica_documento'])
+        clave = politica['id'] + ':' + politica['version']
+        # Misma exclusión que fp8_cabecera. La selección y el INSERT pertenecen
+        # a la UoW del llamador, por lo que un rollback libera la elección.
+        self.s.execute(text('SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))'), {'clave': clave})
+        anterior = self.s.execute(select(
+            cast(R.procedencia, JSONB)['politica_documento'].astext,
+            R.politica_hash,
+        ).where(R.politica_id == politica['id'], R.politica_version == politica['version']).limit(1)).one_or_none()
+        if anterior is None:
+            return datos
+        try:
+            definicion = json.loads(anterior[0])
+            if canonico(definicion) != anterior[0] or huella(anterior[0]) != anterior[1]:
+                raise EvaluacionInconsistente('Definición histórica de política incompatible.')
+            historicos = preparar_calculo_historico(historico, config, motor_historico=definicion['motor'])
+        except (KeyError, TypeError, ValueError) as error:
+            raise EvaluacionInconsistente('Definición histórica de política incompleta.') from error
+        if json.loads(historicos.procedencia)['politica_documento'] != anterior[0]:
+            raise EvaluacionInconsistente('La definición versionada requiere otra implementación compatible.')
+        return historicos
 
     def guardar(self,datos,fecha_calculo):
         self.base._tecnico()
         if fecha_calculo.tzinfo is None or fecha_calculo.utcoffset() is None:
             raise EvaluacionInconsistente('Reloj con zona explícita requerido.')
-        if datos.id_intento!=self.base.alcance.id_intento or self.reproducir(datos.id_intento)!=datos:
+        try:
+            motor = json.loads(datos.procedencia)['motor']
+        except (KeyError, TypeError, ValueError) as error:
+            raise EvaluacionInconsistente('Procedencia histórica incompleta.') from error
+        if datos.id_intento!=self.base.alcance.id_intento or self.reproducir(datos.id_intento,motor_historico=motor)!=datos:
             raise EvaluacionInconsistente('El cálculo no coincide con las fuentes históricas.')
         anterior=self.s.execute(select(R.__table__).where(R.id_intento==datos.id_intento)).mappings().one_or_none()
         if anterior is not None:
@@ -66,7 +100,13 @@ class DetallesPreguntasSQLAlchemy:
 
     def leer(self,r):
         from app.modules.participation.infrastructure.result_repository import ResultadoTecnico
-        datos=self.reproducir(r['id_intento'])
+        if huella(r['procedencia']) != r['procedencia_sha256']:
+            raise EvaluacionInconsistente('Huella histórica incompatible.')
+        try:
+            motor = json.loads(r['procedencia'])['motor']
+        except (KeyError, TypeError, ValueError) as error:
+            raise EvaluacionInconsistente('Procedencia histórica incompleta.') from error
+        datos=self.reproducir(r['id_intento'],motor_historico=motor)
         if r['procedencia']!=datos.procedencia or r['procedencia_sha256']!=datos.sha256:
             raise EvaluacionInconsistente('Procedencia histórica modificada o motor no reproducible.')
         j=json.loads(datos.procedencia);f=j['rubrica'];e=j['exacto'];politica=json.loads(j['politica_documento']);rid=r['id_resultado']
