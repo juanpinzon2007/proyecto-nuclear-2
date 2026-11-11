@@ -45,6 +45,12 @@ def test_inicio_y_estado_explicitos(tmp_path):
     assert p.autorizar_vinculacion(SimpleNamespace(**c.__dict__))=="pendiente"
 
 
+def test_configuracion_opcional_vacia_no_activa_politicas():
+    from app.core.config import Settings
+    settings = Settings(_env_file=None, academic_runtime_scope='')
+    assert settings.academic_runtime_scope is None
+
+
 @pytest.mark.parametrize("cambios",[
     {"numero_intento":2}, {"estado_asignacion":"cancelada"},
     {"numero_intento":1,"id_permiso_extra":4,"cantidad_extra":1},

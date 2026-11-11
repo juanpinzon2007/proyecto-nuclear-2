@@ -82,6 +82,11 @@ def test_compose_pasa_zona_configurada_sin_predeterminarla():
     assert config['services']['api']['environment']['PARTICIPATION_TIMESTAMP_ZONE'] == 'America/Bogota'
     example = (ROOT / '.env.example').read_text(encoding='utf-8')
     assert re.search(r'^PARTICIPATION_TIMESTAMP_ZONE=$', example, re.MULTILINE)
+    env = config['services']['api']['environment']
+    for name in ('ACADEMIC_RUNTIME_SCOPE', 'IDENTITY_CONSENT_APPROVAL_MANIFEST',
+                 'IDENTITY_CONSENT_APPROVAL_SHA256', 'IDENTITY_CONSENT_APPROVAL_PUBLIC_KEY',
+                 'PARTICIPATION_START_POLICY_FILE', 'PARTICIPATION_START_POLICY_SHA256'):
+        assert name in env
 
 
 @pytest.fixture(scope='module')

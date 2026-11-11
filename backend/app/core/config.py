@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     scheduling_mail_encryption_key: SecretStr | None = None
     scheduling_mail_public_url: str | None = None
 
+    @field_validator('academic_runtime_scope', mode='before')
+    @classmethod
+    def ambito_academico_opcional(cls, value):
+        return None if value == '' else value
+
     @field_validator('scheduling_mail_port', mode='before')
     @classmethod
     def puerto_correo_opcional(cls, value):
