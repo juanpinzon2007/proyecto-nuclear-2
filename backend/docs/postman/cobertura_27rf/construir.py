@@ -190,10 +190,15 @@ def main():
   if n==3:referencias += [x for x in inventario['tests'] if '/test_global_teacher_permissions.py::' in x]
   if n==4:referencias += [x for x in inventario['tests'] if '/test_academic_assignment_programming.py::' in x or '/test_assignment_mail_composition.py::' in x]
   if n in (20,21):referencias += [x for x in inventario['tests'] if '/test_durable_mail.py::' in x or '/test_assignment_mail_composition.py::' in x]
+  if n==10:referencias += [x for x in inventario['tests'] if '/test_rf10_angular_journey.py::' in x]
+  if n in (10,12,13,23,24,25):referencias += [x for x in inventario['tests'] if x.endswith('::test_main_configurado_recorrido_inmutable_evaluacion_repeticion_y_ausencia')]
+  if n in (12,23):referencias += [x for x in inventario['tests'] if any('/'+file+'.py::' in x for file in ('test_main_configured_student_flow','test_main_consent_attestation','test_start_policy_file_main'))]
+  if n in (13,24):referencias += [x for x in inventario['tests'] if '/test_closed_attempt_recovery.py::' in x or x.endswith('::test_vencimiento_configurado_separa_lectura_cierre_y_calculo')]
+  if n==25:referencias += [x for x in inventario['tests'] if x.endswith('::test_permiso_nativo_main_archivo')]
   if n in (13,24):referencias += [x for x in inventario['tests'] if '/test_evaluation_provenance_compatibility.py::' in x]
   if n==4:referencias += [x for x in inventario['tests'] if '/test_authorized_academic_spaces.py::' in x]
   if n==14:referencias += [x for x in inventario['tests'] if '/test_rf14_student_results.py::' in x]
-  contratos.append(dict(rf=rf,nombre=NOMBRES[n-1],fuente=contrato,modo=modo,bloqueo=BLOQUEOS.get(n),aceptacion_externa=PENDIENTES_EXTERNOS.get(n),tests=referencias,casos=[dict(caso=it['name'].split(' | ')[0],nombre=it['name'],metodo=it['request']['method'],ruta=it['request']['url'],esperado=int(re.search(r'HTTP exacto (\d+)',str(it['event']))[1])) for it in items]))
+  contratos.append(dict(rf=rf,nombre=NOMBRES[n-1],fuente=contrato,modo=modo,bloqueo=BLOQUEOS.get(n),aceptacion_externa=PENDIENTES_EXTERNOS.get(n),tests=sorted(set(referencias)),casos=[dict(caso=it['name'].split(' | ')[0],nombre=it['name'],metodo=it['request']['method'],ruta=it['request']['url'],esperado=int(re.search(r'HTTP exacto (\d+)',str(it['event']))[1])) for it in items]))
  col=dict(info=dict(name='Proyecto Nuclear — cobertura verificable RF-01 a RF-27',schema='https://schema.getpostman.com/json/collection/v2.1.0/collection.json',description='27 carpetas no equivalen a 27 RF aprobados. Ejecutar cada carpeta con su laboratorio fresco; no Runner completo sobre una sola BD. Solo datos sintéticos, fuentes preservadas.'),item=folders)
  (OUT/'Proyecto_Nuclear_27RF.postman_collection.json').write_text(json.dumps(col,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');(OUT/'CONTRATOS_CASOS.json').write_text(json.dumps(contratos,ensure_ascii=False,indent=2),encoding='utf-8')
  env=cargar('Proyecto_Nuclear_entrega_20261109.postman_environment.json');env['name']='NUCLEAR 27RF — PLANTILLA SIN SECRETOS; usar preparador'

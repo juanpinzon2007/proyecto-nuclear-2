@@ -1,3 +1,11 @@
+# Resultado vigente V3 del 11 de noviembre
+
+27/27 RF con aceptación técnica del MVP. Newman ejecutó 576 solicitudes y 2190 aserciones, sin fallos. Pytest general aprobó 2682 y omitió 38, sin fallos ni errores. Las omisiones y los cortes anteriores se conservan.
+
+Consulte la matriz actual de dos ejes y ../../CIERRE_MVP_V3_20261111.md. El contenido oficial del consentimiento continúa pendiente. El preparador 27RF carga archivos efímeros LAB, utiliza las rutas de app.main y conserva los proveedores y relojes reales. La colección histórica de entrega mantiene su aplicación aislada original.
+
+Para la demostración vigente use preparar-27rf.ps1 con un RF por laboratorio y las variables que imprime su preparador. Las secciones siguientes son instrucciones y resultados históricos V2/Fase7. Su conteo y sus referencias a inicio aislado o correo anterior describen esos cortes.
+
 # Candidato integrado del 11 de noviembre
 
 21 RF APROBADOS y 6 BLOQUEADOS en el alcance de laboratorio. Nueva ejecución completa de Newman con 569 solicitudes y 2166 aserciones. Las secciones fechadas anteriores conservan sus resultados históricos. Véase ../../CANDIDATO_INTEGRADO_20261111.md para el contrato actual, las pruebas y las capturas.

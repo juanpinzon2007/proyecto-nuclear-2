@@ -1,6 +1,42 @@
+# Corte vigente V3 del 11 de noviembre de 2026
+
+Aceptación técnica del MVP acreditada en 27/27 RF sobre app.main y PostgreSQL17 de laboratorio. La aprobación académica o externa conserva el eje independiente siguiente. Código validado `44081b7499afcbbcdb0e33c0cdfe9fc7f297814f`.
+
+| RF | Implementación y aceptación técnica | Aceptación académica o externa | Evidencia |
+|---|---|---|---|
+| RF-01 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-01.md) |
+| RF-02 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-02.md) |
+| RF-03 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-03.md) |
+| RF-04 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-04.md) |
+| RF-05 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-05.md) |
+| RF-06 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-06.md) |
+| RF-07 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-07.md) |
+| RF-08 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-08.md) |
+| RF-09 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-09.md) |
+| RF-10 | APROBADO MVP | MVP confirmado por el equipo, una pregunta por escena, sin ciclos alcanzables. Conciliar el documento original con la inmutabilidad posterior. | [HTTP y SQL](postman/cobertura_27rf/RF-10.md) |
+| RF-11 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-11.md) |
+| RF-12 | APROBADO MVP | Documento institucional de consentimiento todavía sin aprobación verificable. Main solo se habilita con paquetes confiables del operador; el paquete sintético se limita a LABORATORIO. | [HTTP y SQL](postman/cobertura_27rf/RF-12.md) |
+| RF-13 | APROBADO MVP | Orden docente y recuperación confirmadas por el equipo. La fórmula del motor conserva su procedencia y requiere conciliación documental académica. | [HTTP y SQL](postman/cobertura_27rf/RF-13.md) |
+| RF-14 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-14.md) |
+| RF-15 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-15.md) |
+| RF-16 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-16.md) |
+| RF-17 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-17.md) |
+| RF-18 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-18.md) |
+| RF-19 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-19.md) |
+| RF-20 | APROBADO MVP | Proveedor institucional pendiente de configuración y verificación. | [HTTP y SQL](postman/cobertura_27rf/RF-20.md) |
+| RF-21 | APROBADO MVP | Proveedor institucional pendiente de configuración y verificación. | [HTTP y SQL](postman/cobertura_27rf/RF-21.md) |
+| RF-22 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-22.md) |
+| RF-23 | APROBADO MVP | Inicio técnico acreditado con configuración explícita LAB. La activación productiva requiere consentimiento institucional aprobado y configuración del operador. | [HTTP y SQL](postman/cobertura_27rf/RF-23.md) |
+| RF-24 | APROBADO MVP | Evaluación técnica por orden docente confirmada. No se atribuye a la profesora la política técnica del equipo. | [HTTP y SQL](postman/cobertura_27rf/RF-24.md) |
+| RF-25 | APROBADO MVP | MVP confirmado para el mismo caso y versión histórica, permiso individual de un uso. Vínculos entre casos distintos fuera de este alcance. Activación productiva condicionada al consentimiento institucional. | [HTTP y SQL](postman/cobertura_27rf/RF-25.md) |
+| RF-26 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-26.md) |
+| RF-27 | APROBADO MVP | Contrato vigente conservado, sin aprobación institucional nueva atribuida. | [HTTP y SQL](postman/cobertura_27rf/RF-27.md) |
+
+El detalle actual está en CIERRE_MVP_V3_20261111.md. Las secciones siguientes conservan los cortes históricos y sus evidencias.
+
 # Auditoría de cobertura y siguiente incremento — 5 de noviembre de 2026
 
-> Corte vigente 11/11, candidato acelerado. 21 IMPLEMENTADO, 6 PARCIAL y 0 BLOQUEADO en la matriz de implementación. Aceptación Postman 21 APROBADOS y 6 BLOQUEADOS en laboratorio. Véase CANDIDATO_INTEGRADO_20261111.md. Las secciones fechadas anteriores conservan resultados históricos, no nuevas ejecuciones.
+> Corte histórico V2 del 11/11, candidato acelerado. 21 IMPLEMENTADO, 6 PARCIAL y 0 BLOQUEADO en la matriz de implementación. Aceptación Postman 21 APROBADOS y 6 BLOQUEADOS en laboratorio. Véase CANDIDATO_INTEGRADO_20261111.md. Las secciones fechadas anteriores conservan resultados históricos, no nuevas ejecuciones.
 
 Repositorio original, rama `feature/backend-continuidad`, HEAD
 `ac92b7251c96f81ddcb6f390ef21435ab74b6131`, más cambios locales preservados.
