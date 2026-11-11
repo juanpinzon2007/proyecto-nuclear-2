@@ -8,17 +8,19 @@ from app.modules.identity.api.dependencies import obtener_estudiante_actual, obt
 from app.modules.identity.application.consent import PoliticaAprobacionConsentimiento
 from app.modules.identity.domain.entities import ContextoAcceso
 from app.modules.identity.domain.errors import IntegracionPendiente
+from app.modules.identity.infrastructure.consent_approval import PoliticaConsentimientoAtestado
 from app.modules.identity.infrastructure.consent_access import ConsentimientoEstudiantilSQLAlchemy
 from app.modules.participation.domain.clock import RelojSistema
 from app.modules.participation.infrastructure.codecs import FechasPersistencia
 
 
 def obtener_aprobacion_consentimiento() -> PoliticaAprobacionConsentimiento:
-    # No existe todavía evidencia institucional verificada ni proceso aprobado.
-    # Inyectar un proveedor requiere cerrar ese contrato, no cambiar un bool HTTP.
-    raise HTTPException(503, detail={"codigo": "APROBACION_CONSENTIMIENTO_PENDIENTE",
-        "mensaje": "No hay un proveedor autorizado de aprobación documental."},
-        headers={"Cache-Control": "no-store"})
+    try:
+        return PoliticaConsentimientoAtestado.desde_settings(get_settings())
+    except IntegracionPendiente:
+        raise HTTPException(503, detail={"codigo": "APROBACION_CONSENTIMIENTO_PENDIENTE",
+            "mensaje": "No hay un proveedor autorizado de aprobación documental."},
+            headers={"Cache-Control": "no-store"}) from None
 
 
 def obtener_fechas_consentimiento():

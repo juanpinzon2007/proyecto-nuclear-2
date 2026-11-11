@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -26,6 +27,12 @@ class Settings(BaseSettings):
     identity_institutional_domains: tuple[str, ...] = ()
     # Convención histórica verificada del despliegue; nunca inferir UTC/local.
     participation_timestamp_zone: str | None = None
+    academic_runtime_scope: Literal["PRODUCCION", "LABORATORIO"] | None = None
+    identity_consent_approval_manifest: Path | None = None
+    identity_consent_approval_sha256: str | None = None
+    identity_consent_approval_public_key: str | None = None
+    participation_start_policy_file: Path | None = None
+    participation_start_policy_sha256: str | None = None
     scheduling_mail_enabled: bool = False
     scheduling_mail_host: str | None = None
     scheduling_mail_port: int | None = Field(default=None, ge=1, le=65535)

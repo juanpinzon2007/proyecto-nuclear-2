@@ -16,6 +16,13 @@ class DocumentoConsentimiento:
     vigente: bool
     id_version_documento: int | None = None  # Solo procede del registro SQL verificado.
 
+    sha256_original: str | None = None
+    sha256_aprobacion: str | None = None
+    autoridad_aprobadora: str | None = None
+    aprobado_en: datetime | None = None
+    publicado_en: datetime | None = None
+    vigente_desde: datetime | None = None
+
     def __post_init__(self):
         if (not all(type(v) is str and v.strip() for v in
                     (self.referencia,self.documento_id,self.version,self.texto))
