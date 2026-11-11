@@ -1,3 +1,7 @@
+# Candidato integrado del 11 de noviembre
+
+21 RF APROBADOS y 6 BLOQUEADOS en el alcance de laboratorio. Nueva ejecución completa de Newman con 569 solicitudes y 2166 aserciones. Las secciones fechadas anteriores conservan sus resultados históricos. Véase ../../CANDIDATO_INTEGRADO_20261111.md para el contrato actual, las pruebas y las capturas.
+
 # Cobertura verificable de los 27 RF — Postman
 
 Resultado de la selección final Fase7: **17 RF APROBADOS integralmente, 10 BLOQUEADOS, 0 FALLIDOS y 0 NO EJECUTADOS** en el alcance funcional documentado de laboratorio. Los bloqueados tienen capacidades parciales ejecutadas; no equivalen a requisitos completos. Consulte [la matriz](MATRIZ_TRAZABILIDAD_27RF.md), [las brechas](BRECHAS_RF.md) y [los resultados JSON](RESULTADOS_27RF.json).

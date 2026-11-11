@@ -1,14 +1,14 @@
 {
-  "head_base": "48b0bfb61839684e5b3e9fbfdfc88b0bcd204972",
-  "rama": "codex/participation-inicio-main-20261109",
+  "head_base": "b30f98dc6d792c4ff4c287ee95e3643d70e79da2",
+  "rama": "codex/acelerado-candidato-20261110",
   "conteos": {
-    "APROBADO": 17,
+    "APROBADO": 21,
     "FALLIDO": 0,
-    "BLOQUEADO": 10,
+    "BLOQUEADO": 6,
     "NO EJECUTADO": 0
   },
-  "http": 560,
-  "aserciones_pm_test": 2134,
+  "http": 569,
+  "aserciones_pm_test": 2166,
   "aserciones_fallidas": 0,
   "rf": [
     {
@@ -18,7 +18,7 @@
       "bloqueo": null,
       "http": 6,
       "aserciones": 18,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-01/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-01/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/identity/test_student_login_scheduling.py::test_flujo_login_autorizado_jwt_y_notificaciones_reales",
@@ -97,7 +97,7 @@
       "bloqueo": null,
       "http": 15,
       "aserciones": 49,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-02/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-02/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_main_staff_login.py::test_admin_ingresa_crea_docente_con_hash_y_docente_ingresa_sin_crear_vinculos",
@@ -140,11 +140,11 @@
     {
       "rf": "RF-03",
       "nombre": "Administrar docentes, roles y permisos",
-      "estado": "BLOQUEADO",
-      "bloqueo": "Alta, consulta y validación del perfil del catálogo están acreditadas. Falta precisar la configuración/asignación operativa de permisos globales por rol frente a excepciones individuales. Multirrol y DOCENTE ADMINISTRADOR no se presuponen requisitos expresos del RF original.",
-      "http": 17,
-      "aserciones": 54,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-03/resultado.json",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "http": 26,
+      "aserciones": 85,
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-03/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_admin_teacher_directory.py::test_listado_main_privado_paginado_sin_dml_hashes_ni_vinculos_academicos",
@@ -167,14 +167,6 @@
           "variantes": 1
         },
         {
-          "pytest": "tests/unit/identity/test_admin_write_authorization.py::test_servicio_revalida_antes_de_cualquier_mutacion",
-          "variantes": 8
-        },
-        {
-          "pytest": "tests/unit/identity/test_admin_write_authorization.py::test_adapter_sin_puerto_transaccional_falla_cerrado",
-          "variantes": 1
-        },
-        {
           "pytest": "tests/integration/test_admin_write_authorization.py::test_revocacion_confirmada_tras_proxy_impide_escritura",
           "variantes": 4
         },
@@ -189,17 +181,45 @@
         {
           "pytest": "tests/integration/test_admin_write_authorization.py::test_fallo_sql_despues_insert_revierte_alta_y_permite_reintento",
           "variantes": 1
+        },
+        {
+          "pytest": "tests/unit/identity/test_admin_write_authorization.py::test_servicio_revalida_antes_de_cualquier_mutacion",
+          "variantes": 8
+        },
+        {
+          "pytest": "tests/unit/identity/test_admin_write_authorization.py::test_adapter_sin_puerto_transaccional_falla_cerrado",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_global_teacher_permissions.py::test_perfil_global_revalida_tokens_existentes_y_persiste_entre_sesiones",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_global_teacher_permissions.py::test_rechazo_de_identidad_sin_escrituras",
+          "variantes": 5
+        },
+        {
+          "pytest": "tests/integration/test_global_teacher_permissions.py::test_contrato_rechaza_concesiones_individuales_o_catalogo_inexistente",
+          "variantes": 4
+        },
+        {
+          "pytest": "tests/integration/test_global_teacher_permissions.py::test_fallo_sql_revierte_retiro_y_permite_reintento",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_global_teacher_permissions.py::test_actualizaciones_concurrentes_serializan_el_perfil_sin_duplicados",
+          "variantes": 1
         }
       ]
     },
     {
       "rf": "RF-04",
       "nombre": "Asociar espacio académico y estudiantes",
-      "estado": "BLOQUEADO",
-      "bloqueo": "Asociaciones y grants explícitos requieren preparación administrativa; falta una API aprobada de vinculación docente/grupo/asignación. No se confunde agendar sesión con crear ese vínculo.",
-      "http": 16,
-      "aserciones": 53,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-04/resultado.json",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "http": 14,
+      "aserciones": 46,
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-04/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_session_programming_http.py::test_programacion_autorizada_persiste_datos_y_uuid_de_scheduling",
@@ -238,6 +258,58 @@
           "variantes": 1
         },
         {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_seleccion_exige_trio_completo_fechas_explicitas_y_estudiantes_unicos",
+          "variantes": 7
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_limite_explicito_admite_fronteras_del_horario_sin_inventar_tolerancias",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_crea_sesion_asignacion_y_convocatorias_misma_transaccion_sin_admision",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_identidad_ajena_no_produce_asociaciones",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_seleccion_exige_relaciones_academicas_vigentes",
+          "variantes": 6
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_fallo_sql_revierte_sesion_asignacion_convocatorias_y_avisos",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_post_repetidos_crean_sesiones_independientes_sin_duplicar_su_seleccion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_seleccion_multiple_convoca_solo_estudiantes_del_grupo_elegido",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_revocacion_de_matricula_concurrente_impide_insertar",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_zona_obligatoria_ausente_no_deja_sesion_parcial",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_programador_revalida_cuenta_precargada_antes_de_cualquier_insert",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_assignment_mail_composition.py::test_programacion_asignacion_y_correo_comparten_commit_y_recuperacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_assignment_mail_composition.py::test_fallo_outbox_revierte_toda_la_programacion",
+          "variantes": 1
+        },
+        {
           "pytest": "tests/integration/test_authorized_academic_spaces.py::test_seleccion_solo_espacios_asignados_y_lectura_independiente",
           "variantes": 1
         },
@@ -266,7 +338,7 @@
       "bloqueo": null,
       "http": 15,
       "aserciones": 49,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-05/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-05/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_cases_graph_authoring.py::test_http_crear_configurar_publicar_y_consumir_misma_version",
@@ -305,7 +377,7 @@
       "bloqueo": null,
       "http": 15,
       "aserciones": 49,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-06/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-06/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_cases_graph_authoring.py::test_http_crear_configurar_publicar_y_consumir_misma_version",
@@ -344,7 +416,7 @@
       "bloqueo": null,
       "http": 15,
       "aserciones": 49,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-07/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-07/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_cases_graph_authoring.py::test_http_crear_configurar_publicar_y_consumir_misma_version",
@@ -383,7 +455,7 @@
       "bloqueo": null,
       "http": 15,
       "aserciones": 49,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-08/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-08/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/cases/test_publish_endpoint.py::test_crear_borrador_completo_persiste_jerarquia_en_borrador",
@@ -438,7 +510,7 @@
       "bloqueo": null,
       "http": 16,
       "aserciones": 53,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-09/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-09/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/cases/test_lifecycle_endpoints.py::test_listar_devuelve_solo_casos_del_docente",
@@ -505,7 +577,7 @@
       "bloqueo": "El PDF RF-10/RN-10/11 permite modificar; la profesora aclaró después respuestas inmutables. Se prueba la inmutabilidad vigente ya confirmada; faltan conciliar el documento y definir recorridos con varias preguntas/ciclos/revisitas, no reabrir PUT.",
       "http": 32,
       "aserciones": 141,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-10/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-10/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_immutable_answers.py::test_segunda_respuesta_incluso_identica_no_reemplaza",
@@ -548,7 +620,7 @@
       "bloqueo": null,
       "http": 32,
       "aserciones": 141,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-11/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-11/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_main_progress.py::test_progreso_efectivo_repetido_sin_dml_flush_commit",
@@ -571,7 +643,7 @@
       "bloqueo": "Composición main condicionada presente; faltan documento institucional aprobado y políticas productivas definitivas de provisión/inicio. El recorrido positivo con puertos LAB no acredita disponibilidad productiva ni feedback por pregunta completo.",
       "http": 32,
       "aserciones": 141,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-12/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-12/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_lab_student_journey.py::test_recorrido_integral_administrador_docente_estudiante_main_y_aislada",
@@ -614,7 +686,7 @@
       "bloqueo": "Motor y persistencia técnicos acreditables; no se atribuye aprobación institucional a política del equipo ni se declara cobertura de todo grafo no soportado.",
       "http": 32,
       "aserciones": 141,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-13/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-13/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_question_result_storage.py::test_escribir_leer_otra_session_ramas_y_cero",
@@ -691,6 +763,30 @@
         {
           "pytest": "tests/integration/test_question_result_storage.py::test_main_jwt_real_reconoce_resultado_sin_filtrar_nota",
           "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_snapshots_fijos_solo_difieren_en_anotaciones",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_resultado_legacy_leido_desde_otro_runtime_preserva_documento",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_resultado_preguntas_cruzado_preserva_tercios_historia_y_replay",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_documento_ajeno_o_calculo_alterado_rechazado_sin_reescribir",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_primeras_escrituras_concurrentes_eligen_una_definicion_inmutable",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_rollback_no_fija_definicion_y_reintento_reutiliza_la_confirmada",
+          "variantes": 1
         }
       ]
     },
@@ -701,7 +797,7 @@
       "bloqueo": null,
       "http": 19,
       "aserciones": 68,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_rf14_final/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-14/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_explicita_idempotente_y_lectura_privada",
@@ -780,6 +876,10 @@
           "variantes": 6
         },
         {
+          "pytest": "tests/integration/test_rf14_student_results.py::test_guard_impide_ambiguedad_de_identidad_historica_sin_debilitar_lectura",
+          "variantes": 1
+        },
+        {
           "pytest": "tests/integration/test_rf14_student_results.py::test_cerrado_sin_calculo_pendiente_404_sin_generar_resultado",
           "variantes": 1
         },
@@ -796,7 +896,7 @@
       "bloqueo": null,
       "http": 42,
       "aserciones": 174,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-15/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-15/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_main_teacher_followup.py::test_recorrido_principal_historico_sin_dml_flush_commit",
@@ -823,7 +923,7 @@
       "bloqueo": null,
       "http": 15,
       "aserciones": 52,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-16/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-16/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_official_reports_http.py::test_exportacion_publicacion_real_solo_lectura_y_sesion_independiente",
@@ -894,7 +994,7 @@
       "bloqueo": null,
       "http": 15,
       "aserciones": 49,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-17/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-17/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_cases_graph_authoring.py::test_http_crear_configurar_publicar_y_consumir_misma_version",
@@ -933,7 +1033,7 @@
       "bloqueo": null,
       "http": 12,
       "aserciones": 39,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-18/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-18/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_session_programming_http.py::test_programacion_autorizada_persiste_datos_y_uuid_de_scheduling",
@@ -980,7 +1080,7 @@
       "bloqueo": null,
       "http": 17,
       "aserciones": 54,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-19/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-19/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_worker_process.py::test_cli_real_cierra_y_segunda_ejecucion_no_duplica",
@@ -1003,11 +1103,11 @@
     {
       "rf": "RF-20",
       "nombre": "Asignar y validar código de autorización",
-      "estado": "BLOQUEADO",
-      "bloqueo": "Código de una sola entrega y hash sí; falta entrega externa segura al estudiante. Una notificación interna no es correo.",
-      "http": 16,
-      "aserciones": 53,
-      "evidencia": "evidencias/rf20_rf21_fase10_20261110/newman_RF-20/resultado.json",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "http": 17,
+      "aserciones": 57,
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-20/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_convocation_management_http.py::test_altas_individuales_y_avisos_personalizados_sin_correo_ni_codigos_persistidos",
@@ -1044,17 +1144,73 @@
         {
           "pytest": "tests/integration/test_convocation_management_http.py::test_alta_no_reabre_ingreso_en_sesion_iniciada_o_finalizada",
           "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_assignment_mail_composition.py::test_programacion_asignacion_y_correo_comparten_commit_y_recuperacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_assignment_mail_composition.py::test_fallo_outbox_revierte_toda_la_programacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_main_crea_cifrado_durable_y_worker_smtp_recupera_otra_session",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_fallo_smtp_despues_commit_reintenta_sin_recrear_convocatoria",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_reintentos_concurrentes_un_solo_envio_aceptado",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_retiro_cancela_credencial_pendiente_y_envia_aviso_de_retiro",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_configuracion_incompleta_o_insegura_rechaza_antes_commit",
+          "variantes": 4
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_fallo_sql_de_outbox_revierte_convocatoria_y_aviso",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_payload_cambiado_no_se_entrega",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_despacho_revalida_credencial_y_destinatario",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_puerto_vacio_equivale_a_ausente_sin_inferir_default",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_main_no_encola_sin_autorizacion_persistente",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_migracion_upgrade_downgrade_y_fk_sin_reescribir_historia",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_downgrade_con_historia_rechaza_perdida",
+          "variantes": 1
         }
       ]
     },
     {
       "rf": "RF-21",
       "nombre": "Notificar convocatoria y cambios",
-      "estado": "BLOQUEADO",
-      "bloqueo": "No existe proveedor/remitente/URL institucional y recuperación del código para envío seguro. No se inventa SMTP ni se considera enviado un correo.",
-      "http": 16,
-      "aserciones": 53,
-      "evidencia": "evidencias/rf20_rf21_fase10_20261110/newman_RF-21/resultado.json",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "http": 17,
+      "aserciones": 57,
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-21/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_convocation_management_http.py::test_altas_individuales_y_avisos_personalizados_sin_correo_ni_codigos_persistidos",
@@ -1091,6 +1247,62 @@
         {
           "pytest": "tests/integration/test_convocation_management_http.py::test_alta_no_reabre_ingreso_en_sesion_iniciada_o_finalizada",
           "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_assignment_mail_composition.py::test_programacion_asignacion_y_correo_comparten_commit_y_recuperacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_assignment_mail_composition.py::test_fallo_outbox_revierte_toda_la_programacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_main_crea_cifrado_durable_y_worker_smtp_recupera_otra_session",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_fallo_smtp_despues_commit_reintenta_sin_recrear_convocatoria",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_reintentos_concurrentes_un_solo_envio_aceptado",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_retiro_cancela_credencial_pendiente_y_envia_aviso_de_retiro",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_configuracion_incompleta_o_insegura_rechaza_antes_commit",
+          "variantes": 4
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_fallo_sql_de_outbox_revierte_convocatoria_y_aviso",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_payload_cambiado_no_se_entrega",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_despacho_revalida_credencial_y_destinatario",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_puerto_vacio_equivale_a_ausente_sin_inferir_default",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_main_no_encola_sin_autorizacion_persistente",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_migracion_upgrade_downgrade_y_fk_sin_reescribir_historia",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_downgrade_con_historia_rechaza_perdida",
+          "variantes": 1
         }
       ]
     },
@@ -1101,7 +1313,7 @@
       "bloqueo": null,
       "http": 6,
       "aserciones": 18,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-22/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-22/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_waiting_admission.py::test_espera_idempotente_admision_y_validacion_sin_escritura",
@@ -1188,7 +1400,7 @@
       "bloqueo": "Contador y vencimiento de intentos existentes tienen pruebas; el inicio productivo que lo activa permanece cerrado. Se acredita recorrido LAB, no requisito integral productivo.",
       "http": 32,
       "aserciones": 141,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-23/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-23/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_main_finish.py::test_vertical_principal_escenario_progreso_respuestas_fin_sin_notas",
@@ -1224,10 +1436,10 @@
       "rf": "RF-24",
       "nombre": "Evaluar incompletos y ausencias",
       "estado": "BLOQUEADO",
-      "bloqueo": "Alcance de rúbricas válidas y disparador UC05 pendientes con RF13; voluntario incompleto v2 conserva procedencia de propuesta del equipo. Parcial y ausencia técnicos verificados.",
+      "bloqueo": "Ausencia explícita y parcial técnicos demostrables; políticas propuestas no se presentan como aprobación institucional ni ausencia inferida.",
       "http": 18,
       "aserciones": 62,
-      "evidencia": "evidencias/rf24_fase9_20261110/newman_rf24/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-24/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_explicita_idempotente_y_lectura_privada",
@@ -1292,6 +1504,30 @@
         {
           "pytest": "tests/integration/test_academic_cycle_http.py::test_repeticion_historica_sin_permiso_no_se_publica",
           "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_snapshots_fijos_solo_difieren_en_anotaciones",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_resultado_legacy_leido_desde_otro_runtime_preserva_documento",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_resultado_preguntas_cruzado_preserva_tercios_historia_y_replay",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_documento_ajeno_o_calculo_alterado_rechazado_sin_reescribir",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_primeras_escrituras_concurrentes_eligen_una_definicion_inmutable",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_rollback_no_fija_definicion_y_reintento_reutiliza_la_confirmada",
+          "variantes": 1
         }
       ]
     },
@@ -1302,7 +1538,7 @@
       "bloqueo": "Permiso individual de un uso disponible; consumo por inicio productivo y vinculación de caso distinto siguen pendientes.",
       "http": 35,
       "aserciones": 150,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-25/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-25/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_explicita_idempotente_y_lectura_privada",
@@ -1381,7 +1617,7 @@
       "bloqueo": null,
       "http": 38,
       "aserciones": 161,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-26/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-26/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_teacher_followup_http.py::test_docente_consulta_solo_su_ambito_con_intentos_y_referencias_exactas",
@@ -1432,7 +1668,7 @@
       "bloqueo": null,
       "http": 21,
       "aserciones": 73,
-      "evidencia": "evidencias/rf14_fase7_20261110/newman_27/RF-27/resultado.json",
+      "evidencia": "../acelerado_nuclear_20261110/candidato/newman_27_final/RF-27/resultado.json",
       "tests_ejecutados": [
         {
           "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_explicita_idempotente_y_lectura_privada",
@@ -1501,189 +1737,5 @@
       ]
     }
   ],
-  "nota": "Aceptación por RF independiente, reutilizando solo carpetas sin cambios funcionales. No se suman ciclos diagnósticos ni suites pytest solapadas.",
-  "complemento_rf10": {
-    "head": "84f05d55446acea22c2402f403156c200a927338",
-    "codigo": "HEAD más cambios locales RF10 verificados mediante SHA-256",
-    "http_main": 21,
-    "pm_test_main": 76,
-    "evidencia": "evidencias/rf10_contrato_20261109/newman_main_2/resultado.json",
-    "veredicto_integral": "BLOQUEADO",
-    "regresion_maestra_rf10": "evidencias/rf10_contrato_20261109/newman_maestra_rf10/resultado.json",
-    "nota": "32 HTTP / 141 pm.test de RF-10 repetidos. Los otros 26 RF conservan resultados históricos; no se afirma una nueva ejecución Postman completa de 545 requests."
-  },
-  "complemento_rf03": {
-    "evidencia": "evidencias/rf03_fase3_20261109/",
-    "nuevas_pruebas": 16,
-    "diagnostico_inicial": "4 fallidas reproducidas y luego corregidas, conservadas sin skip/xfail",
-    "focal": 109,
-    "relacionada": {
-      "aprobadas": 560,
-      "omitidas": 29
-    },
-    "general": {
-      "aprobadas": 2518,
-      "omitidas": 38,
-      "fallos": 0,
-      "errores": 0
-    },
-    "newman_rf03": {
-      "http": 17,
-      "pm_test": 54
-    },
-    "estado": "BLOQUEADO",
-    "seleccion": "Se repitió RF03 ampliado tras las 27 carpetas; solo se contabiliza la nueva selección, no ambos RF03."
-  },
-  "complemento_rf04": {
-    "informe": "backend/docs/RF04_SELECCION_ACADEMICA_Y_BLOQUEOS.md",
-    "estado": "BLOQUEADO",
-    "focal_nuevos": 7,
-    "relacionada": 139,
-    "diagnostico": {
-      "aprobadas": 3,
-      "fallidas": 3
-    },
-    "general": {
-      "total": 2563,
-      "aprobadas": 2525,
-      "fallidas": 0,
-      "errores": 0,
-      "omitidas": 38,
-      "archivos": 123,
-      "particiones": {
-        "general_final_g0": {
-          "codigo": 0,
-          "fuentes_estables": true,
-          "fecha_fin": "2026-11-10T04:05:36.815793+00:00",
-          "total": 679,
-          "fallidas": 0,
-          "errores": 0,
-          "omitidas": 0,
-          "aprobadas": 679
-        },
-        "general_final_g1": {
-          "codigo": 0,
-          "fuentes_estables": true,
-          "fecha_fin": "2026-11-10T04:05:26.265858+00:00",
-          "total": 598,
-          "fallidas": 0,
-          "errores": 0,
-          "omitidas": 3,
-          "aprobadas": 595
-        },
-        "general_final_g2": {
-          "codigo": 0,
-          "fuentes_estables": true,
-          "fecha_fin": "2026-11-10T04:05:20.749797+00:00",
-          "total": 765,
-          "fallidas": 0,
-          "errores": 0,
-          "omitidas": 29,
-          "aprobadas": 736
-        },
-        "general_final_g3": {
-          "codigo": 0,
-          "fuentes_estables": true,
-          "fecha_fin": "2026-11-10T04:07:23.127331+00:00",
-          "total": 521,
-          "fallidas": 0,
-          "errores": 0,
-          "omitidas": 6,
-          "aprobadas": 515
-        }
-      },
-      "fuentes_estables": true,
-      "nota": "Ejecución nueva completa en cuatro particiones disjuntas. Sin sustitución de casos ni reutilización de la resultados historicos. No sumar focal/relacionada/Newman."
-    },
-    "nota": "No sumar ejecuciones solapadas. Asignacion academica previa solamente LAB."
-  },
-  "complemento_rf14": {
-    "informe": "backend/docs/RF14_CIERRE_CONTROLADO_20261110.md",
-    "contrato_angular": "backend/docs/RF14_CONTRATO_ANGULAR.md",
-    "focal": 13,
-    "relacionada": 180,
-    "general": {
-      "total": 2576,
-      "aprobadas": 2538,
-      "fallidas": 0,
-      "errores": 0,
-      "omitidas": 38,
-      "archivos": 124,
-      "particiones": {
-        "general_g0": {
-          "codigo": 0,
-          "fuentes_estables": true,
-          "fecha_fin": "2026-11-10T23:54:56.401426+00:00",
-          "total": 679,
-          "fallidas": 0,
-          "errores": 0,
-          "omitidas": 0,
-          "aprobadas": 679
-        },
-        "general_g1": {
-          "codigo": 0,
-          "fuentes_estables": true,
-          "fecha_fin": "2026-11-10T23:54:53.845145+00:00",
-          "total": 598,
-          "fallidas": 0,
-          "errores": 0,
-          "omitidas": 3,
-          "aprobadas": 595
-        },
-        "general_g2": {
-          "codigo": 0,
-          "fuentes_estables": true,
-          "fecha_fin": "2026-11-10T23:55:27.480826+00:00",
-          "total": 778,
-          "fallidas": 0,
-          "errores": 0,
-          "omitidas": 29,
-          "aprobadas": 749
-        },
-        "general_g3": {
-          "codigo": 0,
-          "fuentes_estables": true,
-          "fecha_fin": "2026-11-10T23:57:09.071459+00:00",
-          "total": 521,
-          "fallidas": 0,
-          "errores": 0,
-          "omitidas": 6,
-          "aprobadas": 515
-        }
-      },
-      "fuentes_estables": true,
-      "nota": "Ejecución nueva completa en cuatro particiones disjuntas. Sin sustitución de casos ni reutilización de la resultados historicos. No sumar focal/relacionada/Newman."
-    },
-    "seleccion": "Solo RF14 sustituido tras error de sintaxis JS; conservar fallo original, no sumar ambas ejecuciones."
-  },
-  "complemento_rf24": {
-    "fase": 9,
-    "informe": "backend/docs/RF24_CIERRE_CONTROLADO_20261110.md",
-    "evidencia": "evidencias/rf24_fase9_20261110/RESUMEN_EJECUCION.json",
-    "estado": "BLOQUEADO",
-    "focal": 116,
-    "relacionada": 180,
-    "rf24_http": 18,
-    "rf24_aserciones": 62,
-    "regresion_17_http": 314,
-    "regresion_17_aserciones": 1145,
-    "nueva_general": false,
-    "nota": "Las cifras globales previas son selección histórica; este complemento es nuevo y no se suma a esas suites."
-  },
-  "complemento_rf20_rf21": {
-    "fase": 10,
-    "informe": "backend/docs/RF20_RF21_ENTREGA_SEGURA_20261110.md",
-    "checkpoint_rf24": "578f86385c9118813f0c1a51104e00be5927be29",
-    "evidencia": "evidencias/rf20_rf21_fase10_20261110/RESUMEN_EJECUCION.json",
-    "rf20_http": 16,
-    "rf20_aserciones": 53,
-    "rf21_http": 16,
-    "rf21_aserciones": 53,
-    "focal": 25,
-    "relacionada": 74,
-    "nuevo_codigo_productivo": false,
-    "nuevo_envio_correo": false,
-    "nueva_regresion_general": false,
-    "nota": "RF20 yRF21 BLOQUEADOS; pruebas aprobadas de código/avisos internos no equivalen a entrega externa. Otros25RF sin reclasificación."
-  }
+  "nota": "Aceptación por RF independiente, reutilizando solo carpetas sin cambios funcionales. No se suman ciclos diagnósticos ni suites pytest solapadas."
 }

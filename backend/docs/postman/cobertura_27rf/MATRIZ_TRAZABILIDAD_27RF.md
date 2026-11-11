@@ -10,8 +10,8 @@ Cada carpeta se prepara en una base nueva. Las precondiciones repetidas por RF s
 |---|---|---|---:|---:|---|
 | RF-01 | Autenticar estudiantes | **APROBADO** | 6 | 18 | [RF-01](RF-01.md) |
 | RF-02 | Controlar acceso por rol | **APROBADO** | 15 | 49 | [RF-02](RF-02.md) |
-| RF-03 | Administrar docentes, roles y permisos | **BLOQUEADO** | 17 | 54 | [RF-03](RF-03.md) |
-| RF-04 | Asociar espacio académico y estudiantes | **BLOQUEADO** | 16 | 53 | [RF-04](RF-04.md) |
+| RF-03 | Administrar docentes, roles y permisos | **APROBADO** | 26 | 85 | [RF-03](RF-03.md) |
+| RF-04 | Asociar espacio académico y estudiantes | **APROBADO** | 14 | 46 | [RF-04](RF-04.md) |
 | RF-05 | Registrar estructura académica del caso | **APROBADO** | 15 | 49 | [RF-05](RF-05.md) |
 | RF-06 | Registrar contextos y preguntas por escenario | **APROBADO** | 15 | 49 | [RF-06](RF-06.md) |
 | RF-07 | Administrar preguntas y respuestas | **APROBADO** | 15 | 49 | [RF-07](RF-07.md) |
@@ -27,8 +27,8 @@ Cada carpeta se prepara en una base nueva. Las precondiciones repetidas por RF s
 | RF-17 | Registrar y asociar la rúbrica | **APROBADO** | 15 | 49 | [RF-17](RF-17.md) |
 | RF-18 | Agendar fecha, horario y condiciones | **APROBADO** | 12 | 39 | [RF-18](RF-18.md) |
 | RF-19 | Administrar estados de sesiones | **APROBADO** | 17 | 54 | [RF-19](RF-19.md) |
-| RF-20 | Asignar y validar código de autorización | **BLOQUEADO** | 16 | 53 | [RF-20](RF-20.md) |
-| RF-21 | Notificar convocatoria y cambios | **BLOQUEADO** | 16 | 53 | [RF-21](RF-21.md) |
+| RF-20 | Asignar y validar código de autorización | **APROBADO** | 17 | 57 | [RF-20](RF-20.md) |
+| RF-21 | Notificar convocatoria y cambios | **APROBADO** | 17 | 57 | [RF-21](RF-21.md) |
 | RF-22 | Restringir ingreso tardío | **APROBADO** | 6 | 18 | [RF-22](RF-22.md) |
 | RF-23 | Controlar tiempo máximo | **BLOQUEADO** | 32 | 141 | [RF-23](RF-23.md) |
 | RF-24 | Evaluar incompletos y ausencias | **BLOQUEADO** | 18 | 62 | [RF-24](RF-24.md) |
@@ -36,50 +36,6 @@ Cada carpeta se prepara en una base nueva. Las precondiciones repetidas por RF s
 | RF-26 | Registrar feedback general docente | **APROBADO** | 38 | 161 | [RF-26](RF-26.md) |
 | RF-27 | Notificar calificaciones y feedback | **APROBADO** | 21 | 73 | [RF-27](RF-27.md) |
 
-**Total: 17 APROBADOS, 10 BLOQUEADOS, 0 FALLIDOS y 0 NO EJECUTADOS.** 560 solicitudes ejecutadas y 2134 aserciones pm.test; no significa 27 RF aprobados.
+**Total: 21 APROBADOS, 6 BLOQUEADOS, 0 FALLIDOS y 0 NO EJECUTADOS.** 569 solicitudes ejecutadas y 2166 aserciones pm.test; no significa 27 RF aprobados.
 
 La matriz CSV contiene una fila por caso, método, endpoint, aserciones reales, veredicto, evidencia nominal y referencias pytest acreditadas. Las fichas PT-DCP-01 no se renumeraron: los identificadores PM son nuevos, con conciliación documental pendiente donde no hay ficha equivalente.
-
-
-## Antecedentes preservados del checkpoint RF-10
-
-Las siguientes secciones pertenecen a incrementos anteriores; la ejecución de Fase 3 utilizó seleccion_final, 553 solicitudes y 2107 aserciones; son antecedentes históricos.
-
-## Complemento main condicionado RF-12/RF-23/RF-25
-
-La presente matriz usa la nueva regresión `evidencias/participation_fase1_20261109T215053Z/regresion_postman_27/`. Se conserva 16 APROBADOS/11 BLOQUEADOS. La composición principal de consentimiento e inicio permanece cerrada sin proveedores productivos aprobados. Las 79 solicitudes complementarias main (políticas positivas exclusivamente LAB y controles sin ellas) se trazan individualmente en `../participation_fase1/matriz_fase1.csv`; su informe es `backend/docs/PARTICIPATION_FASE1_MAIN_CONDICIONADO.md`. No se atribuye aprobación integral a esos tres RF ni se suman las ejecuciones.
-
-
-## Continuidad RF-10: contrato Angular y recorrido main
-
-Se conserva RF-10 **BLOQUEADO** integralmente. La aclaración de respuestas inmutables prevalece sobre el texto original; no se reabre PUT/PATCH. Las reglas de varias preguntas por escena, ciclos y revisitas siguen pendientes. Los estados de los otros 26 RF no cambian: total 16 APROBADOS y 11 BLOQUEADOS.
-
-Nuevo complemento: `backend/docs/postman/rf10_main/` y `backend/docs/RF10_CONTRATO_ANGULAR.md`. 21 solicitudes **solo app.main**, 76 aserciones Newman aprobadas y lectura SQL independiente. El intento y sus relaciones se preparan previamente SOLO LAB; no se acredita inicio productivo ni aprobación del consentimiento. La maestra RF-10 también se volvió a ejecutar: 32 solicitudes/141 aserciones, sin fallos técnicos, conservando su separación de 28 operaciones main y cuatro LAB. No se suman ambos recorridos ni se afirma reejecución de los demás RF en Postman.
-
-Evidencia nueva: `evidencias/rf10_contrato_20261109/newman_main_2/` y `newman_maestra_rf10/`. La trazabilidad nominal complementaria está en `backend/docs/postman/rf10_main/matriz_rf10_main.csv`. El único cambio de producción declara los errores HTTP ya existentes en OpenAPI, incluido el esquema real de 422; no añade endpoints ni cambia políticas.
-
-
-## Fase 4 — RF04: alcance vigente
-
-Ejecución nueva: evidencias/rf04_fase4_20261109/newman_27/. 556 solicitudes / 2118 pm.test, cero fallos técnicos, 16 APROBADOS y 11 BLOQUEADOS. RF04: 16 solicitudes / 53 aserciones; sigue BLOQUEADO. GET /scheduling/espacios (main) limita el listado a grants explícitos; las nuevas solicitudes PM-RF-04-10/11/12 acreditan selección propia, exclusión del espacio ajeno y rechazo sin JWT.
-
-No se afirma asociación integral: rf_sesion se crea por HTTP, pero las convocatorias se demuestran sobre rf_sesion_convocatoria, otra sesión preparada con asignación en LAB. Falta el contrato productivo de fecha_limite_ingreso, intentos_base y estado del puente académico; no se promueven defaults/fixtures a políticas. No hay nueva ruta ni migración. Informe: backend/docs/RF04_SELECCION_ACADEMICA_Y_BLOQUEOS.md. General final nueva:2525 aprobadas/38 omitidas/cero fallos o errores; primera general de dos fallos unitarios preservada y corregida sin relajar HTTP esperados. No sumar ejecuciones.
-
-
-## Cierre RF14 Fase7 — evidencia y límites
-
-RF14 APROBADO para consulta de resultados válidos existentes, con política funcional de visibilidad confirmada.19 HTTP/68 pm.test; positivo de nota/acierto/error/explicación, recarga y privacidad. No se obliga a publicar ni se calcula desde GET. Nuevo404 cuando falta cálculo, sin DML.13 focales y180 relacionadas; general nueva2538 aprobadas/38 omitidas/cero fallos o errores.
-
-Selección final27RF:evidencias/rf14_fase7_20261110/seleccion_final/,560HTTP/2134aserciones;17 APROBADOS y10 BLOQUEADOS. Solo RF14 cambia de estado. RF13 continúa BLOQUEADO y no se cambian inicio/repetición/RF04/DTO. Los antecedentes16/11 son históricos. El primer RF14Newman falló por redeclaración JS; se conserva y se sustituye por la nueva ejecución sin cambiar HTTP esperados.
-
-Criterios y límites:backend/docs/RF14_CIERRE_CONTROLADO_20261110.md; contrato para Angular:backend/docs/RF14_CONTRATO_ANGULAR.md. MAIN no equivale a despliegue permanente; fixtures académicas son LAB, no aprobación de consentimiento ni de fórmulas fuera de alcance. Sin prueba de navegador.
-
-
-## Fase9 — RF24, 10/11/2026
-
-RF24 mantiene BLOQUEADO; sus18HTTP/62aserciones ahora remiten a `evidencias/rf24_fase9_20261110/newman_rf24/resultado.json`. Focal116 y relacionada180 aprobadas (no sumar). Regresión nueva de17RF acreditados:314HTTP/1145pm.test, cero fallos; sus estados y las filas de los otros26RF no cambian. Los otros nueve bloqueados no fueron reejecutados. El total17APROBADOS/10BLOQUEADOS permanece. Véase `backend/docs/RF24_CIERRE_CONTROLADO_20261110.md` para fuente original, criterios, dependencias de RF13 y alternativas RF20/21. No hay nueva general ni código productivo.
-
-
-## Fase10 — RF20/RF21
-
-RF20/RF21 mantienen BLOQUEADO; cada uno16HTTP/53pm.test nuevos sin fallos, evidencia actualizada en sus fichas y CSV. No se modifican las otras25filas ni estados. Focal25 y relacionada74 aprobadas; no se acredita correo, reintento de transporte o entrega. Contrato: `backend/docs/RF20_RF21_ENTREGA_SEGURA_20261110.md`. Total17APROBADOS/10BLOQUEADOS sin cambios.

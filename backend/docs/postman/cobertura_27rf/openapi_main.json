@@ -719,6 +719,96 @@
         }
       }
     },
+    "/api/v1/identity/roles/docente/permisos": {
+      "get": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Consultar Permisos Docentes",
+        "description": "Catálogo privado y perfil global vigente del rol docente.",
+        "operationId": "consultar_permisos_docentes_api_v1_identity_roles_docente_permisos_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilPermisosDocentesRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas"
+          },
+          "403": {
+            "description": "Operación denegada por el Proxy"
+          },
+          "503": {
+            "description": "Integración o configuración pendiente"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Configurar Permisos Docentes",
+        "description": "El cambio afecta a todas las cuentas del rol DOCENTE.",
+        "operationId": "configurar_permisos_docentes_api_v1_identity_roles_docente_permisos_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudPermisosDocentes"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilPermisosDocentesRespuesta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales ausentes o inválidas"
+          },
+          "403": {
+            "description": "Operación denegada por el Proxy"
+          },
+          "503": {
+            "description": "Integración o configuración pendiente"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/identity/seguimiento/casos": {
       "get": {
         "tags": [
@@ -1419,7 +1509,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SesionResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/SesionConAsignacionResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SesionResponse"
+                    }
+                  ],
+                  "title": "Response Crear Sesion Scheduling Sesiones Post"
                 }
               }
             }
@@ -3559,6 +3657,31 @@
         ],
         "title": "CasoResumenResponse"
       },
+      "ConvocatoriaAsignadaResponse": {
+        "properties": {
+          "convocatoria_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Convocatoria Id"
+          },
+          "codigo_acceso": {
+            "type": "string",
+            "title": "Codigo Acceso"
+          },
+          "estudiante_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Estudiante Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "convocatoria_id",
+          "codigo_acceso",
+          "estudiante_id"
+        ],
+        "title": "ConvocatoriaAsignadaResponse"
+      },
       "ConvocatoriaDetalleResponse": {
         "properties": {
           "id": {
@@ -4904,6 +5027,55 @@
         ],
         "title": "PaginaDocentesRespuesta"
       },
+      "PerfilPermisosDocentesRespuesta": {
+        "properties": {
+          "id_rol": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Id Rol"
+          },
+          "rol": {
+            "type": "string",
+            "const": "DOCENTE",
+            "title": "Rol"
+          },
+          "permisos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permisos"
+          },
+          "permisos_disponibles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permisos Disponibles"
+          },
+          "docentes_afectados": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Docentes Afectados"
+          },
+          "alcance": {
+            "type": "string",
+            "const": "GLOBAL_ROL",
+            "title": "Alcance"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id_rol",
+          "rol",
+          "permisos",
+          "permisos_disponibles",
+          "docentes_afectados",
+          "alcance"
+        ],
+        "title": "PerfilPermisosDocentesRespuesta"
+      },
       "PreguntaActualRespuesta": {
         "properties": {
           "id": {
@@ -5151,6 +5323,46 @@
               }
             ],
             "title": "Mensaje Personalizado"
+          },
+          "grupo_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grupo Id"
+          },
+          "estudiantes_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array",
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estudiantes Ids"
+          },
+          "fecha_limite_ingreso": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fecha Limite Ingreso"
           }
         },
         "type": "object",
@@ -5747,6 +5959,110 @@
         ],
         "title": "SeleccionSolicitud"
       },
+      "SesionConAsignacionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "espacio_academico_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Espacio Academico Id"
+          },
+          "version_caso_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Version Caso Id"
+          },
+          "docente_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Docente Id"
+          },
+          "fecha_inicio": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fecha Inicio"
+          },
+          "fecha_fin": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fecha Fin"
+          },
+          "tiempo_maximo_minutos": {
+            "type": "integer",
+            "title": "Tiempo Maximo Minutos"
+          },
+          "lugar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lugar"
+          },
+          "mensaje_personalizado": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mensaje Personalizado"
+          },
+          "estado": {
+            "type": "string",
+            "title": "Estado"
+          },
+          "finalizado_en": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalizado En"
+          },
+          "id_asignacion": {
+            "type": "integer",
+            "title": "Id Asignacion"
+          },
+          "convocatorias": {
+            "items": {
+              "$ref": "#/components/schemas/ConvocatoriaAsignadaResponse"
+            },
+            "type": "array",
+            "title": "Convocatorias"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "espacio_academico_id",
+          "version_caso_id",
+          "docente_id",
+          "fecha_inicio",
+          "fecha_fin",
+          "tiempo_maximo_minutos",
+          "lugar",
+          "mensaje_personalizado",
+          "estado",
+          "finalizado_en",
+          "id_asignacion",
+          "convocatorias"
+        ],
+        "title": "SesionConAsignacionResponse"
+      },
       "SesionResponse": {
         "properties": {
           "id": {
@@ -5921,6 +6237,26 @@
           "clave"
         ],
         "title": "SolicitudLoginPersonal"
+      },
+      "SolicitudPermisosDocentes": {
+        "properties": {
+          "permisos": {
+            "items": {
+              "type": "string",
+              "maxLength": 100,
+              "minLength": 1
+            },
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Permisos"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "permisos"
+        ],
+        "title": "SolicitudPermisosDocentes"
       },
       "SolicitudRepeticion": {
         "properties": {

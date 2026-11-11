@@ -206,12 +206,17 @@
       "tests/integration/test_admin_teacher_directory.py::test_limites_y_fallo_de_infraestructura_no_exponen_datos",
       "tests/integration/test_admin_teacher_directory.py::test_lector_revalida_contexto_previamente_acreditado_en_otra_sesion",
       "tests/integration/test_admin_teacher_directory.py::test_alta_existente_se_refleja_sin_otra_escritura_al_consultar",
-      "tests/unit/identity/test_admin_write_authorization.py::test_servicio_revalida_antes_de_cualquier_mutacion",
-      "tests/unit/identity/test_admin_write_authorization.py::test_adapter_sin_puerto_transaccional_falla_cerrado",
       "tests/integration/test_admin_write_authorization.py::test_revocacion_confirmada_tras_proxy_impide_escritura",
       "tests/integration/test_admin_write_authorization.py::test_sesion_precargada_relee_cuenta_revocada",
       "tests/integration/test_admin_write_authorization.py::test_revocacion_concurrente_espera_commit_de_operacion_autorizada",
-      "tests/integration/test_admin_write_authorization.py::test_fallo_sql_despues_insert_revierte_alta_y_permite_reintento"
+      "tests/integration/test_admin_write_authorization.py::test_fallo_sql_despues_insert_revierte_alta_y_permite_reintento",
+      "tests/unit/identity/test_admin_write_authorization.py::test_servicio_revalida_antes_de_cualquier_mutacion",
+      "tests/unit/identity/test_admin_write_authorization.py::test_adapter_sin_puerto_transaccional_falla_cerrado",
+      "tests/integration/test_global_teacher_permissions.py::test_perfil_global_revalida_tokens_existentes_y_persiste_entre_sesiones",
+      "tests/integration/test_global_teacher_permissions.py::test_rechazo_de_identidad_sin_escrituras",
+      "tests/integration/test_global_teacher_permissions.py::test_contrato_rechaza_concesiones_individuales_o_catalogo_inexistente",
+      "tests/integration/test_global_teacher_permissions.py::test_fallo_sql_revierte_retiro_y_permite_reintento",
+      "tests/integration/test_global_teacher_permissions.py::test_actualizaciones_concurrentes_serializan_el_perfil_sin_duplicados"
     ],
     "casos": [
       {
@@ -414,6 +419,19 @@
       "tests/integration/test_session_programming_http.py::test_fallo_despues_del_insert_revierte_sesion_y_conserva_permiso",
       "tests/integration/test_session_programming_http.py::test_revocacion_concurrente_impide_programar_y_no_borra_sesion_historica",
       "tests/integration/test_session_programming_http.py::test_publicacion_posterior_no_sustituye_uuid_de_version_programada",
+      "tests/integration/test_academic_assignment_programming.py::test_seleccion_exige_trio_completo_fechas_explicitas_y_estudiantes_unicos",
+      "tests/integration/test_academic_assignment_programming.py::test_limite_explicito_admite_fronteras_del_horario_sin_inventar_tolerancias",
+      "tests/integration/test_academic_assignment_programming.py::test_crea_sesion_asignacion_y_convocatorias_misma_transaccion_sin_admision",
+      "tests/integration/test_academic_assignment_programming.py::test_identidad_ajena_no_produce_asociaciones",
+      "tests/integration/test_academic_assignment_programming.py::test_seleccion_exige_relaciones_academicas_vigentes",
+      "tests/integration/test_academic_assignment_programming.py::test_fallo_sql_revierte_sesion_asignacion_convocatorias_y_avisos",
+      "tests/integration/test_academic_assignment_programming.py::test_post_repetidos_crean_sesiones_independientes_sin_duplicar_su_seleccion",
+      "tests/integration/test_academic_assignment_programming.py::test_seleccion_multiple_convoca_solo_estudiantes_del_grupo_elegido",
+      "tests/integration/test_academic_assignment_programming.py::test_revocacion_de_matricula_concurrente_impide_insertar",
+      "tests/integration/test_academic_assignment_programming.py::test_zona_obligatoria_ausente_no_deja_sesion_parcial",
+      "tests/integration/test_academic_assignment_programming.py::test_programador_revalida_cuenta_precargada_antes_de_cualquier_insert",
+      "tests/integration/test_assignment_mail_composition.py::test_programacion_asignacion_y_correo_comparten_commit_y_recuperacion",
+      "tests/integration/test_assignment_mail_composition.py::test_fallo_outbox_revierte_toda_la_programacion",
       "tests/integration/test_authorized_academic_spaces.py::test_seleccion_solo_espacios_asignados_y_lectura_independiente",
       "tests/integration/test_authorized_academic_spaces.py::test_crear_recurso_no_concede_permiso_y_revocacion_se_refleja",
       "tests/integration/test_authorized_academic_spaces.py::test_seleccion_exige_jwt_y_docente_vigente",
@@ -1903,7 +1921,13 @@
       "tests/integration/test_question_result_storage.py::test_upgrade_y_downgrade_preservan_resultado_del_motor_anterior",
       "tests/integration/test_question_result_storage.py::test_motor_anterior_no_se_reinterpreta_por_el_nombre_de_regla",
       "tests/integration/test_question_result_storage.py::test_lector_docente_read_only_reutiliza_resultado_nuevo",
-      "tests/integration/test_question_result_storage.py::test_main_jwt_real_reconoce_resultado_sin_filtrar_nota"
+      "tests/integration/test_question_result_storage.py::test_main_jwt_real_reconoce_resultado_sin_filtrar_nota",
+      "tests/integration/test_evaluation_provenance_compatibility.py::test_snapshots_fijos_solo_difieren_en_anotaciones",
+      "tests/integration/test_evaluation_provenance_compatibility.py::test_resultado_legacy_leido_desde_otro_runtime_preserva_documento",
+      "tests/integration/test_evaluation_provenance_compatibility.py::test_resultado_preguntas_cruzado_preserva_tercios_historia_y_replay",
+      "tests/integration/test_evaluation_provenance_compatibility.py::test_documento_ajeno_o_calculo_alterado_rechazado_sin_reescribir",
+      "tests/integration/test_evaluation_provenance_compatibility.py::test_primeras_escrituras_concurrentes_eligen_una_definicion_inmutable",
+      "tests/integration/test_evaluation_provenance_compatibility.py::test_rollback_no_fija_definicion_y_reintento_reutiliza_la_confirmada"
     ],
     "casos": [
       {
@@ -2158,6 +2182,7 @@
       "tests/integration/test_rf14_student_results.py::test_feedback_historico_exacto_y_recargas_concurrentes_sin_escritura",
       "tests/integration/test_rf14_student_results.py::test_parcial_muestra_solo_feedback_registrado_sin_preguntas_ficticias",
       "tests/integration/test_rf14_student_results.py::test_consulta_estudiantil_privada_sin_filtrar_nota",
+      "tests/integration/test_rf14_student_results.py::test_guard_impide_ambiguedad_de_identidad_historica_sin_debilitar_lectura",
       "tests/integration/test_rf14_student_results.py::test_cerrado_sin_calculo_pendiente_404_sin_generar_resultado",
       "tests/integration/test_rf14_student_results.py::test_ausencia_no_consultable_hasta_publicacion_explicita_sin_intentos_ficticios"
     ],
@@ -3113,7 +3138,21 @@
       "tests/integration/test_convocation_management_http.py::test_fallo_tras_persistir_aviso_revierte_y_reintento_recupera",
       "tests/integration/test_convocation_management_http.py::test_retiro_de_convocatoria_de_otra_sesion_no_modifica_destinatario",
       "tests/integration/test_convocation_management_http.py::test_uuid_docente_no_sustituye_cuenta_autenticada_en_el_adaptador_sql",
-      "tests/integration/test_convocation_management_http.py::test_alta_no_reabre_ingreso_en_sesion_iniciada_o_finalizada"
+      "tests/integration/test_convocation_management_http.py::test_alta_no_reabre_ingreso_en_sesion_iniciada_o_finalizada",
+      "tests/integration/test_assignment_mail_composition.py::test_programacion_asignacion_y_correo_comparten_commit_y_recuperacion",
+      "tests/integration/test_assignment_mail_composition.py::test_fallo_outbox_revierte_toda_la_programacion",
+      "tests/integration/test_durable_mail.py::test_main_crea_cifrado_durable_y_worker_smtp_recupera_otra_session",
+      "tests/integration/test_durable_mail.py::test_fallo_smtp_despues_commit_reintenta_sin_recrear_convocatoria",
+      "tests/integration/test_durable_mail.py::test_reintentos_concurrentes_un_solo_envio_aceptado",
+      "tests/integration/test_durable_mail.py::test_retiro_cancela_credencial_pendiente_y_envia_aviso_de_retiro",
+      "tests/integration/test_durable_mail.py::test_configuracion_incompleta_o_insegura_rechaza_antes_commit",
+      "tests/integration/test_durable_mail.py::test_fallo_sql_de_outbox_revierte_convocatoria_y_aviso",
+      "tests/integration/test_durable_mail.py::test_payload_cambiado_no_se_entrega",
+      "tests/integration/test_durable_mail.py::test_despacho_revalida_credencial_y_destinatario",
+      "tests/integration/test_durable_mail.py::test_puerto_vacio_equivale_a_ausente_sin_inferir_default",
+      "tests/integration/test_durable_mail.py::test_main_no_encola_sin_autorizacion_persistente",
+      "tests/integration/test_durable_mail.py::test_migracion_upgrade_downgrade_y_fk_sin_reescribir_historia",
+      "tests/integration/test_durable_mail.py::test_downgrade_con_historia_rechaza_perdida"
     ],
     "casos": [
       {
@@ -3252,7 +3291,21 @@
       "tests/integration/test_convocation_management_http.py::test_fallo_tras_persistir_aviso_revierte_y_reintento_recupera",
       "tests/integration/test_convocation_management_http.py::test_retiro_de_convocatoria_de_otra_sesion_no_modifica_destinatario",
       "tests/integration/test_convocation_management_http.py::test_uuid_docente_no_sustituye_cuenta_autenticada_en_el_adaptador_sql",
-      "tests/integration/test_convocation_management_http.py::test_alta_no_reabre_ingreso_en_sesion_iniciada_o_finalizada"
+      "tests/integration/test_convocation_management_http.py::test_alta_no_reabre_ingreso_en_sesion_iniciada_o_finalizada",
+      "tests/integration/test_assignment_mail_composition.py::test_programacion_asignacion_y_correo_comparten_commit_y_recuperacion",
+      "tests/integration/test_assignment_mail_composition.py::test_fallo_outbox_revierte_toda_la_programacion",
+      "tests/integration/test_durable_mail.py::test_main_crea_cifrado_durable_y_worker_smtp_recupera_otra_session",
+      "tests/integration/test_durable_mail.py::test_fallo_smtp_despues_commit_reintenta_sin_recrear_convocatoria",
+      "tests/integration/test_durable_mail.py::test_reintentos_concurrentes_un_solo_envio_aceptado",
+      "tests/integration/test_durable_mail.py::test_retiro_cancela_credencial_pendiente_y_envia_aviso_de_retiro",
+      "tests/integration/test_durable_mail.py::test_configuracion_incompleta_o_insegura_rechaza_antes_commit",
+      "tests/integration/test_durable_mail.py::test_fallo_sql_de_outbox_revierte_convocatoria_y_aviso",
+      "tests/integration/test_durable_mail.py::test_payload_cambiado_no_se_entrega",
+      "tests/integration/test_durable_mail.py::test_despacho_revalida_credencial_y_destinatario",
+      "tests/integration/test_durable_mail.py::test_puerto_vacio_equivale_a_ausente_sin_inferir_default",
+      "tests/integration/test_durable_mail.py::test_main_no_encola_sin_autorizacion_persistente",
+      "tests/integration/test_durable_mail.py::test_migracion_upgrade_downgrade_y_fk_sin_reescribir_historia",
+      "tests/integration/test_durable_mail.py::test_downgrade_con_historia_rechaza_perdida"
     ],
     "casos": [
       {
@@ -3712,7 +3765,13 @@
       "tests/integration/test_academic_cycle_http.py::test_migracion_real_subida_bajada_y_metadata_sin_filtro",
       "tests/integration/test_academic_cycle_http.py::test_downgrade_rechaza_perdida_de_publicacion",
       "tests/integration/test_academic_cycle_http.py::test_recorrido_tcp_reproducible_para_postman",
-      "tests/integration/test_academic_cycle_http.py::test_repeticion_historica_sin_permiso_no_se_publica"
+      "tests/integration/test_academic_cycle_http.py::test_repeticion_historica_sin_permiso_no_se_publica",
+      "tests/integration/test_evaluation_provenance_compatibility.py::test_snapshots_fijos_solo_difieren_en_anotaciones",
+      "tests/integration/test_evaluation_provenance_compatibility.py::test_resultado_legacy_leido_desde_otro_runtime_preserva_documento",
+      "tests/integration/test_evaluation_provenance_compatibility.py::test_resultado_preguntas_cruzado_preserva_tercios_historia_y_replay",
+      "tests/integration/test_evaluation_provenance_compatibility.py::test_documento_ajeno_o_calculo_alterado_rechazado_sin_reescribir",
+      "tests/integration/test_evaluation_provenance_compatibility.py::test_primeras_escrituras_concurrentes_eligen_una_definicion_inmutable",
+      "tests/integration/test_evaluation_provenance_compatibility.py::test_rollback_no_fija_definicion_y_reintento_reutiliza_la_confirmada"
     ],
     "casos": [
       {

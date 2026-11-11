@@ -149,6 +149,10 @@ def main():
   referencias=[x for x in inventario['tests'] if '/'+TESTS[n]+'.py::' in x]
   referencias += [x for x in inventario['tests'] if '/test_main_start_composition.py::' in x and x.rsplit('::',1)[1] in tests_main.get(n,[])]
   if n==3:referencias += [x for x in inventario['tests'] if '/test_admin_write_authorization.py::' in x]
+  if n==3:referencias += [x for x in inventario['tests'] if '/test_global_teacher_permissions.py::' in x]
+  if n==4:referencias += [x for x in inventario['tests'] if '/test_academic_assignment_programming.py::' in x or '/test_assignment_mail_composition.py::' in x]
+  if n in (20,21):referencias += [x for x in inventario['tests'] if '/test_durable_mail.py::' in x or '/test_assignment_mail_composition.py::' in x]
+  if n in (13,24):referencias += [x for x in inventario['tests'] if '/test_evaluation_provenance_compatibility.py::' in x]
   if n==4:referencias += [x for x in inventario['tests'] if '/test_authorized_academic_spaces.py::' in x]
   if n==14:referencias += [x for x in inventario['tests'] if '/test_rf14_student_results.py::' in x]
   contratos.append(dict(rf=rf,nombre=NOMBRES[n-1],fuente=contrato,modo=modo,bloqueo=BLOQUEOS.get(n),tests=referencias,casos=[dict(caso=it['name'].split(' | ')[0],nombre=it['name'],metodo=it['request']['method'],ruta=it['request']['url'],esperado=int(re.search(r'HTTP exacto (\d+)',str(it['event']))[1])) for it in items]))
