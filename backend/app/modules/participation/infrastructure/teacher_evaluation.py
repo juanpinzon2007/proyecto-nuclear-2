@@ -16,11 +16,52 @@ from app.modules.participation.infrastructure.question_result_repository import 
 from app.modules.cases.infrastructure.scoring import consultar_configuracion_preguntas
 from app.modules.cases.application.graph import GrafoNoDisponible
 from app.modules.cases.infrastructure.models import CasoModel as C, VersionCasoModel as V
+from app.modules.identity.domain.errors import ReglaIdentidadInvalida
+from app.modules.participation.application.closed_attempt_recovery import IntentoRecuperado, RecuperacionCierres
 
 
 class EvaluadorTecnicoDocente:
     def __init__(self, *, consulta, reloj):
         self.consulta, self.reloj = consulta, reloj
+
+    def recuperar_cierres(self, *, id_sesion: UUID, ids_intentos: tuple[int, ...]) -> RecuperacionCierres:
+        """Procesa una selección explícita sobre cierres persistidos recuperables.
+
+        La consulta inicial verifica la cohorte completa en una instantánea de
+        lectura. Cada elemento revalida su autorización en la operación existente
+        y confirma su propia transacción. Un fallo conserva los cierres y los
+        resultados que ya se confirmaron. Repetir la orden recupera ese historial.
+        """
+        if (not isinstance(id_sesion, UUID) or type(ids_intentos) is not tuple
+                or not ids_intentos or any(type(i) is not int or i <= 0 for i in ids_intentos)
+                or len(set(ids_intentos)) != len(ids_intentos)):
+            raise ReglaIdentidadInvalida()
+        revision = self.consulta.consultar(id_sesion=id_sesion)
+        encontrados = {i.id_intento: (fila, i)
+                       for fila in revision.convocatorias for i in fila.intentos}
+        if not set(ids_intentos).issubset(encontrados):
+            raise AccesoDenegado()
+        resultados = []
+        for identificador in ids_intentos:
+            fila, intento = encontrados[identificador]
+            if fila.estado != 'ACTIVA':
+                resultados.append(IntentoRecuperado(identificador, 'PENDIENTE', motivo='CONVOCATORIA_RETIRADA'))
+                continue
+            if intento.estado not in (EstadoIntento.FINALIZADO.value, EstadoIntento.VENCIDO.value):
+                resultados.append(IntentoRecuperado(identificador, 'PENDIENTE', motivo='CIERRE_NO_PERSISTIDO'))
+                continue
+            try:
+                if intento.id_resultado_tecnico is not None:
+                    lectura = self.consulta.consultar_resultado(id_sesion=id_sesion, id_intento=identificador)
+                else:
+                    lectura = self.evaluar(id_sesion=id_sesion, id_intento=identificador)
+            except ConflictoIdentidad:
+                resultados.append(IntentoRecuperado(identificador, 'PENDIENTE', motivo='CONFLICTO_RESULTADO'))
+            except IntegracionPendiente:
+                resultados.append(IntentoRecuperado(identificador, 'PENDIENTE', motivo='CONFIGURACION_O_PERSISTENCIA'))
+            else:
+                resultados.append(IntentoRecuperado(identificador, 'DISPONIBLE', lectura.resultado.id_resultado))
+        return RecuperacionCierres(id_sesion, tuple(resultados))
 
     def evaluar(self, *, id_sesion: UUID, id_intento: int):
         if not isinstance(id_sesion,UUID) or type(id_intento) is not int or id_intento<=0:
