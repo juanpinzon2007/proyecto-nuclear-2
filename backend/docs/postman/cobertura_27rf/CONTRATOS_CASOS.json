@@ -5,6 +5,7 @@
     "fuente": "RF-01 Acceso Autenticar estudiantes El estudiante ingresa con su correo electrónico institucional y el código de autorización de la convocatoria.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/identity/test_student_login_scheduling.py::test_flujo_login_autorizado_jwt_y_notificaciones_reales",
       "tests/identity/test_student_login_scheduling.py::test_login_rechaza_credenciales_o_titularidad_invalidas",
@@ -75,6 +76,7 @@
     "fuente": "RF-02 Acceso Controlar acceso por rol El sistema restringe funciones según el rol (administrador, docente o estudiante) y el permiso específico de creación de casos.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_main_staff_login.py::test_admin_ingresa_crea_docente_con_hash_y_docente_ingresa_sin_crear_vinculos",
       "tests/integration/test_main_staff_login.py::test_login_real_no_otorga_casos_ajenos_ni_permisos_eliminados",
@@ -200,6 +202,7 @@
     "fuente": "RF-03 Acceso Administrar docentes, roles y permisos El administrador crea usuarios docentes y les asigna roles y permisos.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_admin_teacher_directory.py::test_listado_main_privado_paginado_sin_dml_hashes_ni_vinculos_academicos",
       "tests/integration/test_admin_teacher_directory.py::test_listado_no_admite_identidad_o_rol_no_autorizados",
@@ -409,6 +412,7 @@
     "fuente": "RF-04 Organización académica Asociar espacio académico y estudiantes Al agendar un caso, el docente asocia el nombre del espacio académico y uno o varios estudiantes autorizados.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_session_programming_http.py::test_programacion_autorizada_persiste_datos_y_uuid_de_scheduling",
       "tests/integration/test_session_programming_http.py::test_sin_autorizacion_de_espacio_no_hay_programacion_implicita",
@@ -545,6 +549,7 @@
     "fuente": "RF-05 Diseño de casos Registrar estructura académica del caso El docente autorizado registra nombre, desarrollo situacional, contexto o historia, escenarios académicos y tiempo estimado de participación.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_cases_graph_authoring.py::test_http_crear_configurar_publicar_y_consumir_misma_version",
       "tests/integration/test_cases_graph_authoring.py::test_autoria_no_concede_acceso_sin_identidad_rol_permiso_y_vinculo",
@@ -668,6 +673,7 @@
     "fuente": "RF-06 Diseño de casos Registrar contextos y preguntas por escenario Cada escenario contiene un contexto situacional y una lista de preguntas con sus respuestas.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_cases_graph_authoring.py::test_http_crear_configurar_publicar_y_consumir_misma_version",
       "tests/integration/test_cases_graph_authoring.py::test_autoria_no_concede_acceso_sin_identidad_rol_permiso_y_vinculo",
@@ -791,6 +797,7 @@
     "fuente": "RF-07 Diseño de casos Administrar preguntas y respuestas El docente agrega preguntas por escenario, con opciones de respuesta e identificación de cuáles son correctas o incorrectas.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_cases_graph_authoring.py::test_http_crear_configurar_publicar_y_consumir_misma_version",
       "tests/integration/test_cases_graph_authoring.py::test_autoria_no_concede_acceso_sin_identidad_rol_permiso_y_vinculo",
@@ -914,6 +921,7 @@
     "fuente": "RF-08 Evaluación Justificar respuestas correctas e incorrectas El docente asocia a cada opción una explicación de por qué es correcta o incorrecta.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/cases/test_publish_endpoint.py::test_crear_borrador_completo_persiste_jerarquia_en_borrador",
       "tests/integration/cases/test_publish_endpoint.py::test_crear_borrador_incompleto_se_guarda_sin_ejecutar_cor",
@@ -1041,6 +1049,7 @@
     "fuente": "RF-09 Validación Validar estructura y rúbrica del caso Todo caso nuevo inicia como Borrador. Debe cumplir estructura académica y tener rúbrica asociada antes de publicarse. Solo casos publicados pueden agendarse; el docente puede archivar casos para evitar nuevas programaciones.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/cases/test_lifecycle_endpoints.py::test_listar_devuelve_solo_casos_del_docente",
       "tests/integration/cases/test_lifecycle_endpoints.py::test_listar_sin_casos_devuelve_lista_vacia",
@@ -1177,7 +1186,8 @@
     "nombre": "Responder y modificar respuestas",
     "fuente": "RF-10 Participación Responder y modificar respuestas El estudiante consulta los contextos académicos, responde preguntas y puede volver entre ellas para cambiar sus selecciones hasta finalizar.",
     "modo": "principal",
-    "bloqueo": "El PDF RF-10/RN-10/11 permite modificar; la profesora aclaró después respuestas inmutables. Se prueba la inmutabilidad vigente ya confirmada; faltan conciliar el documento y definir recorridos con varias preguntas/ciclos/revisitas, no reabrir PUT.",
+    "bloqueo": null,
+    "aceptacion_externa": "MVP confirmado por el equipo, una pregunta por escena, sin ciclos alcanzables. Conciliar el documento original con la inmutabilidad posterior.",
     "tests": [
       "tests/integration/test_immutable_answers.py::test_segunda_respuesta_incluso_identica_no_reemplaza",
       "tests/integration/test_immutable_answers.py::test_put_logico_rechazado_conserva_original",
@@ -1247,30 +1257,30 @@
       },
       {
         "caso": "PM-RF-10-09",
-        "nombre": "PM-RF-10-09 | LAB AISLADA — documento sintético versionado",
+        "nombre": "PM-RF-10-09 | MAIN configurado LAB — documento sintético versionado",
         "metodo": "GET",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
         "esperado": 200
       },
       {
         "caso": "PM-RF-10-10",
-        "nombre": "PM-RF-10-10 | LAB AISLADA — aceptación explícita LAB",
+        "nombre": "PM-RF-10-10 | MAIN configurado LAB — aceptación explícita LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
         "esperado": 200
       },
       {
         "caso": "PM-RF-10-11",
-        "nombre": "PM-RF-10-11 | LAB AISLADA — inicio transaccional LAB",
+        "nombre": "PM-RF-10-11 | MAIN configurado LAB — inicio transaccional LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 201
       },
       {
         "caso": "PM-RF-10-12",
-        "nombre": "PM-RF-10-12 | LAB AISLADA — inicio repetido sin duplicados",
+        "nombre": "PM-RF-10-12 | MAIN configurado LAB — inicio repetido sin duplicados",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 409
       },
       {
@@ -1421,6 +1431,7 @@
     "fuente": "RF-11 Persistencia Registrar respuestas y mostrar progreso El sistema guarda las respuestas del estudiante y muestra progreso durante la participación, sin anticipar la justificación o revelar la corrección antes del cierre.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_main_progress.py::test_progreso_efectivo_repetido_sin_dml_flush_commit",
       "tests/integration/test_main_progress.py::test_progreso_privado_revalida_autoridad_y_configuracion",
@@ -1485,30 +1496,30 @@
       },
       {
         "caso": "PM-RF-11-09",
-        "nombre": "PM-RF-11-09 | LAB AISLADA — documento sintético versionado",
+        "nombre": "PM-RF-11-09 | MAIN configurado LAB — documento sintético versionado",
         "metodo": "GET",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
         "esperado": 200
       },
       {
         "caso": "PM-RF-11-10",
-        "nombre": "PM-RF-11-10 | LAB AISLADA — aceptación explícita LAB",
+        "nombre": "PM-RF-11-10 | MAIN configurado LAB — aceptación explícita LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
         "esperado": 200
       },
       {
         "caso": "PM-RF-11-11",
-        "nombre": "PM-RF-11-11 | LAB AISLADA — inicio transaccional LAB",
+        "nombre": "PM-RF-11-11 | MAIN configurado LAB — inicio transaccional LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 201
       },
       {
         "caso": "PM-RF-11-12",
-        "nombre": "PM-RF-11-12 | LAB AISLADA — inicio repetido sin duplicados",
+        "nombre": "PM-RF-11-12 | MAIN configurado LAB — inicio repetido sin duplicados",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 409
       },
       {
@@ -1658,7 +1669,8 @@
     "nombre": "Registrar inicio y fin de participación",
     "fuente": "RF-12 Trazabilidad Registrar inicio y fin de participación Cada participación guarda inicio, fin, calificación final y retroalimentación por pregunta.",
     "modo": "principal",
-    "bloqueo": "Composición main condicionada presente; faltan documento institucional aprobado y políticas productivas definitivas de provisión/inicio. El recorrido positivo con puertos LAB no acredita disponibilidad productiva ni feedback por pregunta completo.",
+    "bloqueo": null,
+    "aceptacion_externa": "Documento institucional de consentimiento todavía sin aprobación verificable. Main solo se habilita con paquetes confiables del operador; el paquete sintético se limita a LABORATORIO.",
     "tests": [
       "tests/integration/test_lab_student_journey.py::test_recorrido_integral_administrador_docente_estudiante_main_y_aislada",
       "tests/integration/test_lab_student_journey.py::test_error_sql_real_revierte_pi_y_reintento_recorrido",
@@ -1728,30 +1740,30 @@
       },
       {
         "caso": "PM-RF-12-09",
-        "nombre": "PM-RF-12-09 | LAB AISLADA — documento sintético versionado",
+        "nombre": "PM-RF-12-09 | MAIN configurado LAB — documento sintético versionado",
         "metodo": "GET",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
         "esperado": 200
       },
       {
         "caso": "PM-RF-12-10",
-        "nombre": "PM-RF-12-10 | LAB AISLADA — aceptación explícita LAB",
+        "nombre": "PM-RF-12-10 | MAIN configurado LAB — aceptación explícita LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
         "esperado": 200
       },
       {
         "caso": "PM-RF-12-11",
-        "nombre": "PM-RF-12-11 | LAB AISLADA — inicio transaccional LAB",
+        "nombre": "PM-RF-12-11 | MAIN configurado LAB — inicio transaccional LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 201
       },
       {
         "caso": "PM-RF-12-12",
-        "nombre": "PM-RF-12-12 | LAB AISLADA — inicio repetido sin duplicados",
+        "nombre": "PM-RF-12-12 | MAIN configurado LAB — inicio repetido sin duplicados",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 409
       },
       {
@@ -1893,6 +1905,20 @@
         "metodo": "POST",
         "ruta": "{{base_url}}/scheduling/sesiones/{{sesion_id}}/evaluacion/intentos/{{id_intento}}/resultado-tecnico",
         "esperado": 403
+      },
+      {
+        "caso": "PM-RF-12-33",
+        "nombre": "PM-RF-12-33 | Documento sin JWT rechazado",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+        "esperado": 401
+      },
+      {
+        "caso": "PM-RF-12-34",
+        "nombre": "PM-RF-12-34 | Documento de otro estudiante rechazado",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+        "esperado": 403
       }
     ]
   },
@@ -1901,7 +1927,8 @@
     "nombre": "Calcular nota con rúbrica",
     "fuente": "RF-13 Evaluación Calcular nota con rúbrica El sistema calcula y almacena la calificación de cada intento a partir de las respuestas y de la rúbrica asociada.",
     "modo": "principal",
-    "bloqueo": "Motor y persistencia técnicos acreditables; no se atribuye aprobación institucional a política del equipo ni se declara cobertura de todo grafo no soportado.",
+    "bloqueo": null,
+    "aceptacion_externa": "Orden docente y recuperación confirmadas por el equipo. La fórmula del motor conserva su procedencia y requiere conciliación documental académica.",
     "tests": [
       "tests/integration/test_question_result_storage.py::test_escribir_leer_otra_session_ramas_y_cero",
       "tests/integration/test_question_result_storage.py::test_peso_igual_sin_ponderar_criterios",
@@ -1988,30 +2015,30 @@
       },
       {
         "caso": "PM-RF-13-09",
-        "nombre": "PM-RF-13-09 | LAB AISLADA — documento sintético versionado",
+        "nombre": "PM-RF-13-09 | MAIN configurado LAB — documento sintético versionado",
         "metodo": "GET",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
         "esperado": 200
       },
       {
         "caso": "PM-RF-13-10",
-        "nombre": "PM-RF-13-10 | LAB AISLADA — aceptación explícita LAB",
+        "nombre": "PM-RF-13-10 | MAIN configurado LAB — aceptación explícita LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
         "esperado": 200
       },
       {
         "caso": "PM-RF-13-11",
-        "nombre": "PM-RF-13-11 | LAB AISLADA — inicio transaccional LAB",
+        "nombre": "PM-RF-13-11 | MAIN configurado LAB — inicio transaccional LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 201
       },
       {
         "caso": "PM-RF-13-12",
-        "nombre": "PM-RF-13-12 | LAB AISLADA — inicio repetido sin duplicados",
+        "nombre": "PM-RF-13-12 | MAIN configurado LAB — inicio repetido sin duplicados",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 409
       },
       {
@@ -2162,6 +2189,7 @@
     "fuente": "RF-14 Retroalimentación Mostrar resultado y feedback final Al terminar, el sistema presenta aciertos, errores, sus explicaciones y nota final; no anticipa justificaciones durante la resolución.",
     "modo": "reportes",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_academic_cycle_http.py::test_publicacion_explicita_idempotente_y_lectura_privada",
       "tests/integration/test_academic_cycle_http.py::test_ausencia_explicita_sin_participacion_ni_intento_rectificacion_historica",
@@ -2328,6 +2356,7 @@
     "fuente": "RF-15 Seguimiento Consultar participaciones de estudiantes El docente navega por casos realizados y consulta, por estudiante, sus respuestas, retroalimentación por respuesta y retroalimentación general docente.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_main_teacher_followup.py::test_recorrido_principal_historico_sin_dml_flush_commit",
       "tests/integration/test_main_teacher_followup.py::test_detalle_principal_rechaza_actor_o_identidad_no_autorizados",
@@ -2393,30 +2422,30 @@
       },
       {
         "caso": "PM-RF-15-09",
-        "nombre": "PM-RF-15-09 | LAB AISLADA — documento sintético versionado",
+        "nombre": "PM-RF-15-09 | MAIN configurado LAB — documento sintético versionado",
         "metodo": "GET",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
         "esperado": 200
       },
       {
         "caso": "PM-RF-15-10",
-        "nombre": "PM-RF-15-10 | LAB AISLADA — aceptación explícita LAB",
+        "nombre": "PM-RF-15-10 | MAIN configurado LAB — aceptación explícita LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
         "esperado": 200
       },
       {
         "caso": "PM-RF-15-11",
-        "nombre": "PM-RF-15-11 | LAB AISLADA — inicio transaccional LAB",
+        "nombre": "PM-RF-15-11 | MAIN configurado LAB — inicio transaccional LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 201
       },
       {
         "caso": "PM-RF-15-12",
-        "nombre": "PM-RF-15-12 | LAB AISLADA — inicio repetido sin duplicados",
+        "nombre": "PM-RF-15-12 | MAIN configurado LAB — inicio repetido sin duplicados",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 409
       },
       {
@@ -2637,6 +2666,7 @@
     "fuente": "RF-16 Reportes Descargar reporte de participación El docente descarga un reporte con resultados académicos, avances parciales y ausencias, para registrar las notas en el sistema académico.",
     "modo": "reportes",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_official_reports_http.py::test_exportacion_publicacion_real_solo_lectura_y_sesion_independiente",
       "tests/integration/test_official_reports_http.py::test_ausencia_cero_y_retirada_sin_notas_ni_intentos",
@@ -2768,6 +2798,7 @@
     "fuente": "RF-17 Evaluación Registrar y asociar la rúbrica El docente registra la rúbrica correspondiente al caso y la asocia para sustentar la calificación final.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_cases_graph_authoring.py::test_http_crear_configurar_publicar_y_consumir_misma_version",
       "tests/integration/test_cases_graph_authoring.py::test_autoria_no_concede_acceso_sin_identidad_rol_permiso_y_vinculo",
@@ -2891,6 +2922,7 @@
     "fuente": "RF-18 Programación Agendar fecha, horario y condiciones El docente define inicio y fin, tiempo máximo no mayor al estimado del caso, lugar físico cuando aplique y mensaje personalizado.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_session_programming_http.py::test_programacion_autorizada_persiste_datos_y_uuid_de_scheduling",
       "tests/integration/test_session_programming_http.py::test_sin_autorizacion_de_espacio_no_hay_programacion_implicita",
@@ -2995,6 +3027,7 @@
     "fuente": "RF-19 Programación Administrar estados de sesiones La sesión pasa por Sin iniciar, En curso y Finalizado. El docente la inicia y puede finalizarla; el sistema la cierra automáticamente un día después del fin previsto cuando corresponda.",
     "modo": "worker",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_worker_process.py::test_cli_real_cierra_y_segunda_ejecucion_no_duplica",
       "tests/integration/test_worker_process.py::test_dos_procesos_bloqueados_en_postgresql_conservan_un_cierre",
@@ -3129,6 +3162,7 @@
     "fuente": "RF-20 Acceso Asignar y validar código de autorización El sistema asocia un código de autorización al estudiante convocado e incluye el código en la notificación de programación.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_convocation_management_http.py::test_altas_individuales_y_avisos_personalizados_sin_correo_ni_codigos_persistidos",
       "tests/integration/test_convocation_management_http.py::test_alta_retiro_y_listado_rechazan_actores_ajenos",
@@ -3282,6 +3316,7 @@
     "fuente": "RF-21 Notificaciones Notificar convocatoria y cambios El correo informa caso, mensaje personalizado, URL y código. El docente puede agregar o retirar estudiantes y cada afectado debe ser notificado.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_convocation_management_http.py::test_altas_individuales_y_avisos_personalizados_sin_correo_ni_codigos_persistidos",
       "tests/integration/test_convocation_management_http.py::test_alta_retiro_y_listado_rechazan_actores_ajenos",
@@ -3435,6 +3470,7 @@
     "fuente": "RF-22 Participación Restringir ingreso tardío El sistema impide iniciar si pasó el tiempo definido por el docente en el que el estudiante debió comenzar. La base del umbral debe precisarse con el responsable académico antes de implementar.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_waiting_admission.py::test_espera_idempotente_admision_y_validacion_sin_escritura",
       "tests/integration/test_waiting_admission.py::test_espera_protegida",
@@ -3506,7 +3542,8 @@
     "nombre": "Controlar tiempo máximo",
     "fuente": "RF-23 Participación Controlar tiempo máximo Al iniciar la participación, el sistema inicia el contador, aplica el límite máximo y conserva las respuestas para evaluación.",
     "modo": "principal",
-    "bloqueo": "Contador y vencimiento de intentos existentes tienen pruebas; el inicio productivo que lo activa permanece cerrado. Se acredita recorrido LAB, no requisito integral productivo.",
+    "bloqueo": null,
+    "aceptacion_externa": "Inicio técnico acreditado con configuración explícita LAB. La activación productiva requiere consentimiento institucional aprobado y configuración del operador.",
     "tests": [
       "tests/integration/test_main_finish.py::test_vertical_principal_escenario_progreso_respuestas_fin_sin_notas",
       "tests/integration/test_main_finish.py::test_cierre_confirma_vencimiento_que_get_no_persistio",
@@ -3575,30 +3612,30 @@
       },
       {
         "caso": "PM-RF-23-09",
-        "nombre": "PM-RF-23-09 | LAB AISLADA — documento sintético versionado",
+        "nombre": "PM-RF-23-09 | MAIN configurado LAB — documento sintético versionado",
         "metodo": "GET",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
         "esperado": 200
       },
       {
         "caso": "PM-RF-23-10",
-        "nombre": "PM-RF-23-10 | LAB AISLADA — aceptación explícita LAB",
+        "nombre": "PM-RF-23-10 | MAIN configurado LAB — aceptación explícita LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
         "esperado": 200
       },
       {
         "caso": "PM-RF-23-11",
-        "nombre": "PM-RF-23-11 | LAB AISLADA — inicio transaccional LAB",
+        "nombre": "PM-RF-23-11 | MAIN configurado LAB — inicio transaccional LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 201
       },
       {
         "caso": "PM-RF-23-12",
-        "nombre": "PM-RF-23-12 | LAB AISLADA — inicio repetido sin duplicados",
+        "nombre": "PM-RF-23-12 | MAIN configurado LAB — inicio repetido sin duplicados",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 409
       },
       {
@@ -3748,7 +3785,8 @@
     "nombre": "Evaluar incompletos y ausencias",
     "fuente": "RF-24 Evaluación Evaluar incompletos y ausencias El sistema calcula la nota parcial de quien no termina y asigna cero a cada pregunta de quien no participa, aplicando las reglas de la rúbrica.",
     "modo": "reportes",
-    "bloqueo": "Ausencia explícita y parcial técnicos demostrables; políticas propuestas no se presentan como aprobación institucional ni ausencia inferida.",
+    "bloqueo": null,
+    "aceptacion_externa": "Evaluación técnica por orden docente confirmada. No se atribuye a la profesora la política técnica del equipo.",
     "tests": [
       "tests/integration/test_academic_cycle_http.py::test_publicacion_explicita_idempotente_y_lectura_privada",
       "tests/integration/test_academic_cycle_http.py::test_ausencia_explicita_sin_participacion_ni_intento_rectificacion_historica",
@@ -3907,7 +3945,8 @@
     "nombre": "Autorizar repetición excepcional",
     "fuente": "RF-25 Participación Autorizar repetición excepcional El sistema impide repetir una participación registrada, salvo autorización del docente creador del caso; tampoco permite participar en una sesión finalizada.",
     "modo": "principal",
-    "bloqueo": "Permiso individual de un uso disponible; consumo por inicio productivo y vinculación de caso distinto siguen pendientes.",
+    "bloqueo": null,
+    "aceptacion_externa": "MVP confirmado para el mismo caso y versión histórica, permiso individual de un uso. Vínculos entre casos distintos fuera de este alcance. Activación productiva condicionada al consentimiento institucional.",
     "tests": [
       "tests/integration/test_academic_cycle_http.py::test_publicacion_explicita_idempotente_y_lectura_privada",
       "tests/integration/test_academic_cycle_http.py::test_ausencia_explicita_sin_participacion_ni_intento_rectificacion_historica",
@@ -3986,30 +4025,30 @@
       },
       {
         "caso": "PM-RF-25-09",
-        "nombre": "PM-RF-25-09 | LAB AISLADA — documento sintético versionado",
+        "nombre": "PM-RF-25-09 | MAIN configurado LAB — documento sintético versionado",
         "metodo": "GET",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
         "esperado": 200
       },
       {
         "caso": "PM-RF-25-10",
-        "nombre": "PM-RF-25-10 | LAB AISLADA — aceptación explícita LAB",
+        "nombre": "PM-RF-25-10 | MAIN configurado LAB — aceptación explícita LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
         "esperado": 200
       },
       {
         "caso": "PM-RF-25-11",
-        "nombre": "PM-RF-25-11 | LAB AISLADA — inicio transaccional LAB",
+        "nombre": "PM-RF-25-11 | MAIN configurado LAB — inicio transaccional LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 201
       },
       {
         "caso": "PM-RF-25-12",
-        "nombre": "PM-RF-25-12 | LAB AISLADA — inicio repetido sin duplicados",
+        "nombre": "PM-RF-25-12 | MAIN configurado LAB — inicio repetido sin duplicados",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 409
       },
       {
@@ -4154,23 +4193,58 @@
       },
       {
         "caso": "PM-RF-25-33",
-        "nombre": "PM-RF-25-33 | Autorizar permiso de repetición individual",
+        "nombre": "PM-RF-25-33 | Rechazar autorización por estudiante",
         "metodo": "POST",
         "ruta": "{{base_url}}/api/v1/identity/excepciones/repeticiones",
-        "esperado": 201
+        "esperado": 403
       },
       {
         "caso": "PM-RF-25-34",
-        "nombre": "PM-RF-25-34 | Repetir autorización sin duplicar permiso",
+        "nombre": "PM-RF-25-34 | Autorizar permiso individual mismo caso",
         "metodo": "POST",
         "ruta": "{{base_url}}/api/v1/identity/excepciones/repeticiones",
         "esperado": 201
       },
       {
         "caso": "PM-RF-25-35",
-        "nombre": "PM-RF-25-35 | Rechazar autorización por estudiante",
+        "nombre": "PM-RF-25-35 | Recuperar permiso sin duplicarlo",
         "metodo": "POST",
         "ruta": "{{base_url}}/api/v1/identity/excepciones/repeticiones",
+        "esperado": 201
+      },
+      {
+        "caso": "PM-RF-25-36",
+        "nombre": "PM-RF-25-36 | Consumir permiso e iniciar repetición histórica",
+        "metodo": "POST",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "esperado": 201
+      },
+      {
+        "caso": "PM-RF-25-37",
+        "nombre": "PM-RF-25-37 | No duplicar intento con permiso consumido",
+        "metodo": "POST",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "esperado": 409
+      },
+      {
+        "caso": "PM-RF-25-38",
+        "nombre": "PM-RF-25-38 | Reanudar repetición privada",
+        "metodo": "GET",
+        "ruta": "{{base_url}}/api/v1/attempts/{{rf_repeticion}}/current-scenario",
+        "esperado": 200
+      },
+      {
+        "caso": "PM-RF-25-39",
+        "nombre": "PM-RF-25-39 | Cerrar repetición autorizada",
+        "metodo": "POST",
+        "ruta": "{{base_url}}/api/v1/attempts/{{rf_repeticion}}/finish",
+        "esperado": 200
+      },
+      {
+        "caso": "PM-RF-25-40",
+        "nombre": "PM-RF-25-40 | Rechazar reutilización tras cierre",
+        "metodo": "POST",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 403
       }
     ]
@@ -4181,6 +4255,7 @@
     "fuente": "RF-26 Seguimiento Registrar feedback general docente El docente añade una valoración general a la participación individual del estudiante.",
     "modo": "principal",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_teacher_followup_http.py::test_docente_consulta_solo_su_ambito_con_intentos_y_referencias_exactas",
       "tests/integration/test_teacher_followup_http.py::test_feedback_se_crea_edita_y_recupera_sin_duplicar_desde_otra_sesion",
@@ -4252,30 +4327,30 @@
       },
       {
         "caso": "PM-RF-26-09",
-        "nombre": "PM-RF-26-09 | LAB AISLADA — documento sintético versionado",
+        "nombre": "PM-RF-26-09 | MAIN configurado LAB — documento sintético versionado",
         "metodo": "GET",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
         "esperado": 200
       },
       {
         "caso": "PM-RF-26-10",
-        "nombre": "PM-RF-26-10 | LAB AISLADA — aceptación explícita LAB",
+        "nombre": "PM-RF-26-10 | MAIN configurado LAB — aceptación explícita LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+        "ruta": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
         "esperado": 200
       },
       {
         "caso": "PM-RF-26-11",
-        "nombre": "PM-RF-26-11 | LAB AISLADA — inicio transaccional LAB",
+        "nombre": "PM-RF-26-11 | MAIN configurado LAB — inicio transaccional LAB",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 201
       },
       {
         "caso": "PM-RF-26-12",
-        "nombre": "PM-RF-26-12 | LAB AISLADA — inicio repetido sin duplicados",
+        "nombre": "PM-RF-26-12 | MAIN configurado LAB — inicio repetido sin duplicados",
         "metodo": "POST",
-        "ruta": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+        "ruta": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
         "esperado": 409
       },
       {
@@ -4468,6 +4543,7 @@
     "fuente": "RF-27 Notificaciones Notificar calificaciones y feedback El sistema notifica al estudiante su nota y envía una notificación dentro del sistema cuando el docente agregue retroalimentación.",
     "modo": "reportes",
     "bloqueo": null,
+    "aceptacion_externa": null,
     "tests": [
       "tests/integration/test_academic_cycle_http.py::test_publicacion_explicita_idempotente_y_lectura_privada",
       "tests/integration/test_academic_cycle_http.py::test_ausencia_explicita_sin_participacion_ni_intento_rectificacion_historica",

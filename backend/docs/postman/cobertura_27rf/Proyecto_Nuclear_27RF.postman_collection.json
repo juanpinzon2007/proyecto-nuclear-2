@@ -7697,7 +7697,7 @@
     },
     {
       "name": "RF-10 — Responder y modificar respuestas",
-      "description": "RF-10 Participación Responder y modificar respuestas El estudiante consulta los contextos académicos, responde preguntas y puede volver entre ellas para cambiar sus selecciones hasta finalizar.\n\nPrecondición: preparar laboratorio principal mediante preparar-27rf.ps1 -RF RF-10. No usar environment de otra carpeta. El PDF RF-10/RN-10/11 permite modificar; la profesora aclaró después respuestas inmutables. Se prueba la inmutabilidad vigente ya confirmada; faltan conciliar el documento y definir recorridos con varias preguntas/ciclos/revisitas, no reabrir PUT.",
+      "description": "RF-10 Participación Responder y modificar respuestas El estudiante consulta los contextos académicos, responde preguntas y puede volver entre ellas para cambiar sus selecciones hasta finalizar.\n\nPrecondición: preparar laboratorio principal mediante preparar-27rf.ps1 -RF RF-10. No usar environment de otra carpeta. MVP confirmado por el equipo, una pregunta por escena, sin ciclos alcanzables. Conciliar el documento original con la inmutabilidad posterior.",
       "item": [
         {
           "name": "PM-RF-10-01 | MAIN — login admin",
@@ -8165,7 +8165,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-10-09 | LAB AISLADA — documento sintético versionado",
+          "name": "PM-RF-10-09 | MAIN configurado LAB — documento sintético versionado",
           "request": {
             "method": "GET",
             "header": [
@@ -8174,7 +8174,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -8185,7 +8185,7 @@
                 }
               ]
             },
-            "description": "RF-10; caso HTTP nuevo PM-RF-10-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+            "description": "RF-10; caso HTTP nuevo PM-RF-10-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
           },
           "event": [
             {
@@ -8218,7 +8218,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-10-10 | LAB AISLADA — aceptación explícita LAB",
+          "name": "PM-RF-10-10 | MAIN configurado LAB — aceptación explícita LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -8231,7 +8231,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -8242,7 +8242,7 @@
                 }
               ]
             },
-            "description": "RF-10; caso HTTP nuevo PM-RF-10-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-10; caso HTTP nuevo PM-RF-10-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_version_documento\": {{id_version_documento}},\n  \"referencia\": \"{{referencia}}\",\n  \"huella\": \"{{huella}}\",\n  \"acepta\": true\n}",
@@ -8284,7 +8284,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-10-11 | LAB AISLADA — inicio transaccional LAB",
+          "name": "PM-RF-10-11 | MAIN configurado LAB — inicio transaccional LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -8297,7 +8297,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -8308,7 +8308,7 @@
                 }
               ]
             },
-            "description": "RF-10; caso HTTP nuevo PM-RF-10-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-10; caso HTTP nuevo PM-RF-10-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -8350,7 +8350,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-10-12 | LAB AISLADA — inicio repetido sin duplicados",
+          "name": "PM-RF-10-12 | MAIN configurado LAB — inicio repetido sin duplicados",
           "request": {
             "method": "POST",
             "header": [
@@ -8363,7 +8363,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -8374,7 +8374,7 @@
                 }
               ]
             },
-            "description": "RF-10; caso HTTP nuevo PM-RF-10-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-10; caso HTTP nuevo PM-RF-10-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -8565,6 +8565,7 @@
                   "const q=pm.response.json().pregunta; pm.test('Pregunta habilitada',()=>pm.expect(q).to.be.an('object')); if(q){pm.environment.set('id_decision',q.id);pm.environment.set('id_opcion',q.opciones[0].id);}",
                   "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,15));",
                   "const qp=pm.response.json().pregunta;pm.test('Otra alternativa real disponible',()=>pm.expect(qp.opciones.length).to.be.above(1));pm.environment.set('primera_decision_id',qp.id);pm.environment.set('primera_opcion_id',qp.opciones[0].id);pm.environment.set('opcion_alternativa_id',qp.opciones[1].id);",
+                  "pm.environment.set('rf_escenario_inicial',pm.response.json().id_escenario);",
                   "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,15));"
                 ]
               }
@@ -10046,7 +10047,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-11-09 | LAB AISLADA — documento sintético versionado",
+          "name": "PM-RF-11-09 | MAIN configurado LAB — documento sintético versionado",
           "request": {
             "method": "GET",
             "header": [
@@ -10055,7 +10056,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -10066,7 +10067,7 @@
                 }
               ]
             },
-            "description": "RF-11; caso HTTP nuevo PM-RF-11-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+            "description": "RF-11; caso HTTP nuevo PM-RF-11-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
           },
           "event": [
             {
@@ -10099,7 +10100,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-11-10 | LAB AISLADA — aceptación explícita LAB",
+          "name": "PM-RF-11-10 | MAIN configurado LAB — aceptación explícita LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -10112,7 +10113,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -10123,7 +10124,7 @@
                 }
               ]
             },
-            "description": "RF-11; caso HTTP nuevo PM-RF-11-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-11; caso HTTP nuevo PM-RF-11-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_version_documento\": {{id_version_documento}},\n  \"referencia\": \"{{referencia}}\",\n  \"huella\": \"{{huella}}\",\n  \"acepta\": true\n}",
@@ -10165,7 +10166,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-11-11 | LAB AISLADA — inicio transaccional LAB",
+          "name": "PM-RF-11-11 | MAIN configurado LAB — inicio transaccional LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -10178,7 +10179,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -10189,7 +10190,7 @@
                 }
               ]
             },
-            "description": "RF-11; caso HTTP nuevo PM-RF-11-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-11; caso HTTP nuevo PM-RF-11-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -10231,7 +10232,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-11-12 | LAB AISLADA — inicio repetido sin duplicados",
+          "name": "PM-RF-11-12 | MAIN configurado LAB — inicio repetido sin duplicados",
           "request": {
             "method": "POST",
             "header": [
@@ -10244,7 +10245,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -10255,7 +10256,7 @@
                 }
               ]
             },
-            "description": "RF-11; caso HTTP nuevo PM-RF-11-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-11; caso HTTP nuevo PM-RF-11-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -10446,6 +10447,7 @@
                   "const q=pm.response.json().pregunta; pm.test('Pregunta habilitada',()=>pm.expect(q).to.be.an('object')); if(q){pm.environment.set('id_decision',q.id);pm.environment.set('id_opcion',q.opciones[0].id);}",
                   "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,15));",
                   "const qp=pm.response.json().pregunta;pm.test('Otra alternativa real disponible',()=>pm.expect(qp.opciones.length).to.be.above(1));pm.environment.set('primera_decision_id',qp.id);pm.environment.set('primera_opcion_id',qp.opciones[0].id);pm.environment.set('opcion_alternativa_id',qp.opciones[1].id);",
+                  "pm.environment.set('rf_escenario_inicial',pm.response.json().id_escenario);",
                   "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,15));"
                 ]
               }
@@ -11459,7 +11461,7 @@
     },
     {
       "name": "RF-12 — Registrar inicio y fin de participación",
-      "description": "RF-12 Trazabilidad Registrar inicio y fin de participación Cada participación guarda inicio, fin, calificación final y retroalimentación por pregunta.\n\nPrecondición: preparar laboratorio principal mediante preparar-27rf.ps1 -RF RF-12. No usar environment de otra carpeta. Composición main condicionada presente; faltan documento institucional aprobado y políticas productivas definitivas de provisión/inicio. El recorrido positivo con puertos LAB no acredita disponibilidad productiva ni feedback por pregunta completo.\n\nActualización fase 1: consentimiento e inicio están registrados en app.main, cerrados sin aprobación/políticas productivas. Complemento ejecutable: ../participation_fase1/Proyecto_Nuclear_fase1.postman_collection.json; proveedores positivos exclusivamente LAB. Ver backend/docs/PARTICIPATION_FASE1_MAIN_CONDICIONADO.md. RF sigue BLOQUEADO.",
+      "description": "RF-12 Trazabilidad Registrar inicio y fin de participación Cada participación guarda inicio, fin, calificación final y retroalimentación por pregunta.\n\nPrecondición: preparar laboratorio principal mediante preparar-27rf.ps1 -RF RF-12. No usar environment de otra carpeta. Documento institucional de consentimiento todavía sin aprobación verificable. Main solo se habilita con paquetes confiables del operador; el paquete sintético se limita a LABORATORIO.",
       "item": [
         {
           "name": "PM-RF-12-01 | MAIN — login admin",
@@ -11927,7 +11929,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-12-09 | LAB AISLADA — documento sintético versionado",
+          "name": "PM-RF-12-09 | MAIN configurado LAB — documento sintético versionado",
           "request": {
             "method": "GET",
             "header": [
@@ -11936,7 +11938,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -11947,7 +11949,7 @@
                 }
               ]
             },
-            "description": "RF-12; caso HTTP nuevo PM-RF-12-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+            "description": "RF-12; caso HTTP nuevo PM-RF-12-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
           },
           "event": [
             {
@@ -11980,7 +11982,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-12-10 | LAB AISLADA — aceptación explícita LAB",
+          "name": "PM-RF-12-10 | MAIN configurado LAB — aceptación explícita LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -11993,7 +11995,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -12004,7 +12006,7 @@
                 }
               ]
             },
-            "description": "RF-12; caso HTTP nuevo PM-RF-12-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-12; caso HTTP nuevo PM-RF-12-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_version_documento\": {{id_version_documento}},\n  \"referencia\": \"{{referencia}}\",\n  \"huella\": \"{{huella}}\",\n  \"acepta\": true\n}",
@@ -12046,7 +12048,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-12-11 | LAB AISLADA — inicio transaccional LAB",
+          "name": "PM-RF-12-11 | MAIN configurado LAB — inicio transaccional LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -12059,7 +12061,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -12070,7 +12072,7 @@
                 }
               ]
             },
-            "description": "RF-12; caso HTTP nuevo PM-RF-12-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-12; caso HTTP nuevo PM-RF-12-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -12112,7 +12114,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-12-12 | LAB AISLADA — inicio repetido sin duplicados",
+          "name": "PM-RF-12-12 | MAIN configurado LAB — inicio repetido sin duplicados",
           "request": {
             "method": "POST",
             "header": [
@@ -12125,7 +12127,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -12136,7 +12138,7 @@
                 }
               ]
             },
-            "description": "RF-12; caso HTTP nuevo PM-RF-12-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-12; caso HTTP nuevo PM-RF-12-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -12327,6 +12329,7 @@
                   "const q=pm.response.json().pregunta; pm.test('Pregunta habilitada',()=>pm.expect(q).to.be.an('object')); if(q){pm.environment.set('id_decision',q.id);pm.environment.set('id_opcion',q.opciones[0].id);}",
                   "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,15));",
                   "const qp=pm.response.json().pregunta;pm.test('Otra alternativa real disponible',()=>pm.expect(qp.opciones.length).to.be.above(1));pm.environment.set('primera_decision_id',qp.id);pm.environment.set('primera_opcion_id',qp.opciones[0].id);pm.environment.set('opcion_alternativa_id',qp.opciones[1].id);",
+                  "pm.environment.set('rf_escenario_inicial',pm.response.json().id_escenario);",
                   "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,15));"
                 ]
               }
@@ -13335,12 +13338,96 @@
             }
           ],
           "response": []
+        },
+        {
+          "name": "PM-RF-12-33 | Documento sin JWT rechazado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+            "description": "RF-12; caso HTTP nuevo PM-RF-12-33 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 401. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 401',()=>pm.expect(pm.response.code).to.eql(401));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===401)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,33));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-12'||(Number(pm.environment.get('rf_paso'))||0)<32){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-12 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-12-34 | Documento de otro estudiante rechazado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ajeno}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "RF-12; caso HTTP nuevo PM-RF-12-34 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 403. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 403',()=>pm.expect(pm.response.code).to.eql(403));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===403)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,34));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-12'||(Number(pm.environment.get('rf_paso'))||0)<33){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-12 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
       "name": "RF-13 — Calcular nota con rúbrica",
-      "description": "RF-13 Evaluación Calcular nota con rúbrica El sistema calcula y almacena la calificación de cada intento a partir de las respuestas y de la rúbrica asociada.\n\nPrecondición: preparar laboratorio principal mediante preparar-27rf.ps1 -RF RF-13. No usar environment de otra carpeta. Motor y persistencia técnicos acreditables; no se atribuye aprobación institucional a política del equipo ni se declara cobertura de todo grafo no soportado.",
+      "description": "RF-13 Evaluación Calcular nota con rúbrica El sistema calcula y almacena la calificación de cada intento a partir de las respuestas y de la rúbrica asociada.\n\nPrecondición: preparar laboratorio principal mediante preparar-27rf.ps1 -RF RF-13. No usar environment de otra carpeta. Orden docente y recuperación confirmadas por el equipo. La fórmula del motor conserva su procedencia y requiere conciliación documental académica.",
       "item": [
         {
           "name": "PM-RF-13-01 | MAIN — login admin",
@@ -13808,7 +13895,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-13-09 | LAB AISLADA — documento sintético versionado",
+          "name": "PM-RF-13-09 | MAIN configurado LAB — documento sintético versionado",
           "request": {
             "method": "GET",
             "header": [
@@ -13817,7 +13904,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -13828,7 +13915,7 @@
                 }
               ]
             },
-            "description": "RF-13; caso HTTP nuevo PM-RF-13-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+            "description": "RF-13; caso HTTP nuevo PM-RF-13-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
           },
           "event": [
             {
@@ -13861,7 +13948,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-13-10 | LAB AISLADA — aceptación explícita LAB",
+          "name": "PM-RF-13-10 | MAIN configurado LAB — aceptación explícita LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -13874,7 +13961,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -13885,7 +13972,7 @@
                 }
               ]
             },
-            "description": "RF-13; caso HTTP nuevo PM-RF-13-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-13; caso HTTP nuevo PM-RF-13-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_version_documento\": {{id_version_documento}},\n  \"referencia\": \"{{referencia}}\",\n  \"huella\": \"{{huella}}\",\n  \"acepta\": true\n}",
@@ -13927,7 +14014,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-13-11 | LAB AISLADA — inicio transaccional LAB",
+          "name": "PM-RF-13-11 | MAIN configurado LAB — inicio transaccional LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -13940,7 +14027,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -13951,7 +14038,7 @@
                 }
               ]
             },
-            "description": "RF-13; caso HTTP nuevo PM-RF-13-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-13; caso HTTP nuevo PM-RF-13-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -13993,7 +14080,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-13-12 | LAB AISLADA — inicio repetido sin duplicados",
+          "name": "PM-RF-13-12 | MAIN configurado LAB — inicio repetido sin duplicados",
           "request": {
             "method": "POST",
             "header": [
@@ -14006,7 +14093,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -14017,7 +14104,7 @@
                 }
               ]
             },
-            "description": "RF-13; caso HTTP nuevo PM-RF-13-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-13; caso HTTP nuevo PM-RF-13-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -14208,6 +14295,7 @@
                   "const q=pm.response.json().pregunta; pm.test('Pregunta habilitada',()=>pm.expect(q).to.be.an('object')); if(q){pm.environment.set('id_decision',q.id);pm.environment.set('id_opcion',q.opciones[0].id);}",
                   "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,15));",
                   "const qp=pm.response.json().pregunta;pm.test('Otra alternativa real disponible',()=>pm.expect(qp.opciones.length).to.be.above(1));pm.environment.set('primera_decision_id',qp.id);pm.environment.set('primera_opcion_id',qp.opciones[0].id);pm.environment.set('opcion_alternativa_id',qp.opciones[1].id);",
+                  "pm.environment.set('rf_escenario_inicial',pm.response.json().id_escenario);",
                   "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,15));"
                 ]
               }
@@ -16715,7 +16803,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-15-09 | LAB AISLADA — documento sintético versionado",
+          "name": "PM-RF-15-09 | MAIN configurado LAB — documento sintético versionado",
           "request": {
             "method": "GET",
             "header": [
@@ -16724,7 +16812,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -16735,7 +16823,7 @@
                 }
               ]
             },
-            "description": "RF-15; caso HTTP nuevo PM-RF-15-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+            "description": "RF-15; caso HTTP nuevo PM-RF-15-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
           },
           "event": [
             {
@@ -16768,7 +16856,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-15-10 | LAB AISLADA — aceptación explícita LAB",
+          "name": "PM-RF-15-10 | MAIN configurado LAB — aceptación explícita LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -16781,7 +16869,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -16792,7 +16880,7 @@
                 }
               ]
             },
-            "description": "RF-15; caso HTTP nuevo PM-RF-15-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-15; caso HTTP nuevo PM-RF-15-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_version_documento\": {{id_version_documento}},\n  \"referencia\": \"{{referencia}}\",\n  \"huella\": \"{{huella}}\",\n  \"acepta\": true\n}",
@@ -16834,7 +16922,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-15-11 | LAB AISLADA — inicio transaccional LAB",
+          "name": "PM-RF-15-11 | MAIN configurado LAB — inicio transaccional LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -16847,7 +16935,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -16858,7 +16946,7 @@
                 }
               ]
             },
-            "description": "RF-15; caso HTTP nuevo PM-RF-15-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-15; caso HTTP nuevo PM-RF-15-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -16900,7 +16988,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-15-12 | LAB AISLADA — inicio repetido sin duplicados",
+          "name": "PM-RF-15-12 | MAIN configurado LAB — inicio repetido sin duplicados",
           "request": {
             "method": "POST",
             "header": [
@@ -16913,7 +17001,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -16924,7 +17012,7 @@
                 }
               ]
             },
-            "description": "RF-15; caso HTTP nuevo PM-RF-15-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-15; caso HTTP nuevo PM-RF-15-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -17115,6 +17203,7 @@
                   "const q=pm.response.json().pregunta; pm.test('Pregunta habilitada',()=>pm.expect(q).to.be.an('object')); if(q){pm.environment.set('id_decision',q.id);pm.environment.set('id_opcion',q.opciones[0].id);}",
                   "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,15));",
                   "const qp=pm.response.json().pregunta;pm.test('Otra alternativa real disponible',()=>pm.expect(qp.opciones.length).to.be.above(1));pm.environment.set('primera_decision_id',qp.id);pm.environment.set('primera_opcion_id',qp.opciones[0].id);pm.environment.set('opcion_alternativa_id',qp.opciones[1].id);",
+                  "pm.environment.set('rf_escenario_inicial',pm.response.json().id_escenario);",
                   "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,15));"
                 ]
               }
@@ -24236,7 +24325,7 @@
     },
     {
       "name": "RF-23 — Controlar tiempo máximo",
-      "description": "RF-23 Participación Controlar tiempo máximo Al iniciar la participación, el sistema inicia el contador, aplica el límite máximo y conserva las respuestas para evaluación.\n\nPrecondición: preparar laboratorio principal mediante preparar-27rf.ps1 -RF RF-23. No usar environment de otra carpeta. Contador y vencimiento de intentos existentes tienen pruebas; el inicio productivo que lo activa permanece cerrado. Se acredita recorrido LAB, no requisito integral productivo.\n\nActualización fase 1: consentimiento e inicio están registrados en app.main, cerrados sin aprobación/políticas productivas. Complemento ejecutable: ../participation_fase1/Proyecto_Nuclear_fase1.postman_collection.json; proveedores positivos exclusivamente LAB. Ver backend/docs/PARTICIPATION_FASE1_MAIN_CONDICIONADO.md. RF sigue BLOQUEADO.",
+      "description": "RF-23 Participación Controlar tiempo máximo Al iniciar la participación, el sistema inicia el contador, aplica el límite máximo y conserva las respuestas para evaluación.\n\nPrecondición: preparar laboratorio principal mediante preparar-27rf.ps1 -RF RF-23. No usar environment de otra carpeta. Inicio técnico acreditado con configuración explícita LAB. La activación productiva requiere consentimiento institucional aprobado y configuración del operador.",
       "item": [
         {
           "name": "PM-RF-23-01 | MAIN — login admin",
@@ -24704,7 +24793,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-23-09 | LAB AISLADA — documento sintético versionado",
+          "name": "PM-RF-23-09 | MAIN configurado LAB — documento sintético versionado",
           "request": {
             "method": "GET",
             "header": [
@@ -24713,7 +24802,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -24724,7 +24813,7 @@
                 }
               ]
             },
-            "description": "RF-23; caso HTTP nuevo PM-RF-23-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+            "description": "RF-23; caso HTTP nuevo PM-RF-23-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
           },
           "event": [
             {
@@ -24757,7 +24846,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-23-10 | LAB AISLADA — aceptación explícita LAB",
+          "name": "PM-RF-23-10 | MAIN configurado LAB — aceptación explícita LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -24770,7 +24859,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -24781,7 +24870,7 @@
                 }
               ]
             },
-            "description": "RF-23; caso HTTP nuevo PM-RF-23-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-23; caso HTTP nuevo PM-RF-23-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_version_documento\": {{id_version_documento}},\n  \"referencia\": \"{{referencia}}\",\n  \"huella\": \"{{huella}}\",\n  \"acepta\": true\n}",
@@ -24823,7 +24912,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-23-11 | LAB AISLADA — inicio transaccional LAB",
+          "name": "PM-RF-23-11 | MAIN configurado LAB — inicio transaccional LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -24836,7 +24925,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -24847,7 +24936,7 @@
                 }
               ]
             },
-            "description": "RF-23; caso HTTP nuevo PM-RF-23-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-23; caso HTTP nuevo PM-RF-23-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -24889,7 +24978,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-23-12 | LAB AISLADA — inicio repetido sin duplicados",
+          "name": "PM-RF-23-12 | MAIN configurado LAB — inicio repetido sin duplicados",
           "request": {
             "method": "POST",
             "header": [
@@ -24902,7 +24991,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -24913,7 +25002,7 @@
                 }
               ]
             },
-            "description": "RF-23; caso HTTP nuevo PM-RF-23-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-23; caso HTTP nuevo PM-RF-23-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -25104,6 +25193,7 @@
                   "const q=pm.response.json().pregunta; pm.test('Pregunta habilitada',()=>pm.expect(q).to.be.an('object')); if(q){pm.environment.set('id_decision',q.id);pm.environment.set('id_opcion',q.opciones[0].id);}",
                   "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,15));",
                   "const qp=pm.response.json().pregunta;pm.test('Otra alternativa real disponible',()=>pm.expect(qp.opciones.length).to.be.above(1));pm.environment.set('primera_decision_id',qp.id);pm.environment.set('primera_opcion_id',qp.opciones[0].id);pm.environment.set('opcion_alternativa_id',qp.opciones[1].id);",
+                  "pm.environment.set('rf_escenario_inicial',pm.response.json().id_escenario);",
                   "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,15));"
                 ]
               }
@@ -26117,7 +26207,7 @@
     },
     {
       "name": "RF-24 — Evaluar incompletos y ausencias",
-      "description": "RF-24 Evaluación Evaluar incompletos y ausencias El sistema calcula la nota parcial de quien no termina y asigna cero a cada pregunta de quien no participa, aplicando las reglas de la rúbrica.\n\nPrecondición: preparar laboratorio reportes mediante preparar-27rf.ps1 -RF RF-24. No usar environment de otra carpeta. Ausencia explícita y parcial técnicos demostrables; políticas propuestas no se presentan como aprobación institucional ni ausencia inferida.",
+      "description": "RF-24 Evaluación Evaluar incompletos y ausencias El sistema calcula la nota parcial de quien no termina y asigna cero a cada pregunta de quien no participa, aplicando las reglas de la rúbrica.\n\nPrecondición: preparar laboratorio reportes mediante preparar-27rf.ps1 -RF RF-24. No usar environment de otra carpeta. Evaluación técnica por orden docente confirmada. No se atribuye a la profesora la política técnica del equipo.",
       "item": [
         {
           "name": "PM-RF-24-01 | MAIN — login docente",
@@ -27143,7 +27233,7 @@
     },
     {
       "name": "RF-25 — Autorizar repetición excepcional",
-      "description": "RF-25 Participación Autorizar repetición excepcional El sistema impide repetir una participación registrada, salvo autorización del docente creador del caso; tampoco permite participar en una sesión finalizada.\n\nPrecondición: preparar laboratorio principal mediante preparar-27rf.ps1 -RF RF-25. No usar environment de otra carpeta. Permiso individual de un uso disponible; consumo por inicio productivo y vinculación de caso distinto siguen pendientes.\n\nActualización fase 1: consentimiento e inicio están registrados en app.main, cerrados sin aprobación/políticas productivas. Complemento ejecutable: ../participation_fase1/Proyecto_Nuclear_fase1.postman_collection.json; proveedores positivos exclusivamente LAB. Ver backend/docs/PARTICIPATION_FASE1_MAIN_CONDICIONADO.md. RF sigue BLOQUEADO.",
+      "description": "RF-25 Participación Autorizar repetición excepcional El sistema impide repetir una participación registrada, salvo autorización del docente creador del caso; tampoco permite participar en una sesión finalizada.\n\nPrecondición: preparar laboratorio principal mediante preparar-27rf.ps1 -RF RF-25. No usar environment de otra carpeta. MVP confirmado para el mismo caso y versión histórica, permiso individual de un uso. Vínculos entre casos distintos fuera de este alcance. Activación productiva condicionada al consentimiento institucional.",
       "item": [
         {
           "name": "PM-RF-25-01 | MAIN — login admin",
@@ -27611,7 +27701,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-25-09 | LAB AISLADA — documento sintético versionado",
+          "name": "PM-RF-25-09 | MAIN configurado LAB — documento sintético versionado",
           "request": {
             "method": "GET",
             "header": [
@@ -27620,7 +27710,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -27631,7 +27721,7 @@
                 }
               ]
             },
-            "description": "RF-25; caso HTTP nuevo PM-RF-25-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+            "description": "RF-25; caso HTTP nuevo PM-RF-25-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
           },
           "event": [
             {
@@ -27664,7 +27754,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-25-10 | LAB AISLADA — aceptación explícita LAB",
+          "name": "PM-RF-25-10 | MAIN configurado LAB — aceptación explícita LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -27677,7 +27767,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -27688,7 +27778,7 @@
                 }
               ]
             },
-            "description": "RF-25; caso HTTP nuevo PM-RF-25-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-25; caso HTTP nuevo PM-RF-25-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_version_documento\": {{id_version_documento}},\n  \"referencia\": \"{{referencia}}\",\n  \"huella\": \"{{huella}}\",\n  \"acepta\": true\n}",
@@ -27730,7 +27820,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-25-11 | LAB AISLADA — inicio transaccional LAB",
+          "name": "PM-RF-25-11 | MAIN configurado LAB — inicio transaccional LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -27743,7 +27833,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -27754,7 +27844,7 @@
                 }
               ]
             },
-            "description": "RF-25; caso HTTP nuevo PM-RF-25-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-25; caso HTTP nuevo PM-RF-25-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -27796,7 +27886,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-25-12 | LAB AISLADA — inicio repetido sin duplicados",
+          "name": "PM-RF-25-12 | MAIN configurado LAB — inicio repetido sin duplicados",
           "request": {
             "method": "POST",
             "header": [
@@ -27809,7 +27899,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -27820,7 +27910,7 @@
                 }
               ]
             },
-            "description": "RF-25; caso HTTP nuevo PM-RF-25-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-25; caso HTTP nuevo PM-RF-25-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -28011,6 +28101,7 @@
                   "const q=pm.response.json().pregunta; pm.test('Pregunta habilitada',()=>pm.expect(q).to.be.an('object')); if(q){pm.environment.set('id_decision',q.id);pm.environment.set('id_opcion',q.opciones[0].id);}",
                   "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,15));",
                   "const qp=pm.response.json().pregunta;pm.test('Otra alternativa real disponible',()=>pm.expect(qp.opciones.length).to.be.above(1));pm.environment.set('primera_decision_id',qp.id);pm.environment.set('primera_opcion_id',qp.opciones[0].id);pm.environment.set('opcion_alternativa_id',qp.opciones[1].id);",
+                  "pm.environment.set('rf_escenario_inicial',pm.response.json().id_escenario);",
                   "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,15));"
                 ]
               }
@@ -29021,7 +29112,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-25-33 | Autorizar permiso de repetición individual",
+          "name": "PM-RF-25-33 | Rechazar autorización por estudiante",
           "request": {
             "method": "POST",
             "header": [
@@ -29040,7 +29131,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token_docente}}",
+                  "value": "{{token_estudiante}}",
                   "type": "string"
                 }
               ]
@@ -29054,7 +29145,7 @@
                 }
               }
             },
-            "description": "RF-25; caso HTTP nuevo PM-RF-25-33 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+            "description": "RF-25; caso HTTP nuevo PM-RF-25-33 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 403. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
           },
           "event": [
             {
@@ -29062,10 +29153,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('HTTP exacto 201',()=>pm.expect(pm.response.code).to.eql(201));",
+                  "pm.test('HTTP exacto 403',()=>pm.expect(pm.response.code).to.eql(403));",
                   "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
-                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
-                  "if(pm.response.code===201)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,33));"
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===403)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,33));"
                 ]
               }
             },
@@ -29081,7 +29172,7 @@
           ]
         },
         {
-          "name": "PM-RF-25-34 | Repetir autorización sin duplicar permiso",
+          "name": "PM-RF-25-34 | Autorizar permiso individual mismo caso",
           "request": {
             "method": "POST",
             "header": [
@@ -29125,6 +29216,7 @@
                   "pm.test('HTTP exacto 201',()=>pm.expect(pm.response.code).to.eql(201));",
                   "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
                   "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.environment.set('rf_permiso',pm.response.json().id_permiso_extra);",
                   "if(pm.response.code===201)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,34));"
                 ]
               }
@@ -29141,7 +29233,7 @@
           ]
         },
         {
-          "name": "PM-RF-25-35 | Rechazar autorización por estudiante",
+          "name": "PM-RF-25-35 | Recuperar permiso sin duplicarlo",
           "request": {
             "method": "POST",
             "header": [
@@ -29160,7 +29252,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token_estudiante}}",
+                  "value": "{{token_docente}}",
                   "type": "string"
                 }
               ]
@@ -29174,7 +29266,284 @@
                 }
               }
             },
-            "description": "RF-25; caso HTTP nuevo PM-RF-25-35 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 403. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+            "description": "RF-25; caso HTTP nuevo PM-RF-25-35 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 201',()=>pm.expect(pm.response.code).to.eql(201));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.test('Mismo permiso',()=>pm.expect(pm.response.json().id_permiso_extra).to.eql(Number(pm.environment.get('rf_permiso'))));",
+                  "if(pm.response.code===201)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,35));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-25'||(Number(pm.environment.get('rf_paso'))||0)<34){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-25 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-25-36 | Consumir permiso e iniciar repetición histórica",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id_asignacion\":{{id_asignacion}},\"codigo_acceso\":\"{{codigo_estudiante}}\",\"id_consentimiento\":{{id_consentimiento}},\"id_permiso_extra\":{{rf_permiso}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "RF-25; caso HTTP nuevo PM-RF-25-36 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 201',()=>pm.expect(pm.response.code).to.eql(201));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "const j=pm.response.json();pm.environment.set('rf_repeticion',j.id_intento);pm.test('Segundo intento del mismo caso',()=>{pm.expect(j.numero_intento).to.eql(2);pm.expect(j.id_participacion).to.eql(Number(pm.environment.get('id_participacion')));});",
+                  "if(pm.response.code===201)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,36));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-25'||(Number(pm.environment.get('rf_paso'))||0)<35){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-25 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-25-37 | No duplicar intento con permiso consumido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id_asignacion\":{{id_asignacion}},\"codigo_acceso\":\"{{codigo_estudiante}}\",\"id_consentimiento\":{{id_consentimiento}},\"id_permiso_extra\":{{rf_permiso}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "RF-25; caso HTTP nuevo PM-RF-25-37 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 409',()=>pm.expect(pm.response.code).to.eql(409));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===409)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,37));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-25'||(Number(pm.environment.get('rf_paso'))||0)<36){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-25 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-25-38 | Reanudar repetición privada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{rf_repeticion}}/current-scenario",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "RF-25; caso HTTP nuevo PM-RF-25-38 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.test('Mismo escenario histórico inicial',()=>pm.expect(pm.response.json().id_escenario).to.eql(pm.environment.get('rf_escenario_inicial')));",
+                  "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,38));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-25'||(Number(pm.environment.get('rf_paso'))||0)<37){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-25 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-25-39 | Cerrar repetición autorizada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{rf_repeticion}}/finish",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "RF-25; caso HTTP nuevo PM-RF-25-39 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,39));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf_activo')!=='RF-25'||(Number(pm.environment.get('rf_paso'))||0)<38){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-25 y ejecute en orden.');}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PM-RF-25-40 | Rechazar reutilización tras cierre",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id_asignacion\":{{id_asignacion}},\"codigo_acceso\":\"{{codigo_estudiante}}\",\"id_consentimiento\":{{id_consentimiento}},\"id_permiso_extra\":{{rf_permiso}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "RF-25; caso HTTP nuevo PM-RF-25-40 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 403. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
           },
           "event": [
             {
@@ -29185,7 +29554,7 @@
                   "pm.test('HTTP exacto 403',()=>pm.expect(pm.response.code).to.eql(403));",
                   "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
                   "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
-                  "if(pm.response.code===403)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,35));"
+                  "if(pm.response.code===403)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,40));"
                 ]
               }
             },
@@ -29194,7 +29563,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if(pm.environment.get('rf_activo')!=='RF-25'||(Number(pm.environment.get('rf_paso'))||0)<34){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-25 y ejecute en orden.');}"
+                  "if(pm.environment.get('rf_activo')!=='RF-25'||(Number(pm.environment.get('rf_paso'))||0)<39){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-25 y ejecute en orden.');}"
                 ]
               }
             }
@@ -29672,7 +30041,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-26-09 | LAB AISLADA — documento sintético versionado",
+          "name": "PM-RF-26-09 | MAIN configurado LAB — documento sintético versionado",
           "request": {
             "method": "GET",
             "header": [
@@ -29681,7 +30050,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -29692,7 +30061,7 @@
                 }
               ]
             },
-            "description": "RF-26; caso HTTP nuevo PM-RF-26-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
+            "description": "RF-26; caso HTTP nuevo PM-RF-26-09 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Consulta de lectura. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos."
           },
           "event": [
             {
@@ -29725,7 +30094,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-26-10 | LAB AISLADA — aceptación explícita LAB",
+          "name": "PM-RF-26-10 | MAIN configurado LAB — aceptación explícita LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -29738,7 +30107,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
+            "url": "{{base_url}}/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento/aceptacion",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -29749,7 +30118,7 @@
                 }
               ]
             },
-            "description": "RF-26; caso HTTP nuevo PM-RF-26-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-26; caso HTTP nuevo PM-RF-26-10 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 200. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_version_documento\": {{id_version_documento}},\n  \"referencia\": \"{{referencia}}\",\n  \"huella\": \"{{huella}}\",\n  \"acepta\": true\n}",
@@ -29791,7 +30160,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-26-11 | LAB AISLADA — inicio transaccional LAB",
+          "name": "PM-RF-26-11 | MAIN configurado LAB — inicio transaccional LAB",
           "request": {
             "method": "POST",
             "header": [
@@ -29804,7 +30173,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -29815,7 +30184,7 @@
                 }
               ]
             },
-            "description": "RF-26; caso HTTP nuevo PM-RF-26-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-26; caso HTTP nuevo PM-RF-26-11 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 201. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -29857,7 +30226,7 @@
           "response": []
         },
         {
-          "name": "PM-RF-26-12 | LAB AISLADA — inicio repetido sin duplicados",
+          "name": "PM-RF-26-12 | MAIN configurado LAB — inicio repetido sin duplicados",
           "request": {
             "method": "POST",
             "header": [
@@ -29870,7 +30239,7 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{base_url_laboratorio}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
+            "url": "{{base_url}}/api/v1/convocatorias/{{convocatoria_id}}/intentos",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -29881,7 +30250,7 @@
                 }
               ]
             },
-            "description": "RF-26; caso HTTP nuevo PM-RF-26-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). LAB. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
+            "description": "RF-26; caso HTTP nuevo PM-RF-26-12 (no se atribuye un código PT-DCP-01 sin ficha equivalente). app.main. HTTP esperado 409. Operación explícita de escritura/autenticación. Dependencia: preparación principal y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -30072,6 +30441,7 @@
                   "const q=pm.response.json().pregunta; pm.test('Pregunta habilitada',()=>pm.expect(q).to.be.an('object')); if(q){pm.environment.set('id_decision',q.id);pm.environment.set('id_opcion',q.opciones[0].id);}",
                   "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,15));",
                   "const qp=pm.response.json().pregunta;pm.test('Otra alternativa real disponible',()=>pm.expect(qp.opciones.length).to.be.above(1));pm.environment.set('primera_decision_id',qp.id);pm.environment.set('primera_opcion_id',qp.opciones[0].id);pm.environment.set('opcion_alternativa_id',qp.opciones[1].id);",
+                  "pm.environment.set('rf_escenario_inicial',pm.response.json().id_escenario);",
                   "if(pm.response.code===200)pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,15));"
                 ]
               }

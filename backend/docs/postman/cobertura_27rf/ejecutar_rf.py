@@ -7,7 +7,7 @@ from pathlib import Path
 from uuid import UUID,uuid4
 import xml.etree.ElementTree as ET
 OUT=Path(__file__).resolve().parent;ROOT=OUT.parents[3];ENTREGA=OUT.parent/'entrega_20261109'
-sys.path.insert(0,str(ENTREGA));import desktop
+sys.path.insert(0,str(ENTREGA));sys.path.insert(0,str(OUT));import desktop
 
 def setval(env,key,value):
  v=next((v for v in env['values'] if v['key']==key),None)
@@ -94,7 +94,10 @@ def preparar(rf):
    r['convocatoria_id']=str(h.c.datos['convocatoria_id'])
    return h,r
   desktop.reportes.preparar=preparar_ausencia
- with ExitStack() as stack, desktop.preparar(c['modo']) as p:
+ with desktop.preparar(c['modo']) as p, ExitStack() as stack:
+  if c['modo'] == 'principal':
+   from activar_main import activar
+   p.contexto.configuracion_main = activar(p, stack)
   if rf in ('RF-20', 'RF-21'):
    preparar_correo(p, stack)
   env=json.loads(p.environment.read_text(encoding='utf-8'));env['name']='NUCLEAR 27RF — '+rf+' — '+uuid4().hex[:8]
@@ -202,6 +205,16 @@ def comprobar_sql(p,rf,ids,esperado):
    aus=s.scalars(sa.select(Aus)).all();assert len(aus)==1
    r['ausencias_confirmadas']=len(aus);assert s.scalar(sa.select(sa.func.count()).select_from(P))==1 and s.scalar(sa.select(sa.func.count()).select_from(I))==1
    r['sin_intentos_ficticios']=True
+  if rf=='RF-25':
+   participacion=s.scalar(sa.select(P).where(P.convocatoria_id==UUID(h.titular.convocatoria)))
+   intentos=s.scalars(sa.select(I).where(I.id_participacion==participacion.id_participacion).order_by(I.numero_intento)).all()
+   assert len(intentos)==2 and [i.numero_intento for i in intentos]==[1,2]
+   assert intentos[0].id_permiso_extra is None and intentos[1].id_permiso_extra is not None
+   assert intentos[0].id_consentimiento==intentos[1].id_consentimiento
+   assert all(i.estado=='FINALIZADO' for i in intentos)
+   r['repeticion_mismo_ambito']=dict(participacion=participacion.id_participacion,
+    asignacion=participacion.id_asignacion,intentos=2,uso_permiso=1,
+    consentimiento_historico_conservado=True)
   if rf=='RF-27':
    avisos=s.scalars(sa.select(N).where(N.publicacion_evaluacion_id.is_not(None))).all();assert len(avisos)==1
    r['avisos_publicacion']=len(avisos)
@@ -242,6 +255,7 @@ def ejecutar(rf,dest,newman):
  c=contrato(rf)
  try:
   with preparar(rf) as (p,c,esperado):
+   if hasattr(p.contexto,'configuracion_main'):datos['configuracion_main']=p.contexto.configuracion_main
    datos['modo']=p.modo;datos['antes']=p.verificar_sql();ruta_temp=p.environment
    proc=subprocess.Popen([shutil.which('node'),str(OUT/'ejecutar_send.cjs'),str(p.coleccion),str(p.environment),rf,str(dest)],cwd=ROOT,env={**os.environ,'NUCLEAR_NEWMAN_MODULE':str(newman)},stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',bufsize=1)
    try:
@@ -274,6 +288,8 @@ def ejecutar(rf,dest,newman):
  except Exception as e:
   datos['fallos']=max(1,datos['fallos']);datos['error_tipo']=type(e).__name__;datos['limpieza']=not locals().get('ruta_temp',Path('__no_existe__')).exists()
  datos['bloqueo']=c['bloqueo'];datos['estado']='FALLIDO' if datos['fallos'] else 'BLOQUEADO' if c['bloqueo'] else 'APROBADO'
+ datos['estado_implementacion_mvp']=datos['estado']
+ datos['aceptacion_externa']=c.get('aceptacion_externa') or 'Contrato vigente conservado; esta ejecución acredita aceptación técnica de laboratorio.'
  (dest/'resultado.json').write_text(json.dumps(datos,ensure_ascii=False,indent=2),encoding='utf-8')
  suite=ET.Element('testsuite',name=rf,tests=str(sum(len(x['pruebas']) for x in datos['solicitudes'])+bool(datos.get('error_tipo'))),failures=str(sum(not a['aprobada'] for x in datos['solicitudes'] for a in x['pruebas'])),errors=str(int(bool(datos.get('error_tipo')))))
  props=ET.SubElement(suite,'properties');ET.SubElement(props,'property',name='estado_integral_RF',value=datos['estado'])
