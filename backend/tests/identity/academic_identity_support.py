@@ -102,7 +102,7 @@ def columnas_publicacion_para_fixture_historica(conexion):
 
 
 def omitir_publicacion_futura(objeto,nombre,tipo,reflejado,comparado):
-    if tipo=='table' and nombre in {'ausencia_academica','publicacion_evaluacion','resultado_participacion'}:return False
+    if tipo=='table' and nombre in {'ausencia_academica','publicacion_evaluacion','resultado_participacion','despacho_correo'}:return False
     nuevas={'mostrar_resultados_provisionales','visibilidad_docente_id','visibilidad_actualizada_en','publicacion_evaluacion_id'}
     if tipo=='column' and nombre in nuevas:return False
     if nombre in {'ck_sesion_visibilidad','uq_notificacion_publicacion','ck_aviso_publicacion'}:return False
