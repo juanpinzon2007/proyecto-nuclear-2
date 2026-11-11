@@ -1,5 +1,5 @@
 """Ejecuta una carpeta RF con PG17 NUEVO; o prepara su Environment privado para Desktop."""
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from copy import deepcopy
 from datetime import timedelta,datetime,timezone
 import argparse,json,os,secrets,subprocess,sys,shutil
@@ -17,6 +17,70 @@ def setval(env,key,value):
 
 def contrato(rf):return next(x for x in json.loads((OUT/'CONTRATOS_CASOS.json').read_text(encoding='utf-8')) if x['rf']==rf)
 
+def preparar_correo(p, stack):
+ """Capturador SMTP TCP local. La clave y el contenido permanecen en memoria."""
+ from cryptography.fernet import Fernet
+ from pydantic import SecretStr
+ from pytest import MonkeyPatch
+ from app.core.config import get_settings
+ from tests.integration.test_durable_mail import smtp_local
+ capture, port = stack.enter_context(smtp_local())
+ patch = MonkeyPatch()
+ stack.callback(patch.undo)
+ settings = get_settings()
+ values = dict(scheduling_mail_enabled=True, scheduling_mail_host='127.0.0.1',
+  scheduling_mail_port=port, scheduling_mail_tls='LAB_LOOPBACK',
+  scheduling_mail_from='nuclear@universidad.test', scheduling_mail_public_url='http://127.0.0.1/simulador',
+  scheduling_mail_encryption_key=SecretStr(Fernet.generate_key().decode()),
+  scheduling_mail_username=None, scheduling_mail_password=None)
+ for name, value in values.items():
+  patch.setattr(settings, name, value)
+ p.contexto.correo_lab = capture
+
+
+def comprobar_correo(p, fase):
+ """Verifica entrega al capturador y devuelve exclusivamente datos no secretos."""
+ from email import message_from_bytes
+ from cryptography.fernet import Fernet
+ import sqlalchemy as sa
+ from app.modules.scheduling.domain.access_codes import coincide_codigo
+ from app.modules.scheduling.infrastructure.mail_delivery import configuracion_correo, despachar_pendientes
+ from app.modules.scheduling.infrastructure.mail_models import DespachoCorreoModel as Mail
+ from app.modules.scheduling.infrastructure.models import ConvocatoriaModel as C, NotificacionModel as N
+ from app.modules.identity.infrastructure.academic_identity_models import IdentidadAcademicaORM as IA
+ from app.modules.identity.infrastructure.models import UsuarioORM as U
+ h = p.contexto
+ assert fase in (1, 2)
+ assert despachar_pendientes(h.sesiones) == ['ACEPTADO_PROVEEDOR']
+ assert len(h.correo_lab.mensajes) == fase
+ config = configuracion_correo()
+ with h.sesiones() as s:
+  for recipients, raw in h.correo_lab.mensajes:
+   message = message_from_bytes(raw)
+   notification_id = UUID(message['Message-ID'].split('@', 1)[0].lstrip('<'))
+   aviso = s.get(N, notification_id)
+   despacho = s.get(Mail, notification_id)
+   convocatoria = s.get(C, aviso.convocatoria_id)
+   payload = json.loads(Fernet(config.clave).decrypt(despacho.payload_cifrado))
+   correo = s.scalar(sa.select(U.correo).join(IA, IA.id_usuario == U.id_usuario).where(
+    IA.sistema == 'SCHEDULING', IA.id_academico == convocatoria.estudiante_id))
+   body = message.get_payload(decode=True).decode('utf-8')
+   assert recipients == (correo,) and payload['correo'] == correo
+   assert despacho.estado == 'ACEPTADO_PROVEEDOR' and despacho.intentos == 1
+   assert config.url_publica in body and payload['mensaje'] in body
+   assert payload['caso'] in body and payload['inicio'] in body
+   if aviso.tipo == 'CONVOCATORIA':
+    assert payload['codigo'] in body and coincide_codigo(payload['codigo'], convocatoria.codigo_hash)
+   else:
+    assert aviso.tipo == 'CONVOCATORIA_RETIRADA' and payload['codigo'] is None
+    assert 'Código individual:' not in body and convocatoria.estado == 'RETIRADA'
+ assert despachar_pendientes(h.sesiones) == []
+ assert len(h.correo_lab.mensajes) == fase
+ return dict(fase=fase, aceptados_por_capturador=fase, destinatarios_sql_verificados=True,
+  codigo_individual_verificado=True, mensaje_y_url_verificados=True, replay_sin_duplicados=True,
+  alcance='SMTP TCP local de laboratorio; recepción externa no acreditada')
+
+
 @contextmanager
 def preparar(rf):
  c=contrato(rf)
@@ -30,7 +94,9 @@ def preparar(rf):
    r['convocatoria_id']=str(h.c.datos['convocatoria_id'])
    return h,r
   desktop.reportes.preparar=preparar_ausencia
- with desktop.preparar(c['modo']) as p:
+ with ExitStack() as stack, desktop.preparar(c['modo']) as p:
+  if rf in ('RF-20', 'RF-21'):
+   preparar_correo(p, stack)
   env=json.loads(p.environment.read_text(encoding='utf-8'));env['name']='NUCLEAR 27RF — '+rf+' — '+uuid4().hex[:8]
   for v in json.loads((OUT/'Proyecto_Nuclear_27RF.postman_environment.json').read_text(encoding='utf-8'))['values']:
    if not any(x['key']==v['key'] for x in env['values']):env['values'].append(v)
@@ -67,19 +133,35 @@ def preparar(rf):
     with h.sesiones.begin() as s:
      a=s.get(A,h.aid)
      origen=s.get(S,h.sesion)
-     nueva=S(espacio_academico_id=origen.espacio_academico_id,version_caso_id=origen.version_caso_id,
-       docente_id=origen.docente_id,fecha_inicio=origen.fecha_inicio,fecha_fin=origen.fecha_fin,
-       tiempo_maximo_minutos=origen.tiempo_maximo_minutos,estado='SIN_INICIAR',
-       mensaje_personalizado='Convocatoria sintética 27RF')
-     s.add(nueva);s.flush()
-     s.add(A(id_grupo=a.id_grupo,id_caso=a.id_caso,sesion_programada_id=nueva.id,
-       version_caso_id=a.version_caso_id,apertura=a.apertura,cierre=a.cierre,
-       fecha_limite_ingreso=a.fecha_limite_ingreso,tiempo_maximo_min=a.tiempo_maximo_min))
-     setval(env,'rf_sesion_convocatoria',nueva.id)
+     if rf != 'RF-04':
+      nueva=S(espacio_academico_id=origen.espacio_academico_id,version_caso_id=origen.version_caso_id,
+        docente_id=origen.docente_id,fecha_inicio=origen.fecha_inicio,fecha_fin=origen.fecha_fin,
+        tiempo_maximo_minutos=origen.tiempo_maximo_minutos,estado='SIN_INICIAR',
+        mensaje_personalizado='Convocatoria sintética 27RF')
+      s.add(nueva);s.flush()
+      s.add(A(id_grupo=a.id_grupo,id_caso=a.id_caso,sesion_programada_id=nueva.id,
+        version_caso_id=a.version_caso_id,apertura=a.apertura,cierre=a.cierre,
+        fecha_limite_ingreso=a.fecha_limite_ingreso,tiempo_maximo_min=a.tiempo_maximo_min))
+      setval(env,'rf_sesion_convocatoria',nueva.id)
+     estudiantes = []
      for key in ('rf_nuevo_alumno_uuid','rf_otro_nuevo_alumno_uuid'):
       u=U(id_rol=2,nombre='Matriculado sintético 27RF',correo=uuid4().hex+'@universidad.test',clave_hash='sin-login-LAB');s.add(u);s.flush();ident=uuid4()
       if key=='rf_nuevo_alumno_uuid':setval(env,'rf_nuevo_alumno_correo',u.correo)
       s.add_all([IA(id_usuario=u.id_usuario,sistema='SCHEDULING',id_academico=ident),M(id_grupo=a.id_grupo,id_estudiante=u.id_usuario,fecha_ingreso=a.apertura)]);setval(env,key,ident)
+      estudiantes.append(str(ident))
+     if rf == 'RF-04':
+      h.rf04_grupo = a.id_grupo
+      h.rf04_caso = a.id_caso
+      h.rf04_estudiantes = frozenset(UUID(x) for x in estudiantes)
+      h.rf04_espacio = origen.espacio_academico_id
+      setval(env, 'rf_grupo_id', a.id_grupo)
+      setval(env, 'rf_programacion_academica', json.dumps(dict(
+       espacio_academico_id=str(origen.espacio_academico_id), version_caso_id=str(origen.version_caso_id),
+       fecha_inicio=(h.ahora-timedelta(minutes=3)).isoformat(),
+       fecha_fin=(h.ahora+timedelta(minutes=40)).isoformat(),
+       fecha_limite_ingreso=(h.ahora+timedelta(minutes=40)).isoformat(),
+       tiempo_maximo_minutos=30, lugar='Aula sintética RF', mensaje_personalizado='Convocatoria académica sintética RF',
+       grupo_id=a.id_grupo, estudiantes_ids=estudiantes), ensure_ascii=False))
   p.environment.write_text(json.dumps(env,ensure_ascii=False,indent=2),encoding='utf-8')
   master=p.carpeta/'Proyecto_Nuclear_27RF.postman_collection.json'
   with master.open('xb') as f:f.write((OUT/'Proyecto_Nuclear_27RF.postman_collection.json').read_bytes())
@@ -128,10 +210,35 @@ def comprobar_sql(p,rf,ids,esperado):
    sid=UUID(ids['rf_sesion']);assert s.get(S,sid).estado=='FINALIZADO'
    assert s.scalar(sa.select(sa.func.count()).select_from(E).where(E.sesion_id==sid))==2
    r['transiciones_docentes_sin_duplicar']=2
+  if rf == 'RF-04':
+   from app.modules.scheduling.infrastructure.assignment_models import AsignacionCasoModel as A
+   from app.modules.scheduling.infrastructure.models import ConvocatoriaModel as C, SesionProgramadaModel as S
+   sid = UUID(ids['rf_sesion'])
+   asignacion = s.get(A, int(ids['rf_asignacion']))
+   sesion = s.get(S, sid)
+   convocatorias = s.scalars(sa.select(C).where(C.sesion_id == sid)).all()
+   assert asignacion is not None and asignacion.sesion_programada_id == sid
+   assert asignacion.id_grupo == h.rf04_grupo and asignacion.id_caso == h.rf04_caso
+   assert asignacion.version_caso_id == sesion.version_caso_id
+   assert sesion.espacio_academico_id == h.rf04_espacio and sesion.estado == 'SIN_INICIAR'
+   assert asignacion.intentos_base == 1 and asignacion.estado == 'programada'
+   assert len(convocatorias) == 2 and {x.estudiante_id for x in convocatorias} == h.rf04_estudiantes
+   cids = [x.id for x in convocatorias]
+   assert s.scalar(sa.select(sa.func.count()).select_from(N).where(
+    N.convocatoria_id.in_(cids), N.tipo == 'CONVOCATORIA')) == 2
+   assert s.scalar(sa.select(sa.func.count()).select_from(P).where(P.convocatoria_id.in_(cids))) == 0
+   r['asignacion_api_otra_session'] = dict(sesion=str(sid), asignacion=asignacion.id_asignacion,
+    convocatorias=2, avisos=2, version_historica_conservada=True, sin_inicio_ni_admision_implicitos=True)
+  if rf in ('RF-20', 'RF-21'):
+   assert len(h.correo_lab.mensajes) == 2
+   from app.modules.scheduling.infrastructure.mail_delivery import despachar_pendientes
+   assert despachar_pendientes(h.sesiones) == [] and len(h.correo_lab.mensajes) == 2
+   r['correo'] = dict(aceptados_por_capturador=2, replay_sin_duplicados=True,
+    alcance='Aceptación SMTP TCP local, sin entrega externa acreditada')
  return r
 
 def ejecutar(rf,dest,newman):
- dest.mkdir(parents=True,exist_ok=False);datos=dict(rf=rf,fecha_utc=datetime.now(timezone.utc).isoformat(),head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),codigo_local=True,solicitudes=[],worker=[],ejecutor='Newman 6.2.3, runtime independiente por Send',fallos=0,limpieza=False)
+ dest.mkdir(parents=True,exist_ok=False);datos=dict(rf=rf,fecha_utc=datetime.now(timezone.utc).isoformat(),head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),codigo_local=True,solicitudes=[],worker=[],correo=[],ejecutor='Newman 6.2.3, runtime independiente por Send',fallos=0,limpieza=False)
  c=contrato(rf)
  try:
   with preparar(rf) as (p,c,esperado):
@@ -142,6 +249,8 @@ def ejecutar(rf,dest,newman):
      ev=json.loads(line)
      if ev['tipo']=='worker':
       w=p.worker();datos['worker'].append(w);proc.stdin.write(json.dumps(dict(ok=w['codigo']==0))+'\n');proc.stdin.flush()
+     elif ev['tipo']=='correo':
+      envio=comprobar_correo(p, ev['fase']);datos['correo'].append(envio);proc.stdin.write(json.dumps(dict(ok=True))+'\n');proc.stdin.flush()
      elif ev['tipo']=='solicitud':datos['solicitudes'].append(ev);print(rf,len(datos['solicitudes']),ev.get('http'),len(ev['errores']),flush=True)
      elif ev['tipo']=='fin':datos['fin']=ev;datos['fallos']=ev['fallos']
      elif ev['tipo']=='fatal':raise RuntimeError('Error de ejecutor; véase registro nominal sin secretos.')
@@ -159,6 +268,7 @@ def ejecutar(rf,dest,newman):
      assert '33.33'in ''.join(pg.extract_text() for pg in PdfReader(dest/'reporte.pdf').pages)
      datos['binarios_verificados']=True
     if rf=='RF-19':assert len(datos['worker'])==2 and 'Sesiones cerradas: 1'in datos['worker'][0]['salida'] and 'Sesiones cerradas: 0'in datos['worker'][1]['salida']
+    if rf in ('RF-20', 'RF-21'):assert [x['fase'] for x in datos['correo']] == [1, 2]
    else:datos['fallos']=max(1,datos['fallos'])
   datos['limpieza']=not ruta_temp.exists()
  except Exception as e:
@@ -182,9 +292,15 @@ if __name__=='__main__':
   if a.rf=='todos':parser.error('Desktop: prepare una carpeta RF cada vez.')
   with preparar(a.rf) as (p,c,_):
    print('IMPORTAR:',p.coleccion);print('IMPORTAR:',p.environment);print('SELECCIONAR Environment:',json.loads(p.environment.read_text(encoding='utf-8'))['name']);print('CARPETA:',a.rf);print('PRIMER SEND:',c['casos'][0]['nombre']);print('LAB sintético; nunca compartir/exportar valores secretos.')
-   for accion in iter(lambda:input('i=abrir carpeta; w=Worker RF-19; q=cerrar: ').strip().lower(),'q'):
+   for accion in iter(lambda:input('i=abrir carpeta; w=Worker RF-19; m=SMTP RF-20/21; q=cerrar: ').strip().lower(),'q'):
     if accion=='i' and os.name=='nt':os.startfile(str(p.carpeta))
     if accion=='w' and a.rf=='RF-19':print(json.dumps(p.worker(),ensure_ascii=False))
+    if accion=='m' and a.rf in ('RF-20', 'RF-21'):
+     fase = len(p.contexto.correo_lab.mensajes) + 1
+     try:
+      print(json.dumps(comprobar_correo(p, fase), ensure_ascii=False))
+     except Exception:
+      print('Despacho no confirmado. Ejecute primero el alta o retiro correspondiente y revise el laboratorio.')
  else:
   if not a.evidencias or not a.newman:parser.error('Se requiere --evidencias carpeta NUEVA y --newman módulo privado.')
   if a.rf=='todos':

@@ -10,6 +10,8 @@ function safe(s){s=String(s||'').replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-
  let fallos=0,aserciones=0;
  for(let i=0;i<folder.item.length;i++){
   if(rf==='RF-19'&&/WORKER [23] /.test(folder.item[i].name)){process.stdout.write(JSON.stringify({tipo:'worker'})+'\n');const ack=await lines.next();if(ack.done||!JSON.parse(ack.value).ok)throw Error('Worker no confirmado');}
+  const correo=/CORREO ([12]) /.exec(folder.item[i].name);
+  if(['RF-20','RF-21'].includes(rf)&&correo){process.stdout.write(JSON.stringify({tipo:'correo',fase:Number(correo[1])})+'\n');const ack=await lines.next();if(ack.done||!JSON.parse(ack.value).ok)throw Error('Despacho SMTP de laboratorio no confirmado');}
   const item=folder.item[i];const s=await new Promise((resolve,reject)=>newman.run({collection:{info:col.info,item:[item]},environment:env,reporters:[],timeoutRequest:30000,timeoutScript:10000},(err,r)=>err?reject(err):resolve(r)));
   env=s.environment.toJSON();const ex=s.run.executions[0],r=ex?.response;
   const pruebas=(ex?.assertions||[]).map(x=>({nombre:x.assertion,aprobada:!x.error,error:x.error?safe(x.error.message):undefined}));
@@ -28,6 +30,6 @@ function safe(s){s=String(s||'').replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-
   }
   aserciones+=pruebas.length;process.stdout.write(JSON.stringify(d)+'\n');if(fallos)break;
  }
- const keys=['rf_version','rf_sesion','rf_docente_creado','rf_convocatoria','id_intento','id_participacion','publicacion_id'];const ids={};for(const k of keys){const v=env.values.find(x=>x.key===k);if(v?.value)ids[k]=v.value;}
+ const keys=['rf_version','rf_sesion','rf_asignacion','rf_docente_creado','rf_convocatoria','id_intento','id_participacion','publicacion_id'];const ids={};for(const k of keys){const v=env.values.find(x=>x.key===k);if(v?.value)ids[k]=v.value;}
  process.stdout.write(JSON.stringify({tipo:'fin',fallos,aserciones,ids})+'\n');input.close();process.exitCode=fallos?1:0;
 })().catch(e=>{process.stdout.write(JSON.stringify({tipo:'fatal',error:safe(e.message)})+'\n');input.close();process.exitCode=1;});
