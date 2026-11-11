@@ -191,7 +191,7 @@ def test_migracion_real_subida_bajada_y_metadata_sin_filtro():
             command.upgrade(config_alembic(s),'20261107_question_results')
             anteriores=set(sa.inspect(s).get_table_names())
             command.upgrade(config_alembic(s),'head')
-            assert set(sa.inspect(s).get_table_names())-anteriores=={'ausencia_academica','publicacion_evaluacion','resultado_participacion'}
+            assert set(sa.inspect(s).get_table_names())-anteriores=={'ausencia_academica','publicacion_evaluacion','resultado_participacion','despacho_correo'}
             assert compare_metadata(MigrationContext.configure(s),registrar_modelos_integrados())==[]
             command.downgrade(config_alembic(s),'20261107_question_results')
             assert set(sa.inspect(s).get_table_names())==anteriores
