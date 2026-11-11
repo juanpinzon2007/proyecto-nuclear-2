@@ -1,7 +1,4 @@
-"""Composición RF-18 sobre Identity/Cases y el programador existente.
-
-No crea asociaciones ni elige la última versión. El llamador conserva la UoW.
-"""
+"""Composición RF-18/RF-04 con versión exacta y UoW del llamador."""
 from sqlalchemy import select
 
 from app.modules.identity.application.academic_identity import ResolverIdentidadAcademica, SistemaAcademico
@@ -9,7 +6,6 @@ from app.modules.identity.domain.entities import Rol
 from app.modules.identity.domain.errors import AccesoDenegado, IntegracionPendiente
 from app.modules.identity.infrastructure.academic_identity_models import IdentidadAcademicaORM
 from app.modules.identity.infrastructure.academic_identity_repository import RepositorioIdentidadAcademicaSQLAlchemy
-from app.modules.identity.infrastructure.models import UsuarioORM, RolORM
 from app.modules.identity.infrastructure.repositories import RepositorioUsuariosSQLAlchemy, id_entero
 from app.modules.cases.infrastructure.models import VersionCasoModel
 from app.modules.cases.infrastructure.repositories.caso_repository import CasoRepository
@@ -29,12 +25,12 @@ class AutorizacionEspacioSQLAlchemy:
 
 
 def programar_sesion_autorizada(db, *, usuario, docente_id,
-                              autorizacion_espacio: AutorizacionEspacioProgramacion | None, **datos):
-    cuenta=db.scalar(select(UsuarioORM.id_rol).where(
-        UsuarioORM.id_usuario==id_entero(usuario.id_usuario)).with_for_update(read=True))
-    if cuenta is None:raise AccesoDenegado()
-    db.scalars(select(RolORM).where(RolORM.id_rol==cuenta).with_for_update(read=True)).all()
-    actual=RepositorioUsuariosSQLAlchemy(db).obtener(usuario.id_usuario)
+                              autorizacion_espacio: AutorizacionEspacioProgramacion | None,
+                              grupo_id=None, estudiantes_ids=None, fecha_limite_ingreso=None,
+                              fechas_asignacion=None, **datos):
+    # Reutiliza la relectura escritora que estabiliza y refresca cuenta y rol,
+    # incluso si la Session conserva entidades ORM de una consulta anterior.
+    actual=RepositorioUsuariosSQLAlchemy(db).obtener_para_escritura(usuario.id_usuario)
     if actual is None or not actual.activo or Rol.DOCENTE not in actual.roles:raise AccesoDenegado()
     db.scalars(select(IdentidadAcademicaORM).where(
         IdentidadAcademicaORM.id_usuario==id_entero(actual.id_usuario))
@@ -44,6 +40,13 @@ def programar_sesion_autorizada(db, *, usuario, docente_id,
     scheduling=resolver.resolver(id_usuario=actual.id_usuario,sistema=SistemaAcademico.SCHEDULING)
     cases=resolver.resolver(id_usuario=actual.id_usuario,sistema=SistemaAcademico.CASES)
     if scheduling!=docente_id:raise AccesoDenegado()
+    if any(valor is not None for valor in (grupo_id, estudiantes_ids, fecha_limite_ingreso)):
+        if grupo_id is None or not estudiantes_ids or fecha_limite_ingreso is None:
+            raise ErrorProgramacion('La selección académica está incompleta.')
+        if len(set(estudiantes_ids)) != len(estudiantes_ids):
+            raise ErrorProgramacion('La selección contiene estudiantes duplicados.')
+        from app.modules.scheduling.infrastructure.academic_assignment import validar_seleccion
+        validar_seleccion(db, usuario=actual, grupo_id=grupo_id, estudiantes_ids=estudiantes_ids)
     # Mismo lock raíz que publicación/archivo y programar_sesion. La consulta de
     # autoría reutiliza el repositorio de Cases, nunca compara los dos UUID personales.
     version=db.get(VersionCasoModel,datos['version_caso_id'],populate_existing=True,with_for_update=True)
@@ -52,4 +55,9 @@ def programar_sesion_autorizada(db, *, usuario, docente_id,
     if autorizacion_espacio is None:raise IntegracionPendiente()
     if autorizacion_espacio.autorizar(id_usuario=actual.id_usuario,id_espacio=datos['espacio_academico_id']) is not None:
         raise IntegracionPendiente()
-    return programar_sesion(db,docente_id=scheduling,**datos)
+    sesion = programar_sesion(db,docente_id=scheduling,**datos)
+    if grupo_id is not None:
+        from app.modules.scheduling.infrastructure.academic_assignment import asignar_y_convocar
+        return asignar_y_convocar(db, sesion=sesion, usuario=actual, grupo_id=grupo_id,
+            estudiantes_ids=estudiantes_ids, fecha_limite_ingreso=fecha_limite_ingreso, fechas=fechas_asignacion)
+    return sesion
