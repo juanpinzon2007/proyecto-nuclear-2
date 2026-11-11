@@ -35,7 +35,7 @@ def fixture(function, *args):
 def settings_lab():
     # Solo proceso actual; no escribe configuración ni muestra credenciales SQL.
     for k in list(os.environ):
-        if k.startswith(('POSTGRES_','IDENTITY_','PARTICIPATION_')) or k in (
+        if k.startswith(('POSTGRES_','IDENTITY_','PARTICIPATION_','SCHEDULING_MAIL_')) or k in (
             'DATABASE_URL','TEST_DATABASE_URL','SPS_IDENTITY_TEST_URL','SPS_PERSISTENCE_LAB_URL'):
             del os.environ[k]
     os.environ['SPS_TEST_IDENTITY_MAPPING_DOCKER']='1'

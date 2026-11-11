@@ -84,7 +84,8 @@ class RepositorioUsuariosSQLAlchemy:
 
         FOR SHARE bloquea UPDATE de activo/id_rol y renombrado del rol hasta el
         commit/rollback. populate_existing evita la identidad ORM precargada.
-        Solo lo usa la administración escritora, no las consultas READ ONLY.
+        Lo reutilizan administración y programación escritoras. Las consultas
+        READ ONLY conservan su lector independiente.
         """
         identificador = id_entero(id_usuario)
         try:
