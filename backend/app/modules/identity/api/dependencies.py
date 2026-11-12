@@ -15,8 +15,8 @@ from app.db.session import get_session_factory
 from app.modules.identity.application.authentication import ServicioAutenticacion
 from app.modules.identity.application.authorization import ServicioAutorizacion
 from app.modules.identity.application.ports import (
-    ConsultaAmbitoAcademico, IServicioAdministracion, IServicioExcepciones,
-    IServicioSeguimiento, RepositorioUsuarios, ValidadorConvocatoria,
+    ConsultaAmbitoAcademico, ConsultaCuentaPorId, IServicioAdministracion, IServicioExcepciones,
+    IServicioSeguimiento, RepositorioUsuarios, ValidadorConvocatoria, ValidadorContextoConvocatoria,
 )
 from app.modules.identity.application.proxy_administracion import ProxyAdministracionUsuarios
 from app.modules.identity.application.proxy_excepciones import ProxyExcepciones
@@ -28,6 +28,7 @@ from app.modules.identity.domain.errors import AccesoDenegado, IntegracionPendie
 from app.modules.identity.infrastructure.security import TokensJWT
 from app.modules.identity.infrastructure.credentials import obtener_hasheador, CredencialesPersonalSQLAlchemy
 from app.modules.identity.infrastructure.repositories import RepositorioUsuariosSQLAlchemy
+from app.modules.identity.infrastructure.account_reader import ConsultaCuentaPorIdSQLAlchemy, ValidadorContextoSesionBreveSQLAlchemy
 from app.modules.identity.infrastructure.unit_of_work import UnidadTrabajoIdentitySQLAlchemy
 from app.modules.identity.application.academic_identity import ResolverIdentidadAcademica
 from app.modules.identity.infrastructure.academic_identity_repository import RepositorioIdentidadAcademicaSQLAlchemy
@@ -98,22 +99,19 @@ def obtener_fabrica_tokens() -> Callable[[], TokensJWT]:
     return construir_tokens
 
 
-def obtener_fabrica_usuarios() -> Generator[Callable[[], RepositorioUsuarios], None, None]:
-    # Apertura diferida: una solicitud sin Bearer sigue respondiendo 401 sin BD.
-    with ExitStack() as recursos:
-        def construir() -> RepositorioUsuarios:
-            try:
-                sesion = recursos.enter_context(get_session_factory()())
-                return construir_repositorio_usuarios(sesion)
-            except (ValueError, SQLAlchemyError):
-                raise IntegracionPendiente() from None
-        yield construir
+def obtener_fabrica_usuarios() -> Generator[Callable[[], ConsultaCuentaPorId], None, None]:
+    # JWT se verifica antes de abrir la conexión. El contexto devuelto contiene
+    # valores materializados, y la lectura libera el lease antes del caso de uso.
+    # Las operaciones escritoras conservan su revalidación dentro de su UoW.
+    def construir() -> ConsultaCuentaPorId:
+        return ConsultaCuentaPorIdSQLAlchemy(lambda: get_session_factory()())
+    yield construir
 
 
 def obtener_usuario_actual(
     credenciales: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
     tokens: Annotated[Callable[[], TokensJWT], Depends(obtener_fabrica_tokens)],
-    usuarios: Annotated[Callable[[], RepositorioUsuarios], Depends(obtener_fabrica_usuarios)],
+    usuarios: Annotated[Callable[[], ConsultaCuentaPorId], Depends(obtener_fabrica_usuarios)],
 ) -> ContextoAcceso:
     if credenciales is None or credenciales.scheme.casefold() != "bearer":
         raise NoAutenticado()
@@ -130,7 +128,7 @@ def obtener_usuario_actual(
 def _obtener_usuario_con_rol(
     credenciales: HTTPAuthorizationCredentials | None,
     tokens: Callable[[], TokensJWT],
-    usuarios: Callable[[], RepositorioUsuarios],
+    usuarios: Callable[[], ConsultaCuentaPorId],
     rol: Rol,
 ) -> ContextoAcceso:
     """Frontera HTTP común, sin duplicar JWT ni exigir RutaIdentity al consumidor."""
@@ -151,7 +149,7 @@ def _obtener_usuario_con_rol(
 def obtener_docente_actual(
     credenciales: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
     tokens: Annotated[Callable[[], TokensJWT], Depends(obtener_fabrica_tokens)],
-    usuarios: Annotated[Callable[[], RepositorioUsuarios], Depends(obtener_fabrica_usuarios)],
+    usuarios: Annotated[Callable[[], ConsultaCuentaPorId], Depends(obtener_fabrica_usuarios)],
 ) -> ContextoAcceso:
     """Usuario activo con rol DOCENTE del servidor; no resuelve UUID académico."""
     return _obtener_usuario_con_rol(credenciales, tokens, usuarios, Rol.DOCENTE)
@@ -160,7 +158,7 @@ def obtener_docente_actual(
 def obtener_estudiante_actual(
     credenciales: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
     tokens: Annotated[Callable[[], TokensJWT], Depends(obtener_fabrica_tokens)],
-    usuarios: Annotated[Callable[[], RepositorioUsuarios], Depends(obtener_fabrica_usuarios)],
+    usuarios: Annotated[Callable[[], ConsultaCuentaPorId], Depends(obtener_fabrica_usuarios)],
 ) -> ContextoAcceso:
     """Exige ESTUDIANTE vigente; no convierte contexto académico en identidad."""
     return _obtener_usuario_con_rol(credenciales, tokens, usuarios, Rol.ESTUDIANTE)
@@ -211,14 +209,10 @@ def obtener_fabrica_autenticacion_personal(
 
 def obtener_fabrica_validador_convocatoria(
     sesiones: Annotated[Callable[[], Session], Depends(obtener_fabrica_sesiones_login)],
-) -> Generator[Callable[[], ValidadorConvocatoriaScheduling], None, None]:
-    with ExitStack() as recursos:
-        def construir() -> ValidadorConvocatoriaScheduling:
-            try:
-                return construir_validador_convocatoria(recursos.enter_context(sesiones()))
-            except (ValueError, SQLAlchemyError):
-                raise IntegracionPendiente() from None
-        yield construir
+) -> Generator[Callable[[], ValidadorContextoConvocatoria], None, None]:
+    def construir() -> ValidadorContextoConvocatoria:
+        return ValidadorContextoSesionBreveSQLAlchemy(sesiones)
+    yield construir
 
 
 def obtener_fabrica_sesiones_seguimiento() -> Callable[[], Session]:

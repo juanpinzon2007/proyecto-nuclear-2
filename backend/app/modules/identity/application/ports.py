@@ -16,6 +16,10 @@ from app.modules.identity.domain.entities import (
 )
 
 
+class ConsultaCuentaPorId(Protocol):
+    def obtener(self, id_usuario: str) -> ContextoAcceso | None: ...
+
+
 class RepositorioUsuarios(Protocol):
     def configurar_permisos_docentes(self, permisos: frozenset[str]): ...
     def obtener(self, id_usuario: str) -> ContextoAcceso | None: ...

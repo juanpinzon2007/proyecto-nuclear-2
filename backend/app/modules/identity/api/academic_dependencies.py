@@ -1,12 +1,10 @@
 """Autenticación → rol docente → resolución académica, cerrada sin adaptador real."""
 
 from collections.abc import Callable, Generator
-from contextlib import ExitStack
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, HTTPException
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.db.session import get_session_factory
@@ -17,6 +15,7 @@ from app.modules.identity.application.academic_identity import ResolverIdentidad
 from app.modules.identity.domain.entities import ContextoAcceso
 from app.modules.identity.domain.errors import AccesoDenegado, IntegracionPendiente
 from app.modules.identity.infrastructure.academic_identity_repository import RepositorioIdentidadAcademicaSQLAlchemy
+from app.modules.identity.infrastructure.account_reader import ConsultaVinculosSesionBreveSQLAlchemy
 
 
 def construir_resolver_academico(sesion: Session) -> ResolverIdentidadAcademica:
@@ -31,14 +30,9 @@ def obtener_fabrica_sesiones_academicas() -> Callable[[], Session]:
 def obtener_fabrica_resolver_academico(
     sesiones: Annotated[Callable[[], Session], Depends(obtener_fabrica_sesiones_academicas)],
 ) -> Generator[Callable[[], ResolverIdentidadAcademica], None, None]:
-    with ExitStack() as recursos:
-        def construir() -> ResolverIdentidadAcademica:
-            try:
-                sesion = recursos.enter_context(sesiones())
-                return construir_resolver_academico(sesion)
-            except (ValueError, SQLAlchemyError):
-                raise IntegracionPendiente() from None
-        yield construir
+    def construir() -> ResolverIdentidadAcademica:
+        return ResolverIdentidadAcademica(ConsultaVinculosSesionBreveSQLAlchemy(sesiones))
+    yield construir
 
 
 DocenteActual = Annotated[ContextoAcceso, Depends(obtener_docente_actual)]
