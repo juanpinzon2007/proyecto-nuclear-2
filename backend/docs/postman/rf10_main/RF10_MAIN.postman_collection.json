@@ -1,0 +1,1103 @@
+{
+  "info": {
+    "name": "RF-10 — contrato Angular MAIN",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Solo app.main; precondición de intento existente SOLO LAB. Respuestas inmutables. RF integral BLOQUEADO."
+  },
+  "item": [
+    {
+      "name": "RF-10 — MAIN",
+      "item": [
+        {
+          "name": "RF10-MAIN-01 | Login titular real",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/identity/auth/estudiantes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo\": \"{{correo_estudiante}}\", \"codigo_convocatoria\": \"{{codigo_estudiante}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==0){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.environment.set('token_estudiante',pm.response.json().access_token);",
+                  "if(pm.response.code===200)pm.environment.set('rf10_paso',1);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-02 | Rechazar anónimo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/current-scenario",
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==1){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 401',()=>pm.expect(pm.response.code).to.eql(401));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===401)pm.environment.set('rf10_paso',2);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-03 | Login otro estudiante",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/identity/auth/estudiantes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo\": \"{{correo_ajeno}}\", \"codigo_convocatoria\": \"{{codigo_ajeno}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==2){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.environment.set('token_ajeno',pm.response.json().access_token);",
+                  "if(pm.response.code===200)pm.environment.set('rf10_paso',3);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-04 | Rechazar acceso ajeno",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/current-scenario",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ajeno}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==3){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 403',()=>pm.expect(pm.response.code).to.eql(403));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===403)pm.environment.set('rf10_paso',4);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-05 | Escenario actual privado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/current-scenario",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==4){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "const j=pm.response.json();pm.test('Solo escenario actual',()=>{pm.expect(j).to.have.all.keys('id_escenario','contexto','pregunta','recorrido_finalizado','respondidas');pm.expect(j.pregunta).to.have.all.keys('id','enunciado','opciones');j.pregunta.opciones.forEach(o=>pm.expect(o).to.have.all.keys('id','texto'));});pm.environment.set('rf10_q',j.pregunta.id);pm.environment.set('rf10_o',j.pregunta.opciones[0].id);pm.environment.set('rf10_alt',j.pregunta.opciones[1].id);",
+                  "if(pm.response.code===200)pm.environment.set('rf10_paso',5);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-06 | Recargar misma pregunta sin escribir",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/current-scenario",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==5){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.test('Misma pregunta tras recarga',()=>pm.expect(pm.response.json().pregunta.id).to.eql(pm.environment.get('rf10_q')));",
+                  "if(pm.response.code===200)pm.environment.set('rf10_paso',6);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-07 | Rechazar pregunta futura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/decisions/{{segunda_decision_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id_opcion\": \"{{segunda_opcion_id}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==6){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 403',()=>pm.expect(pm.response.code).to.eql(403));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===403)pm.environment.set('rf10_paso',7);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-08 | Primera selección",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/decisions/{{rf10_q}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id_opcion\": \"{{rf10_o}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==7){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 201',()=>pm.expect(pm.response.code).to.eql(201));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.test('Intento activo sin nota',()=>{const j=pm.response.json();pm.expect(j.estado).to.eql('EN_CURSO');pm.expect(j).not.to.have.property('nota_final');});",
+                  "if(pm.response.code===201)pm.environment.set('rf10_paso',8);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-09 | Reenvío idéntico no es upsert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/decisions/{{rf10_q}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id_opcion\": \"{{rf10_o}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==8){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 409',()=>pm.expect(pm.response.code).to.eql(409));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "pm.test('Inmutable',()=>pm.expect(pm.response.json().detail.codigo).to.eql('RESPUESTA_INMUTABLE'));",
+                  "if(pm.response.code===409)pm.environment.set('rf10_paso',9);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-10 | Rechazar cambio de alternativa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/decisions/{{rf10_q}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id_opcion\": \"{{rf10_alt}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==9){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 409',()=>pm.expect(pm.response.code).to.eql(409));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "pm.test('Inmutable',()=>pm.expect(pm.response.json().detail.codigo).to.eql('RESPUESTA_INMUTABLE'));",
+                  "if(pm.response.code===409)pm.environment.set('rf10_paso',10);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-11 | PUT no registrado",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/decisions/{{rf10_q}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id_opcion\": \"{{rf10_alt}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==10){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 405',()=>pm.expect(pm.response.code).to.eql(405));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===405)pm.environment.set('rf10_paso',11);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-12 | PATCH no registrado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/decisions/{{rf10_q}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id_opcion\": \"{{rf10_alt}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==11){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 405',()=>pm.expect(pm.response.code).to.eql(405));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "if(pm.response.code===405)pm.environment.set('rf10_paso',12);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-13 | Reconciliar selección desde progreso",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/progress",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==12){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "const j=pm.response.json();pm.test('Original persistida',()=>{pm.expect(j.respondidas).to.eql(1);pm.expect(j.selecciones).to.deep.eql([{id_decision:pm.environment.get('rf10_q'),id_opcion:pm.environment.get('rf10_o')}]);});",
+                  "if(pm.response.code===200)pm.environment.set('rf10_paso',13);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-14 | Siguiente escenario real",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/current-scenario",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==13){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "const j=pm.response.json();pm.test('Avance',()=>{pm.expect(j.respondidas).to.eql(1);pm.expect(j.recorrido_finalizado).to.eql(false);pm.expect(j.pregunta.id).not.to.eql(pm.environment.get('rf10_q'));});pm.environment.set('rf10_siguiente_q',j.pregunta.id);pm.environment.set('rf10_siguiente_o',j.pregunta.opciones[0].id);",
+                  "if(pm.response.code===200)pm.environment.set('rf10_paso',14);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-15 | Respuesta siguiente autorizada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/decisions/{{rf10_siguiente_q}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id_opcion\": \"{{rf10_siguiente_o}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==14){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 201',()=>pm.expect(pm.response.code).to.eql(201));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "if(pm.response.code===201)pm.environment.set('rf10_paso',15);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-16 | FIN sin contenido futuro",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/current-scenario",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==15){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.test('FIN con nulos',()=>pm.expect(pm.response.json()).to.deep.eql({id_escenario:null,contexto:null,pregunta:null,recorrido_finalizado:true,respondidas:2}));",
+                  "if(pm.response.code===200)pm.environment.set('rf10_paso',16);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-17 | FIN no cierra automáticamente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/progress",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==16){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.test('Activo hasta cierre explícito',()=>{pm.expect(pm.response.json().intento.estado).to.eql('EN_CURSO');pm.expect(pm.response.json().respondidas).to.eql(2);});",
+                  "if(pm.response.code===200)pm.environment.set('rf10_paso',17);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-18 | Cierre explícito",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/finish",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==17){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.test('Finalizado',()=>pm.expect(pm.response.json().estado).to.eql('FINALIZADO'));pm.environment.set('rf10_cierre',JSON.stringify(pm.response.json()));",
+                  "if(pm.response.code===200)pm.environment.set('rf10_paso',18);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-19 | Repetir cierre conserva datos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/finish",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==18){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.test('Idempotencia cierre',()=>pm.expect(pm.response.json()).to.deep.eql(JSON.parse(pm.environment.get('rf10_cierre'))));",
+                  "if(pm.response.code===200)pm.environment.set('rf10_paso',19);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-20 | Contenido activo cerrado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/current-scenario",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==19){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 409',()=>pm.expect(pm.response.code).to.eql(409));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});",
+                  "pm.test('No editable',()=>pm.expect(pm.response.json().detail.codigo).to.eql('INTENTO_NO_EDITABLE'));",
+                  "if(pm.response.code===409)pm.environment.set('rf10_paso',20);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RF10-MAIN-21 | Progreso histórico privado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/attempts/{{id_intento}}/progress",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_estudiante}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Operación REAL de app.main. Intento/consentimiento preparados previamente en LAB; no demuestra inicio productivo ni aprobación integral RF-10."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('rf10_preparado')!=='SOLO_LAB'||Number(pm.environment.get('rf10_paso')||0)!==20){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare RF-10 y siga el orden.');}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP exacto 200',()=>pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+                  "pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});",
+                  "pm.test('Historial sin nota',()=>{const j=pm.response.json();pm.expect(j.respondidas).to.eql(2);pm.expect(j.intento.estado).to.eql('FINALIZADO');pm.expect(j).not.to.have.any.keys('nota_final','rubrica','criterios','justificacion');});",
+                  "if(pm.response.code===200)pm.environment.set('rf10_paso',21);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

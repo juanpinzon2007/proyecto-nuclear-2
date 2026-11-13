@@ -146,3 +146,10 @@ explícitamente sintéticos, no credenciales de despliegue.
 No hay cambios en ORM, DBML, Alembic, fórmulas Evaluation ni políticas pendientes
 8B. Se conserva la cabeza `20261102_immutable_answers`. No hubo push, merge,
 cambio de rama, consumo del stash ni operaciones sobre bases permanentes.
+
+
+## Aclaración vigente Fase10 (10/11/2026)
+
+La expresión histórica «código de un solo uso» en la propuesta de entrega recuperable no constituye una política de consumo en el login. El código se devuelve en claro una sola vez al crear la convocatoria; su validez se verifica después con hash/estado/contexto. No se definió un TTL propio, consumo por autenticación ni rotación automática. El significado correcto para la limitación de recuperación es «código original expuesto una sola vez en la respuesta de alta».
+
+La ejecución nueva main/PG17/Newman acredita código y avisos internos, no SMTP. El modelo admite CORREO pero carece de emisor y registro de intentos de entrega. Se mantiene el bloqueo integral de RF20/RF21 y no se implementa otra política. Fuentes exactas, 25 focales/74 relacionadas y16HTTP/53aserciones por RF: `backend/docs/RF20_RF21_ENTREGA_SEGURA_20261110.md`.

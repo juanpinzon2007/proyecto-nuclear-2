@@ -14,6 +14,7 @@ from app.modules.identity.application.academic_identity import SistemaAcademico,
 from app.modules.identity.infrastructure.academic_identity_repository import RepositorioIdentidadAcademicaSQLAlchemy
 from app.modules.participation.application.result_provenance import canonico,huella
 from app.modules.participation.application.errors import ConflictoActualizacion,ErrorAplicacionParticipacion
+from app.modules.participation.application.errors import RecursoNoDisponible as ResultadoNoDisponible
 from app.modules.participation.domain.evaluation import EvaluacionInconsistente,PoliticaEvaluacionPendiente
 from app.modules.participation.infrastructure.evaluation import _unidad
 from app.modules.participation.infrastructure.teacher_result import ConsultaResultadoDocenteSQLAlchemy
@@ -241,4 +242,8 @@ class CicloAcademicoSQL(ConsultaResultadoDocenteSQLAlchemy):
                     resultado['explicaciones'].append(dict(id_intento=i['id_intento'],respuestas=[asdict(x) for x in consultar_explicaciones_seleccionadas(s,version_id=UUID(resultado['detalle']['version_caso_id']),selecciones=tuple(pasos))]))
             return resultado
         try:return self._lectura(leer)
+        except ResultadoNoDisponible:
+            # Un intento cerrado todavía sin cálculo no es una caída del motor.
+            # Misma ausencia 404 que el GET docente; nunca calcular desde GET.
+            raise RecursoNoDisponible() from None
         except (ErrorAplicacionParticipacion,EvaluacionInconsistente,PoliticaEvaluacionPendiente):raise IntegracionPendiente() from None

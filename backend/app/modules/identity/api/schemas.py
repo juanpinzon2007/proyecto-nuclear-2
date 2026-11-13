@@ -81,6 +81,19 @@ class PaginaDocentesRespuesta(EsquemaIdentity):
     desplazamiento: int
 
 
+class SolicitudPermisosDocentes(EsquemaIdentity):
+    permisos: frozenset[CodigoPermiso]
+
+
+class PerfilPermisosDocentesRespuesta(EsquemaIdentity):
+    id_rol: Annotated[int, Field(gt=0)]
+    rol: Literal['DOCENTE']
+    permisos: tuple[str, ...]
+    permisos_disponibles: tuple[str, ...]
+    docentes_afectados: Annotated[int, Field(ge=0)]
+    alcance: Literal['GLOBAL_ROL']
+
+
 class SolicitudRepeticion(EsquemaIdentity):
     id_sesion: IdPublico
     id_estudiante: IdPublico

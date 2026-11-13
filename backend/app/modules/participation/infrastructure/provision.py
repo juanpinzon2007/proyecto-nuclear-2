@@ -3,8 +3,9 @@
 Opt-in del servidor: no registra rutas ni aporta estado/políticas por defecto.
 """
 from types import SimpleNamespace
-from uuid import UUID
+from uuid import UUID, uuid4
 from datetime import timedelta
+import json
 
 from sqlalchemy import select, text
 
@@ -24,10 +25,13 @@ from app.modules.participation.infrastructure.cases_route import RecorridoCasesS
 from app.modules.participation.infrastructure.models import ParticipacionModel as P
 from app.modules.participation.infrastructure.repository import RepositorioParticipacionSQLAlchemy
 from app.modules.participation.infrastructure.start import preparar_inicio_en_uow
+from app.modules.participation.infrastructure.start_policy_file import EvidenciaPoliticaInicio
 from app.modules.participation.infrastructure.unit_of_work import UnidadTrabajoSQLAlchemy
 from app.modules.scheduling.domain.ingress_policy import fecha_utc, PoliticaTemporalNoDisponible
 from app.modules.scheduling.infrastructure.assignment_models import AsignacionCasoModel as A
-from app.modules.scheduling.infrastructure.models import ConvocatoriaModel as C, SesionProgramadaModel as S
+from app.modules.scheduling.infrastructure.models import (
+    ConvocatoriaModel as C, SesionProgramadaModel as S, EventoAuditoriaModel,
+)
 from app.modules.scheduling.infrastructure.admission import AdmisionSQLAlchemy
 
 
@@ -179,9 +183,29 @@ class ServicioVinculacionSQLAlchemy:
             vinculo = self._obtener_o_crear(trabajo,convocatoria_id=convocatoria_id,
                 id_asignacion=id_asignacion,codigo_acceso=codigo_acceso,
                 id_consentimiento=id_consentimiento,id_permiso_extra=id_permiso_extra,iniciar=True)
+            crear_fuente = self.crear_fuente_consentimiento
+            if crear_fuente is None and self.fuente_consentimiento is not None:
+                crear_fuente = lambda s:self.fuente_consentimiento
             resultado = preparar_inicio_en_uow(trabajo=trabajo,usuario=self.usuario,
                 id_participacion=vinculo.participacion.id_participacion,reloj=self.reloj,fechas=self.fechas,
                 codigo_acceso=codigo_acceso,politica_ingreso=self.ingreso,politica_inicio=self.inicio,
-                id_consentimiento=id_consentimiento,id_permiso_extra=id_permiso_extra)
+                id_consentimiento=id_consentimiento,id_permiso_extra=id_permiso_extra,
+                crear_fuente_consentimiento=crear_fuente)
+            evidencia = getattr(self.inicio, "evidencia", None)
+            if evidencia is not None:
+                if not callable(evidencia):
+                    raise ReglaPendiente("La evidencia de política de inicio es inválida.")
+                try:
+                    descriptor = evidencia()
+                except Exception:
+                    raise ReglaPendiente("La evidencia de política de inicio no es verificable.") from None
+                if not isinstance(descriptor, EvidenciaPoliticaInicio):
+                    raise ReglaPendiente("La evidencia de política de inicio es incompleta.")
+                convocatoria = trabajo.sesion.get(C, convocatoria_id)
+                datos = descriptor.model_dump() | dict(id_intento=resultado.id_intento,
+                    id_participacion=resultado.id_participacion)
+                trabajo.sesion.add(EventoAuditoriaModel(id=uuid4(),sesion_id=convocatoria.sesion_id,
+                    tipo="INICIO_INTENTO_POLITICA",origen="SISTEMA",creado_en=resultado.inicio,
+                    descripcion=json.dumps(datos,sort_keys=True,ensure_ascii=False)))
             trabajo.commit()
             return resultado

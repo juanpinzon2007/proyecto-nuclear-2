@@ -52,9 +52,10 @@ class _AlcanceInicio(_Alcance):
 
 
 class IdentityInicioSQLAlchemy:
-    def __init__(self, alcance, *, reloj=None):
+    def __init__(self, alcance, *, reloj=None, crear_fuente_consentimiento=None):
         self.a = alcance
         self.reloj = reloj
+        self.crear_fuente_consentimiento = crear_fuente_consentimiento
 
     def autorizar_acceso(self, *, id_estudiante, id_participacion):
         s, a = self.a.sesion(), self.a
@@ -109,7 +110,9 @@ class IdentityInicioSQLAlchemy:
             from app.modules.identity.infrastructure.consent_repository import FuenteConsentimientoSQLAlchemy
             if self.reloj is None:raise ReglaPendiente("Falta reloj para consentimiento versionado.")
             try:
-                documento=FuenteConsentimientoSQLAlchemy(s).vigente(id_asignacion=fila.id_asignacion,ahora=self.reloj.ahora())
+                fuente = (self.crear_fuente_consentimiento(s)
+                    if self.crear_fuente_consentimiento is not None else FuenteConsentimientoSQLAlchemy(s))
+                documento=fuente.vigente(id_asignacion=fila.id_asignacion,ahora=self.reloj.ahora())
             except IntegracionPendiente:
                 raise ReglaPendiente("Falta definición aplicable verificable.") from None
             if (consentimiento.id_version_documento!=documento.id_version_documento
@@ -251,13 +254,14 @@ def crear_facade_inicio_8b(*, usuario, id_participacion, reloj, fechas, crear_se
 
 def preparar_inicio_en_uow(*, trabajo, usuario, id_participacion, reloj, fechas,
                            codigo_acceso, politica_ingreso, politica_inicio,
-                           id_consentimiento, id_permiso_extra=None):
+                           id_consentimiento, id_permiso_extra=None, crear_fuente_consentimiento=None):
     """Conecta el mismo ServicioInicio y adaptadores a la UoW del coordinador.
 
     No abre Session, no entra otra UoW y no confirma la transacción prestada.
     """
     alcance = _AlcanceInicio(lambda:trabajo.sesion,usuario,id_participacion,fechas)
-    identity = IdentityInicioSQLAlchemy(alcance,reloj=reloj)
+    identity = IdentityInicioSQLAlchemy(alcance,reloj=reloj,
+        crear_fuente_consentimiento=crear_fuente_consentimiento)
     scheduling = SchedulingInicioSQLAlchemy(alcance,identity,reloj,politica_ingreso,politica_inicio,codigo_acceso)
     servicio = ServicioInicio(lambda:trabajo,identity,scheduling,reloj)
     return servicio.preparar(trabajo=trabajo,id_estudiante=id_entero(usuario.id_usuario),

@@ -1,0 +1,1993 @@
+{
+  "head_base": "44081b7499afcbbcdb0e33c0cdfe9fc7f297814f",
+  "rama": "codex/acelerado-candidato-20261110",
+  "conteos": {
+    "APROBADO": 27,
+    "FALLIDO": 0,
+    "BLOQUEADO": 0,
+    "NO EJECUTADO": 0
+  },
+  "http": 576,
+  "aserciones_pm_test": 2190,
+  "aserciones_fallidas": 0,
+  "rf": [
+    {
+      "rf": "RF-01",
+      "nombre": "Autenticar estudiantes",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 6,
+      "aserciones": 18,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-01/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_flujo_login_autorizado_jwt_y_notificaciones_reales",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_login_rechaza_credenciales_o_titularidad_invalidas",
+          "variantes": 12
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_convocatoria_inexistente_para_codigo_no_otorga_token",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_usuario_sin_asociacion_no_enumera_su_cuenta",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_asociacion_ambigua_no_elige_un_uuid_por_codigo",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_colision_de_correos_normalizados_no_elige_primero",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_dos_convocatorias_con_mismo_codigo_no_eligen_primera",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_autenticacion_no_inventa_ventana_de_ingreso",
+          "variantes": 6
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_retirar_convocatoria_revoca_alcance_pero_no_identidad",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_jwt_no_valido_no_autoriza",
+          "variantes": 6
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_sin_contexto_no_impide_identidad_avisos_pero_deniega_alcance",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_cliente_no_puede_elegir_claims_en_login",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_token_de_una_convocatoria_no_autoriza_otra_del_mismo_estudiante",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_busqueda_correo_usa_casefold_tambien_para_unicode",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_fallo_fabrica_sesion_login_no_concede_acceso",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_sin_dominios_configurados_no_abre_sesion",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/identity/test_student_login_scheduling.py::test_contrasenas_existentes_siguen_verificandose_sin_cambio_de_flujo",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-02",
+      "nombre": "Controlar acceso por rol",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 15,
+      "aserciones": 49,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-02/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_main_staff_login.py::test_admin_ingresa_crea_docente_con_hash_y_docente_ingresa_sin_crear_vinculos",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_main_staff_login.py::test_login_real_no_otorga_casos_ajenos_ni_permisos_eliminados",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_main_staff_login.py::test_login_personal_rechaza_credenciales_y_cuentas_no_habilitadas",
+          "variantes": 7
+        },
+        {
+          "pytest": "tests/integration/test_main_staff_login.py::test_login_personal_valida_solicitud_sin_aceptar_roles_del_cliente",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_main_staff_login.py::test_token_del_login_no_admite_expiracion_o_manipulacion",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_main_staff_login.py::test_estado_y_rol_persistidos_se_revalidan_despues_del_login",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_main_staff_login.py::test_fallo_sql_del_login_no_emite_token_ni_expone_diagnostico",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_main_staff_login.py::test_login_personal_sin_clave_de_firma_configurada_falla_cerrado",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_main_staff_login.py::test_logins_concurrentes_no_escriben_ni_generan_identidades",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-03",
+      "nombre": "Administrar docentes, roles y permisos",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 26,
+      "aserciones": 85,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-03/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_admin_teacher_directory.py::test_listado_main_privado_paginado_sin_dml_hashes_ni_vinculos_academicos",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_admin_teacher_directory.py::test_listado_no_admite_identidad_o_rol_no_autorizados",
+          "variantes": 7
+        },
+        {
+          "pytest": "tests/integration/test_admin_teacher_directory.py::test_limites_y_fallo_de_infraestructura_no_exponen_datos",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_admin_teacher_directory.py::test_lector_revalida_contexto_previamente_acreditado_en_otra_sesion",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_admin_teacher_directory.py::test_alta_existente_se_refleja_sin_otra_escritura_al_consultar",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_admin_write_authorization.py::test_revocacion_confirmada_tras_proxy_impide_escritura",
+          "variantes": 4
+        },
+        {
+          "pytest": "tests/integration/test_admin_write_authorization.py::test_sesion_precargada_relee_cuenta_revocada",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_admin_write_authorization.py::test_revocacion_concurrente_espera_commit_de_operacion_autorizada",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_admin_write_authorization.py::test_fallo_sql_despues_insert_revierte_alta_y_permite_reintento",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/unit/identity/test_admin_write_authorization.py::test_servicio_revalida_antes_de_cualquier_mutacion",
+          "variantes": 8
+        },
+        {
+          "pytest": "tests/unit/identity/test_admin_write_authorization.py::test_adapter_sin_puerto_transaccional_falla_cerrado",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_global_teacher_permissions.py::test_perfil_global_revalida_tokens_existentes_y_persiste_entre_sesiones",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_global_teacher_permissions.py::test_rechazo_de_identidad_sin_escrituras",
+          "variantes": 5
+        },
+        {
+          "pytest": "tests/integration/test_global_teacher_permissions.py::test_contrato_rechaza_concesiones_individuales_o_catalogo_inexistente",
+          "variantes": 4
+        },
+        {
+          "pytest": "tests/integration/test_global_teacher_permissions.py::test_fallo_sql_revierte_retiro_y_permite_reintento",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_global_teacher_permissions.py::test_actualizaciones_concurrentes_serializan_el_perfil_sin_duplicados",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-04",
+      "nombre": "Asociar espacio académico y estudiantes",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 14,
+      "aserciones": 46,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-04/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_programacion_autorizada_persiste_datos_y_uuid_de_scheduling",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_sin_autorizacion_de_espacio_no_hay_programacion_implicita",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_identidad_y_propiedad_de_caso_no_conceden_acceso_por_uuid_de_otro_modulo",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_solicitud_temporal_invalida_no_llega_a_crear_sesion",
+          "variantes": 6
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_solo_se_programa_version_publicada_disponible",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_autorizador_ausente_falla_cerrado_sin_proveedor_de_laboratorio",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_fallo_despues_del_insert_revierte_sesion_y_conserva_permiso",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_revocacion_concurrente_impide_programar_y_no_borra_sesion_historica",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_publicacion_posterior_no_sustituye_uuid_de_version_programada",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_seleccion_exige_trio_completo_fechas_explicitas_y_estudiantes_unicos",
+          "variantes": 7
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_limite_explicito_admite_fronteras_del_horario_sin_inventar_tolerancias",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_crea_sesion_asignacion_y_convocatorias_misma_transaccion_sin_admision",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_identidad_ajena_no_produce_asociaciones",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_seleccion_exige_relaciones_academicas_vigentes",
+          "variantes": 6
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_fallo_sql_revierte_sesion_asignacion_convocatorias_y_avisos",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_post_repetidos_crean_sesiones_independientes_sin_duplicar_su_seleccion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_seleccion_multiple_convoca_solo_estudiantes_del_grupo_elegido",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_revocacion_de_matricula_concurrente_impide_insertar",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_zona_obligatoria_ausente_no_deja_sesion_parcial",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_assignment_programming.py::test_programador_revalida_cuenta_precargada_antes_de_cualquier_insert",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_assignment_mail_composition.py::test_programacion_asignacion_y_correo_comparten_commit_y_recuperacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_assignment_mail_composition.py::test_fallo_outbox_revierte_toda_la_programacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_authorized_academic_spaces.py::test_seleccion_solo_espacios_asignados_y_lectura_independiente",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_authorized_academic_spaces.py::test_crear_recurso_no_concede_permiso_y_revocacion_se_refleja",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_authorized_academic_spaces.py::test_seleccion_exige_jwt_y_docente_vigente",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_authorized_academic_spaces.py::test_consultas_concurrentes_no_hacen_dml_flush_commit",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_authorized_academic_spaces.py::test_fallo_sql_no_expone_detalles_y_siguiente_lectura_funciona",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-05",
+      "nombre": "Registrar estructura académica del caso",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 15,
+      "aserciones": 49,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-05/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_http_crear_configurar_publicar_y_consumir_misma_version",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_autoria_no_concede_acceso_sin_identidad_rol_permiso_y_vinculo",
+          "variantes": 5
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_docente_ajeno_no_consulta_configura_o_publica",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_referencias_inexistentes_o_cruzadas_no_dejan_escrituras",
+          "variantes": 6
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_configuracion_no_ejecutable_o_incoherente_revierte",
+          "variantes": 5
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_multipregunta_y_publicacion_sin_grafo_se_rechazan",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_dos_configuraciones_concurrentes_se_conservan_completas",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-06",
+      "nombre": "Registrar contextos y preguntas por escenario",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 15,
+      "aserciones": 49,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-06/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_http_crear_configurar_publicar_y_consumir_misma_version",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_autoria_no_concede_acceso_sin_identidad_rol_permiso_y_vinculo",
+          "variantes": 5
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_docente_ajeno_no_consulta_configura_o_publica",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_referencias_inexistentes_o_cruzadas_no_dejan_escrituras",
+          "variantes": 6
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_configuracion_no_ejecutable_o_incoherente_revierte",
+          "variantes": 5
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_multipregunta_y_publicacion_sin_grafo_se_rechazan",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_dos_configuraciones_concurrentes_se_conservan_completas",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-07",
+      "nombre": "Administrar preguntas y respuestas",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 15,
+      "aserciones": 49,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-07/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_http_crear_configurar_publicar_y_consumir_misma_version",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_autoria_no_concede_acceso_sin_identidad_rol_permiso_y_vinculo",
+          "variantes": 5
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_docente_ajeno_no_consulta_configura_o_publica",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_referencias_inexistentes_o_cruzadas_no_dejan_escrituras",
+          "variantes": 6
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_configuracion_no_ejecutable_o_incoherente_revierte",
+          "variantes": 5
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_multipregunta_y_publicacion_sin_grafo_se_rechazan",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_dos_configuraciones_concurrentes_se_conservan_completas",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-08",
+      "nombre": "Justificar respuestas correctas e incorrectas",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 15,
+      "aserciones": 49,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-08/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/cases/test_publish_endpoint.py::test_crear_borrador_completo_persiste_jerarquia_en_borrador",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_publish_endpoint.py::test_crear_borrador_incompleto_se_guarda_sin_ejecutar_cor",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_publish_endpoint.py::test_crear_borrador_con_orden_duplicado_devuelve_400_sin_registros",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_publish_endpoint.py::test_crear_borrador_rechaza_campo_desconocido_y_falta_de_token",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_publish_endpoint.py::test_flujo_borrador_y_luego_publicacion_exitosa",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_publish_endpoint.py::test_publicar_borrador_incompleto_devuelve_400_y_sigue_en_borrador",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_publish_endpoint.py::test_publicar_dos_veces_devuelve_400",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_publish_endpoint.py::test_publicar_version_inexistente_devuelve_404",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_publish_endpoint.py::test_publicar_borrador_de_otro_docente_devuelve_404",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_publish_endpoint.py::test_repositorio_hace_rollback_si_falla_a_mitad",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_publish_endpoint.py::test_repositorio_roundtrip_conserva_valoraciones",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-09",
+      "nombre": "Validar estructura y rúbrica del caso",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 16,
+      "aserciones": 53,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-09/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/cases/test_lifecycle_endpoints.py::test_listar_devuelve_solo_casos_del_docente",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_lifecycle_endpoints.py::test_listar_sin_casos_devuelve_lista_vacia",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_lifecycle_endpoints.py::test_detalle_incluye_escenarios_preguntas_opciones_y_rubrica",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_lifecycle_endpoints.py::test_detalle_de_otro_docente_o_inexistente_devuelve_404",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_lifecycle_endpoints.py::test_editar_borrador_reemplaza_estructura_sin_dejar_huerfanos",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_lifecycle_endpoints.py::test_editar_borrador_puede_quedar_incompleto",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_lifecycle_endpoints.py::test_editar_con_payload_inconsistente_devuelve_400_y_conserva_original",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_lifecycle_endpoints.py::test_editar_publicado_o_archivado_devuelve_400",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/cases/test_lifecycle_endpoints.py::test_editar_inexistente_o_de_otro_docente_devuelve_404",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_lifecycle_endpoints.py::test_archivar_publicado_pasa_a_archivado",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_lifecycle_endpoints.py::test_archivar_borrador_devuelve_400",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_lifecycle_endpoints.py::test_archivar_dos_veces_devuelve_400",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_lifecycle_endpoints.py::test_archivado_no_puede_republicarse",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/cases/test_lifecycle_endpoints.py::test_archivar_inexistente_o_de_otro_docente_devuelve_404",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-10",
+      "nombre": "Responder y modificar respuestas",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "MVP confirmado por el equipo, una pregunta por escena, sin ciclos alcanzables. Conciliar el documento original con la inmutabilidad posterior.",
+      "http": 32,
+      "aserciones": 141,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-10/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_main_configurado_recorrido_inmutable_evaluacion_repeticion_y_ausencia",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_rf10_angular_journey.py::test_recarga_y_ramas_main_hasta_fin_y_cierre_sin_notas",
+          "variantes": 2
+        },
+        {
+          "pytest": "backend/tests/integration/test_rf10_angular_journey.py::test_vencimiento_leido_y_confirmado_por_comando_sin_perder_seleccion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_immutable_answers.py::test_migracion_preserva_respuestas_y_downgrade_solo_retira_su_guard",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_immutable_answers.py::test_put_logico_rechazado_conserva_original",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_immutable_answers.py::test_repositorio_rechaza_agregado_manipulado",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_immutable_answers.py::test_rollback_revierte_otro_registro_si_se_intenta_mutar",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_immutable_answers.py::test_segunda_respuesta_incluso_identica_no_reemplaza",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_immutable_answers.py::test_solicitudes_concurrentes_un_ganador_sin_sustitucion",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_immutable_answers.py::test_sql_directo_no_elude_politica",
+          "variantes": 8
+        },
+        {
+          "pytest": "tests/integration/test_immutable_answers.py::test_sql_insert_concurrente_no_duplica",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-11",
+      "nombre": "Registrar respuestas y mostrar progreso",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 32,
+      "aserciones": 141,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-11/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_main_progress.py::test_progreso_efectivo_repetido_sin_dml_flush_commit",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_main_progress.py::test_progreso_privado_revalida_autoridad_y_configuracion",
+          "variantes": 5
+        },
+        {
+          "pytest": "tests/integration/test_main_progress.py::test_progreso_historico_tras_responder_y_lecturas_concurrentes",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-12",
+      "nombre": "Registrar inicio y fin de participación",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Documento institucional de consentimiento todavía sin aprobación verificable. Main solo se habilita con paquetes confiables del operador; el paquete sintético se limita a LABORATORIO.",
+      "http": 34,
+      "aserciones": 147,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-12/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_bloqueos_reales_previos_al_insert",
+          "variantes": 3
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_error_auditoria_revierte_inicio_con_proveedores_reales",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_inicio_real_concurrente_conserva_un_evento_y_un_intento",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_main_configurado_recorrido_inmutable_evaluacion_repeticion_y_ausencia",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_vencimiento_configurado_separa_lectura_cierre_y_calculo",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_consent_attestation.py::test_main_cierra_y_jwt_precede_config",
+          "variantes": 5
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_consent_attestation.py::test_main_consulta_acepta_renueva_y_preserva_historia",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_consent_attestation.py::test_main_titularidad_se_revalida_con_proveedor_real",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_start_policy_file_main.py::test_concurrencia_y_rollback_main_archivo",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_start_policy_file_main.py::test_configuracion_invalida_cierra_main_sin_escrituras",
+          "variantes": 3
+        },
+        {
+          "pytest": "backend/tests/integration/test_start_policy_file_main.py::test_error_auditoria_revierte_participacion_intento_y_evento",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_start_policy_file_main.py::test_inicio_archivo_real_guarda_estado_y_vinculos",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_start_policy_file_main.py::test_permiso_nativo_main_archivo",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_start_policy_file_main.py::test_revalidacion_aprobacion_antes_de_intento_revierte_participacion",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_lab_student_journey.py::test_error_sql_real_revierte_pi_y_reintento_recorrido",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_lab_student_journey.py::test_recorrido_integral_administrador_docente_estudiante_main_y_aislada",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_main_start_composition.py::test_auth_precede_politicas",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_main_start_composition.py::test_autorizacion_revalidada_en_main_antes_de_insertar",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_main_start_composition.py::test_default_proveedores_cerrados_sin_politicas_ni_doc_aprobado",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_main_start_composition.py::test_inicio_concurrente_y_rollback_real",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_main_start_composition.py::test_recorrido_main_aceptacion_inicio_decisiones_cierre",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_main_start_composition.py::test_un_puerto_ausente_impide_insertar",
+          "variantes": 3
+        }
+      ]
+    },
+    {
+      "rf": "RF-13",
+      "nombre": "Calcular nota con rúbrica",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Orden docente y recuperación confirmadas por el equipo. La fórmula del motor conserva su procedencia y requiere conciliación documental académica.",
+      "http": 32,
+      "aserciones": 141,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-13/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_cierre_ausente_y_convocatoria_retirada_requieren_revision",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_cierre_persistido_se_recupera_y_se_consulta_por_http_sin_publicar",
+          "variantes": 2
+        },
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_fallo_sql_conserva_cierre_y_reintento_recupera",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_lectura_fallida_despues_commit_recupera_resultado_confirmado",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_motor_historico_se_recupera_sin_reinterpretar",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_recuperaciones_concurrentes_conservan_una_cabecera",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_seleccion_con_intento_ajeno_falla_antes_de_escribir",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_solicitud_explicita_invalida_no_crea_resultados",
+          "variantes": 5
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_main_configurado_recorrido_inmutable_evaluacion_repeticion_y_ausencia",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_vencimiento_configurado_separa_lectura_cierre_y_calculo",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_documento_ajeno_o_calculo_alterado_rechazado_sin_reescribir",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_primeras_escrituras_concurrentes_eligen_una_definicion_inmutable",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_resultado_legacy_leido_desde_otro_runtime_preserva_documento",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_resultado_preguntas_cruzado_preserva_tercios_historia_y_replay",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_rollback_no_fija_definicion_y_reintento_reutiliza_la_confirmada",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_snapshots_fijos_solo_difieren_en_anotaciones",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_actor_ajeno_no_calcula_escribe_ni_lee",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_ambito_tecnico_no_depende_de_nombre_de_base_lab",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_cabecera_no_admite_cambio_de_contexto",
+          "variantes": 5
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_detalles_historicos_inmutables",
+          "variantes": 9
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_downgrade_con_resultados_rechazado_sin_perdida",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_error_sql_rollback_cabecera_y_detalles",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_escribir_leer_otra_session_ramas_y_cero",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_idempotencia_y_concurrencia_misma_cabecera",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_lector_docente_read_only_reutiliza_resultado_nuevo",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_main_jwt_real_reconoce_resultado_sin_filtrar_nota",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_motor_anterior_no_se_reinterpreta_por_el_nombre_de_regla",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_peso_igual_sin_ponderar_criterios",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_referencia_cruzada_existente_se_rechaza",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_sql_integridad_y_fracciones_no_falsificables",
+          "variantes": 11
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_sumas_intermedias_superiores_a_precision_historica",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_tercio_exacto_vencido_sin_redondear_contribucion",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_upgrade_downgrade_vacio_y_metadata_real",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_upgrade_y_downgrade_preservan_resultado_del_motor_anterior",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_question_result_storage.py::test_vencido_sin_respuestas_no_crea_selecciones",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-14",
+      "nombre": "Mostrar resultado y feedback final",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 19,
+      "aserciones": 68,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-14/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_explicita_idempotente_y_lectura_privada",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_ausencia_explicita_sin_participacion_ni_intento_rectificacion_historica",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_retirada_excluida_y_antecedente_conservado",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_y_ausencia_requieren_docente_titular",
+          "variantes": 4
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_provisional_configurable_sin_correctas_durante_sesion_activa",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicaciones_concurrentes_no_duplican_efectos",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_fallo_aviso_revierte_publicacion_y_auditoria",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_inmutable_y_revision_obsoleta",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_repeticion_http_reutiliza_permiso_nativo_idempotente",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_mejor_nota_misma_participacion_no_mezcla_otro_caso",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_ausencia_concurrente_y_negativa_con_intento",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_provisional_no_revela_resultados_con_intento_activo",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_migracion_real_subida_bajada_y_metadata_sin_filtro",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_downgrade_rechaza_perdida_de_publicacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_recorrido_tcp_reproducible_para_postman",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_repeticion_historica_sin_permiso_no_se_publica",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_rf14_student_results.py::test_feedback_historico_exacto_y_recargas_concurrentes_sin_escritura",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_rf14_student_results.py::test_parcial_muestra_solo_feedback_registrado_sin_preguntas_ficticias",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_rf14_student_results.py::test_consulta_estudiantil_privada_sin_filtrar_nota",
+          "variantes": 6
+        },
+        {
+          "pytest": "tests/integration/test_rf14_student_results.py::test_guard_impide_ambiguedad_de_identidad_historica_sin_debilitar_lectura",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_rf14_student_results.py::test_cerrado_sin_calculo_pendiente_404_sin_generar_resultado",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_rf14_student_results.py::test_ausencia_no_consultable_hasta_publicacion_explicita_sin_intentos_ficticios",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-15",
+      "nombre": "Consultar participaciones de estudiantes",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 42,
+      "aserciones": 174,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-15/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_main_teacher_followup.py::test_recorrido_principal_historico_sin_dml_flush_commit",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_main_teacher_followup.py::test_detalle_principal_rechaza_actor_o_identidad_no_autorizados",
+          "variantes": 7
+        },
+        {
+          "pytest": "tests/integration/test_main_teacher_followup.py::test_lecturas_principales_concurrentes_no_escriben",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_main_teacher_followup.py::test_fallo_de_lectura_sql_principal_es_saneado_y_no_escribe",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-16",
+      "nombre": "Descargar reporte de participación",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 15,
+      "aserciones": 52,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-16/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_official_reports_http.py::test_exportacion_publicacion_real_solo_lectura_y_sesion_independiente",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_official_reports_http.py::test_ausencia_cero_y_retirada_sin_notas_ni_intentos",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_official_reports_http.py::test_maximo_de_repeticion_publicado_y_no_resultado_ajeno",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_official_reports_http.py::test_rechazo_fuera_ambito_no_exporta",
+          "variantes": 4
+        },
+        {
+          "pytest": "tests/integration/test_official_reports_http.py::test_jwt_invalido_y_cuenta_inactiva",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_official_reports_http.py::test_sin_publicacion_tecnico_no_se_exporta",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_official_reports_http.py::test_filtros_orden_vacio_y_referencias_ajenas",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_official_reports_http.py::test_historico_no_cambia_tras_rectificacion_sin_republicar",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_official_reports_http.py::test_nombre_historico_formula_y_caracteres_no_se_interpretan",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_official_reports_http.py::test_consultas_concurrentes_y_fallo_exportador_no_alteran_publicacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_official_reports_http.py::test_pdf_multipagina_y_encabezados_repetidos",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_official_reports_http.py::test_extremos_oficiales_sin_recalcular_al_exportar",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_official_reports_http.py::test_republicacion_y_descarga_explicita_de_version_anterior",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_official_reports_http.py::test_zona_obligatoria_cierre_seguro_sin_escrituras",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_official_reports_http.py::test_fallo_sql_lectura_revierte_y_permita_recuperacion",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-17",
+      "nombre": "Registrar y asociar la rúbrica",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 15,
+      "aserciones": 49,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-17/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_http_crear_configurar_publicar_y_consumir_misma_version",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_autoria_no_concede_acceso_sin_identidad_rol_permiso_y_vinculo",
+          "variantes": 5
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_docente_ajeno_no_consulta_configura_o_publica",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_referencias_inexistentes_o_cruzadas_no_dejan_escrituras",
+          "variantes": 6
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_configuracion_no_ejecutable_o_incoherente_revierte",
+          "variantes": 5
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_multipregunta_y_publicacion_sin_grafo_se_rechazan",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_cases_graph_authoring.py::test_dos_configuraciones_concurrentes_se_conservan_completas",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-18",
+      "nombre": "Agendar fecha, horario y condiciones",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 12,
+      "aserciones": 39,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-18/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_programacion_autorizada_persiste_datos_y_uuid_de_scheduling",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_sin_autorizacion_de_espacio_no_hay_programacion_implicita",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_identidad_y_propiedad_de_caso_no_conceden_acceso_por_uuid_de_otro_modulo",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_solicitud_temporal_invalida_no_llega_a_crear_sesion",
+          "variantes": 6
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_solo_se_programa_version_publicada_disponible",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_autorizador_ausente_falla_cerrado_sin_proveedor_de_laboratorio",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_fallo_despues_del_insert_revierte_sesion_y_conserva_permiso",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_revocacion_concurrente_impide_programar_y_no_borra_sesion_historica",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_session_programming_http.py::test_publicacion_posterior_no_sustituye_uuid_de_version_programada",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-19",
+      "nombre": "Administrar estados de sesiones",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 17,
+      "aserciones": 54,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-19/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_worker_process.py::test_cli_real_cierra_y_segunda_ejecucion_no_duplica",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_worker_process.py::test_dos_procesos_bloqueados_en_postgresql_conservan_un_cierre",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_worker_process.py::test_bucle_real_recupera_fallo_sql_en_siguiente_revision_sin_filtrar",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_worker_process.py::test_cli_fallo_conexion_sale_no_cero_sin_exponer_configuracion",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-20",
+      "nombre": "Asignar y validar código de autorización",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Proveedor SMTP institucional pendiente de configuración y validación externa.",
+      "http": 17,
+      "aserciones": 57,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-20/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_altas_individuales_y_avisos_personalizados_sin_correo_ni_codigos_persistidos",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_alta_retiro_y_listado_rechazan_actores_ajenos",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_alta_exige_ambito_academico_persistente",
+          "variantes": 7
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_retiro_revoca_login_ingreso_y_escritura_con_jwt_previo_sin_borrar_historia",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_solicitudes_concurrentes_no_duplican_convocatorias_o_avisos",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_fallo_tras_persistir_aviso_revierte_y_reintento_recupera",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_retiro_de_convocatoria_de_otra_sesion_no_modifica_destinatario",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_uuid_docente_no_sustituye_cuenta_autenticada_en_el_adaptador_sql",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_alta_no_reabre_ingreso_en_sesion_iniciada_o_finalizada",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_assignment_mail_composition.py::test_programacion_asignacion_y_correo_comparten_commit_y_recuperacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_assignment_mail_composition.py::test_fallo_outbox_revierte_toda_la_programacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_main_crea_cifrado_durable_y_worker_smtp_recupera_otra_session",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_fallo_smtp_despues_commit_reintenta_sin_recrear_convocatoria",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_reintentos_concurrentes_un_solo_envio_aceptado",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_retiro_cancela_credencial_pendiente_y_envia_aviso_de_retiro",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_configuracion_incompleta_o_insegura_rechaza_antes_commit",
+          "variantes": 4
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_fallo_sql_de_outbox_revierte_convocatoria_y_aviso",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_payload_cambiado_no_se_entrega",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_despacho_revalida_credencial_y_destinatario",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_puerto_vacio_equivale_a_ausente_sin_inferir_default",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_main_no_encola_sin_autorizacion_persistente",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_migracion_upgrade_downgrade_y_fk_sin_reescribir_historia",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_downgrade_con_historia_rechaza_perdida",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-21",
+      "nombre": "Notificar convocatoria y cambios",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Proveedor SMTP institucional pendiente de configuración y validación externa.",
+      "http": 17,
+      "aserciones": 57,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-21/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_altas_individuales_y_avisos_personalizados_sin_correo_ni_codigos_persistidos",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_alta_retiro_y_listado_rechazan_actores_ajenos",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_alta_exige_ambito_academico_persistente",
+          "variantes": 7
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_retiro_revoca_login_ingreso_y_escritura_con_jwt_previo_sin_borrar_historia",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_solicitudes_concurrentes_no_duplican_convocatorias_o_avisos",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_fallo_tras_persistir_aviso_revierte_y_reintento_recupera",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_retiro_de_convocatoria_de_otra_sesion_no_modifica_destinatario",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_uuid_docente_no_sustituye_cuenta_autenticada_en_el_adaptador_sql",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_convocation_management_http.py::test_alta_no_reabre_ingreso_en_sesion_iniciada_o_finalizada",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_assignment_mail_composition.py::test_programacion_asignacion_y_correo_comparten_commit_y_recuperacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_assignment_mail_composition.py::test_fallo_outbox_revierte_toda_la_programacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_main_crea_cifrado_durable_y_worker_smtp_recupera_otra_session",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_fallo_smtp_despues_commit_reintenta_sin_recrear_convocatoria",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_reintentos_concurrentes_un_solo_envio_aceptado",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_retiro_cancela_credencial_pendiente_y_envia_aviso_de_retiro",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_configuracion_incompleta_o_insegura_rechaza_antes_commit",
+          "variantes": 4
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_fallo_sql_de_outbox_revierte_convocatoria_y_aviso",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_payload_cambiado_no_se_entrega",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_despacho_revalida_credencial_y_destinatario",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_puerto_vacio_equivale_a_ausente_sin_inferir_default",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_main_no_encola_sin_autorizacion_persistente",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_migracion_upgrade_downgrade_y_fk_sin_reescribir_historia",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_durable_mail.py::test_downgrade_con_historia_rechaza_perdida",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-22",
+      "nombre": "Restringir ingreso tardío",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 6,
+      "aserciones": 18,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-22/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_espera_idempotente_admision_y_validacion_sin_escritura",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_espera_protegida",
+          "variantes": 9
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_habilitar_sin_solicitud_no_admite_tardios",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_docente_ajeno_no_habilita",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_repetir_habilitacion_no_duplica_auditoria_avisos_ni_admision",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_rollback_congelacion_no_habilita_parcialmente",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_rollback_espera_no_crea_fantasma",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_matricula_invalida_en_el_corte_no_se_admite_despues",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_concesion_historica_no_elude_condiciones_actuales",
+          "variantes": 3
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_triggers_y_fk_protegen_espera_version_y_causa",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_validacion_y_consulta_concurrentes_sin_dml",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_carrera_espera_confirma_antes_habilitacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_carrera_habilitacion_gana_no_admite_nueva_solicitud",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_migracion_upgrade_downgrade_vacia_pg17",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_downgrade_no_elimina_solicitudes",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_conjunto_varias_solicitudes_previas_con_jwt_real",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_dos_solicitudes_de_espera_convergen_sin_duplicacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_conflicto_convocatoria_no_confirma_habilitacion_parcial",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_waiting_admission.py::test_admision_no_amplia_limites_exteriores_programados",
+          "variantes": 4
+        }
+      ]
+    },
+    {
+      "rf": "RF-23",
+      "nombre": "Controlar tiempo máximo",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Inicio técnico acreditado con configuración explícita LAB. La activación productiva requiere consentimiento institucional aprobado y configuración del operador.",
+      "http": 32,
+      "aserciones": 141,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-23/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_bloqueos_reales_previos_al_insert",
+          "variantes": 3
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_error_auditoria_revierte_inicio_con_proveedores_reales",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_inicio_real_concurrente_conserva_un_evento_y_un_intento",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_main_configurado_recorrido_inmutable_evaluacion_repeticion_y_ausencia",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_vencimiento_configurado_separa_lectura_cierre_y_calculo",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_consent_attestation.py::test_main_cierra_y_jwt_precede_config",
+          "variantes": 5
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_consent_attestation.py::test_main_consulta_acepta_renueva_y_preserva_historia",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_consent_attestation.py::test_main_titularidad_se_revalida_con_proveedor_real",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_start_policy_file_main.py::test_concurrencia_y_rollback_main_archivo",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_start_policy_file_main.py::test_configuracion_invalida_cierra_main_sin_escrituras",
+          "variantes": 3
+        },
+        {
+          "pytest": "backend/tests/integration/test_start_policy_file_main.py::test_error_auditoria_revierte_participacion_intento_y_evento",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_start_policy_file_main.py::test_inicio_archivo_real_guarda_estado_y_vinculos",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_start_policy_file_main.py::test_permiso_nativo_main_archivo",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_start_policy_file_main.py::test_revalidacion_aprobacion_antes_de_intento_revierte_participacion",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_main_finish.py::test_cierre_confirma_vencimiento_que_get_no_persistio",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_main_finish.py::test_cierre_no_concede_autorizacion_implicita",
+          "variantes": 5
+        },
+        {
+          "pytest": "tests/integration/test_main_finish.py::test_cierre_rollback_tras_update_preserva_intento",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_main_finish.py::test_cierres_concurrentes_un_update_idempotente",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_main_finish.py::test_respuesta_y_cierre_concurrentes_no_pierden_selecciones",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_main_finish.py::test_vertical_principal_escenario_progreso_respuestas_fin_sin_notas",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_main_start_composition.py::test_vencimiento_y_respuestas_conservadas_main",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-24",
+      "nombre": "Evaluar incompletos y ausencias",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Evaluación técnica por orden docente confirmada. No se atribuye a la profesora la política técnica del equipo.",
+      "http": 18,
+      "aserciones": 62,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-24/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_cierre_ausente_y_convocatoria_retirada_requieren_revision",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_cierre_persistido_se_recupera_y_se_consulta_por_http_sin_publicar",
+          "variantes": 2
+        },
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_fallo_sql_conserva_cierre_y_reintento_recupera",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_lectura_fallida_despues_commit_recupera_resultado_confirmado",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_motor_historico_se_recupera_sin_reinterpretar",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_recuperaciones_concurrentes_conservan_una_cabecera",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_seleccion_con_intento_ajeno_falla_antes_de_escribir",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_closed_attempt_recovery.py::test_solicitud_explicita_invalida_no_crea_resultados",
+          "variantes": 5
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_main_configurado_recorrido_inmutable_evaluacion_repeticion_y_ausencia",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_vencimiento_configurado_separa_lectura_cierre_y_calculo",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_ausencia_concurrente_y_negativa_con_intento",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_ausencia_explicita_sin_participacion_ni_intento_rectificacion_historica",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_downgrade_rechaza_perdida_de_publicacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_fallo_aviso_revierte_publicacion_y_auditoria",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_mejor_nota_misma_participacion_no_mezcla_otro_caso",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_migracion_real_subida_bajada_y_metadata_sin_filtro",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_provisional_configurable_sin_correctas_durante_sesion_activa",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_provisional_no_revela_resultados_con_intento_activo",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_explicita_idempotente_y_lectura_privada",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_inmutable_y_revision_obsoleta",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_y_ausencia_requieren_docente_titular",
+          "variantes": 4
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicaciones_concurrentes_no_duplican_efectos",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_recorrido_tcp_reproducible_para_postman",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_repeticion_historica_sin_permiso_no_se_publica",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_repeticion_http_reutiliza_permiso_nativo_idempotente",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_retirada_excluida_y_antecedente_conservado",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_documento_ajeno_o_calculo_alterado_rechazado_sin_reescribir",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_primeras_escrituras_concurrentes_eligen_una_definicion_inmutable",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_resultado_legacy_leido_desde_otro_runtime_preserva_documento",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_resultado_preguntas_cruzado_preserva_tercios_historia_y_replay",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_rollback_no_fija_definicion_y_reintento_reutiliza_la_confirmada",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_evaluation_provenance_compatibility.py::test_snapshots_fijos_solo_difieren_en_anotaciones",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-25",
+      "nombre": "Autorizar repetición excepcional",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "MVP confirmado para el mismo caso y versión histórica, permiso individual de un uso. Vínculos entre casos distintos fuera de este alcance. Activación productiva condicionada al consentimiento institucional.",
+      "http": 40,
+      "aserciones": 168,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-25/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "backend/tests/integration/test_main_configured_student_flow.py::test_main_configurado_recorrido_inmutable_evaluacion_repeticion_y_ausencia",
+          "variantes": 1
+        },
+        {
+          "pytest": "backend/tests/integration/test_start_policy_file_main.py::test_permiso_nativo_main_archivo",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_ausencia_concurrente_y_negativa_con_intento",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_ausencia_explicita_sin_participacion_ni_intento_rectificacion_historica",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_downgrade_rechaza_perdida_de_publicacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_fallo_aviso_revierte_publicacion_y_auditoria",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_mejor_nota_misma_participacion_no_mezcla_otro_caso",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_migracion_real_subida_bajada_y_metadata_sin_filtro",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_provisional_configurable_sin_correctas_durante_sesion_activa",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_provisional_no_revela_resultados_con_intento_activo",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_explicita_idempotente_y_lectura_privada",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_inmutable_y_revision_obsoleta",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_y_ausencia_requieren_docente_titular",
+          "variantes": 4
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicaciones_concurrentes_no_duplican_efectos",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_recorrido_tcp_reproducible_para_postman",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_repeticion_historica_sin_permiso_no_se_publica",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_repeticion_http_reutiliza_permiso_nativo_idempotente",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_retirada_excluida_y_antecedente_conservado",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_main_start_composition.py::test_repeticion_permiso_real_consumido_una_vez",
+          "variantes": 1
+        }
+      ]
+    },
+    {
+      "rf": "RF-26",
+      "nombre": "Registrar feedback general docente",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 38,
+      "aserciones": 161,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-26/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_teacher_followup_http.py::test_docente_consulta_solo_su_ambito_con_intentos_y_referencias_exactas",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_teacher_followup_http.py::test_feedback_se_crea_edita_y_recupera_sin_duplicar_desde_otra_sesion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_teacher_followup_http.py::test_no_se_consultan_ni_modifican_participaciones_ajenas",
+          "variantes": 4
+        },
+        {
+          "pytest": "tests/integration/test_teacher_followup_http.py::test_listados_no_filtran_participaciones_de_otro_docente",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_teacher_followup_http.py::test_identificadores_no_disponibles_o_invalidos_se_rechazan",
+          "variantes": 2
+        },
+        {
+          "pytest": "tests/integration/test_teacher_followup_http.py::test_feedback_invalido_no_sustituye_el_confirmado",
+          "variantes": 4
+        },
+        {
+          "pytest": "tests/integration/test_teacher_followup_http.py::test_error_tras_upsert_revierte_y_preserva_valoracion_anterior",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_teacher_followup_http.py::test_dos_actualizaciones_http_concurrentes_una_valoracion_vigente",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_teacher_followup_http.py::test_detalle_cerrado_usa_explicacion_historica_y_no_abre_notas_reportes",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_teacher_followup_http.py::test_revalidacion_actual_del_docente_y_sus_asociaciones",
+          "variantes": 4
+        }
+      ]
+    },
+    {
+      "rf": "RF-27",
+      "nombre": "Notificar calificaciones y feedback",
+      "estado": "APROBADO",
+      "bloqueo": null,
+      "aceptacion_externa": "Contrato vigente conservado; aprobación nueva no atribuida.",
+      "http": 21,
+      "aserciones": 73,
+      "evidencia": "../nuclear_v3_20261111/newman_final/RF-27/resultado.json",
+      "tests_ejecutados": [
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_explicita_idempotente_y_lectura_privada",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_ausencia_explicita_sin_participacion_ni_intento_rectificacion_historica",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_retirada_excluida_y_antecedente_conservado",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_y_ausencia_requieren_docente_titular",
+          "variantes": 4
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_provisional_configurable_sin_correctas_durante_sesion_activa",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicaciones_concurrentes_no_duplican_efectos",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_fallo_aviso_revierte_publicacion_y_auditoria",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_publicacion_inmutable_y_revision_obsoleta",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_repeticion_http_reutiliza_permiso_nativo_idempotente",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_mejor_nota_misma_participacion_no_mezcla_otro_caso",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_ausencia_concurrente_y_negativa_con_intento",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_provisional_no_revela_resultados_con_intento_activo",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_migracion_real_subida_bajada_y_metadata_sin_filtro",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_downgrade_rechaza_perdida_de_publicacion",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_recorrido_tcp_reproducible_para_postman",
+          "variantes": 1
+        },
+        {
+          "pytest": "tests/integration/test_academic_cycle_http.py::test_repeticion_historica_sin_permiso_no_se_publica",
+          "variantes": 2
+        }
+      ]
+    }
+  ],
+  "nota": "Nueva ejecución completa e independiente por RF. Se conservan los ciclos diagnósticos y se informan las suites pytest separadamente, sin sumar ejecuciones solapadas.",
+  "alcance": "Aceptacion tecnica MVP en laboratorio, con condiciones academicas y externas separadas por RF.",
+  "codigo_validado": "44081b7499afcbbcdb0e33c0cdfe9fc7f297814f",
+  "coleccion_sha256": "545fb1a1508e7573b51ae00cb6f70263e6052e22554772114ced73a384b5132e",
+  "pytest_general": {
+    "total": 2720,
+    "aprobadas": 2682,
+    "omitidas": 38,
+    "fallidas": 0,
+    "errores": 0,
+    "archivos": 136,
+    "completa": true,
+    "fuentes_estables": true
+  }
+}

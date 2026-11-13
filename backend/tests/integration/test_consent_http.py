@@ -232,9 +232,9 @@ def test_sin_revocacion_http_y_guard_activo_conservado(http):
     assert enviar(c).json()['id_consentimiento']==pk
 
 
-def test_main_no_registra_nuevas_rutas_ni_inicio():
+def test_main_registra_composicion_condicionada_sin_provision_independiente():
     from app.main import app
     rutas=set(app.openapi()['paths'])
-    assert not any('/consentimiento' in p for p in rutas)
-    assert '/api/v1/convocatorias/{convocatoria_id}/intentos' not in rutas
+    assert any('/consentimiento' in p for p in rutas)
+    assert '/api/v1/convocatorias/{convocatoria_id}/intentos' in rutas
     assert '/api/v1/convocatorias/{convocatoria_id}/participacion' not in rutas

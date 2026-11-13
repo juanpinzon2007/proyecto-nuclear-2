@@ -23,6 +23,7 @@ def escenario():
     identidades = {c.id_usuario: c for c in (estudiante, docente, administrador)}
     usuarios = Mock(spec=RepositorioUsuarios)
     usuarios.obtener.side_effect = identidades.get
+    usuarios.obtener_para_escritura.side_effect = identidades.get
     usuarios.permisos_existentes.return_value = True
     academia = Mock(spec=ConsultaEscrituraAcademica)
     academia.puede_consultar_participacion.return_value = True

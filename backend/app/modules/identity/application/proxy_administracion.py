@@ -32,3 +32,13 @@ class ProxyAdministracionUsuarios:
                               autorizaciones: AutorizacionesDocente) -> ContextoAcceso:
         self._autorizacion.exigir_rol(contexto, Rol.ADMINISTRADOR)
         return self._real().asignar_autorizaciones(contexto, id_docente, autorizaciones)
+
+    def consultar_permisos_docentes(self, contexto: ContextoAcceso):
+        self._autorizacion.exigir_rol(contexto, Rol.ADMINISTRADOR)
+        if self._consulta is None:
+            raise IntegracionPendiente()
+        return self._consulta.consultar_permisos_docentes(contexto)
+
+    def configurar_permisos_docentes(self, contexto: ContextoAcceso, permisos: frozenset[str]):
+        self._autorizacion.exigir_rol(contexto, Rol.ADMINISTRADOR)
+        return self._real().configurar_permisos_docentes(contexto, permisos)

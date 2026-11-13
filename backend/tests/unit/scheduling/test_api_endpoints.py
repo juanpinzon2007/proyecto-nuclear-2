@@ -13,7 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.modules.identity.api.academic_dependencies import obtener_estudiante_scheduling
-from app.modules.identity.api.dependencies import obtener_estudiante_actual
+from app.modules.identity.api.dependencies import obtener_estudiante_actual, obtener_docente_actual
 from app.modules.identity.domain.entities import ContextoAcceso, Rol
 from app.db.session import get_db
 from app.main import app
@@ -33,9 +33,14 @@ from app.modules.scheduling.infrastructure.models import (
 def entorno_docente():
     docente_id = uuid4()
     db = Mock()
+    db.no_autoflush = nullcontext()
 
     anteriores = app.dependency_overrides.copy()
     app.dependency_overrides[obtener_docente_autenticado] = lambda: docente_id
+    # Solo contrato unitario: el INTEGER de Identity no se fabrica desde el
+    # UUID. JWT, roles, grants y revocación reales se prueban con PostgreSQL.
+    app.dependency_overrides[obtener_docente_actual] = lambda: ContextoAcceso(
+        "71", "docente@universidad.test", frozenset({Rol.DOCENTE}))
     app.dependency_overrides[get_db] = lambda: db
 
     try:
@@ -91,6 +96,11 @@ def test_listar_espacios_vacio(entorno_docente):
     respuesta = client.get("/scheduling/espacios")
     assert respuesta.status_code == 200
     assert respuesta.json() == []
+    consulta = db.scalars.call_args.args[0]
+    assert 'JOIN docente_espacio_academico' in str(consulta)
+    assert consulta.compile().params['id_docente_1'] == 71
+    db.commit.assert_not_called()
+    db.flush.assert_not_called()
 
 
 def test_listar_espacios_con_datos(entorno_docente):
@@ -105,6 +115,8 @@ def test_listar_espacios_con_datos(entorno_docente):
     assert len(datos) == 1
     assert datos[0]["id"] == str(espacio_id)
     assert datos[0]["nombre"] == "Laboratorio 101"
+    db.commit.assert_not_called()
+    db.flush.assert_not_called()
 
 
 def test_crear_espacio_autorizado(entorno_docente):

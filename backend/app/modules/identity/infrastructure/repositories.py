@@ -2,7 +2,7 @@
 
 import re
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,7 @@ from app.modules.identity.domain.errors import (
     ConflictoIdentidad, IntegracionPendiente, RecursoNoDisponible, ReglaIdentidadInvalida,
 )
 from app.modules.identity.infrastructure.models import PermisoORM, RolORM, RolPermisoORM, UsuarioORM
+from app.modules.identity.application.teacher_permissions import PerfilPermisosDocentes
 
 
 def id_entero(identificador: str) -> int:
@@ -78,6 +79,27 @@ class RepositorioUsuariosSQLAlchemy:
         except SQLAlchemyError:
             raise IntegracionPendiente() from None
 
+    def obtener_para_escritura(self, id_usuario: str) -> ContextoAcceso | None:
+        """Locks compartidos de cuenta y rol, retenidos por la UoW existente.
+
+        FOR SHARE bloquea UPDATE de activo/id_rol y renombrado del rol hasta el
+        commit/rollback. populate_existing evita la identidad ORM precargada.
+        Lo reutilizan administración y programación escritoras. Las consultas
+        READ ONLY conservan su lector independiente.
+        """
+        identificador = id_entero(id_usuario)
+        try:
+            with self.sesion.no_autoflush:
+                usuario = self.sesion.get(UsuarioORM, identificador,
+                    with_for_update={'read': True}, populate_existing=True)
+                if usuario is None:
+                    return None
+                self.sesion.get(RolORM, usuario.id_rol,
+                    with_for_update={'read': True}, populate_existing=True)
+                return self._contexto(usuario)
+        except SQLAlchemyError:
+            raise IntegracionPendiente() from None
+
     def permisos_existentes(self, permisos: frozenset[str]) -> bool:
         if any(not p.strip() or len(p) > 80 for p in permisos):
             return False
@@ -93,7 +115,9 @@ class RepositorioUsuariosSQLAlchemy:
         if len(autorizaciones.roles) != 1:
             raise ReglaIdentidadInvalida()
         nombre = next(iter(autorizaciones.roles)).value
-        rol = self.sesion.scalars(select(RolORM).where(func.upper(func.trim(RolORM.nombre)) == nombre)).one_or_none()
+        rol = self.sesion.scalars(select(RolORM).where(
+            func.upper(func.trim(RolORM.nombre)) == nombre
+        ).with_for_update(read=True)).one_or_none()
         if rol is None:
             raise IntegracionPendiente()
         # El ER solo admite permisos del rol. No editar rol_permiso para conceder
@@ -101,6 +125,57 @@ class RepositorioUsuariosSQLAlchemy:
         if self._permisos_rol(rol.id_rol) != autorizaciones.permisos:
             raise ReglaIdentidadInvalida()
         return rol
+
+    def obtener_perfil_permisos_docentes(self) -> PerfilPermisosDocentes:
+        rol = self.sesion.scalars(select(RolORM).where(
+            func.upper(func.trim(RolORM.nombre)) == Rol.DOCENTE.value
+        )).one_or_none()
+        if rol is None:
+            raise IntegracionPendiente()
+        disponibles = tuple(self.sesion.scalars(
+            select(PermisoORM.codigo).order_by(PermisoORM.codigo)
+        ))
+        afectados = self.sesion.scalar(select(func.count()).select_from(UsuarioORM).where(
+            UsuarioORM.id_rol == rol.id_rol
+        ))
+        return PerfilPermisosDocentes(
+            rol.id_rol, Rol.DOCENTE.value, tuple(sorted(self._permisos_rol(rol.id_rol))),
+            disponibles, afectados,
+        )
+
+    def configurar_permisos_docentes(self, permisos: frozenset[str]) -> PerfilPermisosDocentes:
+        """Serializa el perfil global y conserva los demás roles del catálogo."""
+        try:
+            rol = self.sesion.scalars(select(RolORM).where(
+                func.upper(func.trim(RolORM.nombre)) == Rol.DOCENTE.value
+            ).with_for_update()).one_or_none()
+            if rol is None:
+                raise IntegracionPendiente()
+            filas = self.sesion.execute(select(PermisoORM.id_permiso, PermisoORM.codigo).where(
+                PermisoORM.codigo.in_(permisos)
+            ).order_by(PermisoORM.id_permiso).with_for_update(read=True)).all()
+            if frozenset(f.codigo for f in filas) != permisos:
+                raise ReglaIdentidadInvalida()
+            deseados = {f.id_permiso for f in filas}
+            actuales = set(self.sesion.scalars(select(RolPermisoORM.id_permiso).where(
+                RolPermisoORM.id_rol == rol.id_rol
+            ).with_for_update()))
+            retirados = actuales - deseados
+            if retirados:
+                self.sesion.execute(delete(RolPermisoORM).where(
+                    RolPermisoORM.id_rol == rol.id_rol,
+                    RolPermisoORM.id_permiso.in_(retirados),
+                ))
+            self.sesion.add_all([
+                RolPermisoORM(id_rol=rol.id_rol, id_permiso=identificador)
+                for identificador in sorted(deseados - actuales)
+            ])
+            self.sesion.flush()
+            return self.obtener_perfil_permisos_docentes()
+        except IntegrityError:
+            raise ConflictoIdentidad() from None
+        except SQLAlchemyError:
+            raise IntegracionPendiente() from None
 
     def crear_docente(self, correo: str, autorizaciones: AutorizacionesDocente,
                       *, datos: DatosAltaDocente | None = None) -> ContextoAcceso:

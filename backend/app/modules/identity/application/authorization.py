@@ -9,7 +9,8 @@ class ServicioAutorizacion:
     def __init__(self, academia: Callable[[], ConsultaAmbitoAcademico]) -> None:
         self._academia = academia
 
-    def exigir_rol(self, contexto: ContextoAcceso, rol: Rol) -> None:
+    @staticmethod
+    def exigir_rol(contexto: ContextoAcceso, rol: Rol) -> None:
         if not contexto.activo:
             raise NoAutenticado()
         if rol not in contexto.roles:

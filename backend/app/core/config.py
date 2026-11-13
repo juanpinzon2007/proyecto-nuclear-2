@@ -1,7 +1,8 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
 
@@ -26,6 +27,31 @@ class Settings(BaseSettings):
     identity_institutional_domains: tuple[str, ...] = ()
     # Convención histórica verificada del despliegue; nunca inferir UTC/local.
     participation_timestamp_zone: str | None = None
+    academic_runtime_scope: Literal["PRODUCCION", "LABORATORIO"] | None = None
+    identity_consent_approval_manifest: Path | None = None
+    identity_consent_approval_sha256: str | None = None
+    identity_consent_approval_public_key: str | None = None
+    participation_start_policy_file: Path | None = None
+    participation_start_policy_sha256: str | None = None
+    scheduling_mail_enabled: bool = False
+    scheduling_mail_host: str | None = None
+    scheduling_mail_port: int | None = Field(default=None, ge=1, le=65535)
+    scheduling_mail_tls: str | None = None
+    scheduling_mail_from: str | None = None
+    scheduling_mail_username: str | None = None
+    scheduling_mail_password: SecretStr | None = None
+    scheduling_mail_encryption_key: SecretStr | None = None
+    scheduling_mail_public_url: str | None = None
+
+    @field_validator('academic_runtime_scope', mode='before')
+    @classmethod
+    def ambito_academico_opcional(cls, value):
+        return None if value == '' else value
+
+    @field_validator('scheduling_mail_port', mode='before')
+    @classmethod
+    def puerto_correo_opcional(cls, value):
+        return None if value == '' else value
 
     @property
     def database_url(self) -> URL:

@@ -70,9 +70,11 @@ def convocar_con_aviso(db, *, usuario, sesion_id: UUID, estudiante_id: UUID, doc
     mensaje=(f"Has sido convocado al caso {version.nombre}. Inicio: {sesion.fecha_inicio.isoformat()}. "
              f"{sesion.mensaje_personalizado or ''}").strip()
     # Nunca persistir el código en mensaje ni sustituir un envío por un registro
-    # CORREO sin proveedor. Solo hash de acceso y aviso interno verificable.
-    crear_notificacion(db,destinatario_id=estudiante_id,convocatoria_id=resultado.convocatoria_id,
+    # CORREO sin proveedor. El despacho opcional conserva el secreto cifrado.
+    aviso = crear_notificacion(db,destinatario_id=estudiante_id,convocatoria_id=resultado.convocatoria_id,
         tipo='CONVOCATORIA',canal='INTERNA',mensaje=mensaje)
+    from app.modules.scheduling.infrastructure.mail_delivery import encolar_correo
+    encolar_correo(db, notificacion=aviso, caso=version.nombre, sesion=sesion, codigo=resultado.codigo_acceso)
     return resultado
 
 
@@ -85,12 +87,15 @@ def retirar_con_aviso(db, *, usuario, sesion_id: UUID, convocatoria_id: UUID, do
         ParticipacionModel.convocatoria_id==convocatoria_id).with_for_update()).all()
     convocatoria=db.get(C,convocatoria_id,populate_existing=True,with_for_update=True)
     if convocatoria is None or convocatoria.sesion_id!=sesion_id:raise AccesoDenegado()
-    _autorizar(db,usuario=usuario,docente_id=docente_id,estudiante_id=convocatoria.estudiante_id,sesion_id=sesion_id,alta=False)
+    sesion = _autorizar(db,usuario=usuario,docente_id=docente_id,estudiante_id=convocatoria.estudiante_id,sesion_id=sesion_id,alta=False)
     if convocatoria.estado=='RETIRADA':return convocatoria
     if convocatoria.estado!='ACTIVA':raise ErrorConvocatoria('Estado de convocatoria no reconocido.')
     convocatoria.estado='RETIRADA'
-    crear_notificacion(db,destinatario_id=convocatoria.estudiante_id,convocatoria_id=convocatoria.id,
+    aviso = crear_notificacion(db,destinatario_id=convocatoria.estudiante_id,convocatoria_id=convocatoria.id,
         tipo='CONVOCATORIA_RETIRADA',canal='INTERNA',
         mensaje='El docente retiró tu autorización para esta sesión académica.')
+    from app.modules.scheduling.infrastructure.mail_delivery import encolar_correo
+    version = db.get(VersionCasoModel, sesion.version_caso_id)
+    encolar_correo(db, notificacion=aviso, caso=version.nombre, sesion=sesion)
     db.flush()
     return convocatoria

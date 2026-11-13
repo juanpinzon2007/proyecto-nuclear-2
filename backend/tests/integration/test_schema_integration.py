@@ -88,6 +88,7 @@ INTEGRATED_TABLES = (
     | {"paso_simulacion", "resultado_intento", "resultado_criterio", "retroalimentacion_docente"}
     | {"resultado_calculo_preguntas", "resultado_pregunta", "resultado_criterio_exacto"}
     | {"ausencia_academica", "publicacion_evaluacion", "resultado_participacion"}
+    | {"despacho_correo"}
 )
 
 
@@ -98,7 +99,7 @@ def test_registro_compartido_es_cerrado_y_no_crea_tablas_academicas_ficticias():
 
     # El esquema integrado contiene los tres modulos migrados.
     assert set(metadata.tables) == INTEGRATED_TABLES
-    assert len(metadata.tables) == 39
+    assert len(metadata.tables) == 40
 
     # Todas las tablas deben poder ordenarse resolviendo sus FK.
     assert {tabla.name for tabla in metadata.sorted_tables} == set(metadata.tables)
@@ -177,7 +178,7 @@ tablas = dict(metadata.tables)
 {despues}
 
 assert dict(registrar_modelos_integrados().tables) == tablas
-assert len(tablas) == 39
+assert len(tablas) == 40
 
 assert {{'grupo_academico', 'grupo_estudiante', 'consentimiento'}} <= set(tablas)
 
@@ -230,7 +231,7 @@ def test_merge_desde_base_cada_rama_y_dos_ramas_preserva_datos(iniciales):
             script = ScriptDirectory.from_config(config)
 
             # Debe existir una sola cabeza final.
-            assert script.get_heads() == ["20261108_academic_publication"]
+            assert script.get_heads() == ["20261110_durable_mail"]
             assert script.get_revision("20261102_academic_policy").down_revision == "20261102_evaluation_results"
             assert script.get_revision("20261102_evaluation_results").down_revision == HEAD_BRIDGE
             assert script.get_revision(HEAD_BRIDGE).down_revision == "20261102_participation_history"

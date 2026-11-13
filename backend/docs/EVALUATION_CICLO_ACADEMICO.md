@@ -1,3 +1,9 @@
+> Actualización 8/11 posterior a RF-16: el cierre voluntario antes de FIN ya se
+> evalúa técnicamente como PARCIAL con política versión 2, denominador uniforme
+> y sin elecciones futuras. Es propuesta del equipo pendiente de validación
+> institucional. Ver `CIERRE_VOLUNTARIO_PARCIAL.md`; los párrafos siguientes
+> conservan el corte histórico anterior. Publicación sigue manual e independiente.
+
 # Ciclo académico de Evaluation — 8 de noviembre de 2026
 
 Base: `f031907ac6efe46dbedd0ccd7b470d467bc0523b`, rama `feature/backend-continuidad`.

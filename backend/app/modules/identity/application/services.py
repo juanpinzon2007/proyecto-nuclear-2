@@ -6,11 +6,12 @@ from io import StringIO
 from app.modules.identity.application.ports import (
     FabricaUnidadTrabajo, LecturaReportes, LecturaSeguimiento,
 )
+from app.modules.identity.application.authorization import ServicioAutorizacion
 from app.modules.identity.domain.entities import (
     AutorizacionRepeticion, AutorizacionesDocente, ContextoAcceso,
     DatosAltaDocente, DetalleParticipacion, FeedbackDocente, ResumenCaso, Rol, normalizar_correo, validar_id,
 )
-from app.modules.identity.domain.errors import AccesoDenegado, ConflictoIdentidad, IntegracionPendiente, RecursoNoDisponible, ReglaIdentidadInvalida
+from app.modules.identity.domain.errors import AccesoDenegado, ConflictoIdentidad, IntegracionPendiente, NoAutenticado, RecursoNoDisponible, ReglaIdentidadInvalida
 
 
 class ServicioReportes:
@@ -133,6 +134,19 @@ class ServicioAdministracionUsuarios:
         self.uow = uow
         self.hashear_clave = hashear_clave
 
+    @staticmethod
+    def _exigir_administrador(trabajo, contexto: ContextoAcceso) -> None:
+        leer = getattr(trabajo.usuarios, 'obtener_para_escritura', None)
+        if not callable(leer):
+            raise IntegracionPendiente()
+        actual = leer(contexto.id_usuario)
+        if actual is None:
+            raise NoAutenticado()
+        if not isinstance(actual, ContextoAcceso) or actual.id_usuario != contexto.id_usuario:
+            raise IntegracionPendiente()
+        # Reutilizar exactamente la regla del Proxy, con identidad SQL vigente.
+        ServicioAutorizacion.exigir_rol(actual, Rol.ADMINISTRADOR)
+
     def crear_docente(self, contexto: ContextoAcceso, correo: str,
                       autorizaciones: AutorizacionesDocente, *, nombre: str | None = None,
                       clave: str | None = None) -> ContextoAcceso:
@@ -145,6 +159,7 @@ class ServicioAdministracionUsuarios:
                 raise IntegracionPendiente()
             datos = DatosAltaDocente(nombre.strip(), self.hashear_clave(clave))
         with self.uow() as trabajo:
+            self._exigir_administrador(trabajo, contexto)
             if trabajo.usuarios.permisos_existentes(autorizaciones.permisos) is not True:
                 raise ReglaIdentidadInvalida()
             if datos is None:
@@ -158,6 +173,7 @@ class ServicioAdministracionUsuarios:
                               autorizaciones: AutorizacionesDocente) -> ContextoAcceso:
         validar_id(id_docente)
         with self.uow() as trabajo:
+            self._exigir_administrador(trabajo, contexto)
             docente = trabajo.usuarios.obtener(id_docente)
             if docente is None or Rol.DOCENTE not in docente.roles:
                 raise RecursoNoDisponible()
@@ -166,3 +182,12 @@ class ServicioAdministracionUsuarios:
             docente = trabajo.usuarios.asignar_autorizaciones(id_docente, autorizaciones)
             trabajo.commit()
         return docente
+
+    def configurar_permisos_docentes(self, contexto: ContextoAcceso, permisos: frozenset[str]):
+        with self.uow() as trabajo:
+            self._exigir_administrador(trabajo, contexto)
+            if trabajo.usuarios.permisos_existentes(permisos) is not True:
+                raise ReglaIdentidadInvalida()
+            perfil = trabajo.usuarios.configurar_permisos_docentes(permisos)
+            trabajo.commit()
+        return perfil

@@ -1,10 +1,21 @@
 {
   "info": {
-    "name": "ENTREGA 9 noviembre — recorrido técnico — MAIN y LAB explícitos",
+    "name": "NUCLEAR DESKTOP — 1 Recorrido principal (MAIN + LAB)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Solo laboratorio nuevo y desechable. Sin secretos exportados. Consulte README.md; ninguna aprobación de políticas oficiales. RF-16 oficial: usar la colección adicional Proyecto_Nuclear_reportes_oficiales del mismo directorio con laboratorio_publicacion.py; no ejecutar ambos recorridos sobre el mismo estado."
+    "description": "Solo laboratorio nuevo y desechable. Sin secretos exportados. Consulte README.md; ninguna aprobación de políticas oficiales. RF-16 oficial: usar la colección adicional Proyecto_Nuclear_reportes_oficiales del mismo directorio con laboratorio_publicacion.py; no ejecutar ambos recorridos sobre el mismo estado. Windows/Desktop: preparar con preparar-postman.ps1, importar Environment temporal de este modo, seleccionar su nombre y pulsar Send en orden. Cada solicitud guarda variables en pm.environment; no requiere Runner. No compartir secretos sintéticos."
   },
   "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "function rechazarPreparacion(m){if(pm.execution&&typeof pm.execution.skipRequest==='function')pm.execution.skipRequest();throw new Error(m);}",
+          "if(pm.environment.get('laboratorio_modo')!=='principal')rechazarPreparacion('Environment equivocado: prepare y seleccione el laboratorio principal.');",
+          "if(!pm.environment.get('laboratorio_id'))rechazarPreparacion('Importe el Environment temporal generado por preparar-postman.ps1.');"
+        ]
+      }
+    },
     {
       "listen": "prerequest",
       "script": {
@@ -39,7 +50,7 @@
         "auth": {
           "type": "noauth"
         },
-        "description": "",
+        "description": "**Paso 1/32 — RF-02/RF-03 — app.main**\n\nObjetivo: El administrador entra con credenciales sintéticas reales de Identity; no mostrar el JWT.\n\nHTTP esperado: 200. Response: access_token, token_type y vigencia; token capturado automáticamente.\n\nOperación: POST explícito: autenticación y emisión de token.\n\nDependencia: Preparación del laboratorio.\n\nSustentación: El administrador entra con credenciales sintéticas reales de Identity; no mostrar el JWT. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"correo\": \"{{correo_admin}}\",\n  \"clave\": \"{{clave_admin}}\"\n}",
@@ -52,6 +63,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<0){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 0 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -63,7 +83,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "pm.environment.set('token_admin',pm.response.json().access_token);"
+              "pm.environment.set('token_admin',pm.response.json().access_token);",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,1));"
             ]
           }
         }
@@ -88,7 +109,7 @@
         "auth": {
           "type": "noauth"
         },
-        "description": "",
+        "description": "**Paso 2/32 — RF-02 — app.main**\n\nObjetivo: El rol y cuenta se validan en PostgreSQL, no en una cabecera de identidad.\n\nHTTP esperado: 200. Response: access_token del docente; captura automática.\n\nOperación: POST explícito: autenticación y emisión de token.\n\nDependencia: Ejecutar antes la solicitud 1 con sus pruebas aprobadas.\n\nSustentación: El rol y cuenta se validan en PostgreSQL, no en una cabecera de identidad. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"correo\": \"{{correo_docente}}\",\n  \"clave\": \"{{clave_docente}}\"\n}",
@@ -101,6 +122,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<1){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 1 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -112,7 +142,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "pm.environment.set('token_docente',pm.response.json().access_token);"
+              "pm.environment.set('token_docente',pm.response.json().access_token);",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,2));"
             ]
           }
         }
@@ -140,9 +171,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 3/32 — RF-03 — app.main**\n\nObjetivo: La consulta requiere administrador; no concede permisos adicionales.\n\nHTTP esperado: 200. Response: Página de docentes con campos públicos, sin hashes ni contraseñas.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 2 con sus pruebas aprobadas.\n\nSustentación: La consulta requiere administrador; no concede permisos adicionales. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<2){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 2 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -154,7 +194,8 @@
               "const j=pm.response.json();",
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
-              "}"
+              "}",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,3));"
             ]
           }
         }
@@ -179,7 +220,7 @@
         "auth": {
           "type": "noauth"
         },
-        "description": "",
+        "description": "**Paso 4/32 — RF-01 — app.main**\n\nObjetivo: El correo y código pertenecen al titular; login no inicia el intento.\n\nHTTP esperado: 200. Response: access_token estudiantil asociado a su convocatoria.\n\nOperación: POST explícito: autenticación y emisión de token.\n\nDependencia: Ejecutar antes la solicitud 3 con sus pruebas aprobadas.\n\nSustentación: El correo y código pertenecen al titular; login no inicia el intento. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"correo\": \"{{correo_estudiante}}\",\n  \"codigo_convocatoria\": \"{{codigo_estudiante}}\"\n}",
@@ -192,6 +233,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<3){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 3 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -203,7 +253,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "pm.environment.set('token_estudiante',pm.response.json().access_token);"
+              "pm.environment.set('token_estudiante',pm.response.json().access_token);",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,4));"
             ]
           }
         }
@@ -228,7 +279,7 @@
         "auth": {
           "type": "noauth"
         },
-        "description": "",
+        "description": "**Paso 5/32 — RF-01 — app.main**\n\nObjetivo: Se utiliza una identidad real distinta, no un token inventado.\n\nHTTP esperado: 200. Response: Token de otro estudiante sintético, reservado para negativas.\n\nOperación: POST explícito: autenticación y emisión de token.\n\nDependencia: Ejecutar antes la solicitud 4 con sus pruebas aprobadas.\n\nSustentación: Se utiliza una identidad real distinta, no un token inventado. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"correo\": \"{{correo_ajeno}}\",\n  \"codigo_convocatoria\": \"{{codigo_ajeno}}\"\n}",
@@ -241,6 +292,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<4){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 4 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -252,7 +312,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "pm.environment.set('token_ajeno',pm.response.json().access_token);"
+              "pm.environment.set('token_ajeno',pm.response.json().access_token);",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,5));"
             ]
           }
         }
@@ -280,9 +341,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 6/32 — RF-01/RF-02 — app.main**\n\nObjetivo: La API recupera la cuenta persistente del JWT; no confía en datos de identidad enviados por el cliente.\n\nHTTP esperado: 200. Response: Identidad del estudiante y roles vigentes.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 5 con sus pruebas aprobadas.\n\nSustentación: La API recupera la cuenta persistente del JWT; no confía en datos de identidad enviados por el cliente. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<5){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 5 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -294,7 +364,8 @@
               "const j=pm.response.json();",
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
-              "}"
+              "}",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,6));"
             ]
           }
         }
@@ -322,9 +393,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 7/32 — RF-22 — app.main**\n\nObjetivo: La admisión fue preparada administrativamente en LAB; esta consulta no concede ingreso ni crea participación.\n\nHTTP esperado: 200. Response: admitida=true y concesión propia persistida.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 6 con sus pruebas aprobadas.\n\nSustentación: La admisión fue preparada administrativamente en LAB; esta consulta no concede ingreso ni crea participación. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<6){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 6 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -336,7 +416,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "pm.test('Concesión vigente',()=>pm.expect(pm.response.json().admitida).to.eql(true));"
+              "pm.test('Concesión vigente',()=>pm.expect(pm.response.json().admitida).to.eql(true));",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,7));"
             ]
           }
         }
@@ -368,7 +449,7 @@
             }
           ]
         },
-        "description": "",
+        "description": "**Paso 8/32 — RF-22 — app.main**\n\nObjetivo: Validar ingreso se distingue de iniciar la simulación.\n\nHTTP esperado: 200. Response: Validación autorizada de ingreso, sin crear participación ni intento.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 7 con sus pruebas aprobadas.\n\nSustentación: Validar ingreso se distingue de iniciar la simulación. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"convocatoria_id\": \"{{convocatoria_id}}\",\n  \"estudiante_id\": \"{{estudiante_id}}\",\n  \"codigo_acceso\": \"{{codigo_estudiante}}\"\n}",
@@ -381,6 +462,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<7){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 7 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -391,7 +481,8 @@
               "const j=pm.response.json();",
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
-              "}"
+              "}",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,8));"
             ]
           }
         }
@@ -419,9 +510,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 9/32 — RF-12 — LAB AISLADA**\n\nObjetivo: Esta ruta solo existe en la aplicación LAB; no constituye consentimiento institucional aprobado.\n\nHTTP esperado: 200. Response: Documento sintético, versión, referencia y huella; captura automática.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 8 con sus pruebas aprobadas.\n\nSustentación: Esta ruta solo existe en la aplicación LAB; no constituye consentimiento institucional aprobado. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<8){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 8 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -433,7 +533,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "const j=pm.response.json(); ['id_version_documento','referencia','huella'].forEach(k=>pm.environment.set(k,j[k]));"
+              "const j=pm.response.json(); ['id_version_documento','referencia','huella'].forEach(k=>pm.environment.set(k,j[k]));",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,9));"
             ]
           }
         }
@@ -465,7 +566,7 @@
             }
           ]
         },
-        "description": "",
+        "description": "**Paso 10/32 — RF-12 — LAB AISLADA**\n\nObjetivo: Se acepta el documento del servidor y se conserva su versión; solo política LAB.\n\nHTTP esperado: 200. Response: Aceptación explícita con id_consentimiento.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 9 con sus pruebas aprobadas.\n\nSustentación: Se acepta el documento del servidor y se conserva su versión; solo política LAB. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"id_version_documento\": {{id_version_documento}},\n  \"referencia\": \"{{referencia}}\",\n  \"huella\": \"{{huella}}\",\n  \"acepta\": true\n}",
@@ -478,6 +579,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<9){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 9 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -488,7 +598,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "pm.environment.set('id_consentimiento',pm.response.json().id_consentimiento);"
+              "pm.environment.set('id_consentimiento',pm.response.json().id_consentimiento);",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,10));"
             ]
           }
         }
@@ -520,7 +631,7 @@
             }
           ]
         },
-        "description": "",
+        "description": "**Paso 11/32 — RF-12 — LAB AISLADA**\n\nObjetivo: La creación usa convocatoria, admisión y consentimiento en una transacción de laboratorio.\n\nHTTP esperado: 201. Response: Intento EN_CURSO, id_intento e id_participacion capturados.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 10 con sus pruebas aprobadas.\n\nSustentación: La creación usa convocatoria, admisión y consentimiento en una transacción de laboratorio. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -533,6 +644,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<10){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 10 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -543,7 +663,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "const j=pm.response.json();pm.environment.set('id_intento',j.id_intento);pm.environment.set('id_participacion',j.id_participacion);"
+              "const j=pm.response.json();pm.environment.set('id_intento',j.id_intento);pm.environment.set('id_participacion',j.id_participacion);",
+              "if(pm.response.code===201)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,11));"
             ]
           }
         }
@@ -575,7 +696,7 @@
             }
           ]
         },
-        "description": "",
+        "description": "**Paso 12/32 — RF-12 — LAB AISLADA**\n\nObjetivo: 409 es el resultado esperado: la repetición no debe crear otro inicio.\n\nHTTP esperado: 409. Response: Conflicto de inicio repetido; no otro intento válido.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 11 con sus pruebas aprobadas.\n\nSustentación: 409 es el resultado esperado: la repetición no debe crear otro inicio. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"id_asignacion\": {{id_asignacion}},\n  \"codigo_acceso\": \"{{codigo_estudiante}}\",\n  \"id_consentimiento\": {{id_consentimiento}}\n}",
@@ -588,6 +709,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<11){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 11 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -597,7 +727,9 @@
               "const j=pm.response.json();",
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
-              "}"
+              "}",
+              "if(pm.response.code===409)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,12));",
+              "pm.test('Error sin datos académicos',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','nota_final','selecciones','resultados');});"
             ]
           }
         }
@@ -625,9 +757,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 13/32 — RF-11/RF-12 — app.main**\n\nObjetivo: Un estudiante autenticado distinto no puede consultar este intento.\n\nHTTP esperado: 403. Response: Error de acceso, sin progreso del titular.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 12 con sus pruebas aprobadas.\n\nSustentación: Un estudiante autenticado distinto no puede consultar este intento. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<12){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 12 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -639,7 +780,9 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
-              "}"
+              "}",
+              "if(pm.response.code===403)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,13));",
+              "pm.test('Error sin datos académicos',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','nota_final','selecciones','resultados');});"
             ]
           }
         }
@@ -667,9 +810,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 14/32 — RF-11 — app.main**\n\nObjetivo: La consulta es privada y todavía no hay selecciones ni calificaciones.\n\nHTTP esperado: 200. Response: Progreso con respondidas=0 y el intento esperado.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 13 con sus pruebas aprobadas.\n\nSustentación: La consulta es privada y todavía no hay selecciones ni calificaciones. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<13){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 13 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -683,7 +835,9 @@
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
               "}",
-              "pm.test('Cero respuestas',()=>pm.expect(pm.response.json().respondidas).to.eql(0));"
+              "pm.test('Cero respuestas',()=>pm.expect(pm.response.json().respondidas).to.eql(0));",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,14));",
+              "pm.test('Intento propio recuperado',()=>{const j=pm.response.json();pm.expect(String(j.intento.id_intento)).to.eql(String(pm.environment.get('id_intento')));pm.expect(String(j.intento.id_participacion)).to.eql(String(pm.environment.get('id_participacion')));});"
             ]
           }
         }
@@ -711,9 +865,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 15/32 — RF-10/RF-11 — app.main**\n\nObjetivo: Solo se muestra la escena actual; no respuestas correctas ni preguntas futuras.\n\nHTTP esperado: 200. Response: Primera pregunta autorizada y sus opciones; captura automática.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 14 con sus pruebas aprobadas.\n\nSustentación: Solo se muestra la escena actual; no respuestas correctas ni preguntas futuras. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<14){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 14 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -727,7 +890,9 @@
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
               "}",
-              "const q=pm.response.json().pregunta; pm.test('Pregunta habilitada',()=>pm.expect(q).to.be.an('object')); if(q){pm.environment.set('id_decision',q.id);pm.environment.set('id_opcion',q.opciones[0].id);}"
+              "const q=pm.response.json().pregunta; pm.test('Pregunta habilitada',()=>pm.expect(q).to.be.an('object')); if(q){pm.environment.set('id_decision',q.id);pm.environment.set('id_opcion',q.opciones[0].id);}",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,15));",
+              "const qp=pm.response.json().pregunta;pm.test('Otra alternativa real disponible',()=>pm.expect(qp.opciones.length).to.be.above(1));pm.environment.set('primera_decision_id',qp.id);pm.environment.set('primera_opcion_id',qp.opciones[0].id);pm.environment.set('opcion_alternativa_id',qp.opciones[1].id);"
             ]
           }
         }
@@ -759,7 +924,7 @@
             }
           ]
         },
-        "description": "",
+        "description": "**Paso 16/32 — RF-10 — app.main**\n\nObjetivo: La primera respuesta queda registrada e inmutable.\n\nHTTP esperado: 201. Response: Confirmación de primera selección; mismo intento.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 15 con sus pruebas aprobadas.\n\nSustentación: La primera respuesta queda registrada e inmutable. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"id_opcion\": \"{{id_opcion}}\"\n}",
@@ -772,6 +937,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<15){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 15 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -783,7 +957,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
-              "}"
+              "}",
+              "if(pm.response.code===201)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,16));"
             ]
           }
         }
@@ -815,10 +990,10 @@
             }
           ]
         },
-        "description": "",
+        "description": "**Paso 17/32 — RF-10 — app.main**\n\nObjetivo: La regla posterior de la profesora prohíbe modificar una respuesta ya registrada.\n\nHTTP esperado: 409. Response: 409 al intentar seleccionar otra alternativa para la misma pregunta.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 16 con sus pruebas aprobadas.\n\nSustentación: La regla posterior de la profesora prohíbe modificar una respuesta ya registrada. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"id_opcion\": \"{{id_opcion}}\"\n}",
+          "raw": "{\n  \"id_opcion\": \"{{opcion_alternativa_id}}\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -827,6 +1002,15 @@
         }
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<16){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 16 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -838,7 +1022,9 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
-              "}"
+              "}",
+              "if(pm.response.code===409)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,17));",
+              "pm.test('Error sin datos académicos',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','nota_final','selecciones','resultados');});"
             ]
           }
         }
@@ -866,9 +1052,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 18/32 — RF-10/RF-11 — app.main**\n\nObjetivo: La alternativa registrada determina la transición persistente de Cases.\n\nHTTP esperado: 200. Response: Pregunta siguiente del grafo real; captura automática.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 17 con sus pruebas aprobadas.\n\nSustentación: La alternativa registrada determina la transición persistente de Cases. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<17){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 17 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -882,7 +1077,8 @@
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
               "}",
-              "const q=pm.response.json().pregunta; pm.test('Pregunta habilitada',()=>pm.expect(q).to.be.an('object')); if(q){pm.environment.set('id_decision',q.id);pm.environment.set('id_opcion',q.opciones[0].id);}"
+              "const q=pm.response.json().pregunta; pm.test('Pregunta habilitada',()=>pm.expect(q).to.be.an('object')); if(q){pm.environment.set('id_decision',q.id);pm.environment.set('id_opcion',q.opciones[0].id);}",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,18));"
             ]
           }
         }
@@ -914,7 +1110,7 @@
             }
           ]
         },
-        "description": "",
+        "description": "**Paso 19/32 — RF-10 — app.main**\n\nObjetivo: Se responde una pregunta pendiente, sin sustituir la anterior.\n\nHTTP esperado: 201. Response: Confirmación de la segunda selección; mismo intento.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 18 con sus pruebas aprobadas.\n\nSustentación: Se responde una pregunta pendiente, sin sustituir la anterior. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"id_opcion\": \"{{id_opcion}}\"\n}",
@@ -927,6 +1123,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<18){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 18 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -938,7 +1143,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
-              "}"
+              "}",
+              "if(pm.response.code===201)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,19));"
             ]
           }
         }
@@ -966,9 +1172,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 20/32 — RF-10/RF-11 — app.main**\n\nObjetivo: FIN corresponde al grafo publicado; no se fabrica una escena adicional.\n\nHTTP esperado: 200. Response: recorrido_finalizado=true y pregunta=null.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 19 con sus pruebas aprobadas.\n\nSustentación: FIN corresponde al grafo publicado; no se fabrica una escena adicional. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<19){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 19 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -982,7 +1197,8 @@
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
               "}",
-              "pm.test('Terminal sin pregunta futura',()=>{const j=pm.response.json();pm.expect(j.recorrido_finalizado).to.eql(true);pm.expect(j.pregunta).to.eql(null);});"
+              "pm.test('Terminal sin pregunta futura',()=>{const j=pm.response.json();pm.expect(j.recorrido_finalizado).to.eql(true);pm.expect(j.pregunta).to.eql(null);});",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,20));"
             ]
           }
         }
@@ -1010,9 +1226,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 21/32 — RF-11 — app.main**\n\nObjetivo: El progreso recupera las decisiones reales y no revela calificaciones.\n\nHTTP esperado: 200. Response: respondidas=2 y selección original conservada.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 20 con sus pruebas aprobadas.\n\nSustentación: El progreso recupera las decisiones reales y no revela calificaciones. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<20){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 20 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -1026,7 +1251,10 @@
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
               "}",
-              "pm.test('Dos respondidas',()=>pm.expect(pm.response.json().respondidas).to.eql(2));"
+              "pm.test('Dos respondidas',()=>pm.expect(pm.response.json().respondidas).to.eql(2));",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,21));",
+              "pm.test('Intento propio recuperado',()=>{const j=pm.response.json();pm.expect(String(j.intento.id_intento)).to.eql(String(pm.environment.get('id_intento')));pm.expect(String(j.intento.id_participacion)).to.eql(String(pm.environment.get('id_participacion')));});",
+              "pm.test('Selección original intacta',()=>pm.expect(pm.response.json().selecciones.some(s=>s.id_decision===pm.environment.get('primera_decision_id')&&s.id_opcion===pm.environment.get('primera_opcion_id'))).to.eql(true));"
             ]
           }
         }
@@ -1054,9 +1282,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 22/32 — RF-12 — app.main**\n\nObjetivo: Autenticarse no concede titularidad sobre cualquier intento.\n\nHTTP esperado: 403. Response: 403 al cierre por estudiante ajeno.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 21 con sus pruebas aprobadas.\n\nSustentación: Autenticarse no concede titularidad sobre cualquier intento. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<21){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 21 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -1068,7 +1305,9 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
-              "}"
+              "}",
+              "if(pm.response.code===403)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,22));",
+              "pm.test('Error sin datos académicos',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','nota_final','selecciones','resultados');});"
             ]
           }
         }
@@ -1096,9 +1335,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 23/32 — RF-12/RF-23 — app.main**\n\nObjetivo: Cerrar no calcula ni publica una nota; el cálculo docente es posterior.\n\nHTTP esperado: 200. Response: estado=FINALIZADO y fecha de cierre.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 22 con sus pruebas aprobadas.\n\nSustentación: Cerrar no calcula ni publica una nota; el cálculo docente es posterior. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<22){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 22 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -1112,7 +1360,9 @@
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
               "}",
-              "pm.test('Finalizado',()=>pm.expect(pm.response.json().estado).to.eql('FINALIZADO'));"
+              "pm.test('Finalizado',()=>pm.expect(pm.response.json().estado).to.eql('FINALIZADO'));",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,23));",
+              "pm.environment.set('cierre_original',JSON.stringify(pm.response.json()));"
             ]
           }
         }
@@ -1140,9 +1390,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 24/32 — RF-12 — app.main**\n\nObjetivo: El cierre repetido es idempotente y no cambia su historia.\n\nHTTP esperado: 200. Response: Mismo cierre y fecha que la solicitud anterior.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 23 con sus pruebas aprobadas.\n\nSustentación: El cierre repetido es idempotente y no cambia su historia. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<23){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 23 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -1155,7 +1414,9 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
-              "}"
+              "}",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,24));",
+              "pm.test('Cierre íntegramente idempotente',()=>pm.expect(pm.response.json()).to.deep.eql(JSON.parse(pm.environment.get('cierre_original'))));"
             ]
           }
         }
@@ -1183,9 +1444,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 25/32 — RF-10/RF-12 — app.main**\n\nObjetivo: El cierre confirmado impide seguir respondiendo o navegar el intento.\n\nHTTP esperado: 409. Response: 409: no continúa una simulación cerrada.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 24 con sus pruebas aprobadas.\n\nSustentación: El cierre confirmado impide seguir respondiendo o navegar el intento. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<24){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 24 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -1198,7 +1468,9 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "pm.test('Sin notas ni correcciones',()=>pm.expect(claves(j)).not.to.include.any.members(['es_correcta','esCorrecta','justificacion','nota_final','rubrica','puntaje','criterios']));",
-              "}"
+              "}",
+              "if(pm.response.code===409)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,25));",
+              "pm.test('Error sin datos académicos',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','nota_final','selecciones','resultados');});"
             ]
           }
         }
@@ -1223,7 +1495,7 @@
         "auth": {
           "type": "noauth"
         },
-        "description": "",
+        "description": "**Paso 26/32 — RF-02 — app.main**\n\nObjetivo: La prueba usa un docente real ajeno al ámbito académico.\n\nHTTP esperado: 200. Response: Token de un docente distinto, capturado para la negativa.\n\nOperación: POST explícito: autenticación y emisión de token.\n\nDependencia: Ejecutar antes la solicitud 25 con sus pruebas aprobadas.\n\nSustentación: La prueba usa un docente real ajeno al ámbito académico. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"correo\": \"{{correo_docente_ajeno}}\",\n  \"clave\": \"{{clave_docente}}\"\n}",
@@ -1236,6 +1508,15 @@
       },
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<25){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 25 de esta colección.');}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
@@ -1246,7 +1527,8 @@
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
               "}",
-              "pm.environment.set('token_docente_ajeno',pm.response.json().access_token);"
+              "pm.environment.set('token_docente_ajeno',pm.response.json().access_token);",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,26));"
             ]
           }
         }
@@ -1274,9 +1556,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 27/32 — RF-13/RF-24 — app.main**\n\nObjetivo: La consulta no calcula: el cierre dejó el intento sin calificación automática.\n\nHTTP esperado: 404. Response: 404: todavía no existe resultado técnico.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 26 con sus pruebas aprobadas.\n\nSustentación: La consulta no calcula: el cierre dejó el intento sin calificación automática. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<26){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 26 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -1287,7 +1578,9 @@
               "const j=pm.response.json();",
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
-              "}"
+              "}",
+              "if(pm.response.code===404)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,27));",
+              "pm.test('Error sin datos académicos',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','nota_final','selecciones','resultados');});"
             ]
           }
         }
@@ -1315,9 +1608,18 @@
             }
           ]
         },
-        "description": "RF-13/RF-24: comando explícito sobre intento cerrado. Identidad/rol y ámbito persistentes bajo locks; UoW independiente del cierre. Idempotente 200; activo u otro motor 409; fallo 503 recuperable. Sin cuerpo ni puntajes del cliente, sin notas oficiales. Disponible en app.main; requiere configuración y recursos válidos."
+        "description": "**Paso 28/32 — RF-13/RF-24 — app.main**\n\nObjetivo: POST explícito del docente calcula las dos respuestas correctas de esta fixture; no es nota oficial.\n\nHTTP esperado: 200. Response: Resultado técnico 100.00, oficial=false, versión histórica.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 27 con sus pruebas aprobadas.\n\nSustentación: POST explícito del docente calcula las dos respuestas correctas de esta fixture; no es nota oficial. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<27){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 27 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -1338,7 +1640,9 @@
               "pm.test('Sin caché',()=>pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'));",
               "if(j.ambito==='TECNICO')pm.test('Fracciones exactas como cadenas',()=>j.criterios.forEach(c=>{pm.expect(c.numerador).to.be.a('string').and.match(/^\\d+$/);pm.expect(c.denominador).to.be.a('string').and.match(/^[1-9]\\d*$/);}));",
               "pm.test('Resultado conocido LAB, no oficial',()=>{const x=pm.response.json();pm.expect(x.ambito).to.eql('TECNICO');pm.expect(x.nota_final).to.eql('100.00');pm.expect(x.oficial).to.eql(false);});",
-              "const x=pm.response.json();pm.environment.set('resultado_id_primero',x.id_resultado);pm.environment.set('resultado_hash_primero',x.procedencia_sha256);pm.environment.set('resultado_fecha_primero',x.fecha_calculo);"
+              "const x=pm.response.json();pm.environment.set('resultado_id_primero',x.id_resultado);pm.environment.set('resultado_hash_primero',x.procedencia_sha256);pm.environment.set('resultado_fecha_primero',x.fecha_calculo);",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,28));",
+              "pm.test('Mismo intento y resultado NO oficial',()=>{const j=pm.response.json();pm.expect(String(j.id_intento)).to.eql(String(pm.environment.get('id_intento')));pm.expect(j.oficial).to.eql(false);});"
             ]
           }
         }
@@ -1366,9 +1670,18 @@
             }
           ]
         },
-        "description": "RF-13/RF-24: comando explícito sobre intento cerrado. Identidad/rol y ámbito persistentes bajo locks; UoW independiente del cierre. Idempotente 200; activo u otro motor 409; fallo 503 recuperable. Sin cuerpo ni puntajes del cliente, sin notas oficiales. Disponible en app.main; requiere configuración y recursos válidos."
+        "description": "**Paso 29/32 — RF-13/RF-24 — app.main**\n\nObjetivo: Reintentar el comando no duplica ni recalifica el resultado.\n\nHTTP esperado: 200. Response: Mismo id_resultado, huella y fecha de cálculo.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 28 con sus pruebas aprobadas.\n\nSustentación: Reintentar el comando no duplica ni recalifica el resultado. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<28){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 28 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -1388,7 +1701,9 @@
               "pm.test('Sin código ni credenciales',()=>{pm.expect(j).not.to.have.property('procedencia');pm.expect(j).not.to.have.property('politica_documento');});",
               "pm.test('Sin caché',()=>pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'));",
               "if(j.ambito==='TECNICO')pm.test('Fracciones exactas como cadenas',()=>j.criterios.forEach(c=>{pm.expect(c.numerador).to.be.a('string').and.match(/^\\d+$/);pm.expect(c.denominador).to.be.a('string').and.match(/^[1-9]\\d*$/);}));",
-              "const x=pm.response.json();pm.test('Mismo resultado y fecha',()=>{pm.expect(String(x.id_resultado)).to.eql(String(pm.variables.get('resultado_id_primero')));pm.expect(x.procedencia_sha256).to.eql(pm.variables.get('resultado_hash_primero'));pm.expect(x.fecha_calculo).to.eql(pm.variables.get('resultado_fecha_primero'));});"
+              "const x=pm.response.json();pm.test('Mismo resultado y fecha',()=>{pm.expect(String(x.id_resultado)).to.eql(String(pm.variables.get('resultado_id_primero')));pm.expect(x.procedencia_sha256).to.eql(pm.variables.get('resultado_hash_primero'));pm.expect(x.fecha_calculo).to.eql(pm.variables.get('resultado_fecha_primero'));});",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,29));",
+              "pm.test('Mismo intento y resultado NO oficial',()=>{const j=pm.response.json();pm.expect(String(j.id_intento)).to.eql(String(pm.environment.get('id_intento')));pm.expect(j.oficial).to.eql(false);});"
             ]
           }
         }
@@ -1396,7 +1711,7 @@
       "response": []
     },
     {
-      "name": "GET /scheduling/sesiones/{sesion_id}/evaluacion/intentos/{id_intento}/resultado-tecnico [POSITIVA/PRECONDICIONES]",
+      "name": "MAIN — recuperar resultado técnico persistido",
       "request": {
         "method": "GET",
         "header": [
@@ -1416,9 +1731,18 @@
             }
           ]
         },
-        "description": "RF-13/RF-24: resultado técnico previamente persistido, no oficial. JWT/cuenta/rol y ámbito sesión/caso/grupos/participación/intento. REPEATABLE READ/READ ONLY; GET no genera resultados; 404 si no existe. Disponible en app.main; requiere configuración y recursos válidos."
+        "description": "**Paso 30/32 — RF-13/RF-24 — app.main**\n\nObjetivo: Una solicitud SQL independiente recupera el resultado sin generarlo de nuevo.\n\nHTTP esperado: 200. Response: Mismo resultado persistido, recuperado por GET.\n\nOperación: Solo lectura.\n\nDependencia: Ejecutar antes la solicitud 29 con sus pruebas aprobadas.\n\nSustentación: Una solicitud SQL independiente recupera el resultado sin generarlo de nuevo. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<29){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 29 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -1437,7 +1761,10 @@
               "pm.test('Nota decimal como cadena',()=>pm.expect(j.nota_final).to.be.a('string').and.match(/^\\d+\\.\\d{2}$/));",
               "pm.test('Sin código ni credenciales',()=>{pm.expect(j).not.to.have.property('procedencia');pm.expect(j).not.to.have.property('politica_documento');});",
               "pm.test('Sin caché',()=>pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store'));",
-              "if(j.ambito==='TECNICO')pm.test('Fracciones exactas como cadenas',()=>j.criterios.forEach(c=>{pm.expect(c.numerador).to.be.a('string').and.match(/^\\d+$/);pm.expect(c.denominador).to.be.a('string').and.match(/^[1-9]\\d*$/);}));"
+              "if(j.ambito==='TECNICO')pm.test('Fracciones exactas como cadenas',()=>j.criterios.forEach(c=>{pm.expect(c.numerador).to.be.a('string').and.match(/^\\d+$/);pm.expect(c.denominador).to.be.a('string').and.match(/^[1-9]\\d*$/);}));",
+              "if(pm.response.code===200)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,30));",
+              "pm.test('Mismo intento y resultado NO oficial',()=>{const j=pm.response.json();pm.expect(String(j.id_intento)).to.eql(String(pm.environment.get('id_intento')));pm.expect(j.oficial).to.eql(false);});",
+              "pm.test('Resultado persistido idéntico',()=>{const j=pm.response.json();pm.expect(String(j.id_resultado)).to.eql(String(pm.environment.get('resultado_id_primero')));pm.expect(j.procedencia_sha256).to.eql(pm.environment.get('resultado_hash_primero'));});"
             ]
           }
         }
@@ -1445,7 +1772,7 @@
       "response": []
     },
     {
-      "name": "POST /scheduling/sesiones/{sesion_id}/evaluacion/intentos/{id_intento}/resultado-tecnico [ROL NO AUTORIZADO]",
+      "name": "MAIN — rechazar evaluación por estudiante",
       "request": {
         "method": "POST",
         "header": [
@@ -1465,9 +1792,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 31/32 — RF-02/RF-13 — app.main**\n\nObjetivo: El permiso se comprueba en el servidor, no se deduce del conocimiento de un UUID.\n\nHTTP esperado: 403. Response: 403: un estudiante no puede ejecutar evaluación docente.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 30 con sus pruebas aprobadas.\n\nSustentación: El permiso se comprueba en el servidor, no se deduce del conocimiento de un UUID. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<30){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 30 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -1478,7 +1814,9 @@
               "const j=pm.response.json();",
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
-              "}"
+              "}",
+              "if(pm.response.code===403)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,31));",
+              "pm.test('Error sin datos académicos',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','nota_final','selecciones','resultados');});"
             ]
           }
         }
@@ -1486,7 +1824,7 @@
       "response": []
     },
     {
-      "name": "POST evaluación [DOCENTE AJENO]",
+      "name": "MAIN — rechazar evaluación por docente ajeno",
       "request": {
         "method": "POST",
         "header": [
@@ -1506,9 +1844,18 @@
             }
           ]
         },
-        "description": ""
+        "description": "**Paso 32/32 — RF-13/RF-15 — app.main**\n\nObjetivo: El rol docente no concede acceso a recursos ajenos.\n\nHTTP esperado: 403. Response: 403: docente fuera del ámbito de sesión/caso/grupo.\n\nOperación: POST explícito: intenta cambiar estado o registrar datos sintéticos; el rechazo esperado no autoriza escritura.\n\nDependencia: Ejecutar antes la solicitud 31 con sus pruebas aprobadas.\n\nSustentación: El rol docente no concede acceso a recursos ajenos. No mostrar Authorization, passwords, códigos o respuestas de login. Datos exclusivamente sintéticos."
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if((Number(pm.environment.get('paso_principal'))||0)<31){if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Ejecute primero el paso 31 de esta colección.');}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -1519,7 +1866,9 @@
               "const j=pm.response.json();",
               "function claves(v) { if (!v || typeof v!=='object') return []; return Object.keys(v).concat(...Object.values(v).map(claves)); }",
               "pm.test('Sin credenciales privadas',()=>pm.expect(claves(j)).not.to.include.any.members(['clave_hash','password','secreto','jwt_secret','codigo_hash']));",
-              "}"
+              "}",
+              "if(pm.response.code===403)pm.environment.set('paso_principal',Math.max(Number(pm.environment.get('paso_principal'))||0,32));",
+              "pm.test('Error sin datos académicos',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','nota_final','selecciones','resultados');});"
             ]
           }
         }

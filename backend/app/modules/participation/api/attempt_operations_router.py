@@ -5,10 +5,11 @@ from fastapi import APIRouter, Depends, Path
 from app.modules.participation.api.dependencies import EstudianteAutenticado, obtener_estudiante_actual, obtener_facade_operaciones
 from app.modules.participation.api.errors import RutaParticipacion
 from app.modules.participation.api.mappers import mapear_intento
-from app.modules.participation.api.schemas import IntentoRespuesta, SeleccionSolicitud
+from app.modules.participation.api.schemas import IntentoRespuesta, SeleccionSolicitud, ErrorHTTP
 from app.modules.participation.application.facade import ParticipacionFacade
 
-router=APIRouter(route_class=RutaParticipacion,tags=['Participación — intento existente'])
+router=APIRouter(route_class=RutaParticipacion,tags=['Participación — intento existente'],
+    responses={codigo: {'model': ErrorHTTP} for codigo in (401,403,404,409,422,503)})
 Estudiante=Annotated[EstudianteAutenticado,Depends(obtener_estudiante_actual)]
 Facade=Annotated[ParticipacionFacade,Depends(obtener_facade_operaciones)]
 

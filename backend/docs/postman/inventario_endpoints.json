@@ -3123,7 +3123,7 @@
     "rol": "DOCENTE",
     "autenticacion": "Bearer JWT real",
     "estado": "REGISTRADO_CON_PRECONDICIONES",
-    "dependencias_academicas": "RF-13/RF-24: comando explícito sobre intento cerrado. Identidad/rol y ámbito persistentes bajo locks; UoW independiente del cierre. Idempotente 200; activo u otro motor 409; fallo 503 recuperable. Sin cuerpo ni puntajes del cliente, sin notas oficiales.",
+    "dependencias_academicas": "RF-13/RF-24: comando explícito sobre intento cerrado. Identidad/rol y ámbito persistentes bajo locks; UoW independiente del cierre. Idempotente 200; FINALIZADO sin FIN admite PARCIAL técnico con política 2 si el denominador es uniforme (propuesta del equipo, no aprobación institucional). Activo u otro motor 409; fallo 503 recuperable. Sin cuerpo ni puntajes del cliente, sin notas oficiales.",
     "parametros": [
       {
         "name": "sesion_id",

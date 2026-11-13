@@ -7,6 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
+from app.modules.participation.api.dependencies import obtener_fechas_escenario
+from app.modules.participation.application.errors import ReglaPendiente
+from app.modules.participation.infrastructure.errors import MapeoPersistenciaPendiente
 
 from app.db.session import get_db, get_session_factory
 from app.modules.scheduling.api.dependencies import exigir_contexto_convocatoria
@@ -14,11 +17,13 @@ from app.modules.scheduling.api.dependencies import obtener_admision
 from app.modules.scheduling.api.dependencies import obtener_autorizacion_espacios_programacion
 from app.modules.scheduling.application.programming_access import AutorizacionEspacioProgramacion
 from app.modules.scheduling.infrastructure.programming_access import programar_sesion_autorizada
+from app.modules.scheduling.infrastructure.academic_assignment import ProgramacionAcademicaPersistida
 from app.modules.identity.api.academic_dependencies import obtener_docente_scheduling, obtener_estudiante_scheduling, DocenteActual
 from app.modules.scheduling.api.schemas import (
     ProgramarSesionRequest,
     CambiarEstadoRequest,
     SesionResponse,
+    SesionConAsignacionResponse,
     CrearConvocatoriaRequest,
     ConvocatoriaResponse,
     ConvocatoriaDetalleResponse,
@@ -36,6 +41,7 @@ from app.modules.scheduling.application.cambiar_estado_sesion import SesionNoEnc
 from app.modules.identity.domain.errors import AccesoDenegado, IntegracionPendiente
 from app.modules.identity.api.dependencies import obtener_estudiante_actual
 from app.modules.identity.domain.entities import ContextoAcceso
+from app.modules.identity.infrastructure.repositories import id_entero
 from app.modules.scheduling.infrastructure.ingress_access import exigir_matricula_ingreso
 from app.modules.scheduling.application.programar_sesion import (
     ErrorProgramacion,
@@ -63,6 +69,7 @@ from app.modules.scheduling.infrastructure.models import (
     SesionProgramadaModel,
     ConvocatoriaModel,
     NotificacionModel,
+    DocenteEspacioAcademicoModel,
 )
 from app.modules.scheduling.application.crear_notificacion import (
     crear_notificacion,
@@ -117,10 +124,24 @@ FabricaSesion = Annotated[
     "/espacios",
     response_model=list[EspacioAcademicoResponse],
 )
-def listar_espacios(docente_id: Docente, db: BaseDatos):
-    """Lista todos los espacios académicos disponibles."""
-    consulta = select(EspacioAcademicoModel).order_by(EspacioAcademicoModel.nombre)
-    return db.scalars(consulta).all()
+def listar_espacios(docente_id: Docente, db: BaseDatos, usuario: DocenteActual):
+    """Selecciona espacios concedidos explícitamente al docente autenticado.
+
+    El INTEGER de Identity procede del JWT revalidado, nunca del UUID de
+    Scheduling. Crear un espacio no concede permiso para programarlo.
+    """
+    consulta = (
+        select(EspacioAcademicoModel)
+        .join(DocenteEspacioAcademicoModel,
+              DocenteEspacioAcademicoModel.espacio_academico_id == EspacioAcademicoModel.id)
+        .where(DocenteEspacioAcademicoModel.id_docente == id_entero(usuario.id_usuario))
+        .order_by(EspacioAcademicoModel.nombre, EspacioAcademicoModel.id)
+    )
+    try:
+        with db.no_autoflush:
+            return db.scalars(consulta).all()
+    except SQLAlchemyError:
+        raise HTTPException(503, detail="Consulta académica no disponible.") from None
 
 
 @router.post(
@@ -190,11 +211,12 @@ def obtener_sesion(
 
 @router.post(
     "/sesiones",
-    response_model=SesionResponse,
+    response_model=SesionConAsignacionResponse | SesionResponse,
     status_code=201,
 )
 def crear_sesion(
     datos: ProgramarSesionRequest,
+    response: Response,
     docente_id: Docente,
     db: BaseDatos,
     usuario: DocenteActual,
@@ -206,16 +228,24 @@ def crear_sesion(
             db,
             usuario=usuario,autorizacion_espacio=autorizacion,
             docente_id=docente_id,
+            fechas_asignacion=obtener_fechas_escenario() if datos.grupo_id is not None else None,
             **datos.model_dump(),
         )
 
         # No abrir otra lectura después de confirmar: un fallo de refresh no
         # debe comunicar rollback cuando la sesión ya quedó persistida.
-        resultado=SesionResponse.model_validate(sesion)
+        if isinstance(sesion, ProgramacionAcademicaPersistida):
+            base = SesionResponse.model_validate(sesion.sesion).model_dump()
+            resultado = SesionConAsignacionResponse(**base, id_asignacion=sesion.id_asignacion,
+                convocatorias=[dict(convocatoria_id=c.convocatoria_id, estudiante_id=c.estudiante_id,
+                                    codigo_acceso=c.codigo_acceso) for c in sesion.convocatorias])
+            response.headers['Cache-Control'] = 'no-store'
+        else:
+            resultado=SesionResponse.model_validate(sesion)
         db.commit()
         return resultado
 
-    except (AccesoDenegado, IntegracionPendiente, SQLAlchemyError) as error:
+    except (AccesoDenegado, IntegracionPendiente, SQLAlchemyError, ReglaPendiente, MapeoPersistenciaPendiente) as error:
         db.rollback()
         estado=403 if isinstance(error,AccesoDenegado) else 503
         raise HTTPException(estado,detail='Autorización académica de programación no disponible.',

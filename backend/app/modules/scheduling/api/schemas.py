@@ -18,6 +18,9 @@ class ProgramarSesionRequest(BaseModel):
 
     lugar: str | None = Field(default=None, max_length=255)
     mensaje_personalizado: str | None = None
+    grupo_id: int | None = Field(default=None, gt=0, strict=True)
+    estudiantes_ids: list[UUID] | None = Field(default=None, min_length=1)
+    fecha_limite_ingreso: datetime | None = None
 
     @model_validator(mode="after")
     def validar_fechas(self):
@@ -33,6 +36,17 @@ class ProgramarSesionRequest(BaseModel):
             raise ValueError(
                 "La fecha final debe ser posterior a la inicial."
             )
+
+        seleccion = (self.grupo_id, self.estudiantes_ids, self.fecha_limite_ingreso)
+        if any(valor is not None for valor in seleccion):
+            if any(valor is None for valor in seleccion):
+                raise ValueError("Grupo, estudiantes y fecha límite deben proporcionarse juntos.")
+            if len(set(self.estudiantes_ids)) != len(self.estudiantes_ids):
+                raise ValueError("La selección contiene estudiantes duplicados.")
+            if self.fecha_limite_ingreso.utcoffset() is None:
+                raise ValueError("La fecha límite debe incluir zona horaria.")
+            if not self.fecha_inicio <= self.fecha_limite_ingreso <= self.fecha_fin:
+                raise ValueError("La fecha límite debe estar entre inicio y fin de la sesión.")
 
         return self
 
@@ -64,6 +78,15 @@ class SesionResponse(BaseModel):
 class ConvocatoriaResponse(BaseModel):
     convocatoria_id: UUID
     codigo_acceso: str
+
+
+class ConvocatoriaAsignadaResponse(ConvocatoriaResponse):
+    estudiante_id: UUID
+
+
+class SesionConAsignacionResponse(SesionResponse):
+    id_asignacion: int
+    convocatorias: list[ConvocatoriaAsignadaResponse]
 
 
 class ConvocatoriaDetalleResponse(BaseModel):

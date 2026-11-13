@@ -16,6 +16,13 @@ class DocumentoConsentimiento:
     vigente: bool
     id_version_documento: int | None = None  # Solo procede del registro SQL verificado.
 
+    sha256_original: str | None = None
+    sha256_aprobacion: str | None = None
+    autoridad_aprobadora: str | None = None
+    aprobado_en: datetime | None = None
+    publicado_en: datetime | None = None
+    vigente_desde: datetime | None = None
+
     def __post_init__(self):
         if (not all(type(v) is str and v.strip() for v in
                     (self.referencia,self.documento_id,self.version,self.texto))
@@ -36,5 +43,18 @@ class FuenteConsentimiento(Protocol):
         La referencia identifica bytes/documento/version inmutables y recuperables
         históricamente. No se reutiliza una referencia para otra definición.
         Fuente ausente/ambigua o sin documento aprobado falla cerrada.
+        """
+        ...
+
+
+class PoliticaAprobacionConsentimiento(Protocol):
+    def autorizar(self, documento: DocumentoConsentimiento, *, id_asignacion: int,
+                  ahora: datetime) -> None:
+        """Acredita la aprobación del documento resuelto por el servidor.
+
+        No basta un hash ni metadatos declarativos de aprobación. El proveedor
+        deberá proceder del proceso institucional autorizado; no hay uno por
+        defecto, ni se acepta un proveedor/flag enviado por HTTP.
+        Consulta sin efectos: devuelve None o rechaza mediante una excepción.
         """
         ...

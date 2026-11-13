@@ -1,0 +1,211 @@
+"""Colección maestra 2.1: contratos del PDF, escenarios reales y bloqueos explícitos."""
+from copy import deepcopy
+import json,re
+from pathlib import Path
+OUT=Path(__file__).resolve().parent;BASE=OUT.parent/'entrega_20261109'
+NOMBRES=['Autenticar estudiantes','Controlar acceso por rol','Administrar docentes, roles y permisos','Asociar espacio académico y estudiantes','Registrar estructura académica del caso','Registrar contextos y preguntas por escenario','Administrar preguntas y respuestas','Justificar respuestas correctas e incorrectas','Validar estructura y rúbrica del caso','Responder y modificar respuestas','Registrar respuestas y mostrar progreso','Registrar inicio y fin de participación','Calcular nota con rúbrica','Mostrar resultado y feedback final','Consultar participaciones de estudiantes','Descargar reporte de participación','Registrar y asociar la rúbrica','Agendar fecha, horario y condiciones','Administrar estados de sesiones','Asignar y validar código de autorización','Notificar convocatoria y cambios','Restringir ingreso tardío','Controlar tiempo máximo','Evaluar incompletos y ausencias','Autorizar repetición excepcional','Registrar feedback general docente','Notificar calificaciones y feedback']
+# El veredicto técnico del MVP se evalúa por separado de la aprobación externa.
+BLOQUEOS={}
+PENDIENTES_EXTERNOS={
+ 10:'MVP confirmado por el equipo, una pregunta por escena, sin ciclos alcanzables. Conciliar el documento original con la inmutabilidad posterior.',
+ 12:'Documento institucional de consentimiento todavía sin aprobación verificable. Main solo se habilita con paquetes confiables del operador; el paquete sintético se limita a LABORATORIO.',
+ 13:'Orden docente y recuperación confirmadas por el equipo. La fórmula del motor conserva su procedencia y requiere conciliación documental académica.',
+ 23:'Inicio técnico acreditado con configuración explícita LAB. La activación productiva requiere consentimiento institucional aprobado y configuración del operador.',
+ 24:'Evaluación técnica por orden docente confirmada. No se atribuye a la profesora la política técnica del equipo.',
+ 25:'MVP confirmado para el mismo caso y versión histórica, permiso individual de un uso. Vínculos entre casos distintos fuera de este alcance. Activación productiva condicionada al consentimiento institucional.'}
+
+TESTS={1:'test_student_login_scheduling',2:'test_main_staff_login',3:'test_admin_teacher_directory',4:'test_session_programming_http',5:'test_cases_graph_authoring',6:'test_cases_graph_authoring',7:'test_cases_graph_authoring',8:'test_publish_endpoint',9:'test_lifecycle_endpoints',10:'test_immutable_answers',11:'test_main_progress',12:'test_lab_student_journey',13:'test_question_result_storage',14:'test_academic_cycle_http',15:'test_main_teacher_followup',16:'test_official_reports_http',17:'test_cases_graph_authoring',18:'test_session_programming_http',19:'test_worker_process',20:'test_convocation_management_http',21:'test_convocation_management_http',22:'test_waiting_admission',23:'test_main_finish',24:'test_academic_cycle_http',25:'test_academic_cycle_http',26:'test_teacher_followup_http',27:'test_academic_cycle_http'}
+def cargar(file):return json.loads((BASE/file).read_text(encoding='utf-8'))
+P=cargar('Proyecto_Nuclear_entrega_20261109.postman_collection.json')['item'];R=cargar('Proyecto_Nuclear_reportes_oficiales.postman_collection.json')['item'];W=cargar('Proyecto_Nuclear_worker_20261109.postman_collection.json')['item']
+# La maestra usa rutas ya registradas en app.main. La colección histórica de
+# Desktop conserva intacto su recorrido con aplicación aislada.
+for item in P:
+ if '{{base_url_laboratorio}}' in item['request']['url']:
+  item['request']['url']=item['request']['url'].replace('{{base_url_laboratorio}}','{{base_url}}')
+  item['name']=item['name'].replace('LAB AISLADA','MAIN configurado LAB')
+primer_escenario=next(it for it in P if it['name']=='MAIN — escenario actual 1')
+next(e['script']['exec'] for e in primer_escenario['event'] if e['listen']=='test').append(
+ "pm.environment.set('rf_escenario_inicial',pm.response.json().id_escenario);")
+
+
+def elegir(src,*indices):return [deepcopy(src[i-1]) for i in indices]
+def req(nombre,metodo,ruta,estado,actor='docente',body=None,extra='',pre=''):
+ script=f"pm.test('HTTP exacto {estado}',()=>pm.expect(pm.response.code).to.eql({estado}));\n"
+ script+="pm.test('Contrato JSON',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));\n"
+ if estado>=400:script+="pm.test('Rechazo sin datos privados',()=>{const j=pm.response.json();pm.expect(j).to.have.property('detail');pm.expect(j).not.to.have.any.keys('access_token','clave_hash','selecciones','resultados');});\n"
+ else:script+="pm.test('Sin secretos privados',()=>{const t=pm.response.text();pm.expect(t).not.to.include('clave_hash');pm.expect(t).not.to.include('codigo_hash');});\n"
+ script+=extra
+ request=dict(method=metodo,header=[dict(key='Accept',value='application/json')],url='{{base_url}}'+ruta)
+ if actor:request['auth']=dict(type='bearer',bearer=[dict(key='token',value='{{token_'+actor+'}}',type='string')])
+ if body is not None:request['header'].append(dict(key='Content-Type',value='application/json'));request['body']=dict(mode='raw',raw=body if isinstance(body,str) else json.dumps(body,ensure_ascii=False),options=dict(raw=dict(language='json')))
+ events=[dict(listen='test',script=dict(type='text/javascript',exec=script.splitlines()))]
+ if pre:events.insert(0,dict(listen='prerequest',script=dict(type='text/javascript',exec=pre.splitlines())))
+ return dict(name=nombre,request=request,event=events)
+
+def autoria(n):
+ flujo=elegir(P,2,4,26)
+ flujo += [req('Rechazar creación estudiantil','POST','/api/v1/cases',403,'estudiante','{{rf_payload}}'),req('Crear BORRADOR completo','POST','/api/v1/cases',201,body='{{rf_payload}}',extra="pm.test('Nuevo borrador',()=>pm.expect(pm.response.json().estado).to.eql('BORRADOR'));pm.environment.set('rf_version',pm.response.json().version_id);")]
+ flujo += [req('Añadir escenario, pregunta y tercera alternativa','PUT','/api/v1/cases/{{rf_version}}',200,body='{{rf_payload_editado}}'),req('Consultar preguntas, opciones y rúbrica persistidas','GET','/api/v1/cases/{{rf_version}}',200,extra="const j=pm.response.json();pm.environment.set('rf_detalle',JSON.stringify(j));const p=JSON.parse(pm.environment.get('rf_payload_editado'));pm.test('Estructura y contenido exactos',()=>{pm.expect(j.nombre).to.eql(p.case.nombre);pm.expect(j.escenarios.length).to.eql(p.scenarios.length);for(let k=0;k<p.scenarios.length;k++){const e=j.escenarios.find(x=>x.orden===p.scenarios[k].orden);pm.expect(e.contexto_situacional).to.eql(p.scenarios[k].contextoSituacional);pm.expect(e.preguntas.length).to.eql(1);const q=e.preguntas[0],src=p.scenarios[k].questions[0];pm.expect(q.enunciado).to.eql(src.enunciado);pm.expect(q.opciones.length).to.eql(3);for(const op of src.options){const o=q.opciones.find(x=>x.orden===op.orden);pm.expect([o.texto,o.es_correcta,o.justificacion]).to.deep.eql([op.texto,op.esCorrecta,op.justificacion]);}}pm.expect(j.rubrica.criterios[0].nombre).to.eql('Análisis');});const es=j.escenarios.sort((a,b)=>a.orden-b.orden);pm.environment.set('rf_grafo',JSON.stringify({escenario_inicial_id:es[0].id,transiciones:es.flatMap((e,i)=>e.preguntas[0].opciones.map(o=>({opcion_id:o.id,tipo:i===0?'ESCENA':'FIN',...(i===0?{destino_id:es[1].id}:{})})))}));"),req('Rechazar lectura docente ajeno','GET','/api/v1/cases/{{rf_version}}',404,'docente_ajeno'),req('Rechazar JSON con campo no permitido','PUT','/api/v1/cases/{{rf_version}}',422,body={'campo_no_permitido':True}),req('Configurar recorrido mediante UUID recuperados','PUT','/api/v1/cases/{{rf_version}}/graph',200,body='{{rf_grafo}}'),req('Publicar versión válida','POST','/api/v1/cases/{{rf_version}}/publish',200,extra="pm.test('Publicada',()=>pm.expect(pm.response.json().estado).to.eql('PUBLICADO'));"),req('Rechazar edición de publicada','PUT','/api/v1/cases/{{rf_version}}',400,body='{{rf_payload_editado}}'),req('Recuperar historia publicada intacta','GET','/api/v1/cases/{{rf_version}}',200,extra="pm.test('Contenido histórico conservado',()=>{const j=pm.response.json(),a=JSON.parse(pm.environment.get('rf_detalle'));pm.expect(j.escenarios).to.deep.eql(a.escenarios);pm.expect(j.rubrica).to.deep.eql(a.rubrica);});")]
+ # La validación semántica ocurre en publicar: borradores incompletos son legítimos.
+ pre="const x=JSON.parse(pm.environment.get('rf_payload'));"+('x.scenarios[0].questions[0].options.forEach(o=>o.justificacion="");' if n==8 else 'x.scenarios[0].questions[0].options=x.scenarios[0].questions[0].options.slice(0,1);')+"pm.environment.set('rf_payload_invalido',JSON.stringify(x));"
+ flujo += [req('Guardar borrador incompleto permitido','POST','/api/v1/cases',201,body='{{rf_payload_invalido}}',pre=pre,extra="pm.environment.set('rf_invalida',pm.response.json().version_id);"),req('Rechazar publicación de estructura inválida','POST','/api/v1/cases/{{rf_invalida}}/publish',400,extra="pm.test('Errores explícitos',()=>pm.expect(pm.response.json().detail.errores.length).to.be.above(0));")]
+ if n==9:flujo += [req('Archivar versión publicada','POST','/api/v1/cases/{{rf_version}}/archive',200,extra="pm.test('Archivada',()=>pm.expect(pm.response.json().estado).to.eql('ARCHIVADO'));")]
+ return flujo
+
+def programacion():
+ flujo=elegir(P,2,4,26)
+ body={'espacio_academico_id':'{{espacio_academico_id}}','version_caso_id':'{{version_id}}','fecha_inicio':'{{rf_inicio}}','fecha_fin':'{{rf_fin}}','tiempo_maximo_minutos':30,'lugar':'Aula sintética RF','mensaje_personalizado':'Convocatoria académica sintética RF'}
+ flujo += [req('Programar con versión publicada exacta','POST','/scheduling/sesiones',201,body=body,extra="const j=pm.response.json();pm.environment.set('rf_sesion',j.id);pm.test('Condiciones y versión exactas',()=>{pm.expect(j.version_caso_id).to.eql(pm.environment.get('version_id'));pm.expect(j.tiempo_maximo_minutos).to.eql(30);pm.expect(j.lugar).to.eql('Aula sintética RF');pm.expect(j.estado).to.eql('SIN_INICIAR');});"),req('Leer sesión en nueva solicitud SQL','GET','/scheduling/sesiones/{{rf_sesion}}',200,extra="pm.test('Versión histórica conservada',()=>pm.expect(pm.response.json().version_caso_id).to.eql(pm.environment.get('version_id')));"),req('Rechazar programación por docente ajeno al espacio','POST','/scheduling/sesiones',403,'docente_ajeno',body),req('Rechazar lectura ajena','GET','/scheduling/sesiones/{{rf_sesion}}',403,'docente_ajeno'),req('Rechazar duración mayor al estimado','POST','/scheduling/sesiones',422,body={**body,'tiempo_maximo_minutos':999}),req('Rechazar fechas invertidas','POST','/scheduling/sesiones',422,body={**body,'fecha_fin':'{{rf_inicio}}'})]
+ return flujo
+
+def feedback(flujo):
+ path='/api/v1/identity/seguimiento/participaciones/{{id_participacion}}/feedback'
+ return flujo+([req('Rechazar consulta de feedback por estudiante ajeno','GET',path,403,'ajeno')] if any('{{correo_ajeno}}' in it['request'].get('body',{}).get('raw','') for it in flujo) else [])+[req('Registrar feedback individual','POST',path,201,body={'texto':'Primera valoración sintética RF-26'},extra="pm.test('Texto confirmado',()=>pm.expect(pm.response.json().texto).to.eql('Primera valoración sintética RF-26'));"),req('Actualizar valoración vigente','POST',path,201,body={'texto':'Valoración actualizada sintética RF-26'}),req('Titular recupera feedback actualizado','GET',path,200,'estudiante',extra="pm.test('Actualización persistente',()=>pm.expect(pm.response.json().texto).to.eql('Valoración actualizada sintética RF-26'));"),req('Rechazar escritura estudiantil','POST',path,403,'estudiante',{'texto':'No autorizado'}),req('Rechazar docente ajeno','POST',path,403,'docente_ajeno',{'texto':'No autorizado'})]
+
+def autorizaciones_rf03():
+ path='/api/v1/identity/docentes/{{rf_docente_creado}}/autorizaciones'
+ profile={'roles':['DOCENTE'],'permisos':['CREAR_CASOS']}
+ exact="const j=pm.response.json();pm.test('Identidad y permisos SQL del nuevo docente',()=>{pm.expect(j.id_usuario).to.eql(pm.environment.get('rf_docente_creado'));pm.expect(j.roles).to.deep.eql(['DOCENTE']);pm.expect(j.permisos).to.deep.eql(['CREAR_CASOS']);});"
+ return [req('Validar perfil existente sin cambiar catálogo global','PUT',path,200,'admin',profile,extra=exact),
+  req('Login real del docente recién creado','POST','/api/v1/identity/auth/personal',200,None,{'correo':'{{rf_nuevo_correo}}','clave':'{{rf_clave_nueva}}'},extra="pm.environment.set('token_rf_docente_creado',pm.response.json().access_token);"),
+  req('Recuperar permisos en otra solicitud','GET','/api/v1/identity/me',200,'rf_docente_creado',extra=exact),
+  req('Rechazar asignación por estudiante','PUT',path,403,'estudiante',profile),
+  req('No simular revocación individual incompatible con el catálogo LAB','PUT',path,422,'admin',{'roles':['DOCENTE'],'permisos':[]}),
+  req('Rechazar escalamiento o multirrol no soportado','PUT',path,422,'admin',{'roles':['DOCENTE','ADMINISTRADOR'],'permisos':['CREAR_CASOS']}),
+  req('Rechazar permiso que no existe en el catálogo','PUT',path,422,'admin',{'roles':['DOCENTE'],'permisos':['NO_EXISTE_RF03']}),
+  req('Rechazos conservan el perfil original','GET','/api/v1/identity/me',200,'rf_docente_creado',extra=exact),
+  req('Consultar perfil global DOCENTE','GET','/api/v1/identity/roles/docente/permisos',200,'admin',extra="const j=pm.response.json();pm.test('Alcance global y catálogo',()=>{pm.expect(j.alcance).to.eql('GLOBAL_ROL');pm.expect(j.rol).to.eql('DOCENTE');pm.expect(j.permisos).to.deep.eql(['CREAR_CASOS']);});"),
+  req('Retirar permisos globales del rol','PUT','/api/v1/identity/roles/docente/permisos',200,'admin',{'permisos':[]},extra="pm.test('Perfil global vacío',()=>pm.expect(pm.response.json().permisos).to.deep.eql([]));"),
+  req('Token emitido refleja revocación global','GET','/api/v1/identity/me',200,'rf_docente_creado',extra="pm.test('Revocación SQL vigente',()=>pm.expect(pm.response.json().permisos).to.deep.eql([]));"),
+  req('Restituir permisos globales','PUT','/api/v1/identity/roles/docente/permisos',200,'admin',{'permisos':['CREAR_CASOS']}),
+  req('Configuración global idempotente','PUT','/api/v1/identity/roles/docente/permisos',200,'admin',{'permisos':['CREAR_CASOS']}),
+  req('Docente no administra permisos globales','PUT','/api/v1/identity/roles/docente/permisos',403,'docente',{'permisos':[]}),
+  req('Estudiante no consulta el catálogo administrativo','GET','/api/v1/identity/roles/docente/permisos',403,'estudiante'),
+  req('Permiso global inexistente rechazado','PUT','/api/v1/identity/roles/docente/permisos',422,'admin',{'permisos':['NO_EXISTE_RF03']}),
+  req('Perfil final recuperado desde SQL','GET','/api/v1/identity/me',200,'rf_docente_creado',extra=exact)]
+
+def resultados_estudiantiles_rf14():
+ f=deepcopy(R)
+ def agregar(item,script):
+  next(x['script']['exec'] for x in item['event'] if x['listen']=='test').append('{'+script+'}')
+ agregar(f[3],"const fila=pm.response.json().filas.find(x=>x.convocatoria_id===pm.environment.get('convocatoria_id'));pm.test('Fila propia y version historica',()=>pm.expect(fila).to.be.an('object'));if(fila)pm.environment.set('rf14_version_historica',fila.version_caso_id);")
+ agregar(f[7],"const j=pm.response.json();pm.test('Aciertos y explicaciones de selecciones historicas',()=>{pm.expect(j.oficial).to.eql(true);pm.expect(j.detalle.version_caso_id).to.eql(pm.environment.get('rf14_version_historica'));pm.expect(j.explicaciones.length).to.be.above(0);const rs=j.explicaciones.flatMap(x=>x.respuestas);pm.expect(rs.length).to.be.above(0);j.explicaciones.forEach(b=>pm.expect(new Set(b.respuestas.map(x=>x.pregunta_id)).size).to.eql(b.respuestas.length));rs.forEach(x=>{pm.expect(x.es_correcta).to.be.a('boolean');pm.expect(x.justificacion).to.be.a('string').and.not.empty;pm.expect(x.enunciado).to.be.a('string').and.not.empty;pm.expect(x.texto_seleccionado).to.be.a('string');});pm.expect(j).not.to.have.any.keys('resultados','retiradas');});pm.test('Sin documentos internos',()=>['politica_documento','motor_documento','fuente_documento','clave_hash','codigo_hash'].forEach(x=>pm.expect(pm.response.text()).not.to.include(x)));pm.environment.set('rf14_resultado_historico',JSON.stringify(j));")
+ path='/scheduling/convocatorias/{{convocatoria_id}}/resultado'
+ return f+[req('Recargar resultado privado sin cambiar nota ni historial','GET',path,200,'estudiante',extra="pm.test('Recarga identica',()=>pm.expect(pm.response.json()).to.deep.eql(JSON.parse(pm.environment.get('rf14_resultado_historico'))));"),req('Rechazar consulta estudiantil por docente ajeno','GET',path,403,'docente_ajeno'),req('Rechazar resultado sin autenticacion','GET',path,401,None),req('Rechazar parametros que simulan una nota','GET',path+'?nota_final=100',422,'estudiante')]
+
+
+def asignacion_rf04():
+ ruta='/scheduling/sesiones'
+ cuerpo='{{rf_programacion_academica}}'
+ capturar="""const j=pm.response.json();
+pm.environment.set('rf_sesion',j.id);
+pm.environment.set('rf_asignacion',j.id_asignacion);
+pm.environment.set('rf_convocatoria',j.convocatorias[0].convocatoria_id);
+pm.environment.set('rf_codigo_convocatoria',j.convocatorias[0].codigo_acceso);
+pm.test('Asignacion y version exactas',()=>{
+ pm.expect(j.id_asignacion).to.be.a('number');
+ pm.expect(j.version_caso_id).to.eql(pm.environment.get('version_id'));
+ pm.expect(j.estado).to.eql('SIN_INICIAR');
+ pm.expect(j.convocatorias.length).to.eql(2);
+ pm.expect(new Set(j.convocatorias.map(x=>x.estudiante_id)).size).to.eql(2);
+ pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store');
+});"""
+ return elegir(P,2,4,26)+[
+  req('Seleccionar espacio propio','GET','/scheduling/espacios',200,extra="pm.test('Espacio autorizado',()=>pm.expect(pm.response.json().some(x=>x.id===pm.environment.get('espacio_academico_id'))).to.eql(true));"),
+  req('Espacio ajeno no disponible','GET','/scheduling/espacios',200,'docente_ajeno',extra="pm.test('Privacidad del espacio',()=>pm.expect(pm.response.json().some(x=>x.id===pm.environment.get('espacio_academico_id'))).to.eql(false));"),
+  req('Programacion sin JWT rechazada','POST',ruta,401,None,cuerpo),
+  req('Docente ajeno no crea asignacion','POST',ruta,403,'docente_ajeno',cuerpo),
+  req('Estudiante no programa','POST',ruta,403,'estudiante',cuerpo),
+  req('Seleccion incompleta rechazada antes de escribir','POST',ruta,422,'docente','{{rf_programacion_rechazada}}',pre="const b=JSON.parse(pm.environment.get('rf_programacion_academica'));delete b.fecha_limite_ingreso;pm.environment.set('rf_programacion_rechazada',JSON.stringify(b));"),
+  req('Seleccion duplicada rechazada antes de escribir','POST',ruta,422,'docente','{{rf_programacion_rechazada}}',pre="const b=JSON.parse(pm.environment.get('rf_programacion_academica'));b.estudiantes_ids=[b.estudiantes_ids[0],b.estudiantes_ids[0]];pm.environment.set('rf_programacion_rechazada',JSON.stringify(b));"),
+  req('Programar y asignar estudiantes en la misma operacion','POST',ruta,201,'docente',cuerpo,extra=capturar),
+  req('Recuperar sesion persistida sin codigos','GET',ruta+'/{{rf_sesion}}',200,extra="const j=pm.response.json();pm.test('Version historica y privacidad',()=>{pm.expect(j.version_caso_id).to.eql(pm.environment.get('version_id'));pm.expect(j).not.to.have.property('convocatorias');});"),
+  req('Consultar convocatorias de la misma sesion','GET',ruta+'/{{rf_sesion}}/convocatorias',200,extra="pm.test('Dos estudiantes asignados sin duplicados',()=>{const a=pm.response.json();pm.expect(a.length).to.eql(2);pm.expect(a.every(x=>x.sesion_id===pm.environment.get('rf_sesion'))).to.eql(true);pm.expect(pm.response.text()).not.to.include(pm.environment.get('rf_codigo_convocatoria'));});"),
+  req('Convocatorias ajenas protegidas','GET',ruta+'/{{rf_sesion}}/convocatorias',403,'docente_ajeno'),
+ ]
+
+def repeticion_mvp():
+ path='/api/v1/identity/excepciones/repeticiones'
+ body={'id_sesion':'{{sesion_id}}','id_estudiante':'{{rf_estudiante_integer}}'}
+ start='/api/v1/convocatorias/{{convocatoria_id}}/intentos'
+ # Los INTEGER se serializan como números, igual que la solicitud de inicio existente.
+ raw='{"id_asignacion":{{id_asignacion}},"codigo_acceso":"{{codigo_estudiante}}","id_consentimiento":{{id_consentimiento}},"id_permiso_extra":{{rf_permiso}}}'
+ return deepcopy(P)+[
+  req('Rechazar autorización por estudiante','POST',path,403,'estudiante',body),
+  req('Autorizar permiso individual mismo caso','POST',path,201,body=body,extra="pm.environment.set('rf_permiso',pm.response.json().id_permiso_extra);"),
+  req('Recuperar permiso sin duplicarlo','POST',path,201,body=body,extra="pm.test('Mismo permiso',()=>pm.expect(pm.response.json().id_permiso_extra).to.eql(Number(pm.environment.get('rf_permiso'))));"),
+  req('Consumir permiso e iniciar repetición histórica','POST',start,201,'estudiante',raw,extra="const j=pm.response.json();pm.environment.set('rf_repeticion',j.id_intento);pm.test('Segundo intento del mismo caso',()=>{pm.expect(j.numero_intento).to.eql(2);pm.expect(j.id_participacion).to.eql(Number(pm.environment.get('id_participacion')));});"),
+  req('No duplicar intento con permiso consumido','POST',start,409,'estudiante',raw),
+  req('Reanudar repetición privada','GET','/api/v1/attempts/{{rf_repeticion}}/current-scenario',200,'estudiante',extra="pm.test('Mismo escenario histórico inicial',()=>pm.expect(pm.response.json().id_escenario).to.eql(pm.environment.get('rf_escenario_inicial')));"),
+  req('Cerrar repetición autorizada','POST','/api/v1/attempts/{{rf_repeticion}}/finish',200,'estudiante'),
+  req('Rechazar reutilización tras cierre','POST',start,403,'estudiante',raw)]
+
+
+def armar(n):
+ if n==1:return 'principal',elegir(P,4,5,6)+[req('Credenciales estudiantiles incorrectas','POST','/api/v1/identity/auth/estudiantes',401,None,{'correo':'{{correo_estudiante}}','codigo_convocatoria':'invalido-exclusivo-LAB'}),req('Consulta sin JWT','GET','/api/v1/identity/me',401,None),req('Consulta con token inválido','GET','/api/v1/identity/me',401,None,pre="pm.request.headers.upsert({key:'Authorization',value:'Bearer invalido-LAB'});")]
+ if n in (2,5,6,7,8,9,17):return 'principal',autoria(n)
+ if n==3:
+  f=elegir(P,1,2,4,3);body={'correo':'{{rf_nuevo_correo}}','nombre':'Docente creado RF-03','clave':'{{rf_clave_nueva}}','roles':['DOCENTE'],'permisos':['CREAR_CASOS']}
+  return 'principal',f+[req('Alta docente administrada','POST','/api/v1/identity/docentes',201,'admin',body,extra="pm.environment.set('rf_docente_creado',pm.response.json().id_usuario);"),req('Rechazar duplicación de correo','POST','/api/v1/identity/docentes',409,'admin',body),req('Rechazar alta por docente','POST','/api/v1/identity/docentes',403,'docente',body),req('Rechazar alta por estudiante','POST','/api/v1/identity/docentes',403,'estudiante',body),req('Consultar docentes por administrador','GET','/api/v1/identity/docentes',200,'admin')]+autorizaciones_rf03()
+ if n==4:return 'principal',asignacion_rf04()
+ if n in (18,20,21):
+  f=programacion()
+  f += [req('Agregar convocatoria individual','POST','/scheduling/sesiones/{{rf_sesion_convocatoria}}/convocatorias',201,body={'estudiante_id':'{{rf_nuevo_alumno_uuid}}'},extra="const j=pm.response.json();pm.environment.set('rf_convocatoria',j.convocatoria_id);pm.environment.set('rf_codigo_convocatoria',j.codigo_acceso);pm.test('Código individual generado',()=>pm.expect(j.codigo_acceso.length).to.be.above(10));"),req('Consultar estudiantes autorizados','GET','/scheduling/sesiones/{{rf_sesion_convocatoria}}/convocatorias',200,extra="pm.test('Titular incluido',()=>pm.expect(pm.response.json().some(x=>x.id===pm.environment.get('rf_convocatoria')&&x.estudiante_id===pm.environment.get('rf_nuevo_alumno_uuid'))).to.eql(true));"),req('Rechazar alta por docente ajeno','POST','/scheduling/sesiones/{{rf_sesion_convocatoria}}/convocatorias',403,'docente_ajeno',{'estudiante_id':'{{rf_nuevo_alumno_uuid}}'})]
+  if n in(20,21):f += [req('Login del nuevo convocado con código real','POST','/api/v1/identity/auth/estudiantes',200,None,{'correo':'{{rf_nuevo_alumno_correo}}','codigo_convocatoria':'{{rf_codigo_convocatoria}}'},extra="pm.environment.set('token_convocado',pm.response.json().access_token);"),req('CORREO 1 Verificar aviso interno tras despacho SMTP','GET','/scheduling/notificaciones?destinatario_id={{rf_nuevo_alumno_uuid}}',200,'convocado',extra="pm.test('Aviso del titular',()=>pm.expect(pm.response.json().some(x=>x.convocatoria_id===pm.environment.get('rf_convocatoria'))).to.eql(true));"),req('Retirar estudiante y revocar convocatoria','DELETE','/scheduling/sesiones/{{rf_sesion_convocatoria}}/convocatorias/{{rf_convocatoria}}',200,extra="pm.test('Retiro persistido',()=>pm.expect(pm.response.json().estado).to.eql('RETIRADA'));"),req('CORREO 2 Consultar avisos reales de alta y retiro del nuevo titular','GET','/scheduling/notificaciones?destinatario_id={{rf_nuevo_alumno_uuid}}',200,'convocado',extra="pm.test('Destinatario y eventos exactos',()=>{const a=pm.response.json().filter(x=>x.convocatoria_id===pm.environment.get('rf_convocatoria'));pm.expect(a.length).to.eql(2);pm.expect(a.every(x=>x.destinatario_id===pm.environment.get('rf_nuevo_alumno_uuid')&&x.canal==='INTERNA')).to.eql(true);pm.expect(a.map(x=>x.tipo).sort()).to.deep.eql(['CONVOCATORIA','CONVOCATORIA_RETIRADA']);pm.expect(pm.response.text()).not.to.include(pm.environment.get('rf_codigo_convocatoria'));});"),req('Login retirado rechazado','POST','/api/v1/identity/auth/estudiantes',401,None,{'correo':'{{rf_nuevo_alumno_correo}}','codigo_convocatoria':'{{rf_codigo_convocatoria}}'})]
+  return 'principal',f
+ if n in(10,11,13,23):return 'principal',deepcopy(P)
+ if n==12:
+  path='/api/v1/identity/convocatorias/{{convocatoria_id}}/asignaciones/{{id_asignacion}}/consentimiento'
+  return 'principal',deepcopy(P)+[req('Documento sin JWT rechazado','GET',path,401,None),req('Documento de otro estudiante rechazado','GET',path,403,'ajeno')]
+ if n==15:
+  return 'principal',feedback(deepcopy(P))+[req('Docente consulta casos realizados','GET','/api/v1/identity/seguimiento/casos',200),req('Consulta respuestas individuales','GET','/api/v1/identity/seguimiento/participaciones/{{id_participacion}}',200,extra="pm.test('Respuestas, explicaciones y feedback históricos',()=>{const j=pm.response.json();pm.expect(j.version_caso_id).to.eql(pm.environment.get('version_id'));pm.expect(j.respuestas.length).to.eql(2);pm.expect(j.respuestas.every(x=>x.retroalimentacion&&String(x.id_intento)===String(pm.environment.get('id_intento')))).to.eql(true);pm.expect(j.feedback_docente).to.eql('Valoración actualizada sintética RF-26');});"),req('Rechazar seguimiento ajeno','GET','/api/v1/identity/seguimiento/participaciones/{{id_participacion}}',403,'docente_ajeno'),req('Rechazar seguimiento por estudiante','GET','/api/v1/identity/seguimiento/participaciones/{{id_participacion}}',403,'estudiante')]
+ if n==14:return 'reportes',resultados_estudiantiles_rf14()
+ if n==16:return 'reportes',deepcopy(R)
+ if n==19:return 'worker',programacion()+[req('Habilitar sesión por docente','POST','/scheduling/sesiones/{{rf_sesion}}/estado',200,body={'accion':'iniciar'}),req('Finalizar sesión por docente','POST','/scheduling/sesiones/{{rf_sesion}}/estado',200,body={'accion':'finalizar'}),req('Rechazar segundo cierre docente','POST','/scheduling/sesiones/{{rf_sesion}}/estado',409,body={'accion':'finalizar'}),req('Rechazar cambio por docente ajeno','POST','/scheduling/sesiones/{{rf_sesion}}/estado',403,'docente_ajeno',{'accion':'finalizar'})]+deepcopy(W)
+ if n==22:
+  return 'principal',elegir(P,4,5,7,8)+[req('Rechazar consulta de concesión ajena','GET','/scheduling/convocatorias/{{convocatoria_id}}/admision',403,'ajeno'),req('Rechazar ingreso sin código legítimo','POST','/scheduling/validar-ingreso',403,'estudiante',{'convocatoria_id':'{{convocatoria_id}}','estudiante_id':'{{estudiante_id}}','codigo_acceso':'codigo-invalido-LAB'})]
+ if n==24:
+  f=elegir(R,1,2,3)
+  f += [req('Publicación incompleta rechazada','POST','/scheduling/sesiones/{{sesion_id}}/evaluacion/publicaciones',409,body={'revision_sha256':'{{rf_revision_incompleta}}'}),req('Confirmar ausencia expresa sin intento ficticio','POST','/scheduling/sesiones/{{sesion_id}}/evaluacion/convocatorias/{{rf_ausente}}/ausencia',200,body={'motivo':'Confirmación docente expresa sintética RF-24'},extra="pm.test('Ausencia con cero',()=>pm.expect(pm.response.json().nota).to.eql('0.00'));"),req('Rechazar confirmación por docente ajeno','POST','/scheduling/sesiones/{{sesion_id}}/evaluacion/convocatorias/{{rf_ausente}}/ausencia',403,'docente_ajeno',{'motivo':'No autorizado'})]
+  return 'reportes',f+elegir(R,*range(4,16))
+ if n==25:return 'principal',repeticion_mvp()
+ if n==26:return 'principal',feedback(deepcopy(P))
+ if n==27:return 'reportes',feedback(deepcopy(R))+[req('Bandeja tras publicación y feedback','GET','/scheduling/notificaciones?destinatario_id={{estudiante_id}}',200,'estudiante',extra="pm.test('Aviso de calificación presente',()=>pm.expect(pm.response.json().some(x=>x.tipo==='CALIFICACION')).to.eql(true));")]
+ raise ValueError(n)
+
+def main():
+ fuente=json.loads((OUT/'REQUISITOS_FUENTE.json').read_text(encoding='utf-8'));inventario=json.loads((OUT/'INVENTARIO_PREVIO.json').read_text(encoding='utf-8'));folders=[];contratos=[]
+ for n in range(1,28):
+  rf=f'RF-{n:02}';modo,items=armar(n);contrato=fuente['requisitos'][rf]
+  for k,it in enumerate(items,1):
+   it['name']=f'PM-{rf}-{k:02} | '+it['name'];ev=it['event'];test=next(x['script'] for x in ev if x['listen']=='test');txt='\n'.join(test['exec']);estado=int(re.search(r'HTTP exacto (\d+)',txt)[1]);test['exec'].append(f"if(pm.response.code==={estado})pm.environment.set('rf_paso',Math.max(Number(pm.environment.get('rf_paso'))||0,{k}));")
+   it['event']=[e for e in ev if e['listen']!='prerequest']+[dict(listen='prerequest',script=dict(type='text/javascript',exec=[f"if(pm.environment.get('rf_activo')!=='{rf}'||(Number(pm.environment.get('rf_paso'))||0)<{k-1}){{if(pm.execution&&pm.execution.skipRequest)pm.execution.skipRequest();throw new Error('Prepare {rf} y ejecute en orden.');}}",*[line for e in ev if e['listen']=='prerequest' for line in e['script']['exec'] if 'paso_' not in line]]))]
+   superficie='LAB' if '{{base_url_laboratorio}}'in it['request']['url'] else 'app.main'
+   it['request']['description']=f'{rf}; caso HTTP nuevo PM-{rf}-{k:02} (no se atribuye un código PT-DCP-01 sin ficha equivalente). {superficie}. HTTP esperado {estado}. '+('Operación explícita de escritura/autenticación.' if it['request']['method']!='GET' else 'Consulta de lectura.')+f' Dependencia: preparación {modo} y pasos anteriores de esta carpeta. No mostrar tokens ni códigos.'
+  folders.append(dict(name=rf+' — '+NOMBRES[n-1],description=contrato+'\n\nPrecondición: preparar laboratorio '+modo+' mediante preparar-27rf.ps1 -RF '+rf+'. No usar environment de otra carpeta. '+(PENDIENTES_EXTERNOS.get(n) or 'Cumplimiento sujeto a ejecución real y comprobación SQL complementaria.'),item=items))
+  tests_main={12:['test_default_proveedores_cerrados_sin_politicas_ni_doc_aprobado','test_auth_precede_politicas','test_recorrido_main_aceptacion_inicio_decisiones_cierre','test_un_puerto_ausente_impide_insertar','test_autorizacion_revalidada_en_main_antes_de_insertar','test_inicio_concurrente_y_rollback_real'],23:['test_vencimiento_y_respuestas_conservadas_main'],25:['test_repeticion_permiso_real_consumido_una_vez']}
+  referencias=[x for x in inventario['tests'] if '/'+TESTS[n]+'.py::' in x]
+  referencias += [x for x in inventario['tests'] if '/test_main_start_composition.py::' in x and x.rsplit('::',1)[1] in tests_main.get(n,[])]
+  if n==3:referencias += [x for x in inventario['tests'] if '/test_admin_write_authorization.py::' in x]
+  if n==3:referencias += [x for x in inventario['tests'] if '/test_global_teacher_permissions.py::' in x]
+  if n==4:referencias += [x for x in inventario['tests'] if '/test_academic_assignment_programming.py::' in x or '/test_assignment_mail_composition.py::' in x]
+  if n in (20,21):referencias += [x for x in inventario['tests'] if '/test_durable_mail.py::' in x or '/test_assignment_mail_composition.py::' in x]
+  if n==10:referencias += [x for x in inventario['tests'] if '/test_rf10_angular_journey.py::' in x]
+  if n in (10,12,13,23,24,25):referencias += [x for x in inventario['tests'] if x.endswith('::test_main_configurado_recorrido_inmutable_evaluacion_repeticion_y_ausencia')]
+  if n in (12,23):referencias += [x for x in inventario['tests'] if any('/'+file+'.py::' in x for file in ('test_main_configured_student_flow','test_main_consent_attestation','test_start_policy_file_main'))]
+  if n in (13,24):referencias += [x for x in inventario['tests'] if '/test_closed_attempt_recovery.py::' in x or x.endswith('::test_vencimiento_configurado_separa_lectura_cierre_y_calculo')]
+  if n==25:referencias += [x for x in inventario['tests'] if x.endswith('::test_permiso_nativo_main_archivo')]
+  if n in (13,24):referencias += [x for x in inventario['tests'] if '/test_evaluation_provenance_compatibility.py::' in x]
+  if n==4:referencias += [x for x in inventario['tests'] if '/test_authorized_academic_spaces.py::' in x]
+  if n==14:referencias += [x for x in inventario['tests'] if '/test_rf14_student_results.py::' in x]
+  contratos.append(dict(rf=rf,nombre=NOMBRES[n-1],fuente=contrato,modo=modo,bloqueo=BLOQUEOS.get(n),aceptacion_externa=PENDIENTES_EXTERNOS.get(n),tests=sorted(set(referencias)),casos=[dict(caso=it['name'].split(' | ')[0],nombre=it['name'],metodo=it['request']['method'],ruta=it['request']['url'],esperado=int(re.search(r'HTTP exacto (\d+)',str(it['event']))[1])) for it in items]))
+ col=dict(info=dict(name='Proyecto Nuclear — cobertura verificable RF-01 a RF-27',schema='https://schema.getpostman.com/json/collection/v2.1.0/collection.json',description='27 carpetas no equivalen a 27 RF aprobados. Ejecutar cada carpeta con su laboratorio fresco; no Runner completo sobre una sola BD. Solo datos sintéticos, fuentes preservadas.'),item=folders)
+ (OUT/'Proyecto_Nuclear_27RF.postman_collection.json').write_text(json.dumps(col,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');(OUT/'CONTRATOS_CASOS.json').write_text(json.dumps(contratos,ensure_ascii=False,indent=2),encoding='utf-8')
+ env=cargar('Proyecto_Nuclear_entrega_20261109.postman_environment.json');env['name']='NUCLEAR 27RF — PLANTILLA SIN SECRETOS; usar preparador'
+ keys={v['key'] for v in env['values']}
+ for k in re.findall(r'\{\{([^{}]+)\}\}',json.dumps(col))+['rf_activo','rf_paso','rf14_version_historica','rf14_resultado_historico']:
+  if k not in keys:env['values'].append(dict(key=k,value='',type='secret' if any(x in k for x in ('clave','token','codigo')) else 'default',enabled=True));keys.add(k)
+ for v in env['values']:v['value']=''
+ (OUT/'Proyecto_Nuclear_27RF.postman_environment.json').write_text(json.dumps(env,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+ print('27 carpetas; solicitudes:',sum(len(f['item']) for f in folders))
+if __name__=='__main__':main()

@@ -15,6 +15,31 @@ class ConsultaDocentesSQLAlchemy:
     def __init__(self, crear_sesion: Callable[[], Session]):
         self._crear_sesion = crear_sesion
 
+    def consultar_permisos_docentes(self, contexto: ContextoAcceso):
+        from app.modules.identity.infrastructure.repositories import RepositorioUsuariosSQLAlchemy
+        if not contexto.activo:
+            raise NoAutenticado()
+        if Rol.ADMINISTRADOR not in contexto.roles:
+            raise AccesoDenegado()
+        try:
+            with self._crear_sesion() as sesion:
+                if sesion.in_transaction() or sesion.new or sesion.dirty or sesion.deleted:
+                    raise IntegracionPendiente()
+                if sesion.get_bind().dialect.name != 'postgresql':
+                    raise IntegracionPendiente()
+                sesion.autoflush = False
+                sesion.connection(execution_options={
+                    'isolation_level': 'REPEATABLE READ', 'postgresql_readonly': True,
+                })
+                actual = RepositorioUsuariosSQLAlchemy(sesion).obtener(contexto.id_usuario)
+                if actual is None or not actual.activo:
+                    raise NoAutenticado()
+                if Rol.ADMINISTRADOR not in actual.roles:
+                    raise AccesoDenegado()
+                return RepositorioUsuariosSQLAlchemy(sesion).obtener_perfil_permisos_docentes()
+        except SQLAlchemyError:
+            raise IntegracionPendiente() from None
+
     def consultar(self, contexto: ContextoAcceso, *, limite: int, desplazamiento: int) -> PaginaDocentes:
         if type(limite) is not int or not 1 <= limite <= 100 or type(desplazamiento) is not int or desplazamiento < 0:
             raise ReglaIdentidadInvalida()

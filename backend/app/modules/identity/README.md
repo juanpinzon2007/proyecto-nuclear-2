@@ -31,7 +31,7 @@ académicas**: las fábricas pendientes siguen respondiendo 503.
 | --- | --- | --- |
 | RF-01 | JWT y repositorio real de usuario con roles/permisos cargados del servidor | Validador de convocatoria de Scheduling y dominios aprobados |
 | RF-02 | usuario/rol/permiso/rol_permiso; un rol por usuario y permisos derivados del rol; proxies conservados | Catálogo real y publicación del contrato de permiso para crear casos |
-| RF-03 | Alta con nombre, correo y hash Argon2; asignación compatible con rol_permiso; repositorio y UoW reales conectados | Autenticación del personal; decisiones sobre administración global del catálogo frente a permisos individuales no representados |
+| RF-03 | Alta con nombre, correo y hash Argon2; asignación compatible con rol_permiso; repositorio y UoW reales conectados | Configuración operativa del catálogo global frente a excepciones individuales no representadas; login personal ya integrado |
 | RF-15 | ProxySeguimiento y ServicioSeguimiento: listado de casos realizados y detalle de respuestas/feedback dentro del ámbito docente | Lectura pública acordada con Cases, Participation y Scheduling |
 | RF-16 | Exportación conservada y LEFT OUTER JOIN real entre participación, membresía, usuario y resultado consolidado | Padrón completo confirmado y correspondencia oficial de situacion; consulta todavía no conectada al endpoint |
 | RF-25 | Proxy/servicio conservados; modelo permiso_intento_extra y repositorio nativo verificados | Resolver participación, cantidad/justificación, semántica temporal y garantías transaccionales antes de adaptar la concesión actual |
@@ -211,3 +211,8 @@ Para ejecutar también la nueva persistencia PostgreSQL, establecer explícitame
 `SPS_IDENTITY_TEST_URL` apuntando a una BD local aislada cuyo nombre empiece por
 `sps_identity_test`. Las pruebas crean/eliminan esquemas aleatorios dentro de esa
 BD; nunca utilizan automáticamente POSTGRES_* ni la base del proyecto.
+
+
+## RF-03 — actualización de seguridad transaccional (9 noviembre 2026)
+
+Login personal y administración privada están en main. Alta/asignación revalidan el administrador SQL vigente dentro de su UoW con bloqueos de cuenta/rol; no usan solo el contexto anterior del Proxy. El puerto obtener_para_escritura es obligatorio para esos servicios, sin fallback permisivo. Las consultas READ ONLY no lo llaman. Regla de rol central reutilizada, sin nuevos perfiles/privilegios. Los bloqueos y límites históricos de secciones anteriores no constituyen una especificación de multirrol. Estado y fuentes actuales: backend/docs/RF03_AUTORIZACION_TRANSACCIONAL.md.

@@ -226,7 +226,12 @@ def test_postgresql_puntajes_publicados_inmutables_y_otro_caso_no_recalifica(reg
 def test_no_inventa_cierre_ni_completitud(registro_puntajes,estado):
     c=registro_puntajes
     if estado!='EN_CURSO':cerrar(c,respondidas=1)
-    with pytest.raises(EvaluacionInconsistente):calcular(c)
+    if estado=='EN_CURSO':
+        with pytest.raises(EvaluacionInconsistente):calcular(c)
+    else:
+        # Sustituye el contrato anterior: cierre real sin FIN ahora es PARCIAL v2.
+        r=calcular(c);assert r.modalidad.value=='PARCIAL' and r.nota_final==Decimal('50.00')
+        assert r.pendientes_con_cero==1 and not r.persistido and not r.oficial
 
 
 def test_postgresql_publicacion_desigual_revierte_y_legado_no_se_reinterpreta(pg_resultados):

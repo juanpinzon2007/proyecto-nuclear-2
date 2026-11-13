@@ -1,4 +1,4 @@
-"""API opt-in de consentimiento SQL. No se incluye desde router ni app.main.
+"""API de consentimiento SQL con composición explícita y aprobación externa.
 
 El servidor aporta conexión, reloj y zona explícitos. No existe fuente documental
 sintética/default ni ruta de publicación, selección o revocación.
@@ -47,12 +47,12 @@ class AceptacionRespuesta(EsquemaIdentity):
     fecha_aceptacion: datetime | None
 
 
-def crear_router_consentimiento(*, crear_sesion, fechas, reloj) -> APIRouter:
+def crear_router_consentimiento(*, crear_sesion, fechas, reloj, dependencia_servicio=None) -> APIRouter:
     def dependencia(usuario: Annotated[ContextoAcceso, Depends(obtener_estudiante_actual)]):
         return ConsentimientoEstudiantilSQLAlchemy(usuario=usuario, crear_sesion=crear_sesion,
             fechas=fechas, reloj=reloj)
 
-    Servicio = Annotated[ConsentimientoEstudiantilSQLAlchemy, Depends(dependencia)]
+    Servicio = Annotated[ConsentimientoEstudiantilSQLAlchemy, Depends(dependencia_servicio or dependencia)]
     router = APIRouter(prefix='/api/v1/identity', tags=['consentimiento — composición explícita'],
         route_class=RutaIdentity, responses={c:{'description':d} for c,d in (
             (401,'JWT ausente o inválido'),(403,'Operación denegada'),(409,'Documento no vigente o distinto'),
@@ -73,3 +73,9 @@ def crear_router_consentimiento(*, crear_sesion, fechas, reloj) -> APIRouter:
             operacion='aceptar', solicitud=solicitud)
 
     return router
+
+
+from app.modules.identity.api.consent_dependencies import obtener_servicio_consentimiento
+
+router_principal = crear_router_consentimiento(crear_sesion=None, fechas=None, reloj=None,
+    dependencia_servicio=obtener_servicio_consentimiento)

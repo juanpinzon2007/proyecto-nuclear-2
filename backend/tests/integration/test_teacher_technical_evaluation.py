@@ -54,9 +54,9 @@ def test_finish_http_independiente_seguido_calculo_docente(docente_http,monkeypa
 
 def test_reintento_no_invoca_un_calculo_nuevo(docente_http,monkeypatch):
     h=docente_http;r=enviar(h);assert r.status_code==200,r.text
-    from app.modules.participation.infrastructure import teacher_evaluation as motor
+    from app.modules.participation.infrastructure.question_result_repository import DetallesPreguntasSQLAlchemy
     def no_recalcular(*args,**kw):raise AssertionError('No se vuelve a generar un resultado')
-    monkeypatch.setattr(motor,'preparar_calculo_historico',no_recalcular)
+    monkeypatch.setattr(DetallesPreguntasSQLAlchemy,'preparar',no_recalcular)
     assert enviar(h).json()==r.json() and contar(h.c)==1
 
 
@@ -159,12 +159,15 @@ def test_post_no_admite_puntajes_versiones_ni_body(docente_http):
 
 
 @pytest.mark.parametrize('c',['activo'],indirect=True)
-def test_cierre_temprano_sin_fin_no_inventa_evaluacion(docente_http,monkeypatch):
+def test_cierre_temprano_sin_fin_evalua_parcial_sin_selecciones_ficticias(docente_http,monkeypatch):
     h=docente_http;monkeypatch.setattr(RelojSistema,'ahora',lambda self:FECHA.replace(tzinfo=timezone.utc)+timedelta(minutes=1))
     r=h.client.post(f'/api/v1/attempts/{h.c.ik}/finish',headers=h.auth['estudiante'])
     assert r.status_code==200 and r.json()['estado']=='FINALIZADO'
     antes=estado(h.c)
-    assert enviar(h).status_code==503 and contar(h.c)==0 and estado(h.c)==antes
+    # Sustituye el bloqueo anterior por la política técnica explícita v2.
+    calculo=enviar(h);assert calculo.status_code==200,calculo.text
+    assert calculo.json()['modalidad']=='PARCIAL' and calculo.json()['nota_final']=='0.00'
+    assert calculo.json()['oficial'] is False and contar(h.c)==1 and estado(h.c)==antes
 
 
 

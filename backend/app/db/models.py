@@ -28,6 +28,7 @@ def registrar_modelos_integrados() -> MetaData:
     from app.modules.cases.infrastructure import models as cases_models  # noqa: F401
     from app.modules.scheduling.infrastructure import models as scheduling_models  # noqa: F401
     from app.modules.scheduling.infrastructure import assignment_models  # noqa: F401
+    from app.modules.scheduling.infrastructure import mail_models  # noqa: F401
     from app.modules.participation.infrastructure import models as participation_models  # noqa: F401
     from app.modules.participation.infrastructure import result_models  # noqa: F401
     from app.modules.participation.infrastructure import academic_results_models  # noqa: F401
