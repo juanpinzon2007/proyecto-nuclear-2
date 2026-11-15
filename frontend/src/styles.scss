@@ -1,0 +1,58 @@
+@use '@angular/material' as mat;
+
+html {
+  color-scheme: light;
+  @include mat.theme((
+    color: (
+      primary: mat.$azure-palette,
+      tertiary: mat.$violet-palette,
+    ),
+    typography: Roboto,
+    density: 0,
+  ));
+}
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  background: var(--mat-sys-surface-container-low);
+  color: var(--mat-sys-on-surface);
+}
+
+/* Utilidades compartidas */
+.page { padding: 24px; max-width: 1200px; margin: 0 auto; box-sizing: border-box; }
+.page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.page-header h1 { margin: 0; font: var(--mat-sys-headline-small); }
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+.row > * { flex: 1 1 220px; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.full { width: 100%; }
+.muted { color: var(--mat-sys-on-surface-variant); }
+.mono { font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; word-break: break-all; }
+.spacer { flex: 1 1 auto; }
+.error-box {
+  background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container);
+  padding: 12px 16px; border-radius: 8px; margin: 8px 0;
+}
+.info-box {
+  background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container);
+  padding: 12px 16px; border-radius: 8px; margin: 8px 0;
+}
+.success-box {
+  background: var(--mat-sys-tertiary-container); color: var(--mat-sys-on-tertiary-container);
+  padding: 12px 16px; border-radius: 8px; margin: 8px 0;
+}
+pre.json {
+  background: var(--mat-sys-surface-container); padding: 12px; border-radius: 8px;
+  overflow: auto; max-height: 420px; font-size: 12px;
+}
+table.mat-mdc-table { width: 100%; }
+mat-card { margin-bottom: 16px; }
+.chip {
+  display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;
+  background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container);
+}
+.chip.ok { background: #d6f5dc; color: #11592a; }
+.chip.warn { background: #fff1c2; color: #6b4e00; }
+.chip.bad { background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); }
