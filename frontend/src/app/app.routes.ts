@@ -13,6 +13,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/forbidden/forbidden.component').then((m) => m.ForbiddenComponent),
   },
   {
+    path: 'maqueta',
+    loadComponent: () => import('./pages/maqueta/maqueta.component').then((m) => m.MaquetaComponent),
+  },
+  {
     path: '',
     component: ShellComponent,
     canActivate: [authGuard],

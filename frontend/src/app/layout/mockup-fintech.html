@@ -1,0 +1,503 @@
+<!-- =========================================================================
+  MAQUETA ESTÁTICA: LAYOUT PRINCIPAL DE ÉLITE (FINTECH DARK LUXURY)
+  Simulador de Psicología Social (SPS)
+  Arquitectura: Sidebar Fijo + Topbar Glassmorphic + Lienzo Bento Grid
+  Estética: Obsidian Dark (#05080f), Midnight Navy (#0a0f1d), Acentos Esmeralda & Oro Champán
+========================================================================= -->
+
+<div class="sps-shell">
+  <!-- ==================== SIDEBAR PRINCIPAL ==================== -->
+  <aside class="sps-sidebar">
+    <!-- Brand Header -->
+    <div class="brand-container">
+      <div class="brand-emblem">
+        <div class="emblem-gem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+      </div>
+      <div class="brand-meta">
+        <div class="brand-title">
+          <span>SPS</span>
+          <span class="gold-badge">PRO</span>
+        </div>
+        <span class="brand-subtitle">Simulador Institucional</span>
+      </div>
+    </div>
+
+    <!-- Indicador de Enlace / Estado Seguro -->
+    <div class="status-indicator-box">
+      <div class="live-dot-wrap">
+        <span class="live-dot"></span>
+        <span class="live-pulse"></span>
+      </div>
+      <div class="status-info">
+        <span class="status-label">NODO CORE ACTIVO</span>
+        <span class="status-sub">256-Bit Ledger · TLS 1.3</span>
+      </div>
+    </div>
+
+    <!-- Navegación Categorizada -->
+    <nav class="sidebar-nav">
+      <!-- Sección: Plataforma Core -->
+      <div class="nav-group">
+        <span class="nav-group-title">SISTEMA CORE</span>
+        <ul class="nav-list">
+          <li class="nav-item active">
+            <a href="#" class="nav-link">
+              <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+              </span>
+              <span class="nav-text">Consola Principal</span>
+              <span class="nav-pill active-pill">ONLINE</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              </span>
+              <span class="nav-text">Casos de Simulación</span>
+              <span class="nav-pill count-pill">14</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              </span>
+              <span class="nav-text">Programación & Sesiones</span>
+              <span class="nav-pill pulse-pill">LIVE</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              </span>
+              <span class="nav-text">Rúbricas & Evaluación</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Sección: Inteligencia y Auditoría -->
+      <div class="nav-group">
+        <span class="nav-group-title">AUDITORÍA & SEGUIMIENTO</span>
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+              </span>
+              <span class="nav-text">Trazabilidad de Respuestas</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              </span>
+              <span class="nav-text">Reportes Certificados</span>
+              <span class="nav-pill gold-pill">PDF / XLSX</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Sección: Gobernanza y Administración -->
+      <div class="nav-group">
+        <span class="nav-group-title">GOBERNANZA</span>
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              </span>
+              <span class="nav-text">Directorio Docente</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              </span>
+              <span class="nav-text">Políticas & Excepciones</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Sidebar Footer: Nivel de Seguridad -->
+    <div class="sidebar-footer">
+      <div class="security-card">
+        <div class="security-meta">
+          <span class="sec-badge">FINTECH TIER 1</span>
+          <span class="sec-title">Consenso Criptográfico</span>
+          <span class="sec-sha">SHA-256 Provenance Validated</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==================== CONTENEDOR CENTRAL ==================== -->
+  <div class="sps-main-wrapper">
+    <!-- Topbar Flotante con Glassmorphism -->
+    <header class="sps-topbar">
+      <!-- Breadcrumb y Contexto -->
+      <div class="topbar-context">
+        <span class="context-parent">SPS PLATAFORMA</span>
+        <svg class="chevron-separator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+        <span class="context-current">SUPERVISIÓN GLOBAL</span>
+        <span class="period-pill">CICLO 2026-II</span>
+      </div>
+
+      <!-- Buscador Omnipresente -->
+      <div class="topbar-search">
+        <div class="search-field">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" placeholder="Buscar caso, ID de sesión o código de estudiante..." readonly />
+          <kbd class="search-kbd">⌘K</kbd>
+        </div>
+      </div>
+
+      <!-- Acciones de Cabecera y Perfil -->
+      <div class="topbar-actions">
+        <!-- Telemetría de Red -->
+        <div class="telemetry-pill">
+          <span class="telemetry-dot"></span>
+          <span class="telemetry-text">14 ms · Servidor Seguro</span>
+        </div>
+
+        <!-- Botón de Notificaciones con Efecto Resplandor -->
+        <button class="action-icon-btn" aria-label="Notificaciones">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span class="notification-badge">3</span>
+        </button>
+
+        <!-- CTA Botón Oro Chamán -->
+        <button class="gold-cta-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Nueva Sesión</span>
+        </button>
+
+        <!-- Perfil Usuario de Lujo -->
+        <div class="user-capsule">
+          <div class="avatar-ring">
+            <div class="avatar-core">AD</div>
+            <div class="avatar-status-emerald"></div>
+          </div>
+          <div class="user-info">
+            <span class="user-name">Admin Institucional</span>
+            <span class="user-role-gold">SUPERADMINISTRADOR</span>
+          </div>
+          <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+      </div>
+    </header>
+
+    <!-- ==================== LIENZO DE CONTENIDO ==================== -->
+    <main class="sps-content-canvas">
+      <!-- Banner de Bienvenida y Métricas Ejecutivas -->
+      <section class="executive-banner">
+        <div class="banner-text">
+          <div class="banner-tag">
+            <span class="emerald-dot-sm"></span>
+            <span>MONITOREO EN TIEMPO REAL · INFRAESTRUCTURA SINCRONIZADA</span>
+          </div>
+          <h1 class="banner-title">Panel de Control & Supervisión Estratégica</h1>
+          <p class="banner-desc">
+            Monitoreo situacional de simulaciones psicológicas, cómputo estricto de rúbricas y gestión de identidades bajo protocolo académico.
+          </p>
+        </div>
+
+        <div class="banner-clock-widget">
+          <div class="clock-time">15:30:42 <span class="clock-tz">UTC-5</span></div>
+          <div class="clock-date">Domingo, 15 de Noviembre de 2026</div>
+        </div>
+      </section>
+
+      <!-- Grid Bento de KPIs de Élite (4 Columnas) -->
+      <section class="kpi-grid">
+        <!-- Tarjeta 1: Casos -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">CASOS DE ESTUDIO</span>
+            <div class="kpi-icon-badge emerald-bg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            </div>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-value">14</div>
+            <div class="kpi-trend positive">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+              <span>+3 publicados este ciclo</span>
+            </div>
+          </div>
+          <div class="kpi-footer-bar emerald-fill" style="--kpi-progress: 88%;"></div>
+        </div>
+
+        <!-- Tarjeta 2: Convocatorias -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">CONVOCATORIAS ACTIVAS</span>
+            <div class="kpi-icon-badge gold-bg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-value">1,280</div>
+            <div class="kpi-trend positive">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+              <span>98.4% tasa de ingreso</span>
+            </div>
+          </div>
+          <div class="kpi-footer-bar gold-fill" style="--kpi-progress: 94%;"></div>
+        </div>
+
+        <!-- Tarjeta 3: Índice de Rúbricas -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">ÍNDICE DE CONSISTENCIA</span>
+            <div class="kpi-icon-badge emerald-bg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            </div>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-value">96.8<span class="kpi-unit">%</span></div>
+            <div class="kpi-trend positive">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+              <span>Criterios validados</span>
+            </div>
+          </div>
+          <div class="kpi-footer-bar emerald-fill" style="--kpi-progress: 96%;"></div>
+        </div>
+
+        <!-- Tarjeta 4: Evaluaciones Oficiales -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">RESULTADOS PUBLICADOS</span>
+            <div class="kpi-icon-badge gold-bg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            </div>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-value">342</div>
+            <div class="kpi-trend neutral">
+              <span>Selladas bajo UoW</span>
+            </div>
+          </div>
+          <div class="kpi-footer-bar gold-fill" style="--kpi-progress: 72%;"></div>
+        </div>
+      </section>
+
+      <!-- Sección Principal Dividida (Bento Composición 65% / 35%) -->
+      <section class="main-dashboard-grid">
+        <!-- Panel Izquierdo: Sesiones en Tiempo Real -->
+        <div class="fintech-card panel-sessions">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Sesiones Académicas Activas</h2>
+              <p class="panel-subtitle">Ejecución en tiempo real, control de estado y asignación docente</p>
+            </div>
+            <div class="panel-actions">
+              <button class="secondary-btn">Filtrar</button>
+              <button class="secondary-btn">Ver Todas</button>
+            </div>
+          </div>
+
+          <div class="luxury-table-container">
+            <table class="luxury-table">
+              <thead>
+                <tr>
+                  <th>ESTADO</th>
+                  <th>CASO DE ESTUDIO</th>
+                  <th>DOCENTE RESPONSABLE</th>
+                  <th>TIEMPO RESTANTE</th>
+                  <th>PARTICIPACIÓN</th>
+                  <th class="text-right">ACCIÓN</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="table-row">
+                  <td>
+                    <span class="tag-status status-live">
+                      <span class="pulsing-emerald-dot"></span>
+                      EN CURSO
+                    </span>
+                  </td>
+                  <td>
+                    <div class="cell-main">Dilema de Conformidad Grupal</div>
+                    <div class="cell-sub">Versión: v1.4.0 · Caso #01</div>
+                  </td>
+                  <td>
+                    <div class="cell-main">Dr. Alejandro Valdés</div>
+                    <div class="cell-sub">Lab. Conducta Social B</div>
+                  </td>
+                  <td>
+                    <span class="time-countdown">28 min 14 seg</span>
+                  </td>
+                  <td>
+                    <div class="progress-cell">
+                      <div class="progress-meta">
+                        <span>42 / 45</span>
+                        <span class="progress-pct">93%</span>
+                      </div>
+                      <div class="progress-track">
+                        <div class="progress-fill emerald" style="width: 93%;"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="text-right">
+                    <button class="row-action-btn">Gestionar</button>
+                  </td>
+                </tr>
+
+                <tr class="table-row">
+                  <td>
+                    <span class="tag-status status-live">
+                      <span class="pulsing-emerald-dot"></span>
+                      EN CURSO
+                    </span>
+                  </td>
+                  <td>
+                    <div class="cell-main">Obediencia a la Autoridad & Ética</div>
+                    <div class="cell-sub">Versión: v2.1.0 · Caso #03</div>
+                  </td>
+                  <td>
+                    <div class="cell-main">Dra. Mariana Restrepo</div>
+                    <div class="cell-sub">Aula Magna 401</div>
+                  </td>
+                  <td>
+                    <span class="time-countdown">12 min 50 seg</span>
+                  </td>
+                  <td>
+                    <div class="progress-cell">
+                      <div class="progress-meta">
+                        <span>38 / 40</span>
+                        <span class="progress-pct">95%</span>
+                      </div>
+                      <div class="progress-track">
+                        <div class="progress-fill emerald" style="width: 95%;"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="text-right">
+                    <button class="row-action-btn">Gestionar</button>
+                  </td>
+                </tr>
+
+                <tr class="table-row">
+                  <td>
+                    <span class="tag-status status-waiting">
+                      <span class="static-amber-dot"></span>
+                      EN ESPERA
+                    </span>
+                  </td>
+                  <td>
+                    <div class="cell-main">Intervención del Espectador (Bystander)</div>
+                    <div class="cell-sub">Versión: v1.0.2 · Caso #02</div>
+                  </td>
+                  <td>
+                    <div class="cell-main">Prof. Carlos Mendoza</div>
+                    <div class="cell-sub">Sala Virtual 02</div>
+                  </td>
+                  <td>
+                    <span class="time-muted">Inicia en 15 min</span>
+                  </td>
+                  <td>
+                    <div class="progress-cell">
+                      <div class="progress-meta">
+                        <span>25 / 30 en sala</span>
+                        <span class="progress-pct">83%</span>
+                      </div>
+                      <div class="progress-track">
+                        <div class="progress-fill gold" style="width: 83%;"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="text-right">
+                    <button class="row-action-btn">Iniciar</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Panel Derecho: Trazabilidad y Ledger Inmutable -->
+        <div class="fintech-card panel-ledger">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Trazabilidad en Vivo</h2>
+              <p class="panel-subtitle">Feed de decisiones capturadas por el motor</p>
+            </div>
+            <span class="ledger-secure-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              ATOMIC UoW
+            </span>
+          </div>
+
+          <div class="ledger-timeline">
+            <!-- Evento 1 -->
+            <div class="timeline-entry">
+              <div class="timeline-indicator emerald-glow"></div>
+              <div class="timeline-content">
+                <div class="entry-header">
+                  <span class="entry-type emerald-text">DECISIÓN CONFIRMADA</span>
+                  <span class="entry-time">Hace 12s</span>
+                </div>
+                <div class="entry-detail">Estudiante <span class="mono">e-9481</span> eligió Opción 3 (Resistencia Asertiva).</div>
+                <div class="entry-hash mono">Huella: 9f8a3c...b412</div>
+              </div>
+            </div>
+
+            <!-- Evento 2 -->
+            <div class="timeline-entry">
+              <div class="timeline-indicator gold-glow"></div>
+              <div class="timeline-content">
+                <div class="entry-header">
+                  <span class="entry-type gold-text">CONSENTIMIENTO FIRMADO</span>
+                  <span class="entry-time">Hace 45s</span>
+                </div>
+                <div class="entry-detail">Estudiante <span class="mono">e-8812</span> aceptó el documento versionado institucional.</div>
+                <div class="entry-hash mono">Huella: e72b01...a839</div>
+              </div>
+            </div>
+
+            <!-- Evento 3 -->
+            <div class="timeline-entry">
+              <div class="timeline-indicator emerald-glow"></div>
+              <div class="timeline-content">
+                <div class="entry-header">
+                  <span class="entry-type emerald-text">INTENTO FINALIZADO</span>
+                  <span class="entry-time">Hace 2m</span>
+                </div>
+                <div class="entry-detail">Recorrido completado en 14 pasos situacionales. Nota calculada por rúbrica: <strong>4.8 / 5.0</strong>.</div>
+                <div class="entry-hash mono">Huella: 1c33f8...99e0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
