@@ -1,4 +1,14 @@
 services:
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "${FRONTEND_BIND_HOST:-127.0.0.1}:${FRONTEND_PORT:-4200}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
   api:
     build:
       context: ./backend
