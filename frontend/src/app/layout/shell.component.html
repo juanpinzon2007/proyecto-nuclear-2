@@ -1,183 +1,106 @@
-<div class="sps-shell">
-  <!-- ==================== SIDEBAR PRINCIPAL ==================== -->
-  <aside class="sps-sidebar">
-    <!-- Brand Header -->
-    <a class="brand-container" routerLink="/">
-      <div class="brand-emblem">
+<div class="neuro-shell screen scanlines">
+  <!-- ==================== HUD SUPERIOR STICKY (80px) ==================== -->
+  <header class="neuro-header">
+    <a class="brand-link" routerLink="/">
+      <div class="brand-mark">
         <mat-icon>psychology</mat-icon>
       </div>
-      <div class="brand-meta">
-        <div class="brand-title">
-          <span>SPS</span>
-          <span class="gold-badge">PRO</span>
-        </div>
-        <span class="brand-subtitle">Simulador Institucional</span>
+      <div class="brand-copy">
+        <span class="brand-title">SPS // NEUROCOMMAND</span>
+        <span class="brand-view">{{ obtenerTituloVista() }}</span>
       </div>
     </a>
 
-    <!-- Indicador de Enlace / Estado Seguro -->
-    <div class="status-indicator-box">
-      <div class="live-dot-wrap">
-        <span class="live-dot"></span>
-        <span class="live-pulse"></span>
+    <div class="header-spacer"></div>
+
+    <div class="hud-telemetry">
+      <div class="hud-node">
+        <span class="hud-dot"></span>
+        <span>NODO CORE ACTIVO · PG17</span>
       </div>
-      <div class="status-info">
-        <span class="status-label">NODO CORE ACTIVO</span>
-        <span class="status-sub">PostgreSQL 17 · TLS 1.3</span>
-      </div>
-    </div>
 
-    <!-- Navegación Categorizada -->
-    <nav class="sidebar-nav">
-      <!-- Sección: Plataforma Core (Exclusivo Docente) -->
-      @if (auth.esDocente()) {
-        <div class="nav-group">
-          <span class="nav-group-title">SISTEMA CORE DOCENTE</span>
-          <ul class="nav-list">
-            <li class="nav-item">
-              <a routerLink="/casos" routerLinkActive="active" class="nav-link">
-                <mat-icon>folder_special</mat-icon>
-                <span class="nav-text">Casos de Simulación</span>
-                <span class="nav-pill active-pill">AUTORÍA</span>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a routerLink="/programacion" routerLinkActive="active" class="nav-link">
-                <mat-icon>event</mat-icon>
-                <span class="nav-text">Programación & Grupos</span>
-                <span class="nav-pill pulse-pill">LIVE</span>
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Sección: Auditoría & Seguimiento -->
-        <div class="nav-group">
-          <span class="nav-group-title">AUDITORÍA & SEGUIMIENTO</span>
-          <ul class="nav-list">
-            <li class="nav-item">
-              <a routerLink="/seguimiento" routerLinkActive="active" class="nav-link">
-                <mat-icon>insights</mat-icon>
-                <span class="nav-text">Seguimiento Académico</span>
-                <span class="nav-pill">RF-15</span>
-              </a>
-            </li>
-          </ul>
-        </div>
-      }
-
-      <!-- Sección: Gobernanza (Admin) -->
-      @if (auth.esAdmin()) {
-        <div class="nav-group">
-          <span class="nav-group-title">GOBERNANZA</span>
-          <ul class="nav-list">
-            <li class="nav-item">
-              <a routerLink="/administracion/docentes" routerLinkActive="active" class="nav-link">
-                <mat-icon>admin_panel_settings</mat-icon>
-                <span class="nav-text">Usuarios, Roles & Permisos</span>
-                <span class="nav-pill active-pill">ADMIN</span>
-              </a>
-            </li>
-          </ul>
-        </div>
-      }
-
-      <!-- Sección: Estudiante -->
-      @if (auth.esEstudiante()) {
-        <div class="nav-group">
-          <span class="nav-group-title">PORTAL ESTUDIANTIL</span>
-          <ul class="nav-list">
-            <li class="nav-item">
-              <a routerLink="/estudiante" routerLinkActive="active" class="nav-link">
-                <mat-icon>school</mat-icon>
-                <span class="nav-text">Mi Convocatoria</span>
-                <span class="nav-pill pulse-pill">ACTIVA</span>
-              </a>
-            </li>
-          </ul>
-        </div>
-      }
-
-      <!-- Sección: Showcase de Diseño -->
-      <div class="nav-group">
-        <span class="nav-group-title">DISEÑO & ARTE UI/UX</span>
-        <ul class="nav-list">
-          <li class="nav-item">
-            <a routerLink="/maqueta" routerLinkActive="active" class="nav-link">
-              <mat-icon>auto_awesome</mat-icon>
-              <span class="nav-text">Maqueta Visual Élite</span>
-              <span class="nav-pill pulse-pill">PREVIEW</span>
-            </a>
-          </li>
-        </ul>
-      </div>
-    </nav>
-
-    <!-- Sidebar Footer con Datos de Usuario -->
-    <div class="sidebar-footer">
-      @if (auth.usuario(); as u) {
-        <div class="user-profile-row">
-          <div class="user-avatar">
-            {{ obtenerInicial() }}
-          </div>
-          <div class="user-details">
-            <span class="user-email-text" [title]="u.correo">{{ u.correo }}</span>
-            <div class="roles-list">
-              @for (r of u.roles; track r) {
-                <span class="role-tag" [class.role-admin]="r === 'ADMINISTRADOR'" [class.role-doc]="r === 'DOCENTE'" [class.role-est]="r === 'ESTUDIANTE'">
-                  {{ r }}
-                </span>
-              }
-            </div>
-          </div>
-          <button type="button" class="btn-logout" (click)="auth.logout()" title="Cerrar Sesión">
-            <mat-icon>logout</mat-icon>
-          </button>
-        </div>
+      @if (auth.esDocente() || auth.esAdmin()) {
+        <a routerLink="/casos/nuevo" class="hud-cta">
+          <mat-icon>add</mat-icon>
+          <span>NUEVO CASO</span>
+        </a>
       }
     </div>
-  </aside>
 
-  <!-- ==================== CONTENEDOR PRINCIPAL ==================== -->
-  <div class="sps-main-container">
-    <!-- Topbar Glassmorphic -->
-    <header class="sps-topbar">
-      <div class="topbar-left">
-        <div class="breadcrumb-trail">
-          <span class="crumb-root">SPS</span>
-          <span class="crumb-sep">/</span>
-          <span class="crumb-current">{{ obtenerTituloVista() }}</span>
-        </div>
-      </div>
-
-      <div class="topbar-right">
-        <div class="system-status-pills">
-          <div class="stat-pill">
-            <span class="mini-dot"></span>
-            <span>POSTGRES 17 :5432</span>
-          </div>
-          <div class="stat-pill gold-accent">
-            <span>24ms RTT</span>
-          </div>
-          <div class="stat-pill">
-            <span>RAMA: DEVELOP</span>
+    @if (auth.usuario(); as u) {
+      <div class="user-hud">
+        <div class="user-avatar">{{ obtenerInicial() }}</div>
+        <div class="user-meta">
+          <span class="user-mail" [title]="u.correo">{{ u.correo }}</span>
+          <div class="roles-row">
+            @for (r of u.roles; track r) {
+              <span
+                class="role-tag"
+                [class.role-admin]="r === 'ADMINISTRADOR'"
+                [class.role-doc]="r === 'DOCENTE'"
+                [class.role-est]="r === 'ESTUDIANTE'"
+              >
+                {{ r }}
+              </span>
+            }
           </div>
         </div>
-
-        @if (auth.esDocente() || auth.esAdmin()) {
-          <div class="topbar-actions">
-            <a routerLink="/casos/nuevo" class="btn-luxury-sm btn-emerald">
-              <mat-icon style="font-size: 16px; width: 16px; height: 16px;">add</mat-icon>
-              <span>NUEVO CASO</span>
-            </a>
-          </div>
-        }
       </div>
-    </header>
+    }
 
-    <!-- Lienzo de Contenido -->
-    <main class="sps-canvas">
+    <button type="button" class="logout-btn" (click)="auth.logout()" title="Cerrar Sesión">
+      <mat-icon>logout</mat-icon>
+      <span class="logout-txt">Cerrar sesión</span>
+    </button>
+  </header>
+
+  <!-- ==================== LIENZO DE CONTENIDO CENTRADO ==================== -->
+  <main class="neuro-canvas">
+    <div class="canvas-inner">
       <router-outlet></router-outlet>
-    </main>
-  </div>
+    </div>
+  </main>
+
+  <!-- ==================== DOCK TÁCTICO INFERIOR FIJO (72px) ==================== -->
+  <nav class="bottom-nav" aria-label="Navegación principal">
+    @if (auth.esDocente()) {
+      <a routerLink="/casos" routerLinkActive="active" class="dock-item">
+        <mat-icon>folder_special</mat-icon>
+        <b>Casos</b>
+        <span>Autoría</span>
+      </a>
+      <a routerLink="/programacion" routerLinkActive="active" class="dock-item">
+        <mat-icon>event</mat-icon>
+        <b>Sesiones</b>
+        <span>Grupos</span>
+      </a>
+      <a routerLink="/seguimiento" routerLinkActive="active" class="dock-item">
+        <mat-icon>insights</mat-icon>
+        <b>Auditoría</b>
+        <span>Notas RF-15</span>
+      </a>
+    }
+
+    @if (auth.esAdmin()) {
+      <a routerLink="/administracion/docentes" routerLinkActive="active" class="dock-item">
+        <mat-icon>admin_panel_settings</mat-icon>
+        <b>Admin</b>
+        <span>Gobernanza</span>
+      </a>
+    }
+
+    @if (auth.esEstudiante()) {
+      <a routerLink="/estudiante" routerLinkActive="active" class="dock-item">
+        <mat-icon>school</mat-icon>
+        <b>Misión</b>
+        <span>Convocatoria</span>
+      </a>
+    }
+
+    <a routerLink="/maqueta" routerLinkActive="active" class="dock-item">
+      <mat-icon>auto_awesome</mat-icon>
+      <b>UI Lab</b>
+      <span>Maqueta</span>
+    </a>
+  </nav>
 </div>
