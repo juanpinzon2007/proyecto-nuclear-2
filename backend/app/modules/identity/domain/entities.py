@@ -99,6 +99,9 @@ class RespuestaSeguimiento:
     id_intento: str | None = None
     numero_paso: int | None = None
     reflexion_estudiante: str | None = None
+    enunciado_pregunta: str | None = None
+    texto_opcion: str | None = None
+    es_correcta: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -120,6 +123,11 @@ class ResumenParticipacion:
     id_convocatoria: str
     id_sesion: str
     estado: str
+    nombre_estudiante: str | None = None
+    correo_estudiante: str | None = None
+    nombre_caso: str | None = None
+    nota_final: float | None = None
+    modalidad: str | None = None
 
 
 @dataclass(frozen=True)
@@ -134,6 +142,11 @@ class DetalleParticipacion:
     id_convocatoria: str | None = None
     id_sesion: str | None = None
     estado: str | None = None
+    nombre_estudiante: str | None = None
+    correo_estudiante: str | None = None
+    nombre_caso: str | None = None
+    nota_final: float | None = None
+    modalidad: str | None = None
 
 
 class EstadoReporte(StrEnum):

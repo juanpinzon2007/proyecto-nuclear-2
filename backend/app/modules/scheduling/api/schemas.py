@@ -137,3 +137,12 @@ class NotificacionResponse(BaseModel):
 class NotificarCalificacionRequest(BaseModel):
     estudiante_id: UUID
     participacion_id: UUID
+
+
+class ActualizarSesionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    fecha_inicio: datetime | None = None
+    fecha_fin: datetime | None = None
+    tiempo_maximo_minutos: int | None = Field(default=None, gt=0)
+    lugar: str | None = Field(default=None, max_length=255)
+    mensaje_personalizado: str | None = None

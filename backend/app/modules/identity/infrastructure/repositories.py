@@ -12,7 +12,7 @@ from app.modules.identity.domain.entities import (
 from app.modules.identity.domain.errors import (
     ConflictoIdentidad, IntegracionPendiente, RecursoNoDisponible, ReglaIdentidadInvalida,
 )
-from app.modules.identity.infrastructure.models import PermisoORM, RolORM, RolPermisoORM, UsuarioORM
+from app.modules.identity.infrastructure.models import PermisoORM, RolORM, RolPermisoORM, UsuarioORM, UsuarioPermisoORM
 from app.modules.identity.application.teacher_permissions import PerfilPermisosDocentes
 
 
@@ -35,6 +35,25 @@ class RepositorioUsuariosSQLAlchemy:
             .where(RolPermisoORM.id_rol == id_rol)
         ))
 
+    def _permisos_efectivos(self, id_usuario: int, id_rol: int) -> frozenset[str]:
+        efectivos = set(self._permisos_rol(id_rol))
+        try:
+            with self.sesion.begin_nested():
+                ajustes = self.sesion.execute(
+                    select(PermisoORM.codigo, UsuarioPermisoORM.concedido)
+                    .join(UsuarioPermisoORM, UsuarioPermisoORM.id_permiso == PermisoORM.id_permiso)
+                    .where(UsuarioPermisoORM.id_usuario == id_usuario)
+                ).all()
+            for codigo, concedido in ajustes:
+                if concedido:
+                    efectivos.add(codigo)
+                else:
+                    efectivos.discard(codigo)
+        except SQLAlchemyError:
+            # Permite ejecutar lecturas históricas previas a la migración 20261116 (tests de migración).
+            pass
+        return frozenset(efectivos)
+
     def _contexto(self, usuario: UsuarioORM) -> ContextoAcceso:
         rol = self.sesion.get(RolORM, usuario.id_rol)
         if rol is None:
@@ -45,7 +64,7 @@ class RepositorioUsuariosSQLAlchemy:
             # No convertir un nombre de catálogo desconocido en otro rol.
             raise IntegracionPendiente() from None
         return ContextoAcceso(str(usuario.id_usuario), usuario.correo, frozenset({rol_acceso}),
-                             self._permisos_rol(usuario.id_rol), usuario.activo)
+                             self._permisos_efectivos(usuario.id_usuario, usuario.id_rol), usuario.activo)
 
     def obtener(self, id_usuario: str) -> ContextoAcceso | None:
         try:

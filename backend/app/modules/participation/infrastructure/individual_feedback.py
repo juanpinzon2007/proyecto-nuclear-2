@@ -85,10 +85,16 @@ class RepositorioFeedbackIndividual:
                 P.id_participacion==id_entero(feedback.id_participacion)))
             # Misma Session/UoW: fallo del aviso revierte también el comentario.
             # No usar notificar_calificacion: ni anuncia ni publica una nota.
-            crear_notificacion(self.s,destinatario_id=fila.uuid_estudiante,
+            notif = crear_notificacion(self.s,destinatario_id=fila.uuid_estudiante,
                 convocatoria_id=convocatoria,tipo="RETROALIMENTACION",canal="INTERNA",
                 mensaje=(f"El docente registró o actualizó la valoración general de tu participación {feedback.id_participacion}. "
                     "Consulta la plataforma para revisar su disponibilidad."))
+            conv_obj = self.s.get(ConvocatoriaModel, convocatoria) if convocatoria else None
+            sesion_obj = self.s.get(S, conv_obj.sesion_id) if conv_obj else None
+            ver_obj = self.s.get(V, sesion_obj.version_caso_id) if sesion_obj else None
+            if sesion_obj is not None and ver_obj is not None:
+                from app.modules.scheduling.infrastructure.mail_delivery import encolar_correo
+                encolar_correo(self.s, notificacion=notif, caso=ver_obj.nombre, sesion=sesion_obj)
 
 
 def crear_servicio_feedback_individual(*,usuario,crear_sesion):

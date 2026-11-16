@@ -12,6 +12,7 @@ from app.modules.participation.api.progress_router import router as progreso_rou
 from app.modules.participation.api.attempt_operations_router import router as operaciones_router
 from app.modules.identity.api.consent import router_principal as consentimiento_router
 from app.modules.participation.api.provision_router import router_principal as inicio_router
+from app.modules.participation.api.interactive_router import router as simulacion_interactiva_router
 
 
 # Registrar los modelos compartidos.
@@ -42,6 +43,7 @@ app.include_router(operaciones_router, prefix="/api/v1")
 # No se monta la provisión independiente ni un router general de Participation.
 app.include_router(consentimiento_router)
 app.include_router(inicio_router)
+app.include_router(simulacion_interactiva_router, prefix="/api/v1")
 
 
 # Endpoint de salud de la aplicación.

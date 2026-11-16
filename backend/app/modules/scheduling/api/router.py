@@ -32,6 +32,7 @@ from app.modules.scheduling.api.schemas import (
     ValidarIngresoRequest,
     NotificacionResponse,
     NotificarCalificacionRequest,
+    ActualizarSesionRequest,
 )
 from app.modules.scheduling.application.crear_convocatoria import (
     ErrorConvocatoria,
@@ -261,6 +262,86 @@ def crear_sesion(
     except Exception:
         db.rollback()
         raise
+
+
+@router.patch(
+    "/sesiones/{sesion_id}",
+    response_model=SesionResponse,
+)
+def actualizar_sesion(
+    sesion_id: UUID,
+    datos: ActualizarSesionRequest,
+    docente_id: Docente,
+    db: BaseDatos,
+):
+    """Actualiza horarios/condiciones de la sesión y notifica cambios a estudiantes convocados (RF-18/RF-21)."""
+    sesion = db.get(SesionProgramadaModel, sesion_id, with_for_update=True, populate_existing=True)
+    if sesion is None:
+        raise HTTPException(404, detail="Sesión no encontrada.")
+    if sesion.docente_id != docente_id:
+        raise HTTPException(403, detail="No tienes permiso para modificar esta sesión.")
+    if sesion.estado == "FINALIZADO":
+        raise HTTPException(409, detail="No se pueden modificar sesiones ya finalizadas.")
+
+    from app.modules.cases.infrastructure.models.caso import VersionCasoModel
+    from app.modules.scheduling.infrastructure.assignment_models import AsignacionCasoModel
+    from app.modules.scheduling.infrastructure.mail_delivery import encolar_correo
+
+    version = db.get(VersionCasoModel, sesion.version_caso_id)
+
+    nuevo_inicio = datos.fecha_inicio if datos.fecha_inicio is not None else sesion.fecha_inicio
+    nuevo_fin = datos.fecha_fin if datos.fecha_fin is not None else sesion.fecha_fin
+    if nuevo_inicio.utcoffset() is None or nuevo_fin.utcoffset() is None:
+        raise HTTPException(422, detail="Las fechas deben incluir zona horaria.")
+    if nuevo_fin <= nuevo_inicio:
+        raise HTTPException(422, detail="La fecha final debe ser posterior a la inicial.")
+
+    if datos.tiempo_maximo_minutos is not None:
+        if version is not None and datos.tiempo_maximo_minutos > version.tiempo_estimado_min:
+            raise HTTPException(422, detail="El tiempo máximo supera el estimado del caso.")
+        sesion.tiempo_maximo_minutos = datos.tiempo_maximo_minutos
+
+    sesion.fecha_inicio = nuevo_inicio
+    sesion.fecha_fin = nuevo_fin
+    if datos.lugar is not None:
+        sesion.lugar = datos.lugar.strip() or None
+    if datos.mensaje_personalizado is not None:
+        sesion.mensaje_personalizado = datos.mensaje_personalizado.strip() or None
+
+    # Sincronizar asignación si existe
+    fechas = obtener_fechas_escenario()
+    asigs = db.scalars(select(AsignacionCasoModel).where(AsignacionCasoModel.sesion_programada_id == sesion.id)).all()
+    for a in asigs:
+        a.apertura = fechas.hacia_db(nuevo_inicio, sin_offset=True)
+        a.cierre = fechas.hacia_db(nuevo_fin, sin_offset=True)
+        a.tiempo_maximo_min = sesion.tiempo_maximo_minutos
+
+    # Notificar cambios relevantes a todos los estudiantes con convocatoria ACTIVA (RF-21)
+    activas = db.scalars(
+        select(ConvocatoriaModel).where(
+            ConvocatoriaModel.sesion_id == sesion.id,
+            ConvocatoriaModel.estado == "ACTIVA",
+        )
+    ).all()
+    nombre_caso = version.nombre if version else "Caso clínico"
+    for conv in activas:
+        notif = crear_notificacion(
+            db,
+            destinatario_id=conv.estudiante_id,
+            convocatoria_id=conv.id,
+            tipo="CAMBIO_SESION",
+            canal="INTERNA",
+            mensaje=(
+                f"Se actualizaron condiciones de la sesión '{nombre_caso}': "
+                f"inicio {nuevo_inicio.isoformat()}, fin {nuevo_fin.isoformat()}"
+                f"{f', lugar: {sesion.lugar}' if sesion.lugar else ''}."
+            ),
+        )
+        encolar_correo(db, notificacion=notif, caso=nombre_caso, sesion=sesion)
+
+    db.commit()
+    db.refresh(sesion)
+    return sesion
 
 
 @router.post(
@@ -499,22 +580,68 @@ def listar_notificaciones(
 
 @router.post(
     "/calificaciones/notificar",
-    status_code=503,
+    status_code=200,
     responses={503: {"description": "Publicación oficial no disponible; operación sin escritura."}},
 )
 def notificar_calificacion_participacion(
     datos: NotificarCalificacionRequest,
     docente_id: Docente,
+    db: BaseDatos,
 ):
-    """RF-27 cerrado hasta verificar resultado oficial, titularidad y publicación.
+    """RF-27: notifica calificación oficial únicamente tras verificar titularidad docente y publicación oficial."""
+    from fastapi.responses import JSONResponse
+    from app.modules.cases.infrastructure.models.caso import VersionCasoModel
+    from app.modules.participation.infrastructure.academic_results_models import (
+        PublicacionEvaluacionModel,
+        ResultadoParticipacionModel,
+    )
+    from app.modules.scheduling.infrastructure.mail_delivery import encolar_correo
 
-    El rol docente y dos UUID del cliente no prueban esas relaciones. Se conserva
-    la ruta para responder explícitamente sin anunciar notas ni escribir avisos.
-    No confundir este contrato pendiente con los avisos de feedback ya compuestos.
-    """
-    raise HTTPException(
-        status_code=503,
-        detail="La publicación de calificaciones oficiales todavía no está disponible.",
+    with db.no_autoflush:
+        fila = db.execute(
+            select(ConvocatoriaModel, SesionProgramadaModel, PublicacionEvaluacionModel, ResultadoParticipacionModel)
+            .join(SesionProgramadaModel, SesionProgramadaModel.id == ConvocatoriaModel.sesion_id)
+            .join(PublicacionEvaluacionModel, PublicacionEvaluacionModel.sesion_id == SesionProgramadaModel.id)
+            .join(
+                ResultadoParticipacionModel,
+                (ResultadoParticipacionModel.publicacion_id == PublicacionEvaluacionModel.id)
+                & (ResultadoParticipacionModel.convocatoria_id == ConvocatoriaModel.id),
+            )
+            .where(
+                SesionProgramadaModel.docente_id == docente_id,
+                ConvocatoriaModel.estudiante_id == datos.estudiante_id,
+                ConvocatoriaModel.id == datos.participacion_id,
+            )
+            .order_by(PublicacionEvaluacionModel.version.desc())
+            .limit(1)
+        ).first()
+
+    if fila is None:
+        raise HTTPException(
+            status_code=503,
+            detail="La publicación de calificaciones oficiales todavía no está disponible.",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    conv, sesion, pub, res_part = fila
+    version = db.get(VersionCasoModel, sesion.version_caso_id)
+    notif = crear_notificacion(
+        db,
+        destinatario_id=datos.estudiante_id,
+        convocatoria_id=conv.id,
+        tipo="CALIFICACION",
+        canal="INTERNA",
+        mensaje=(
+            f"Recordatorio oficial de calificación ({res_part.situacion}): "
+            f"nota {res_part.nota_definitiva}/100 disponible en la plataforma."
+        ),
+    )
+    if version is not None:
+        encolar_correo(db, notificacion=notif, caso=version.nombre, sesion=sesion)
+    db.commit()
+    return JSONResponse(
+        status_code=200,
+        content={"notificado": True, "notificacion_id": str(notif.id)},
         headers={"Cache-Control": "no-store"},
     )
 
@@ -531,3 +658,6 @@ router.include_router(resultados_tecnicos_router)
 
 from app.modules.scheduling.api.academic_results import router as academic_results_router
 router.include_router(academic_results_router)
+
+from app.modules.scheduling.api.organization_router import router as organization_router
+router.include_router(organization_router)

@@ -165,3 +165,8 @@ def consultar_feedback_estudiantil(
 @router.post("/excepciones/repeticiones", response_model=AutorizacionRepeticion, response_model_exclude_none=True, status_code=201)
 def autorizar_repeticion(solicitud: SolicitudRepeticion, usuario: UsuarioActual, proxy: Excepciones):
     return proxy.autorizar_repeticion(usuario, solicitud.id_sesion, solicitud.id_estudiante)
+
+
+from app.modules.identity.api.users_management_router import router as _users_management_router  # noqa: E402
+
+router.include_router(_users_management_router)

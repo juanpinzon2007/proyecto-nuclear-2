@@ -28,6 +28,26 @@ from app.modules.scheduling.application.crear_notificacion import crear_notifica
 class CicloAcademicoSQL(ConsultaResultadoDocenteSQLAlchemy):
     def __init__(self,*,reloj,**kw):super().__init__(**kw);self.reloj=reloj
 
+    def _resultado_cohorte(self, s, id_intento: int, id_participacion: int, ambito: str):
+        if ambito == 'TECNICO':
+            return self._resultado_tecnico(s, id_intento)
+        from types import SimpleNamespace
+        res = s.scalar(select(R).where(R.id_intento == id_intento))
+        if res is None:
+            raise ResultadoNoDisponible()
+        return SimpleNamespace(
+            id_resultado=res.id_resultado,
+            sha256=res.procedencia_sha256,
+            procedencia=res.procedencia,
+            ambito=res.ambito,
+            datos=SimpleNamespace(
+                id_intento=res.id_intento,
+                id_participacion=id_participacion,
+                nota_final=res.nota_final,
+                modalidad=SimpleNamespace(value=res.modalidad),
+            ),
+        )
+
     def _escribir(self,fn):
         try:
             with _unidad(self.crear_sesion,self.fechas) as t:
@@ -147,9 +167,9 @@ class CicloAcademicoSQL(ConsultaResultadoDocenteSQLAlchemy):
                         if permiso is None or permiso.id_participacion!=p.id_participacion or permiso.id_profesor!=id_entero(actual.id_usuario) or permiso.cantidad_autorizada!=1 or usos!=1:
                             pendientes.append(dict(convocatoria_id=str(c.id),id_intento=i.id_intento,codigo='REPETICION_SIN_AUTORIZACION_VERIFICABLE'));continue
                     cab=s.execute(select(R.id_resultado,R.ambito).where(R.id_intento==i.id_intento)).one_or_none()
-                    if i.estado not in {'FINALIZADO','VENCIDO'} or cab is None or cab.ambito!='TECNICO':
+                    if i.estado not in {'FINALIZADO','VENCIDO'} or cab is None or cab.ambito not in {'TECNICO','RUBRICA_V1'}:
                         pendientes.append(dict(convocatoria_id=str(c.id),id_intento=i.id_intento,codigo='INTENTO_O_RESULTADO_PENDIENTE'));continue
-                    tecnico=self._resultado_tecnico(s,i.id_intento)
+                    tecnico=self._resultado_cohorte(s,i.id_intento,p.id_participacion,cab.ambito)
                     if tecnico.datos.id_participacion!=p.id_participacion:raise IntegracionPendiente()
                     resultados.append(tecnico)
                     f['intentos'].append(dict(id_intento=i.id_intento,numero=i.numero_intento,estado=i.estado,id_resultado=tecnico.id_resultado,nota=format(tecnico.datos.nota_final,'.2f'),sha256=tecnico.sha256))
@@ -179,6 +199,7 @@ class CicloAcademicoSQL(ConsultaResultadoDocenteSQLAlchemy):
     def publicar(self,*,id_sesion,revision_sha256):
         def ejecutar(s):
             revision,doc=self._cohorte(s,id_sesion,True)
+            actual,resolver,sesion,version,caso,rubrica,asigs=self._base(s,id_sesion,False)
             if not revision['publicable'] or revision['revision_sha256']!=revision_sha256:raise ConflictoIdentidad()
             anterior=s.scalar(select(Pub).where(Pub.sesion_id==id_sesion).order_by(Pub.version.desc()).limit(1))
             if anterior and anterior.fuente_sha256==revision_sha256:return self._publicada(s,anterior)
@@ -186,6 +207,7 @@ class CicloAcademicoSQL(ConsultaResultadoDocenteSQLAlchemy):
                 fecha=self.reloj.ahora(),fuente_documento=doc,fuente_sha256=revision_sha256)
             s.add(pub);s.flush()
             from decimal import Decimal
+            from app.modules.scheduling.infrastructure.mail_delivery import encolar_correo
             for f in revision['filas']:
                 cid=UUID(f['convocatoria_id'])
                 s.add(RP(publicacion_id=pub.id,convocatoria_id=cid,id_participacion=f['id_participacion'],id_estudiante=f['id_estudiante'],
@@ -194,6 +216,7 @@ class CicloAcademicoSQL(ConsultaResultadoDocenteSQLAlchemy):
                 n=crear_notificacion(s,destinatario_id=s.get(C,cid).estudiante_id,tipo='CALIFICACION',canal='INTERNA',convocatoria_id=cid,
                     mensaje=f'El docente publicó resultados oficiales de tu convocatoria {cid}. Consulta tu resultado privado en la plataforma.')
                 n.publicacion_evaluacion_id=pub.id
+                encolar_correo(s,notificacion=n,caso=version.nombre,sesion=sesion)
             self._audit(s,id_sesion,'RESULTADOS_PUBLICADOS',dict(publicacion_id=pub.id,version=pub.version,revision_sha256=revision_sha256))
             s.flush();return self._publicada(s,pub)
         return self._escribir(ejecutar)
@@ -228,8 +251,12 @@ class CicloAcademicoSQL(ConsultaResultadoDocenteSQLAlchemy):
                 if p is None:raise RecursoNoDisponible()
                 intentos=s.scalars(select(I).where(I.id_participacion==p.id_participacion).order_by(I.id_intento)).all()
                 if not intentos or any(i.estado not in {'FINALIZADO','VENCIDO'} for i in intentos):raise ConflictoIdentidad()
-                tecnicos=[self._resultado_tecnico(s,i.id_intento) for i in intentos]
-                if any(t.ambito!='TECNICO' for t in tecnicos):raise IntegracionPendiente()
+                tecnicos=[]
+                for i in intentos:
+                    cab_amb=s.scalar(select(R.ambito).where(R.id_intento==i.id_intento))
+                    if cab_amb is None:raise ResultadoNoDisponible()
+                    if cab_amb not in {'TECNICO','RUBRICA_V1'}:raise IntegracionPendiente()
+                    tecnicos.append(self._resultado_cohorte(s,i.id_intento,p.id_participacion,cab_amb))
                 mejor=sorted(tecnicos,key=lambda t:(-t.datos.nota_final,t.datos.id_intento))[0]
                 resultado=dict(oficial=False,situacion=mejor.datos.modalidad.value,nota=format(mejor.datos.nota_final,'.2f'),
                     detalle=dict(id_participacion=p.id_participacion,version_caso_id=str(sesion.version_caso_id),rubrica_id=json.loads(mejor.procedencia)['rubrica']['rubrica_id'],intentos=[dict(id_intento=t.datos.id_intento,id_resultado=t.id_resultado,nota=format(t.datos.nota_final,'.2f')) for t in tecnicos]))

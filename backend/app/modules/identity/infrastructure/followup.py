@@ -18,11 +18,13 @@ from app.modules.identity.application.academic_identity import ResolverIdentidad
 from app.modules.identity.infrastructure.academic_identity_repository import RepositorioIdentidadAcademicaSQLAlchemy
 from app.modules.identity.infrastructure.academic_base_models import GrupoEstudianteORM as M, GrupoAcademicoORM as G
 from app.modules.identity.infrastructure.academic_models import RetroalimentacionDocenteORM as F
+from app.modules.identity.infrastructure.models import UsuarioORM as U
 from app.modules.participation.infrastructure.models import ParticipacionModel as P, IntentoModel as I, PasoSimulacionModel as Paso
+from app.modules.participation.infrastructure.result_models import ResultadoIntentoModel as Res
 from app.modules.participation.infrastructure.individual_feedback import AmbitoFeedbackIndividual
 from app.modules.scheduling.infrastructure.assignment_models import AsignacionCasoModel as A
 from app.modules.scheduling.infrastructure.models import SesionProgramadaModel as S, ConvocatoriaModel as Conv
-from app.modules.cases.infrastructure.models import CasoModel as C, VersionCasoModel as V
+from app.modules.cases.infrastructure.models import CasoModel as C, VersionCasoModel as V, PreguntaModel as Preg, OpcionRespuestaModel as Opc
 from app.modules.cases.application.simulation_structure import validar_opcion_version
 from app.modules.cases.application.answer_feedback import consultar_explicaciones_seleccionadas
 from app.modules.cases.domain.exceptions import ErrorDominioCaso
@@ -94,15 +96,43 @@ class ConsultaSeguimientoSQLAlchemy:
     def listar_participaciones(self, id_docente, id_caso):
         try:caso=UUID(id_caso)
         except (ValueError,TypeError,AttributeError):raise ReglaIdentidadInvalida() from None
-        return self._operar(lambda s:tuple(ResumenParticipacion(str(f.id_participacion),str(f.id_estudiante),
-            str(f.id_caso),str(f.version_id),str(f.convocatoria_id),str(f.sesion_id),f.estado)
-            for f in self._filas(s,id_docente,caso)))
+        def consultar(s):
+            filas = self._filas(s, id_docente, caso)
+            salida = []
+            for f in filas:
+                est = s.get(U, f.id_estudiante)
+                mejor = s.execute(
+                    select(Res.nota_final, Res.modalidad)
+                    .join(I, I.id_intento == Res.id_intento)
+                    .where(I.id_participacion == f.id_participacion)
+                    .order_by(Res.nota_final.desc(), I.id_intento.asc())
+                    .limit(1)
+                ).first()
+                salida.append(
+                    ResumenParticipacion(
+                        str(f.id_participacion),
+                        str(f.id_estudiante),
+                        str(f.id_caso),
+                        str(f.version_id),
+                        str(f.convocatoria_id),
+                        str(f.sesion_id),
+                        f.estado,
+                        nombre_estudiante=est.nombre if est else None,
+                        correo_estudiante=est.correo if est else None,
+                        nombre_caso=f.nombre,
+                        nota_final=float(mejor.nota_final) if mejor else None,
+                        modalidad=mejor.modalidad if mejor else None,
+                    )
+                )
+            return tuple(salida)
+        return self._operar(consultar)
 
     def consultar_participacion(self, id_docente, id_participacion):
         def consultar(s):
             AmbitoFeedbackIndividual(s,self.usuario).autorizar(id_docente,id_participacion)
             p=s.get(P,id_entero(id_participacion));a=s.get(A,p.id_asignacion)
             v=s.get(V,a.version_caso_id);m=s.get(M,p.id_grupo_estudiante)
+            est=s.get(U,m.id_estudiante)
             intentos=[];respuestas=[]
             for i in s.scalars(select(I).where(I.id_participacion==p.id_participacion).order_by(I.numero_intento,I.id_intento)):
                 if i.estado not in ('EN_CURSO','FINALIZADO','VENCIDO'):raise IntegracionPendiente()
@@ -114,12 +144,37 @@ class ConsultaSeguimientoSQLAlchemy:
                     explicaciones={(e.pregunta_id,e.opcion_id):e.justificacion for e in
                         consultar_explicaciones_seleccionadas(s,version_id=v.id,
                             selecciones=tuple((p.id_decision,p.id_opcion) for p in pasos))}
-                respuestas.extend(RespuestaSeguimiento(str(p.id_decision),str(p.id_opcion),
-                    explicaciones.get((p.id_decision,p.id_opcion)),str(i.id_intento),p.numero_paso,
-                    p.reflexion_estudiante) for p in pasos)
+                for paso in pasos:
+                    preg=s.get(Preg,paso.id_decision)
+                    opc=s.get(Opc,paso.id_opcion)
+                    respuestas.append(RespuestaSeguimiento(
+                        str(paso.id_decision),
+                        str(paso.id_opcion),
+                        explicaciones.get((paso.id_decision,paso.id_opcion)),
+                        str(i.id_intento),
+                        paso.numero_paso,
+                        paso.reflexion_estudiante,
+                        enunciado_pregunta=preg.enunciado if preg else None,
+                        texto_opcion=opc.texto if opc else None,
+                        es_correcta=bool(opc.es_correcta) if (opc is not None and i.estado != 'EN_CURSO') else None,
+                    ))
                 intentos.append(IntentoSeguimiento(str(i.id_intento),i.numero_intento,i.estado,i.inicio,i.fin,len(pasos)))
             feedback=s.scalar(select(F.texto).where(F.id_participacion==p.id_participacion))
-            return DetalleParticipacion(str(p.id_participacion),str(m.id_estudiante),str(v.caso_id),
+            mejor=s.execute(
+                select(Res.nota_final, Res.modalidad)
+                .join(I, I.id_intento == Res.id_intento)
+                .where(I.id_participacion == p.id_participacion)
+                .order_by(Res.nota_final.desc(), I.id_intento.asc())
+                .limit(1)
+            ).first()
+            return DetalleParticipacion(
+                str(p.id_participacion),str(m.id_estudiante),str(v.caso_id),
                 tuple(respuestas),feedback,tuple(intentos),str(v.id),str(p.convocatoria_id),
-                str(a.sesion_programada_id),p.estado)
+                str(a.sesion_programada_id),p.estado,
+                nombre_estudiante=est.nombre if est else None,
+                correo_estudiante=est.correo if est else None,
+                nombre_caso=v.nombre if v else None,
+                nota_final=float(mejor.nota_final) if mejor else None,
+                modalidad=mejor.modalidad if mejor else None,
+            )
         return self._operar(consultar)

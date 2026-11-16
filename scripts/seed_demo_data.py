@@ -22,6 +22,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import sqlalchemy as sa
 
+from app.db.models import registrar_modelos_integrados
 from app.db.session import get_session_factory
 from app.modules.identity.infrastructure.models import UsuarioORM, RolORM, PermisoORM, RolPermisoORM
 from app.modules.identity.infrastructure.academic_identity_models import IdentidadAcademicaORM
@@ -54,12 +55,20 @@ ESTUDIANTE_SCHED_ID = uuid.UUID("33333333-3333-4333-8333-333333333333")
 ESTUDIANTE2_SCHED_ID = uuid.UUID("44444444-4444-4444-8444-444444444444")
 
 def seed():
+    registrar_modelos_integrados()
     fabrica = get_session_factory()
     hasheador = obtener_hasheador()
 
     print("=== INICIANDO SEEDING COMPLETO DE DATOS DE PRUEBA ===")
 
     with fabrica() as s:
+        # Sincronizar secuencias PostgreSQL con filas existentes
+        for tabla, col in (('rol', 'id_rol'), ('permiso', 'id_permiso'), ('usuario', 'id_usuario')):
+            s.execute(sa.text(
+                f"SELECT setval(pg_get_serial_sequence('{tabla}', '{col}'), COALESCE((SELECT MAX({col}) FROM {tabla}), 1), true)"
+            ))
+        s.commit()
+
         def vincular(id_user, sist, id_acad):
             existe = s.execute(sa.select(IdentidadAcademicaORM).where(
                 IdentidadAcademicaORM.id_usuario == id_user,
@@ -102,18 +111,23 @@ def seed():
             s.add(docente)
             s.flush()
         
-        perm = s.execute(sa.select(PermisoORM).where(PermisoORM.codigo == 'CREAR_CASOS')).scalar_one_or_none()
-        if not perm:
-            perm = PermisoORM(codigo='CREAR_CASOS', descripcion='Permite crear y diseñar casos de simulación')
-            s.add(perm)
-            s.flush()
-        
-        existe_rol_perm = s.execute(sa.select(RolPermisoORM).where(
-            RolPermisoORM.id_rol == docente_rol_id,
-            RolPermisoORM.id_permiso == perm.id_permiso
-        )).scalar_one_or_none()
-        if not existe_rol_perm:
-            s.add(RolPermisoORM(id_rol=docente_rol_id, id_permiso=perm.id_permiso))
+        for cod, desc in (
+            ('CREAR_CASOS', 'Permite crear, editar y publicar casos de simulación'),
+            ('PROGRAMAR_SESIONES', 'Permite programar y gestionar sesiones académicas'),
+            ('GESTIONAR_EVALUACIONES', 'Permite consolidar, rectificar y publicar evaluaciones'),
+        ):
+            perm = s.execute(sa.select(PermisoORM).where(PermisoORM.codigo == cod)).scalar_one_or_none()
+            if not perm:
+                perm = PermisoORM(codigo=cod, descripcion=desc)
+                s.add(perm)
+                s.flush()
+            if cod in ('CREAR_CASOS', 'PROGRAMAR_SESIONES'):
+                existe_rp = s.execute(sa.select(RolPermisoORM).where(
+                    RolPermisoORM.id_rol == docente_rol_id,
+                    RolPermisoORM.id_permiso == perm.id_permiso
+                )).scalar_one_or_none()
+                if not existe_rp:
+                    s.add(RolPermisoORM(id_rol=docente_rol_id, id_permiso=perm.id_permiso))
 
         vincular(docente.id_usuario, 'CASES', DOCENTE_CASES_ID)
         vincular(docente.id_usuario, 'SCHEDULING', DOCENTE_SCHED_ID)
@@ -343,13 +357,18 @@ def seed():
                     espacio_academico_id=espacio.id,
                     version_caso_id=caso_publicado.version_id,
                     fecha_inicio=ahora,
-                    fecha_fin=ahora + timedelta(days=3),
+                    fecha_fin=ahora + timedelta(hours=12),
                     tiempo_maximo_minutos=45,
                     lugar="Laboratorio 301 - Campus Principal",
                     mensaje_personalizado="Bienvenido a la simulación del Experimento de Conformidad Grupal.",
                     estado="EN_CURSO"
                 )
                 s.add(sesion)
+                s.flush()
+            else:
+                sesion.fecha_inicio = ahora
+                sesion.fecha_fin = ahora + timedelta(hours=12)
+                sesion.estado = "EN_CURSO"
                 s.flush()
 
             asig = s.execute(sa.select(AsignacionCasoModel).where(
@@ -363,14 +382,19 @@ def seed():
                     id_caso=caso_orm.id_caso,
                     sesion_programada_id=sesion.id,
                     version_caso_id=version_orm.id,
-                    apertura=ahora_naive - timedelta(hours=1),
-                    cierre=ahora_naive + timedelta(days=3),
-                    fecha_limite_ingreso=ahora_naive + timedelta(days=2),
+                    apertura=ahora_naive - timedelta(minutes=5),
+                    cierre=ahora_naive + timedelta(hours=12),
+                    fecha_limite_ingreso=ahora_naive + timedelta(minutes=45),
                     intentos_base=1,
                     tiempo_maximo_min=45,
                     estado="activa"
                 )
                 s.add(asig)
+                s.flush()
+            else:
+                asig.apertura = ahora_naive - timedelta(minutes=5)
+                asig.cierre = ahora_naive + timedelta(hours=12)
+                asig.fecha_limite_ingreso = ahora_naive + timedelta(minutes=45)
                 s.flush()
 
             conv1 = s.execute(sa.select(ConvocatoriaModel).where(
@@ -480,3 +504,4 @@ def seed():
 
 if __name__ == '__main__':
     seed()
+

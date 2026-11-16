@@ -102,18 +102,34 @@ def encolar_correo(db, *, notificacion, caso, sesion, codigo=None):
     db.flush()
 
 
+_ASUNTOS_POR_TIPO = {
+    'CONVOCATORIA': 'Convocatoria académica SPS',
+    'RETIRO_CONVOCATORIA': 'Retiro de convocatoria académica SPS',
+    'CAMBIO_SESION': 'Actualización en sesión académica SPS',
+    'CALIFICACION': 'Resultados oficiales publicados SPS',
+    'RETROALIMENTACION': 'Nueva retroalimentación docente SPS',
+}
+
+
 def enviar_smtp(config, *, id_notificacion, payload):
     mensaje = EmailMessage()
     mensaje['From'] = config.remitente
     mensaje['To'] = payload['correo']
     mensaje['Message-ID'] = f'<{id_notificacion}@{config.remitente.rsplit("@", 1)[1]}>'
-    mensaje['Subject'] = 'Convocatoria académica' if payload['tipo'] == 'CONVOCATORIA' else 'Retiro de convocatoria académica'
+    tipo = payload['tipo']
+    mensaje['Subject'] = _ASUNTOS_POR_TIPO.get(tipo, 'Notificación académica SPS')
     texto = [f"Caso: {payload['caso']}", f"Inicio programado: {payload['inicio']}", payload['mensaje'],
              f"URL: {payload['url']}"]
-    if payload['tipo'] == 'CONVOCATORIA':
+    if tipo == 'CONVOCATORIA':
         texto.append(f"Código individual: {payload['codigo']}")
-    else:
+    elif tipo == 'RETIRO_CONVOCATORIA':
         texto.append('El docente retiró tu autorización para esta sesión.')
+    elif tipo == 'CAMBIO_SESION':
+        texto.append('Se registraron cambios relevantes en la programación de tu sesión.')
+    elif tipo == 'CALIFICACION':
+        texto.append('Tus resultados oficiales están disponibles en la plataforma.')
+    elif tipo == 'RETROALIMENTACION':
+        texto.append('Tu docente registró retroalimentación sobre tu participación.')
     mensaje.set_content('\n'.join(texto))
     context = ssl.create_default_context()
     client = smtplib.SMTP_SSL(config.host, config.puerto, timeout=15, context=context) if config.tls == 'SSL' else smtplib.SMTP(config.host, config.puerto, timeout=15)
