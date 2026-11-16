@@ -29,6 +29,14 @@ class RolPermisoORM(Base):
     id_permiso: Mapped[int] = mapped_column(ForeignKey("permiso.id_permiso"), primary_key=True, nullable=False)
 
 
+class UsuarioPermisoORM(Base):
+    __tablename__ = "usuario_permiso"
+
+    id_usuario: Mapped[int] = mapped_column(ForeignKey("usuario.id_usuario"), primary_key=True, nullable=False)
+    id_permiso: Mapped[int] = mapped_column(ForeignKey("permiso.id_permiso"), primary_key=True, nullable=False)
+    concedido: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=true())
+
+
 class UsuarioORM(Base):
     __tablename__ = "usuario"
 

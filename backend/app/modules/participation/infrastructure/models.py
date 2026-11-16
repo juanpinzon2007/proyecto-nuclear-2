@@ -59,3 +59,44 @@ class PasoSimulacionModel(Base):
     registrado_en: Mapped[datetime] = mapped_column(DateTime(), nullable=False)
     tiempo_segundos: Mapped[int] = mapped_column(Integer, nullable=False)
     reflexion_estudiante: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class BorradorDecisionIntentoModel(Base):
+    """Selecciones editables durante un intento EN_CURSO (RF-10) antes del envío definitivo."""
+
+    __tablename__ = "borrador_decision_intento"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["id_opcion", "id_decision"],
+            ["opcion_respuesta.id", "opcion_respuesta.pregunta_id"],
+            name="fk_borrador_opcion_pregunta",
+        ),
+        UniqueConstraint("id_intento", "id_decision", name="uq_borrador_intento_decision"),
+    )
+
+    id_borrador: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id_intento: Mapped[int] = mapped_column(ForeignKey("intento.id_intento"), nullable=False)
+    id_decision: Mapped[UUID] = mapped_column(ForeignKey("pregunta.id"), nullable=False)
+    id_opcion: Mapped[UUID] = mapped_column(Uuid(), nullable=False)
+    reflexion_estudiante: Mapped[str | None] = mapped_column(Text, nullable=True)
+    actualizado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class HistorialCambioDecisionModel(Base):
+    """Trazabilidad de cambios de respuesta antes de la entrega final (RF-10)."""
+
+    __tablename__ = "historial_cambio_decision"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["id_opcion_nueva", "id_decision"],
+            ["opcion_respuesta.id", "opcion_respuesta.pregunta_id"],
+            name="fk_hist_opcion_nueva_pregunta",
+        ),
+    )
+
+    id_historial: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id_intento: Mapped[int] = mapped_column(ForeignKey("intento.id_intento"), nullable=False)
+    id_decision: Mapped[UUID] = mapped_column(ForeignKey("pregunta.id"), nullable=False)
+    id_opcion_anterior: Mapped[UUID | None] = mapped_column(Uuid(), nullable=True)
+    id_opcion_nueva: Mapped[UUID] = mapped_column(Uuid(), nullable=False)
+    cambiado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
