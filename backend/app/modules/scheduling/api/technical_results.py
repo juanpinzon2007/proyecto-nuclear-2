@@ -43,7 +43,7 @@ class ResultadoTecnicoRespuesta(EsquemaPreparacion):
     rubrica_id: UUID
     version_regla: str
     modalidad: Literal['COMPLETA', 'PARCIAL']
-    ambito: Literal['TECNICO', 'LABORATORIO']
+    ambito: Literal['TECNICO', 'LABORATORIO', 'RUBRICA_V1']
     oficial: Literal[False]
     fecha_calculo: datetime
     nota_final: Decimal
@@ -60,6 +60,28 @@ class ResultadoTecnicoRespuesta(EsquemaPreparacion):
         r=lectura.resultado
         try:
             doc=json.loads(r.procedencia)
+            if r.ambito=='RUBRICA_V1':
+                return cls(
+                    id_sesion=lectura.id_sesion,
+                    id_convocatoria=lectura.id_convocatoria,
+                    id_participacion=lectura.id_participacion,
+                    id_intento=r.datos.id_intento,
+                    id_resultado=r.id_resultado,
+                    version_caso_id=r.version_caso_id,
+                    rubrica_id=r.rubrica_id or doc['rubrica']['rubrica_id'],
+                    version_regla=r.version_regla or 'RUBRICA_V1',
+                    modalidad=r.datos.modalidad.value,
+                    ambito='RUBRICA_V1',
+                    oficial=False,
+                    fecha_calculo=r.fecha_calculo,
+                    nota_final=r.datos.nota_final,
+                    procedencia_sha256=r.sha256,
+                    preguntas_exigidas=doc.get('total_esperadas'),
+                    preguntas_respondidas=doc.get('respondidas'),
+                    preguntas=(),
+                    criterios=tuple(CriterioTecnicoRespuesta(
+                        criterio_id=c.id_criterio,nivel_id=c.id_nivel,puntaje_obtenido=c.puntaje_obtenido) for c in r.datos.criterios),
+                )
             exacto=doc.get('exacto') if r.ambito=='TECNICO' else None
             fuente=doc['rubrica'] if exacto is not None else doc['fuente_rubrica']
             comunes=dict(id_sesion=lectura.id_sesion,id_convocatoria=lectura.id_convocatoria,

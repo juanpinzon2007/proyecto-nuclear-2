@@ -164,6 +164,9 @@ def _persistir_rubrica_ponderada(
         if not niveles:
             raise RuntimeError(f"El criterio '{criterio.nombre}' no tiene niveles configurados.")
 
+        max_nivel = max((Decimal(n.puntaje) for n in niveles), default=Decimal("100"))
+        escala_legacy = max_nivel if (Decimal("0") < max_nivel <= Decimal("10")) else None
+
         suma_criterio = Decimal("0")
         for paso in pasos:
             val = db.get(ValoracionOpcionModel, (paso.id_opcion, criterio.id))
@@ -171,11 +174,16 @@ def _persistir_rubrica_ponderada(
                 puntaje_opcion = Decimal(val.puntaje)
             else:
                 op = db.get(OpcionRespuestaModel, paso.id_opcion)
-                puntaje_opcion = Decimal("100") if (op is not None and op.es_correcta) else Decimal("0")
-            suma_criterio += max(Decimal("0"), min(Decimal("100"), puntaje_opcion))
+                puntaje_opcion = (max_nivel if escala_legacy else Decimal("100")) if (op is not None and op.es_correcta) else Decimal("0")
+            if escala_legacy is not None:
+                puntaje_norm = _q2(max(Decimal("0"), min(Decimal("100"), (puntaje_opcion * Decimal("100")) / escala_legacy)))
+            else:
+                puntaje_norm = max(Decimal("0"), min(Decimal("100"), puntaje_opcion))
+            suma_criterio += puntaje_norm
 
         promedio_criterio = _q2(suma_criterio / Decimal(max(1, total_esperadas)))
-        nivel_elegido = _seleccionar_nivel(niveles, promedio_criterio)
+        umbral_nivel = _q2((promedio_criterio * escala_legacy) / Decimal("100")) if escala_legacy is not None else promedio_criterio
+        nivel_elegido = _seleccionar_nivel(niveles, umbral_nivel)
         aporte_ponderado = _q2(promedio_criterio * Decimal(criterio.peso) / peso_total)
         nota_acumulada += aporte_ponderado
         detalles_criterios.append((criterio, nivel_elegido, promedio_criterio, aporte_ponderado))

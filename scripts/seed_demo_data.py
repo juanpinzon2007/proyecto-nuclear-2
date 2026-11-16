@@ -44,6 +44,9 @@ from app.modules.scheduling.infrastructure.models import (
 from app.modules.scheduling.infrastructure.assignment_models import AsignacionCasoModel
 from app.modules.scheduling.domain.access_codes import hash_codigo
 from app.modules.participation.infrastructure.models import ParticipacionModel, IntentoModel, PasoSimulacionModel
+from app.modules.participation.application.interactive_evaluator import evaluar_e_persistir_intento
+from app.modules.participation.api.dependencies import obtener_fechas_escenario
+from app.modules.identity.domain.entities import ContextoAcceso, Rol
 
 DOCENTE_CASES_ID = uuid.UUID("11111111-1111-4111-8111-111111111111")
 DOCENTE_SCHED_ID = uuid.UUID("11111111-1111-4111-8111-222222222222")
@@ -232,9 +235,9 @@ def seed():
                                 orden=1,
                                 enunciado="¿Cuál es tu postura inicial ante la presión de la votación unánime?",
                                 options=[
-                                    OpcionSchema(orden=1, texto="Votar a favor para evitar desacuerdo directo con los directivos.", esCorrecta=False, justificacion="Muestra conformidad por complacencia ante presión social.", valoraciones={"Ética": 1}),
-                                    OpcionSchema(orden=2, texto="Solicitar formalmente la revisión de testimonios antes de votar.", esCorrecta=True, justificacion="Muestra resistencia constructiva, asertividad y defensa del debido proceso.", valoraciones={"Ética": 5}),
-                                    OpcionSchema(orden=3, texto="Abstenerte en silencio sin emitir opinión ni voto.", esCorrecta=False, justificacion="Evasión de la responsabilidad de representación.", valoraciones={"Ética": 2}),
+                                    OpcionSchema(orden=1, texto="Votar a favor para evitar desacuerdo directo con los directivos.", esCorrecta=False, justificacion="Muestra conformidad por complacencia ante presión social.", valoraciones={"Ética": 20}),
+                                    OpcionSchema(orden=2, texto="Solicitar formalmente la revisión de testimonios antes de votar.", esCorrecta=True, justificacion="Muestra resistencia constructiva, asertividad y defensa del debido proceso.", valoraciones={"Ética": 100}),
+                                    OpcionSchema(orden=3, texto="Abstenerte en silencio sin emitir opinión ni voto.", esCorrecta=False, justificacion="Evasión de la responsabilidad de representación.", valoraciones={"Ética": 40}),
                                 ]
                             )
                         ]
@@ -247,8 +250,8 @@ def seed():
                                 orden=1,
                                 enunciado="¿Cómo respondes ante la insistencia del decano?",
                                 options=[
-                                    OpcionSchema(orden=1, texto="Mantener la solicitud apelando al debido proceso institucional.", esCorrecta=True, justificacion="Firmeza ética fundada en el marco normativo universitario.", valoraciones={"Ética": 5}),
-                                    OpcionSchema(orden=2, texto="Aceptar la expulsión si se compromete a revisar los procesos futuros.", esCorrecta=False, justificacion="Negociación perjudicial del derecho fundamental de defensa.", valoraciones={"Ética": 2}),
+                                    OpcionSchema(orden=1, texto="Mantener la solicitud apelando al debido proceso institucional.", esCorrecta=True, justificacion="Firmeza ética fundada en el marco normativo universitario.", valoraciones={"Ética": 100}),
+                                    OpcionSchema(orden=2, texto="Aceptar la expulsión si se compromete a revisar los procesos futuros.", esCorrecta=False, justificacion="Negociación perjudicial del derecho fundamental de defensa.", valoraciones={"Ética": 40}),
                                 ]
                             )
                         ]
@@ -256,15 +259,15 @@ def seed():
                 ],
                 rubric=RubricaSchema(
                     nombre="Rúbrica de Asertividad y Autonomía Moral",
-                    versionRegla="1.0",
+                    versionRegla="RUBRICA_V1",
                     criterios=[
                         CriterioSchema(
                             nombre="Ética",
                             peso=100,
                             niveles=[
-                                NivelSchema(nombre="Sobresaliente", puntaje=5, descriptor="Defiende el debido proceso con argumentos normativos y firmeza asertiva."),
-                                NivelSchema(nombre="Aceptable", puntaje=3, descriptor="Resistencia moderada pero cede bajo presión social."),
-                                NivelSchema(nombre="Insuficiente", puntaje=1, descriptor="Conformismo inmediato con la mayoría."),
+                                NivelSchema(nombre="Sobresaliente", puntaje=100, descriptor="Defiende el debido proceso con argumentos normativos y firmeza asertiva."),
+                                NivelSchema(nombre="Aceptable", puntaje=60, descriptor="Resistencia moderada pero cede bajo presión social."),
+                                NivelSchema(nombre="Insuficiente", puntaje=0, descriptor="Conformismo inmediato con la mayoría."),
                             ]
                         )
                     ]
@@ -468,19 +471,19 @@ def seed():
                 s.flush()
 
                 detalle = service.obtener(DOCENTE_CASES_ID, version_orm.id)
-                esc1 = detalle.escenarios[0]
-                preg1 = esc1.preguntas[0]
-                opc_correcta = next(o for o in preg1.opciones if o.es_correcta)
-
-                paso = PasoSimulacionModel(
-                    id_intento=intento2.id_intento,
-                    id_decision=preg1.id,
-                    id_opcion=opc_correcta.id,
-                    numero_paso=1,
-                    registrado_en=registrado,
-                    tiempo_segundos=120
-                )
-                s.add(paso)
+                for idx_esc, esc in enumerate(detalle.escenarios, start=1):
+                    preg = esc.preguntas[0]
+                    opc_correcta = next(o for o in preg.opciones if o.es_correcta)
+                    s.add(
+                        PasoSimulacionModel(
+                            id_intento=intento2.id_intento,
+                            id_decision=preg.id,
+                            id_opcion=opc_correcta.id,
+                            numero_paso=idx_esc,
+                            registrado_en=registrado + timedelta(seconds=60 * (idx_esc - 1)),
+                            tiempo_segundos=120 + 60 * (idx_esc - 1),
+                        )
+                    )
                 s.flush()
 
                 intento2.estado = "FINALIZADO"
@@ -495,8 +498,24 @@ def seed():
                     fecha_registro=ahora_naive - timedelta(minutes=30)
                 )
                 s.add(fb)
+                s.commit()
 
-            s.commit()
+                ctx_est2 = ContextoAcceso(
+                    id_usuario=str(est2.id_usuario),
+                    correo=est2.correo,
+                    roles=frozenset({Rol.ESTUDIANTE}),
+                    permisos=frozenset(),
+                )
+                evaluar_e_persistir_intento(
+                    s,
+                    usuario=ctx_est2,
+                    id_intento=intento2.id_intento,
+                    fechas=obtener_fechas_escenario(),
+                    crear_sesion=fabrica,
+                    modalidad="COMPLETA",
+                )
+            else:
+                s.commit()
 
     print("=====================================================")
     print("  DATOS DE PRUEBA COMPLETOS SEEDADOS SATISFACTORIAMENTE")

@@ -105,6 +105,9 @@ class EvaluadorTecnicoDocente:
             repo=RepositorioResultadosTecnicosSQLAlchemy(s,alcance=a,fechas=q.fechas)
             anterior=s.execute(select(R.ambito,R.version_regla).where(R.id_intento==id_intento)).one_or_none()
             if anterior is not None:
+                if anterior.ambito == 'RUBRICA_V1':
+                    repo.obtener_tecnico(id_intento=id_intento)
+                    return
                 if anterior.ambito!='TECNICO' or anterior.version_regla!='PREGUNTAS_100_V1':
                     raise ConflictoIdentidad()
                 repo.obtener_tecnico(id_intento=id_intento)  # valida; nunca sustituye ni recalifica

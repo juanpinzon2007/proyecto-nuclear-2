@@ -499,7 +499,7 @@ def listar_mis_convocatorias(
                     .order_by(IntentoModel.numero_intento.desc())
                 ).all()
             )
-            permisos_extra = int(
+            total_permisos_extra = int(
                 db.scalar(
                     select(func.coalesce(func.sum(PermisoIntentoExtraORM.cantidad_autorizada), 0)).where(
                         PermisoIntentoExtraORM.id_participacion == part.id_participacion
@@ -507,6 +507,8 @@ def listar_mis_convocatorias(
                 )
                 or 0
             )
+            usados_extra = sum(1 for i in intentos if i.id_permiso_extra is not None)
+            permisos_extra = max(0, total_permisos_extra - usados_extra)
             tiene_feedback = (
                 db.scalar(
                     select(RetroalimentacionDocenteORM.id_retroalimentacion).where(

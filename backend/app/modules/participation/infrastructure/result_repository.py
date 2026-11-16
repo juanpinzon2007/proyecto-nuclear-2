@@ -4,7 +4,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, Context, localcontext
 import json
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
+from uuid import UUID
 if TYPE_CHECKING:
     from app.modules.participation.infrastructure.question_evaluation import CalificacionTecnicaPreguntas
 
@@ -15,11 +17,12 @@ from app.modules.participation.application.result_provenance import (
 )
 from app.modules.participation.application.evaluation_mapping import validar_mapeo_historico
 from app.modules.participation.application.errors import RecursoNoDisponible
-from app.modules.participation.domain.evaluation import EvaluacionInconsistente, PoliticaEvaluacionPendiente, ContextoEvaluacion, DatosEvaluacion
+from app.modules.participation.domain.evaluation import EvaluacionInconsistente, PoliticaEvaluacionPendiente, ContextoEvaluacion, DatosEvaluacion, ModalidadEvaluacion
 from app.modules.cases.application.simulation_structure import consultar_estructura_version
 from app.modules.participation.domain.calculador_rubrica import CalculadorRubrica
 from app.modules.participation.application.evaluation_service import seleccionar_estrategia
 from app.modules.participation.infrastructure.evaluation import _evidencias
+from app.modules.participation.infrastructure.models import IntentoModel
 from app.modules.participation.infrastructure.repository import RepositorioParticipacionSQLAlchemy
 from app.modules.participation.infrastructure.result_models import ResultadoIntentoModel as R, ResultadoCriterioModel as C
 
@@ -32,6 +35,9 @@ class ResultadoTecnico:
     sha256: str
     datos: DatosEvaluacion | CalificacionTecnicaPreguntas
     ambito: str = 'LABORATORIO'
+    version_caso_id: UUID | None = None
+    rubrica_id: UUID | None = None
+    version_regla: str | None = None
 
     @property
     def oficial(self) -> bool:
@@ -127,6 +133,34 @@ class RepositorioResultadosTecnicosSQLAlchemy:
         if r['ambito']=='TECNICO':
             from app.modules.participation.infrastructure.question_result_repository import DetallesPreguntasSQLAlchemy
             return DetallesPreguntasSQLAlchemy(self).leer(r)
+        if r['ambito']=='RUBRICA_V1':
+            if huella(r["procedencia"]) != r["procedencia_sha256"]:
+                raise EvaluacionInconsistente("Ámbito o huella del resultado incompatible.")
+            id_participacion = self.sesion.scalar(select(IntentoModel.id_participacion).where(IntentoModel.id_intento == id_intento))
+            detalles = self.sesion.execute(select(C.id_criterio, C.id_nivel, C.puntaje_obtenido).where(C.id_resultado == r["id_resultado"])).all()
+            if not detalles:
+                raise EvaluacionInconsistente("Resultado ponderado sin criterios persistidos.")
+            datos_rubrica = SimpleNamespace(
+                id_intento=r["id_intento"],
+                id_participacion=id_participacion,
+                nota_final=r["nota_final"],
+                modalidad=ModalidadEvaluacion(r["modalidad"]),
+                criterios=tuple(
+                    SimpleNamespace(id_criterio=x.id_criterio, id_nivel=x.id_nivel, puntaje_obtenido=x.puntaje_obtenido)
+                    for x in detalles
+                ),
+            )
+            return ResultadoTecnico(
+                r["id_resultado"],
+                r["fecha_calculo"],
+                r["procedencia"],
+                r["procedencia_sha256"],
+                datos_rubrica,
+                ambito="RUBRICA_V1",
+                version_caso_id=r["version_caso_id"],
+                rubrica_id=r["rubrica_id"],
+                version_regla=r["version_regla"],
+            )
         self._laboratorio()
         if r["ambito"]!="LABORATORIO" or huella(r["procedencia"])!=r["procedencia_sha256"]:
             raise EvaluacionInconsistente("Ámbito o huella del resultado incompatible.")

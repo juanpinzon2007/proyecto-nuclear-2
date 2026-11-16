@@ -664,6 +664,15 @@ def obtener_workspace_intento(
         db.refresh(intento)
 
     if intento.estado != "EN_CURSO":
+        if db.scalar(select(ResultadoIntentoModel.id_resultado).where(ResultadoIntentoModel.id_intento == intento.id_intento)) is None:
+            evaluar_e_persistir_intento(
+                db,
+                usuario=usuario,
+                id_intento=intento.id_intento,
+                fechas=fechas,
+                crear_sesion=crear_sesion,
+                modalidad="COMPLETA" if intento.estado == "FINALIZADO" else "PARCIAL",
+            )
         return {
             "id_intento": intento.id_intento,
             "estado": intento.estado,
