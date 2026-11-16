@@ -31,11 +31,12 @@ import { SchedulingService } from '../../core/scheduling.service';
   ],
   template: `
     <div class="conv-wrap">
-      <div class="header-bar">
+      <div class="page-header">
         <div style="display:flex; align-items:center; gap:10px;">
           <a mat-icon-button routerLink="/programacion"><mat-icon>arrow_back</mat-icon></a>
           <div>
-            <h2>Convocatorias & Códigos de Autorización (RF-20 · RF-21)</h2>
+            <p class="eyebrow">Control de Acceso // RF-20 · RF-21</p>
+            <h2>Convocatorias & Códigos de Autorización</h2>
             <p class="subtitle">Sesión <span class="mono">{{ sesionId }}</span></p>
           </div>
         </div>
@@ -44,7 +45,7 @@ import { SchedulingService } from '../../core/scheduling.service';
       @if (ultimoCodigo(); as code) {
         <div class="code-box">
           <div>
-            <div style="font-weight:700; color:#34d399;">Código de autorización individual emitido</div>
+            <div class="mono green" style="font-weight:700;">CÓDIGO DE AUTORIZACIÓN INDIVIDUAL EMITIDO</div>
             <div class="subtitle">Entrégalo únicamente a {{ code.nombre }}. Con este código inicia sesión en el Portal Estudiantil.</div>
           </div>
           <div class="mono code-val">{{ code.codigo }}</div>
@@ -52,7 +53,7 @@ import { SchedulingService } from '../../core/scheduling.service';
       }
 
       <div class="grid-2">
-        <mat-card>
+        <mat-card class="panel panel-cyan-left">
           <mat-card-header>
             <mat-card-title>Emitir / Renovar Convocatoria</mat-card-title>
             <mat-card-subtitle>Selecciona el estudiante por nombre y correo</mat-card-subtitle>
@@ -74,11 +75,11 @@ import { SchedulingService } from '../../core/scheduling.service';
           </mat-card-content>
         </mat-card>
 
-        <mat-card>
+        <mat-card class="panel">
           <mat-card-header>
             <mat-card-title>Estudiantes Convocados ({{ convocatorias().length }})</mat-card-title>
           </mat-card-header>
-          <mat-card-content>
+          <mat-card-content style="padding-top:12px;">
             <table mat-table [dataSource]="convocatorias()" style="width:100%;">
               <ng-container matColumnDef="estudiante">
                 <th mat-header-cell *matHeaderCellDef>Estudiante</th>
@@ -110,16 +111,32 @@ import { SchedulingService } from '../../core/scheduling.service';
     </div>
   `,
   styles: [`
-    .conv-wrap { padding: 8px 0; }
-    .header-bar { margin-bottom: 16px; }
-    h2 { margin: 0; font-size: 22px; font-weight: 700; color: #f8fafc; }
-    .subtitle { margin: 4px 0 0; color: #94a3b8; font-size: 13px; }
+    .conv-wrap { padding: 4px 0 36px; max-width: 1160px; margin: 0 auto; }
+    .subtitle { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
     .grid-2 { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
     @media (max-width: 950px) { .grid-2 { grid-template-columns: 1fr; } }
     .stack-form { display: flex; flex-direction: column; gap: 12px; }
-    .code-box { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 12px; background: rgba(16,185,129,0.14); border: 1px solid rgba(16,185,129,0.45); margin-bottom: 16px; }
-    .code-val { font-size: 20px; font-weight: 800; color: #fbbf24; letter-spacing: 0.08em; }
-    .muted { color: #94a3b8; font-size: 11px; }
+    .code-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: rgba(0, 232, 148, 0.08);
+      border: 1px solid rgba(0, 232, 148, 0.55);
+      border-left: 4px solid var(--green);
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .code-val {
+      font-size: 24px !important;
+      font-weight: 800;
+      color: var(--amber) !important;
+      letter-spacing: 2px;
+      padding: 6px 14px;
+      background: #070a10;
+      border: 1px solid rgba(255, 184, 0, 0.55);
+    }
   `],
 })
 export class ConvocatoriasComponent implements OnInit {

@@ -46,11 +46,12 @@ import { SchedulingService } from '../../core/scheduling.service';
   ],
   template: `
     <div class="prog-wrap">
-      <div class="header-bar">
+      <div class="page-header">
         <div>
-          <h2>Programación de Sesiones, Espacios y Grupos (RF-04 · RF-18 · RF-19)</h2>
+          <p class="eyebrow">Despliegue de Misiones // RF-04 · RF-18 · RF-19</p>
+          <h2>Programación de Sesiones, Espacios y Grupos</h2>
           <p class="subtitle">
-            Organiza grupos estudiantiles, autoriza espacios académicos y programa sesiones con generación automática de convocatorias.
+            Organiza cohortes estudiantiles, autoriza espacios académicos y agenda sesiones con generación automática de códigos.
           </p>
         </div>
         <button mat-stroked-button (click)="cargarTodo()" [disabled]="cargando()">
@@ -60,8 +61,8 @@ import { SchedulingService } from '../../core/scheduling.service';
 
       @if (codigosGenerados().length) {
         <div class="codes-banner">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <strong>Códigos de acceso individuales generados (compártelos de forma segura con cada estudiante):</strong>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:10px; flex-wrap:wrap;">
+            <strong class="mono green">BÓVEDA DE CÓDIGOS INDIVIDUALES EMITIDOS (COMPARTIR CON CADA ESTUDIANTE):</strong>
             <button mat-button type="button" (click)="codigosGenerados.set([])">Ocultar</button>
           </div>
           <div class="codes-list">
@@ -80,7 +81,7 @@ import { SchedulingService } from '../../core/scheduling.service';
         <mat-tab label="Sesiones Académicas">
           <div class="tab-grid">
             <!-- Formulario Crear Sesión / Editar Sesión -->
-            <mat-card>
+            <mat-card class="panel panel-cyan-left">
               <mat-card-header>
                 <mat-card-title>{{ sesionEditando() ? 'Editar Horario & Notificar Cambios (RF-21)' : 'Programar Nueva Sesión (RF-18)' }}</mat-card-title>
                 <mat-card-subtitle>Solo aparecen casos en estado PUBLICADO y espacios autorizados</mat-card-subtitle>
@@ -189,7 +190,7 @@ import { SchedulingService } from '../../core/scheduling.service';
             </mat-card>
 
             <!-- Tabla de Sesiones -->
-            <mat-card>
+            <mat-card class="panel">
               <mat-card-header>
                 <mat-card-title>Sesiones Programadas ({{ sesiones().length }})</mat-card-title>
               </mat-card-header>
@@ -207,7 +208,7 @@ import { SchedulingService } from '../../core/scheduling.service';
                     <ng-container matColumnDef="horario">
                       <th mat-header-cell *matHeaderCellDef>Ventana</th>
                       <td mat-cell *matCellDef="let s">
-                        <div>{{ s.fecha_inicio | date:'short' }}</div>
+                        <div class="mono">{{ s.fecha_inicio | date:'short' }}</div>
                         <div class="cell-sub">hasta {{ s.fecha_fin | date:'short' }} ({{ s.tiempo_maximo_minutos }}m)</div>
                       </td>
                     </ng-container>
@@ -256,7 +257,7 @@ import { SchedulingService } from '../../core/scheduling.service';
         <!-- TAB 2: Grupos Académicos y Matrículas RF-04 -->
         <mat-tab label="Grupos & Estudiantes (RF-04)">
           <div class="tab-grid">
-            <mat-card>
+            <mat-card class="panel panel-amber-left">
               <mat-card-header>
                 <mat-card-title>Crear Grupo Académico</mat-card-title>
                 <mat-card-subtitle>Agrupa estudiantes por cohorte o curso para programar sesiones</mat-card-subtitle>
@@ -278,7 +279,7 @@ import { SchedulingService } from '../../core/scheduling.service';
               </mat-card-content>
             </mat-card>
 
-            <mat-card>
+            <mat-card class="panel">
               <mat-card-header>
                 <mat-card-title>Grupos y Matrículas ({{ grupos().length }})</mat-card-title>
               </mat-card-header>
@@ -286,44 +287,46 @@ import { SchedulingService } from '../../core/scheduling.service';
                 @if (!grupos().length) {
                   <p class="muted">No tienes grupos creados todavía.</p>
                 }
-                @for (g of grupos(); track g.id_grupo) {
-                  <div class="group-card">
-                    <div class="group-head">
-                      <div>
-                        <strong>{{ g.nombre }}</strong>
-                        <span class="period-tag">{{ g.periodo }}</span>
+                <div class="stack stagger">
+                  @for (g of grupos(); track g.id_grupo) {
+                    <div class="group-card">
+                      <div class="group-head">
+                        <div>
+                          <strong style="font-size:15px;">{{ g.nombre }}</strong>
+                          <span class="period-tag">{{ g.periodo }}</span>
+                        </div>
+                        <span class="mono cyan">{{ g.estudiantes.length }} ESTUDIANTE(S)</span>
                       </div>
-                      <span class="muted">{{ g.estudiantes.length }} estudiante(s) activo(s)</span>
-                    </div>
 
-                    <div class="enroll-bar">
-                      <select class="dark-sel" [(ngModel)]="matricularPorGrupo[g.id_grupo]" [name]="'m_' + g.id_grupo">
-                        <option [ngValue]="null">Seleccionar estudiante registrado...</option>
-                        @for (est of estudiantesDisponibles(); track est.id_usuario) {
-                          <option [ngValue]="est.id_usuario">{{ est.nombre }} ({{ est.correo }})</option>
-                        }
-                      </select>
-                      <button mat-flat-button color="primary" type="button"
-                              (click)="matricular(g.id_grupo)"
-                              [disabled]="!matricularPorGrupo[g.id_grupo] || guardando()">
-                        Matricular
-                      </button>
-                    </div>
-
-                    @if (g.estudiantes.length) {
-                      <div class="enrolled-list">
-                        @for (m of g.estudiantes; track m.id_usuario) {
-                          <div class="enrolled-item">
-                            <span>{{ m.nombre }} <span class="muted">({{ m.correo }})</span></span>
-                            <button mat-button color="warn" type="button" (click)="retirarMatricula(g.id_grupo, m.id_usuario)">
-                              Retirar
-                            </button>
-                          </div>
-                        }
+                      <div class="enroll-bar">
+                        <select class="dark-sel" [(ngModel)]="matricularPorGrupo[g.id_grupo]" [name]="'m_' + g.id_grupo">
+                          <option [ngValue]="null">Seleccionar estudiante registrado...</option>
+                          @for (est of estudiantesDisponibles(); track est.id_usuario) {
+                            <option [ngValue]="est.id_usuario">{{ est.nombre }} ({{ est.correo }})</option>
+                          }
+                        </select>
+                        <button mat-flat-button color="primary" type="button"
+                                (click)="matricular(g.id_grupo)"
+                                [disabled]="!matricularPorGrupo[g.id_grupo] || guardando()">
+                          Matricular
+                        </button>
                       </div>
-                    }
-                  </div>
-                }
+
+                      @if (g.estudiantes.length) {
+                        <div class="enrolled-list">
+                          @for (m of g.estudiantes; track m.id_usuario) {
+                            <div class="enrolled-item">
+                              <span>{{ m.nombre }} <span class="muted">({{ m.correo }})</span></span>
+                              <button mat-button color="warn" type="button" (click)="retirarMatricula(g.id_grupo, m.id_usuario)">
+                                Retirar
+                              </button>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
               </mat-card-content>
             </mat-card>
           </div>
@@ -332,40 +335,37 @@ import { SchedulingService } from '../../core/scheduling.service';
     </div>
   `,
   styles: [`
-    .prog-wrap { padding: 8px 0 36px; }
-    .header-bar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
-    h2 { margin: 0; font-size: 22px; font-weight: 700; color: #f8fafc; }
-    .subtitle { margin: 4px 0 0; color: #94a3b8; font-size: 13px; }
+    .prog-wrap { padding: 4px 0 36px; max-width: 1160px; margin: 0 auto; }
+    .subtitle { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
     .tab-grid { display: grid; grid-template-columns: 400px 1fr; gap: 20px; margin-top: 16px; align-items: start; }
     @media (max-width: 1120px) { .tab-grid { grid-template-columns: 1fr; } }
-    .form-stack { display: flex; flex-direction: column; gap: 12px; padding-top: 12px; }
+    .form-stack { display: flex; flex-direction: column; gap: 12px; padding-top: 14px; }
     .inline-space { display: flex; gap: 8px; align-items: center; }
-    .mini-create { display: flex; gap: 8px; padding: 10px; border-radius: 8px; background: rgba(6,11,22,0.7); border: 1px solid rgba(255,255,255,0.1); }
-    .dark-input { flex: 1; background: #0f172a; color: #f8fafc; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 6px 10px; }
-    .students-check { background: rgba(6,11,22,0.65); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 4px; }
-    .check-title { font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px; }
-    .actions-row { display: flex; gap: 10px; align-items: center; }
+    .mini-create { display: flex; gap: 8px; padding: 10px; background: #070a10; border: 1px solid var(--line); }
+    .dark-input { flex: 1; background: #10141b; color: var(--text); border: 1px solid var(--line-strong); padding: 6px 10px; }
+    .students-check { background: #070a10; border: 1px solid var(--line); padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+    .check-title { font-family: var(--mono); font-size: 11px; color: var(--cyan); text-transform: uppercase; margin-bottom: 4px; }
+    .actions-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     .table-scroll { overflow-x: auto; }
     .full-table { width: 100%; }
-    .cell-main { font-weight: 600; color: #f8fafc; }
-    .cell-sub { font-size: 12px; color: #94a3b8; }
-    .state-pill { padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
-    .st-sin_iniciar { background: rgba(245, 158, 11, 0.16); color: #fbbf24; }
-    .st-en_curso { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-    .st-finalizado { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; }
+    .cell-main { font-weight: 600; color: var(--text); }
+    .cell-sub { font-size: 12px; color: var(--muted); }
+    .state-pill { padding: 3px 9px; border: 1px solid rgba(184, 211, 214, 0.25); font-family: var(--mono); font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .st-sin_iniciar { border-color: rgba(255, 184, 0, 0.55); background: rgba(255, 184, 0, 0.12); color: var(--amber); }
+    .st-en_curso { border-color: rgba(0, 232, 148, 0.55); background: rgba(0, 232, 148, 0.12); color: var(--green); }
+    .st-finalizado { border-color: rgba(169, 181, 184, 0.35); background: rgba(169, 181, 184, 0.1); color: var(--muted); }
     .btn-wrap { display: flex; gap: 6px; flex-wrap: wrap; }
-    .codes-banner { background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.45); border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+    .codes-banner { background: rgba(0, 232, 148, 0.08); border: 1px solid rgba(0, 232, 148, 0.5); border-left: 4px solid var(--green); padding: 14px 16px; margin-bottom: 16px; }
     .codes-list { display: flex; flex-wrap: wrap; gap: 10px; }
-    .code-chip { background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 6px 12px; display: flex; gap: 10px; align-items: center; }
-    .gold-code { color: #fbbf24; font-weight: 700; font-family: monospace; }
-    .group-card { background: rgba(6, 11, 22, 0.65); border: 1px solid rgba(255,255,255,0.09); border-radius: 10px; padding: 14px; margin-bottom: 12px; }
-    .group-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .period-tag { margin-left: 8px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
-    .enroll-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
-    .dark-sel { flex: 1; background: #0f172a; color: #f8fafc; border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; padding: 8px 10px; }
+    .code-chip { background: #070a10; border: 1px solid var(--line-strong); padding: 8px 12px; display: flex; gap: 12px; align-items: center; }
+    .gold-code { color: var(--amber) !important; font-weight: 700; font-size: 14px; letter-spacing: 1px; }
+    .group-card { background: #0b1017; border: 1px solid var(--line); border-left: 4px solid var(--cyan); padding: 14px; }
+    .group-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 10px; flex-wrap: wrap; }
+    .period-tag { margin-left: 8px; border: 1px solid rgba(255, 184, 0, 0.5); background: rgba(255, 184, 0, 0.1); color: var(--amber); padding: 2px 8px; font-family: var(--mono); font-size: 11px; font-weight: 700; }
+    .enroll-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+    .dark-sel { flex: 1; background: #070a10; color: var(--text); border: 1px solid var(--line-strong); padding: 8px 10px; font-family: var(--mono); font-size: 12px; }
     .enrolled-list { display: flex; flex-direction: column; gap: 6px; }
-    .enrolled-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: rgba(15, 23, 42, 0.65); border-radius: 6px; font-size: 13px; }
-    .muted { color: #94a3b8; font-size: 12px; }
+    .enrolled-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #070a10; border: 1px solid rgba(184, 211, 214, 0.12); font-size: 13px; }
   `],
 })
 export class ProgramacionComponent implements OnInit {

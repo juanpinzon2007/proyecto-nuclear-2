@@ -36,12 +36,13 @@ import { SchedulingService } from '../../core/scheduling.service';
   template: `
     <div class="page">
       <div class="page-header">
-        <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
           <a mat-icon-button routerLink="/programacion" title="Volver a programación">
             <mat-icon>arrow_back</mat-icon>
           </a>
           <div>
-            <h1>Evaluación, Ausencias y Publicación (RF-24 · RF-25 · RF-27)</h1>
+            <p class="eyebrow">Cierre de Cohorte // RF-24 · RF-25 · RF-27</p>
+            <h1>Evaluación, Ausencias y Publicación</h1>
             <p class="muted">Sesión ID: <span class="mono">{{ sesionId }}</span></p>
           </div>
         </div>
@@ -59,12 +60,12 @@ import { SchedulingService } from '../../core/scheduling.service';
       @if (mensajeExito()) { <div class="success-box">{{ mensajeExito() }}</div> }
 
       @if (cargando()) {
-        <div style="display: flex; justify-content: center; padding: 40px;">
+        <div class="center-spin">
           <mat-spinner diameter="40"></mat-spinner>
         </div>
       } @else if (preparacion(); as p) {
         <!-- Estado general -->
-        <mat-card>
+        <mat-card class="panel panel-cyan-left">
           <mat-card-header>
             <mat-card-title>Estado de la Sesión y Visibilidad Estudiantil</mat-card-title>
             <mat-card-subtitle>
@@ -78,7 +79,7 @@ import { SchedulingService } from '../../core/scheduling.service';
           <mat-card-content style="padding-top: 16px;">
             @if (p.pendientes.length > 0) {
               <div class="warn-box" style="margin-bottom: 12px;">
-                <strong>Pendientes para cerrar publicación oficial:</strong>
+                <strong class="mono amber">PENDIENTES PARA PUBLICACIÓN OFICIAL:</strong>
                 <ul style="margin: 6px 0 0 18px;">
                   @for (pend of p.pendientes; track pend) {
                     <li>{{ pend }}</li>
@@ -100,16 +101,16 @@ import { SchedulingService } from '../../core/scheduling.service';
 
         <!-- Consolidación y Publicación Oficial -->
         @if (consolidacion(); as c) {
-          <mat-card style="border-left: 4px solid #10b981;">
+          <mat-card class="panel panel-green-left">
             <mat-card-header>
               <mat-card-title>Revisión Consolidada de Cohorte</mat-card-title>
               <mat-card-subtitle>
-                SHA256: <span class="mono" style="font-size: 11px;">{{ c.revision_sha256 }}</span>
+                SHA256: <span class="mono">{{ c.revision_sha256 }}</span>
               </mat-card-subtitle>
             </mat-card-header>
             <mat-card-content style="padding-top: 14px;">
               @if (filasConsolidacion().length) {
-                <div class="stack" style="margin-bottom: 14px;">
+                <div class="stack stagger" style="margin-bottom: 14px;">
                   @for (f of filasConsolidacion(); track f['convocatoria_id']) {
                     <div class="cons-row">
                       <div>
@@ -120,7 +121,7 @@ import { SchedulingService } from '../../core/scheduling.service';
                         <span class="chip" [class.ok]="f['situacion'] === 'COMPLETA'" [class.bad]="f['situacion'] === 'AUSENTE'">
                           {{ f['situacion'] || 'PENDIENTE' }}
                         </span>
-                        <strong class="nota-val">{{ f['nota'] ?? '--' }} / 100</strong>
+                        <strong class="nota-val mono">{{ f['nota'] ?? '--' }} / 100</strong>
                         @if (f['id_ausencia']) {
                           <button mat-stroked-button color="accent" type="button"
                                   (click)="rectificarAusencia(f['convocatoria_id'], f['id_ausencia'])">
@@ -152,7 +153,7 @@ import { SchedulingService } from '../../core/scheduling.service';
 
         <!-- Detalle Técnico de Intento -->
         @if (resultadoSeleccionado(); as res) {
-          <mat-card style="border-left: 4px solid #fbbf24;">
+          <mat-card class="panel panel-amber-left">
             <mat-card-header>
               <mat-card-title>Resultado Técnico — Intento #{{ res.id_intento }}</mat-card-title>
               <mat-card-subtitle>
@@ -167,18 +168,18 @@ import { SchedulingService } from '../../core/scheduling.service';
         }
 
         <!-- Participantes Convocados -->
-        <mat-card>
+        <mat-card class="panel">
           <mat-card-header>
             <mat-card-title>Estudiantes Convocados ({{ p.convocatorias.length }})</mat-card-title>
           </mat-card-header>
           <mat-card-content style="padding-top: 16px;">
-            <div class="stack">
+            <div class="stack stagger">
               @for (conv of p.convocatorias; track conv.id_convocatoria) {
                 <div class="convocatoria-row">
                   <div>
                     <div class="est-title">{{ nombreEstudianteId(conv.id_estudiante) }}</div>
                     <div class="mono muted" style="font-size: 11px;">Convocatoria: {{ conv.id_convocatoria }}</div>
-                    <div style="margin-top:4px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                    <div style="margin-top:6px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                       <span class="chip" [class.ok]="conv.estado === 'ACTIVA'" [class.bad]="conv.estado === 'RETIRADA'">
                         {{ conv.estado }}
                       </span>
@@ -221,17 +222,21 @@ import { SchedulingService } from '../../core/scheduling.service';
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 14px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      background: rgba(6, 11, 22, 0.65);
+      padding: 12px 16px;
+      border: 1px solid var(--line);
+      background: #0b1017;
       gap: 14px;
       flex-wrap: wrap;
     }
-    .est-title { font-weight: 700; color: #f8fafc; }
-    .nota-val { color: #34d399; font-size: 15px; }
-    .warn-box { background: rgba(245, 158, 11, 0.14); border: 1px solid rgba(245, 158, 11, 0.45); color: #fde68a; padding: 12px; border-radius: 8px; }
-    .success-box { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.45); color: #a7f3d0; padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+    .est-title { font-weight: 700; color: var(--text); font-size: 15px; }
+    .nota-val { color: var(--green); font-size: 15px; font-weight: 700; }
+    .warn-box {
+      background: rgba(255, 184, 0, 0.1);
+      border: 1px solid rgba(255, 184, 0, 0.5);
+      border-left: 4px solid var(--amber);
+      color: var(--text);
+      padding: 12px 14px;
+    }
   `],
 })
 export class EvaluacionSesionComponent implements OnInit {

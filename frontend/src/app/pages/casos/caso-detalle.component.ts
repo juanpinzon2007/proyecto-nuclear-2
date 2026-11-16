@@ -28,16 +28,17 @@ import { mensajeError } from '../../core/api-error';
   template: `
     <div class="page">
       <div class="page-header">
-        <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
           <a mat-icon-button routerLink="/casos" title="Volver a casos">
             <mat-icon>arrow_back</mat-icon>
           </a>
           <div>
+            <p class="eyebrow">Briefing Estructural // Caso</p>
             <h1>{{ caso()?.nombre || 'Detalle del Caso' }}</h1>
             <p class="muted">Versión: <span class="mono">{{ versionId }}</span></p>
           </div>
         </div>
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
           @if (caso()?.estado === 'BORRADOR' && auth.tienePermiso('CREAR_CASOS')) {
             <a mat-flat-button color="primary" [routerLink]="['/casos', versionId, 'editar']">
               <mat-icon>edit</mat-icon> Editar Borrador
@@ -54,35 +55,41 @@ import { mensajeError } from '../../core/api-error';
       }
 
       @if (cargando()) {
-        <div style="display: flex; justify-content: center; padding: 40px;">
+        <div class="center-spin">
           <mat-spinner diameter="40"></mat-spinner>
         </div>
       } @else if (caso(); as c) {
         <!-- Ficha técnica del caso -->
-        <mat-card>
+        <mat-card class="panel panel-cyan-left">
           <mat-card-header>
-            <mat-card-title>Ficha Descriptiva</mat-card-title>
+            <mat-card-title>01 // Ficha Descriptiva</mat-card-title>
             <mat-card-subtitle>
               Estado: <span class="chip" [class.ok]="c.estado === 'PUBLICADO'" [class.warn]="c.estado === 'BORRADOR'">{{ c.estado }}</span>
-              · Tiempo estimado: <strong>{{ c.tiempo_estimado_min }} minutos</strong>
+              · Tiempo estimado: <strong class="cyan">{{ c.tiempo_estimado_min }} MIN</strong>
             </mat-card-subtitle>
           </mat-card-header>
-          <mat-card-content class="stack" style="padding-top: 16px;">
-            <div>
-              <strong class="muted">Desarrollo Situacional:</strong>
-              <p style="margin: 4px 0 12px; line-height: 1.5;">{{ c.desarrollo_situacional }}</p>
+          <mat-card-content class="briefing-blocks" style="padding-top: 16px;">
+            <div class="objective-tile">
+              <span class="obj-num">01</span>
+              <div>
+                <div class="obj-lbl">Desarrollo Situacional</div>
+                <p>{{ c.desarrollo_situacional }}</p>
+              </div>
             </div>
-            <div>
-              <strong class="muted">Contexto / Historia:</strong>
-              <p style="margin: 4px 0; line-height: 1.5;">{{ c.contexto_historia }}</p>
+            <div class="objective-tile">
+              <span class="obj-num">02</span>
+              <div>
+                <div class="obj-lbl">Contexto / Historia</div>
+                <p>{{ c.contexto_historia }}</p>
+              </div>
             </div>
           </mat-card-content>
         </mat-card>
 
         <!-- Escenarios y preguntas -->
-        <mat-card>
+        <mat-card class="panel">
           <mat-card-header>
-            <mat-card-title>Escenarios y Decisiones ({{ c.escenarios.length }})</mat-card-title>
+            <mat-card-title>02 // Escenarios y Decisiones ({{ c.escenarios.length }})</mat-card-title>
           </mat-card-header>
           <mat-card-content style="padding-top: 16px;">
             @if (c.escenarios.length === 0) {
@@ -95,14 +102,14 @@ import { mensajeError } from '../../core/api-error';
                       <mat-panel-title>
                         <strong>Escenario {{ esc.orden }}</strong>
                       </mat-panel-title>
-                      <mat-panel-description>
+                      <mat-panel-description class="mono">
                         {{ esc.preguntas.length }} pregunta(s) / decisión(es)
                       </mat-panel-description>
                     </mat-expansion-panel-header>
 
-                    <div style="margin-bottom: 16px;">
-                      <strong class="muted">Contexto de la escena:</strong>
-                      <p style="margin-top: 4px;">{{ esc.contexto_situacional }}</p>
+                    <div class="scene-context">
+                      <span class="obj-lbl">Contexto de la escena</span>
+                      <p>{{ esc.contexto_situacional }}</p>
                     </div>
 
                     <mat-divider></mat-divider>
@@ -110,20 +117,20 @@ import { mensajeError } from '../../core/api-error';
                     <div style="margin-top: 16px;" class="stack">
                       @for (p of esc.preguntas; track p.id) {
                         <div class="pregunta-box">
-                          <div style="font-weight: 500; margin-bottom: 8px;">
+                          <div class="preg-title">
                             {{ p.orden }}. {{ p.enunciado }}
                           </div>
-                          <div class="stack" style="gap: 6px;">
+                          <div class="stack" style="gap: 8px;">
                             @for (op of p.opciones; track op.id) {
                               <div class="opcion-item" [class.correcta]="op.es_correcta">
                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                  <mat-icon [style.color]="op.es_correcta ? 'green' : 'gray'">
+                                  <mat-icon [style.color]="op.es_correcta ? 'var(--green)' : 'var(--dim)'">
                                     {{ op.es_correcta ? 'check_circle' : 'radio_button_unchecked' }}
                                   </mat-icon>
                                   <span>{{ op.texto }}</span>
                                 </div>
                                 @if (op.justificacion) {
-                                  <div class="muted" style="font-size: 12px; margin-left: 32px;">
+                                  <div class="just-txt">
                                     <em>Justificación:</em> {{ op.justificacion }}
                                   </div>
                                 }
@@ -141,11 +148,11 @@ import { mensajeError } from '../../core/api-error';
         </mat-card>
 
         <!-- Rúbrica de evaluación -->
-        <mat-card>
+        <mat-card class="panel panel-green-left">
           <mat-card-header>
-            <mat-card-title>Rúbrica de Evaluación</mat-card-title>
+            <mat-card-title>03 // Rúbrica de Evaluación</mat-card-title>
             <mat-card-subtitle *ngIf="c.rubrica">
-              {{ c.rubrica.nombre }} (Regla: {{ c.rubrica.version_regla }})
+              {{ c.rubrica.nombre }} · Regla: {{ c.rubrica.version_regla }}
             </mat-card-subtitle>
           </mat-card-header>
           <mat-card-content style="padding-top: 16px;">
@@ -155,15 +162,15 @@ import { mensajeError } from '../../core/api-error';
               <div class="stack">
                 @for (crit of c.rubrica.criterios; track crit.id) {
                   <div class="criterio-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="spread">
                       <strong>{{ crit.nombre }}</strong>
-                      <span class="chip">Peso: {{ crit.peso }}</span>
+                      <span class="tag amber">PESO: {{ crit.peso }}%</span>
                     </div>
                     <div class="niveles-grid">
                       @for (niv of crit.niveles; track niv.id) {
                         <div class="nivel-box">
-                          <div style="font-weight: 600; font-size: 13px;">{{ niv.nombre }} ({{ niv.puntaje }} pts)</div>
-                          <div style="font-size: 12px; color: var(--mat-sys-on-surface-variant); margin-top: 4px;">{{ niv.descriptor }}</div>
+                          <div class="nivel-head">{{ niv.nombre }} ({{ niv.puntaje }} PTS)</div>
+                          <div class="muted" style="font-size: 12px; margin-top: 4px;">{{ niv.descriptor }}</div>
                         </div>
                       }
                     </div>
@@ -177,29 +184,89 @@ import { mensajeError } from '../../core/api-error';
     </div>
   `,
   styles: [`
+    .briefing-blocks {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .objective-tile {
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid rgba(0, 229, 244, 0.2);
+      background: #0b1017;
+    }
+    .obj-num {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      background: rgba(0, 229, 244, 0.1);
+      color: var(--cyan);
+      font-family: var(--mono);
+      font-weight: 700;
+    }
+    .obj-lbl {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 4px;
+    }
+    .objective-tile p {
+      margin: 0;
+      line-height: 1.55;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .scene-context {
+      padding: 12px 14px;
+      background: #070a10;
+      border: 1px solid var(--line);
+      margin-bottom: 14px;
+    }
+    .scene-context p {
+      margin: 4px 0 0;
+      color: var(--text);
+      line-height: 1.55;
+    }
     .pregunta-box {
-      background: rgba(10, 16, 30, 0.72);
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(11, 16, 23, 0.9);
+      padding: 14px;
+      border: 1px solid rgba(184, 211, 214, 0.18);
+    }
+    .preg-title {
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text);
+      font-size: 15px;
     }
     .opcion-item {
-      padding: 8px 12px;
-      background: rgba(15, 23, 42, 0.7);
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #f8fafc;
+      padding: 10px 12px;
+      background: #0d121a;
+      border: 1px solid rgba(184, 211, 214, 0.16);
+      color: var(--text);
     }
     .opcion-item.correcta {
-      border-color: rgba(16, 185, 129, 0.55);
-      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(0, 232, 148, 0.55);
+      border-left: 4px solid var(--green);
+      background: rgba(0, 232, 148, 0.08);
+    }
+    .just-txt {
+      font-size: 12px;
+      margin-left: 32px;
+      margin-top: 4px;
+      color: var(--muted);
     }
     .criterio-card {
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 12px;
-      background: rgba(15, 23, 42, 0.65);
-      color: #f8fafc;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--cyan);
+      padding: 14px;
+      background: #0b1017;
+      color: var(--text);
     }
     .niveles-grid {
       display: grid;
@@ -208,10 +275,15 @@ import { mensajeError } from '../../core/api-error';
       margin-top: 10px;
     }
     .nivel-box {
-      background: var(--mat-sys-surface-container-lowest);
-      border: 1px solid var(--mat-sys-outline-variant);
-      border-radius: 6px;
-      padding: 8px;
+      background: #070a10;
+      border: 1px solid rgba(184, 211, 214, 0.16);
+      padding: 10px;
+    }
+    .nivel-head {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--cyan-soft);
     }
   `],
 })

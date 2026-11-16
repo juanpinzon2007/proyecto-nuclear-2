@@ -27,11 +27,12 @@ import { mensajeError } from '../../core/api-error';
   template: `
     <div class="page">
       <div class="page-header">
-        <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
           <a mat-icon-button [routerLink]="['/casos', versionId]" title="Volver al caso">
             <mat-icon>arrow_back</mat-icon>
           </a>
           <div>
+            <p class="eyebrow">Matriz de Flujo // Escenas & Transiciones</p>
             <h1>Grafo de Navegación del Caso</h1>
             <p class="muted">Configuración de escena inicial y transiciones ramificadas entre escenas</p>
           </div>
@@ -52,46 +53,49 @@ import { mensajeError } from '../../core/api-error';
       @if (exito()) { <div class="success-box">{{ exito() }}</div> }
 
       @if (cargando()) {
-        <div style="display: flex; justify-content: center; padding: 40px;">
+        <div class="center-spin">
           <mat-spinner diameter="40"></mat-spinner>
         </div>
       } @else if (grafo(); as g) {
         @if (g.escenas.length === 0) {
-          <mat-card style="text-align: center; padding: 32px;">
+          <mat-card class="panel" style="text-align: center; padding: 36px;">
             <p class="muted">No hay escenas en esta versión. Agrégalas en el editor del caso.</p>
           </mat-card>
         } @else {
-          <div class="stack">
+          <div class="stack stagger">
             @for (esc of g.escenas; track esc.id; let ei = $index) {
-              <mat-card class="escena-card" [class.inicial]="escenarioInicialId === esc.id">
+              <mat-card class="panel escena-card" [class.inicial]="escenarioInicialId === esc.id">
                 <mat-card-header>
-                  <mat-card-title style="display: flex; align-items: center; gap: 10px; width:100%;">
+                  <mat-card-title class="node-title">
                     @if (editable()) {
-                      <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px;">
+                      <label class="radio-pill" [class.active-pill]="escenarioInicialId === esc.id">
                         <input type="radio" name="esc_inicial" [value]="esc.id" [(ngModel)]="escenarioInicialId" />
                         <span>{{ escenarioInicialId === esc.id ? 'ESCENA INICIAL' : 'Marcar inicial' }}</span>
                       </label>
                     } @else {
                       <span class="chip" [class.ok]="esc.inicial">{{ esc.inicial ? 'ESCENA INICIAL' : 'ESCENA' }}</span>
                     }
-                    <span>Escenario #{{ ei + 1 }}</span>
-                    <span class="mono" style="font-size: 11px; color:#94a3b8;">{{ esc.id }}</span>
+                    <span>Escenario #0{{ ei + 1 }}</span>
+                    <span class="mono muted">{{ esc.id }}</span>
                   </mat-card-title>
                 </mat-card-header>
-                <mat-card-content style="padding-top: 12px;">
-                  <p><strong>Contexto:</strong> {{ esc.contexto }}</p>
+                <mat-card-content style="padding-top: 14px;">
+                  <div class="node-context">
+                    <span class="node-lbl">CONTEXTO DE NODO</span>
+                    <p>{{ esc.contexto }}</p>
+                  </div>
 
-                  <div style="margin-top: 12px;">
-                    <strong>Preguntas y Transiciones de Opción:</strong>
+                  <div style="margin-top: 14px;">
+                    <span class="node-lbl">PREGUNTAS Y RUTAS DE DECISIÓN</span>
                     <div class="stack" style="margin-top: 8px;">
                       @for (p of esc.preguntas; track p.id) {
                         <div class="pregunta-grafo-box">
-                          <div style="font-weight: 500; margin-bottom:8px;">{{ p.enunciado }}</div>
+                          <div class="preg-head">{{ p.enunciado }}</div>
                           <div class="stack" style="gap: 8px;">
                             @for (op of p.opciones; track op.opcion_id) {
                               <div class="transicion-item">
                                 <span style="flex: 1;">{{ op.texto }}</span>
-                                <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #94a3b8;">arrow_forward</mat-icon>
+                                <mat-icon class="cyan" style="font-size: 18px; width: 18px; height: 18px;">arrow_forward</mat-icon>
                                 @if (editable() && transicionesEdit[op.opcion_id]) {
                                   <select class="dark-sel" [(ngModel)]="transicionesEdit[op.opcion_id].tipo" [name]="'t_' + op.opcion_id">
                                     <option value="ESCENA">Ir a ESCENA</option>
@@ -131,12 +135,84 @@ import { mensajeError } from '../../core/api-error';
     </div>
   `,
   styles: [`
-    .escena-card { border-left: 4px solid rgba(255,255,255,0.2); margin-bottom: 12px; }
-    .escena-card.inicial { border-left: 4px solid #10b981; }
-    .pregunta-grafo-box { background: rgba(6, 11, 22, 0.65); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); }
-    .transicion-item { display: flex; align-items: center; gap: 10px; background: rgba(15, 23, 42, 0.8); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); flex-wrap: wrap; }
-    .dark-sel { background: #0f172a; color: #f8fafc; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 6px 8px; font-size: 12px; }
-    .success-box { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.45); color: #a7f3d0; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; }
+    .escena-card {
+      border-left: 4px solid var(--line-strong) !important;
+      margin-bottom: 12px;
+    }
+    .escena-card.inicial {
+      border-left: 4px solid var(--green) !important;
+      box-shadow: inset 0 0 24px rgba(0, 232, 148, 0.04) !important;
+    }
+    .node-title {
+      display: flex !important;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      flex-wrap: wrap;
+    }
+    .radio-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      background: #0b1017;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .radio-pill.active-pill {
+      border-color: var(--green);
+      background: rgba(0, 232, 148, 0.14);
+      color: var(--green);
+    }
+    .node-context {
+      padding: 12px;
+      background: #070a10;
+      border: 1px solid rgba(184, 211, 214, 0.16);
+    }
+    .node-context p {
+      margin: 4px 0 0;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .node-lbl {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--cyan);
+    }
+    .pregunta-grafo-box {
+      background: #0b1017;
+      padding: 14px;
+      border: 1px solid var(--line);
+    }
+    .preg-head {
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+    .transicion-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #070a10;
+      padding: 10px 12px;
+      border: 1px solid rgba(184, 211, 214, 0.18);
+      flex-wrap: wrap;
+    }
+    .dark-sel {
+      background: #10141b;
+      color: var(--text);
+      border: 1px solid var(--line-strong);
+      border-radius: 0;
+      padding: 6px 10px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
   `],
 })
 export class CasoGrafoComponent implements OnInit {

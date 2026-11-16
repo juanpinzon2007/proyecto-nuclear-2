@@ -38,90 +38,131 @@ interface PasoPlano {
     MatSnackBarModule,
   ],
   template: `
-    <div class="sim-wrap">
+    <div class="sim-wrap content">
       @if (cargando()) {
         <div class="center-spin"><mat-spinner diameter="44"></mat-spinner></div>
       } @else if (resultado(); as res) {
-        <!-- PANTALLA RF-14: RESULTADO FINAL, CRITERIOS DE RÚBRICA, JUSTIFICACIONES Y FEEDBACK DOCENTE -->
+        <!-- PANTALLA RF-14: RESULTADO FINAL GAMIFICADO (.score-ring + .chart-card + .events) -->
         <div class="res-header">
           <a mat-stroked-button routerLink="/estudiante">
             <mat-icon>arrow_back</mat-icon> Volver al Portal
           </a>
-          <span class="state-chip">{{ res.estado_intento }} · {{ res.modalidad }}</span>
+          <span class="tag green">{{ res.estado_intento }} · {{ res.modalidad }}</span>
         </div>
 
-        <mat-card class="hero-score">
+        <mat-card class="panel result-head stagger">
           <mat-card-content>
-            <div class="hero-grid">
+            <div class="spread head-top">
               <div>
-                <div class="hero-lbl">Resultado de la Simulación (RF-13 · RF-14)</div>
-                <h2>{{ res.caso_nombre }}</h2>
-                <p class="muted">{{ res.comentario_automatico }}</p>
-                <div class="stats-row">
-                  <span>Aciertos: <strong>{{ res.aciertos }} / {{ res.total_preguntas }}</strong></span>
-                  <span>Respondidas: <strong>{{ res.respondidas }} / {{ res.total_preguntas }}</strong></span>
-                  <span>Rúbrica: <strong>{{ res.rubrica_nombre }}</strong></span>
+                <p class="eyebrow green">Estado: Simulación Finalizada (RF-13 · RF-14)</p>
+                <h1>{{ res.caso_nombre }}</h1>
+              </div>
+              <span class="ref mono">{{ res.rubrica_nombre }}</span>
+            </div>
+
+            <div class="score-layout">
+              <div class="score-ring" [style.--score]="res.nota_final + '%'">
+                <div class="score-value">
+                  <span>{{ res.nota_final | number:'1.1-2' }}</span>
+                  <small>/ 100 PTS</small>
                 </div>
               </div>
-              <div class="score-circle">
-                <span class="score-num">{{ res.nota_final | number:'1.1-2' }}</span>
-                <span class="score-sub">/ 100 pts</span>
+
+              <div class="score-copy">
+                <div class="spread mono">
+                  <span>ÍNDICE DE DESEMPEÑO GLOBAL</span>
+                  <b class="green">{{ res.nota_final | number:'1.1-2' }} / 100</b>
+                </div>
+                <div class="meter">
+                  <span [style.width.%]="res.nota_final" style="--meter-color: var(--green)"></span>
+                </div>
+                <div class="stats-row mono">
+                  <span>ACIERTOS: <strong class="cyan">{{ res.aciertos }} / {{ res.total_preguntas }}</strong></span>
+                  <span>RESPONDIDAS: <strong class="cyan">{{ res.respondidas }} / {{ res.total_preguntas }}</strong></span>
+                </div>
+                <p class="summary">{{ res.comentario_automatico }}</p>
               </div>
             </div>
           </mat-card-content>
         </mat-card>
 
         @if (res.retroalimentacion_docente) {
-          <mat-card class="fb-card">
+          <mat-card class="panel fb-card">
             <mat-card-header>
               <mat-card-title>Retroalimentación General del Docente (RF-26)</mat-card-title>
               <mat-card-subtitle>{{ res.fecha_retroalimentacion | date:'medium' }}</mat-card-subtitle>
             </mat-card-header>
-            <mat-card-content style="padding-top:12px; font-size:15px; line-height:1.6;">
+            <mat-card-content style="padding-top:14px; font-size:15px; line-height:1.6;">
               {{ res.retroalimentacion_docente }}
             </mat-card-content>
           </mat-card>
         }
 
         @if (res.criterios.length) {
-          <mat-card>
-            <mat-card-header>
-              <mat-card-title>Desglose por Criterios de Rúbrica (RF-17)</mat-card-title>
-            </mat-card-header>
-            <mat-card-content style="padding-top:14px;">
-              <div class="criterios-grid">
-                @for (c of res.criterios; track c.id_criterio) {
-                  <div class="crit-card">
-                    <div class="crit-top">
-                      <strong>{{ c.nombre }}</strong>
-                      <span class="gold-pill">Peso {{ c.peso }}%</span>
-                    </div>
-                    <div class="crit-score">
-                      <span>{{ c.puntaje_obtenido | number:'1.1-2' }} / 100</span>
-                      <span class="level-badge">{{ c.nivel_nombre }}</span>
-                    </div>
-                    <p class="muted" style="margin:6px 0 0; font-size:12px;">{{ c.nivel_descriptor }}</p>
-                  </div>
-                }
+          <section class="panel panel-pad chart-card">
+            <div class="spread">
+              <div>
+                <p class="eyebrow green">Desglose de Evaluación</p>
+                <h2 class="section-heading">Criterios de Rúbrica (RF-17)</h2>
               </div>
-            </mat-card-content>
-          </mat-card>
+              <span class="tag green">RÚBRICA</span>
+            </div>
+
+            <div class="chart-bars">
+              @for (c of res.criterios; track c.id_criterio) {
+                <div class="chart-row">
+                  <span>{{ c.nombre }} ({{ c.peso }}%)</span>
+                  <i><b [style.width.%]="c.puntaje_obtenido"></b></i>
+                  <strong>{{ c.puntaje_obtenido | number:'1.1-2' }}</strong>
+                </div>
+              }
+            </div>
+
+            <div class="criterios-grid stagger">
+              @for (c of res.criterios; track c.id_criterio) {
+                <article class="crit-card">
+                  <div class="crit-top">
+                    <strong>{{ c.nombre }}</strong>
+                    <span class="tag amber">PESO {{ c.peso }}%</span>
+                  </div>
+                  <div class="crit-score mono">
+                    <span>{{ c.puntaje_obtenido | number:'1.1-2' }}<small>/100</small></span>
+                    <span class="tag green">{{ c.nivel_nombre }}</span>
+                  </div>
+                  <div class="meter" style="height: 8px;">
+                    <span [style.width.%]="c.puntaje_obtenido"></span>
+                  </div>
+                  <p class="muted crit-desc">{{ c.nivel_descriptor }}</p>
+                </article>
+              }
+            </div>
+          </section>
         }
 
-        <mat-card>
-          <mat-card-header>
-            <mat-card-title>Retroalimentación y Justificaciones Teóricas por Pregunta (RF-08 · RF-14)</mat-card-title>
-          </mat-card-header>
-          <mat-card-content style="padding-top:14px;">
-            <div class="q-review-list">
-              @for (q of res.preguntas; track q.pregunta_id; let qi = $index) {
-                <div class="q-review" [class.q-ok]="q.es_correcta" [class.q-bad]="!q.es_correcta">
-                  <div class="q-rev-head">
-                    <strong>Escenario {{ q.escenario_orden }} · {{ qi + 1 }}. {{ q.enunciado }}</strong>
-                    <span class="chip" [class.ok]="q.es_correcta" [class.bad]="!q.es_correcta">
-                      {{ !q.respondida ? 'SIN RESPONDER (0 pts)' : (q.es_correcta ? 'CORRECTA' : 'INCORRECTA') }}
-                    </span>
-                  </div>
+        <section class="panel events">
+          <div class="events-head spread">
+            <div>
+              <p class="eyebrow">Bitácora de Decisiones (RF-08 · RF-14)</p>
+              <h3>Justificaciones Teóricas por Pregunta</h3>
+            </div>
+            <span class="tag">{{ res.preguntas.length }} ITEMS</span>
+          </div>
+
+          <div class="q-review-list">
+            @for (q of res.preguntas; track q.pregunta_id; let qi = $index) {
+              <div class="event-row" [class.q-ok]="q.es_correcta" [class.q-bad]="!q.es_correcta">
+                <div class="event-top">
+                  <b class="event-badge" [class.amber]="!q.es_correcta">
+                    {{ q.es_correcta ? '✓' : '!' }}
+                  </b>
+                  <span class="mono cyan">ESC-{{ q.escenario_orden }} · P{{ qi + 1 }}</span>
+                  <strong class="q-title-txt">{{ q.enunciado }}</strong>
+                  <span class="chip" [class.ok]="q.es_correcta" [class.bad]="!q.es_correcta">
+                    {{ !q.respondida ? 'SIN RESPONDER (0 PTS)' : (q.es_correcta ? 'CORRECTA' : 'INCORRECTA') }}
+                  </span>
+                </div>
+
+                <div class="event-body">
                   <div class="q-ans"><strong>Tu selección:</strong> {{ q.opcion_elegida_texto }}</div>
                   <div class="q-just"><strong>Justificación:</strong> {{ q.justificacion_elegida }}</div>
                   @if (!q.es_correcta && q.opcion_correcta_texto) {
@@ -136,162 +177,802 @@ interface PasoPlano {
                     <div class="q-refl"><strong>Tu reflexión:</strong> {{ q.reflexion_estudiante }}</div>
                   }
                 </div>
-              }
-            </div>
-          </mat-card-content>
-        </mat-card>
-      } @else if (workspace(); as ws) {
-        <!-- MODO ACTIVO: ESPACIO DE TRABAJO EDITABLE RF-10 + TEMPORIZADOR RF-23 -->
-        <div class="hud-bar">
-          <div>
-            <div class="hud-title">{{ ws.caso_nombre }} <span class="mode-tag">Intento #{{ ws.numero_intento }} · {{ ws.modo_recorrido }}</span></div>
-            <div class="hud-sub">
-              Progreso: {{ ws.respondidas ?? 0 }} / {{ ws.total_preguntas ?? 0 }} respondidas ·
-              Cambios realizados: {{ ws.cambios_realizados ?? 0 }}
-            </div>
-          </div>
-
-          <div class="timer-box" [class.timer-warn]="segundosRestantes() <= 300" [class.timer-crit]="segundosRestantes() <= 60">
-            <mat-icon>timer</mat-icon>
-            <span class="mono timer-txt">{{ formatearTiempo(segundosRestantes()) }}</span>
-          </div>
-        </div>
-
-        <mat-progress-bar mode="determinate"
-                          [value]="((ws.respondidas ?? 0) / Math.max(1, ws.total_preguntas ?? 1)) * 100"
-                          style="margin-bottom:16px; border-radius:4px;">
-        </mat-progress-bar>
-
-        <div class="play-grid">
-          <!-- Stepper navegable Anterior / Siguiente / Saltar (RF-10) -->
-          <mat-card class="nav-card">
-            <mat-card-header>
-              <mat-card-title>Preguntas (RF-10)</mat-card-title>
-              <mat-card-subtitle>Puedes volver atrás y modificar tus respuestas antes de entregar</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content style="padding-top:12px;">
-              <div class="step-list">
-                @for (item of pasosPlanos(); track item.pregunta.id; let idx = $index) {
-                  <button type="button"
-                          class="step-btn"
-                          [class.step-active]="idx === indiceActual()"
-                          [class.step-done]="estaRespondida(item.pregunta.id)"
-                          (click)="irAPregunta(idx)">
-                    <span>Esc. {{ item.escenario.orden }} · P{{ idx + 1 }}</span>
-                    <mat-icon>{{ estaRespondida(item.pregunta.id) ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-                  </button>
-                }
               </div>
-            </mat-card-content>
+            }
+          </div>
+        </section>
+      } @else if (workspace(); as ws) {
+        <!-- MODO ACTIVO: CONSOLA TÁCTICA + MAZO DE CARTAS INTERACTIVO (RF-10 + RF-23) -->
+        <section class="panel panel-pad mission-strip">
+          <div class="spread mission-top">
+            <div>
+              <p class="eyebrow">Misión Activa // {{ ws.modo_recorrido }}</p>
+              <div class="hud-title">
+                {{ ws.caso_nombre }}
+                <span class="tag green">INTENTO #{{ ws.numero_intento }}</span>
+              </div>
+              <div class="hud-sub mono">
+                PROGRESO: {{ ws.respondidas ?? 0 }}/{{ ws.total_preguntas ?? 0 }} · CAMBIOS RF-10: {{ ws.cambios_realizados ?? 0 }}
+              </div>
+            </div>
+
+            <div class="timer-box" [class.timer-warn]="segundosRestantes() <= 300" [class.timer-crit]="segundosRestantes() <= 60">
+              <mat-icon>timer</mat-icon>
+              <div>
+                <small class="timer-lbl">TIEMPO RESTANTE</small>
+                <span class="mono timer-txt">{{ formatearTiempo(segundosRestantes()) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <mat-progress-bar
+            mode="determinate"
+            [value]="((ws.respondidas ?? 0) / Math.max(1, ws.total_preguntas ?? 1)) * 100"
+            class="hud-progress"
+          ></mat-progress-bar>
+
+          <!-- Progress Steps Discretos Navegables RF-10 -->
+          <div class="progress-steps" aria-label="Navegador de preguntas">
+            @for (item of pasosPlanos(); track item.pregunta.id; let idx = $index) {
+              <button
+                type="button"
+                class="step-btn"
+                [class.step-active]="idx === indiceActual()"
+                [class.step-done]="estaRespondida(item.pregunta.id)"
+                (click)="irAPregunta(idx)"
+                [title]="'Ir a Escenario ' + item.escenario.orden + ' Pregunta ' + (idx + 1)"
+              >
+                <span class="step-code">E{{ item.escenario.orden }}·P{{ idx + 1 }}</span>
+                <mat-icon>{{ estaRespondida(item.pregunta.id) ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+              </button>
+            }
+          </div>
+        </section>
+
+        @if (pasoActual(); as actual) {
+          <!-- Escenario Diorama Frame -->
+          <section class="panel scene-frame">
+            <div class="scene-horizon" aria-hidden="true"></div>
+            <div class="scene-content">
+              <div class="scene-top">
+                <span class="tag">ESCENARIO {{ actual.escenario.orden }} // DECISIÓN {{ indiceActual() + 1 }} DE {{ pasosPlanos().length }}</span>
+                <div class="coach-orb">
+                  <span class="orb-dot"></span>
+                  <span class="mono">COACH NEURO ACTIVO</span>
+                </div>
+              </div>
+              <div class="scene-note">
+                <div class="ctx-lbl">Situación Clínica / Ética</div>
+                <p>{{ actual.escenario.contexto_situacional }}</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- Enunciado de Decisión -->
+          <div class="prompt-banner panel">
+            <p class="eyebrow amber">Dilema a resolver</p>
+            <h2 class="q-enunciado">{{ actual.pregunta.enunciado }}</h2>
+          </div>
+
+          <!-- Carril Horizontal de Cartas Inclinadas (Deck Gamificado) -->
+          <div class="card-rail" [class.has-selection]="!!opcionElegida">
+            @for (op of actual.pregunta.opciones; track op.id; let oi = $index) {
+              <label
+                class="action-card"
+                [class.selected]="opcionElegida === op.id"
+                [class.option-selected]="opcionElegida === op.id"
+                [style.--tilt]="(oi % 2 === 0 ? -1.2 : 1.1) + 'deg'"
+              >
+                <input
+                  type="radio"
+                  class="sr-only-radio"
+                  [name]="'q_' + actual.pregunta.id"
+                  [value]="op.id"
+                  [(ngModel)]="opcionElegida"
+                />
+
+                <div class="card-top-row">
+                  <span class="mode-pill" [class.good]="opcionElegida === op.id">
+                    OPCIÓN 0{{ oi + 1 }}
+                  </span>
+                  <span class="card-symbol">◆</span>
+                </div>
+
+                <span class="card-kicker">CARTA DE INTERVENCIÓN</span>
+                <strong class="card-decision-text">{{ op.texto }}</strong>
+
+                <div class="stats">
+                  <label>
+                    <span>IMPACTO</span>
+                    <i><b [style.width.%]="70 + ((oi * 9) % 25)"></b></i>
+                  </label>
+                  <label>
+                    <span>CRITERIO</span>
+                    <i><b [style.width.%]="65 + ((oi * 13) % 30)"></b></i>
+                  </label>
+                </div>
+
+                <div class="touch-label">
+                  {{ opcionElegida === op.id ? '[ CARTA SELECCIONADA ✓ ]' : '[ TOCA PARA SELECCIONAR ]' }}
+                </div>
+              </label>
+            }
+          </div>
+
+          <!-- Reflexión Terminal + Launch Pad -->
+          <mat-card class="panel refl-panel">
+            <label class="ctx-lbl" for="reflInput">Bitácora de sustento personal (opcional, editable antes de entregar)</label>
+            <textarea
+              id="reflInput"
+              class="refl-textarea"
+              rows="3"
+              [(ngModel)]="reflexionInput"
+              placeholder="Argumenta brevemente el criterio psicológico y ético de tu elección..."
+            ></textarea>
           </mat-card>
 
-          <!-- Escenario y Pregunta Actual -->
-          @if (pasoActual(); as actual) {
-            <mat-card class="question-card">
-              <mat-card-header>
-                <mat-card-title>Escenario {{ actual.escenario.orden }} — Decisión {{ indiceActual() + 1 }} de {{ pasosPlanos().length }}</mat-card-title>
-              </mat-card-header>
-              <mat-card-content style="padding-top:16px;">
-                <div class="context-panel">
-                  <div class="ctx-lbl">Situación Clínica / Ética</div>
-                  <p>{{ actual.escenario.contexto_situacional }}</p>
-                </div>
+          <section class="panel launch-pad">
+            <div class="selected-brief">
+              <div class="launch-ico">🚀</div>
+              <div>
+                <small>{{ opcionElegida ? 'CARTA PREPARADA PARA LANZAMIENTO' : 'SELECCIONA UNA CARTA DEL MAZO SUPERIOR' }}</small>
+                <b>{{ opcionElegida ? 'Decisión #' + (indiceActual() + 1) + ' lista para registrar' : 'Esperando selección...' }}</b>
+              </div>
+            </div>
 
-                <h3 class="q-enunciado">{{ actual.pregunta.enunciado }}</h3>
-
-                <div class="options-stack">
-                  @for (op of actual.pregunta.opciones; track op.id) {
-                    <label class="option-card" [class.option-selected]="opcionElegida === op.id">
-                      <input type="radio"
-                             [name]="'q_' + actual.pregunta.id"
-                             [value]="op.id"
-                             [(ngModel)]="opcionElegida" />
-                      <span>{{ op.texto }}</span>
-                    </label>
-                  }
-                </div>
-
-                <div class="refl-edit">
-                  <label class="ctx-lbl" for="reflInput">Reflexión o sustento personal (opcional, editable antes de enviar):</label>
-                  <textarea id="reflInput" class="refl-textarea" rows="3" [(ngModel)]="reflexionInput"
-                            placeholder="Argumenta brevemente tu decisión..."></textarea>
-                </div>
-
-                <div class="play-actions">
-                  <div style="display:flex; gap:10px;">
-                    <button mat-stroked-button type="button" (click)="anterior()" [disabled]="indiceActual() === 0 || guardando()">
-                      <mat-icon>arrow_back</mat-icon> Anterior
-                    </button>
-                    <button mat-flat-button color="primary" type="button" (click)="guardarYAvanzar()"
-                            [disabled]="!opcionElegida || guardando()">
-                      <mat-icon>save</mat-icon>
-                      {{ indiceActual() < pasosPlanos().length - 1 ? 'Guardar y Siguiente' : 'Guardar Respuesta' }}
-                    </button>
-                  </div>
-
-                  <button mat-flat-button color="accent" type="button" (click)="entregarSimulacion()" [disabled]="guardando()">
-                    <mat-icon>done_all</mat-icon> Entregar Simulación Definitiva
-                  </button>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          }
-        </div>
+            <div class="play-actions">
+              <button mat-stroked-button type="button" (click)="anterior()" [disabled]="indiceActual() === 0 || guardando()">
+                <mat-icon>arrow_back</mat-icon> Anterior
+              </button>
+              <button mat-flat-button color="primary" type="button" (click)="guardarYAvanzar()" [disabled]="!opcionElegida || guardando()">
+                <mat-icon>save</mat-icon>
+                {{ indiceActual() < pasosPlanos().length - 1 ? 'Guardar y Siguiente' : 'Guardar Respuesta' }}
+              </button>
+              <button mat-flat-button color="accent" type="button" (click)="entregarSimulacion()" [disabled]="guardando()">
+                <mat-icon>done_all</mat-icon> Entregar Simulación
+              </button>
+            </div>
+          </section>
+        }
       }
     </div>
   `,
   styles: [`
-    .sim-wrap { padding: 8px 0 40px; }
-    .center-spin { display: flex; justify-content: center; padding: 60px; }
-    .hud-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
-    .hud-title { font-size: 20px; font-weight: 700; color: #f8fafc; }
-    .hud-sub { font-size: 13px; color: #94a3b8; margin-top: 2px; }
-    .mode-tag { font-size: 11px; margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: rgba(16,185,129,0.18); color: #34d399; }
-    .timer-box { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 10px; background: rgba(15,23,42,0.9); border: 1px solid rgba(16,185,129,0.5); color: #34d399; }
-    .timer-box.timer-warn { border-color: #f59e0b; color: #fbbf24; }
-    .timer-box.timer-crit { border-color: #ef4444; color: #f87171; animation: pulse 1s infinite; }
-    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.65; } }
-    .timer-txt { font-size: 20px; font-weight: 800; letter-spacing: 0.06em; }
-    .play-grid { display: grid; grid-template-columns: 270px 1fr; gap: 18px; align-items: start; }
-    @media (max-width: 960px) { .play-grid { grid-template-columns: 1fr; } }
-    .step-list { display: flex; flex-direction: column; gap: 8px; }
-    .step-btn { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(6,11,22,0.65); color: #cbd5e1; cursor: pointer; font-weight: 600; transition: all 0.2s; }
-    .step-btn.step-done { border-color: rgba(16,185,129,0.45); color: #34d399; }
-    .step-btn.step-active { border-color: #fbbf24; background: rgba(245,158,11,0.14); color: #f8fafc; }
-    .context-panel { background: rgba(6,11,22,0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
-    .context-panel p { margin: 6px 0 0; line-height: 1.6; color: #e2e8f0; }
-    .ctx-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; font-weight: 700; display: block; }
-    .q-enunciado { font-size: 18px; font-weight: 700; color: #f8fafc; margin: 0 0 14px; }
-    .options-stack { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
-    .option-card { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(15,23,42,0.72); cursor: pointer; transition: all 0.2s; color: #f8fafc; }
-    .option-card:hover { border-color: rgba(16,185,129,0.45); }
-    .option-card.option-selected { border-color: #10b981; background: rgba(16,185,129,0.14); }
-    .refl-edit { margin-bottom: 18px; }
-    .refl-textarea { width: 100%; box-sizing: border-box; margin-top: 6px; background: rgba(6,11,22,0.8); color: #f8fafc; border: 1px solid rgba(255,255,255,0.16); border-radius: 8px; padding: 10px; font-family: inherit; }
-    .play-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .res-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    .state-chip { background: rgba(16,185,129,0.18); border: 1px solid rgba(16,185,129,0.45); color: #34d399; padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 12px; }
-    .hero-score { border: 1px solid rgba(16,185,129,0.4) !important; }
-    .hero-grid { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
-    .hero-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #10b981; font-weight: 700; }
-    .stats-row { display: flex; gap: 18px; margin-top: 10px; font-size: 13px; color: #cbd5e1; flex-wrap: wrap; }
-    .score-circle { min-width: 130px; height: 130px; border-radius: 50%; background: rgba(16,185,129,0.12); border: 3px solid #10b981; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .score-num { font-size: 32px; font-weight: 800; color: #34d399; }
-    .score-sub { font-size: 12px; color: #94a3b8; }
-    .fb-card { border-left: 4px solid #fbbf24 !important; }
-    .criterios-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-    .crit-card { background: rgba(6,11,22,0.65); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 14px; }
-    .crit-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .gold-pill { color: #fbbf24; font-weight: 700; font-size: 12px; }
-    .crit-score { display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 700; color: #34d399; }
-    .level-badge { background: rgba(16,185,129,0.2); padding: 2px 8px; border-radius: 6px; font-size: 12px; }
-    .q-review-list { display: flex; flex-direction: column; gap: 12px; }
-    .q-review { padding: 14px; border-radius: 10px; background: rgba(6,11,22,0.7); border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 6px; }
-    .q-review.q-ok { border-color: rgba(16,185,129,0.45); }
-    .q-review.q-bad { border-color: rgba(239,68,68,0.45); }
-    .q-rev-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .q-corr { background: rgba(16,185,129,0.1); border-radius: 6px; padding: 8px 10px; font-size: 13px; color: #a7f3d0; }
-    .q-refl { background: rgba(15,23,42,0.8); border-radius: 6px; padding: 8px 10px; font-size: 13px; }
+    .sim-wrap {
+      padding: 4px 0 40px;
+      max-width: 980px;
+      display: grid;
+      gap: 16px;
+    }
+
+    /* ==================== HUD SUPERIOR DE MISIÓN ==================== */
+    .mission-strip {
+      display: grid;
+      gap: 12px;
+      border-left: 4px solid var(--cyan);
+      background:
+        radial-gradient(circle at right top, rgba(0, 229, 244, 0.1), transparent 45%),
+        rgba(16, 20, 27, 0.96);
+    }
+    .hud-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-family: var(--display);
+      font-size: clamp(24px, 4vw, 32px);
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text);
+      margin-top: 4px;
+    }
+    .hud-sub {
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .timer-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border: 1px solid rgba(0, 232, 148, 0.5);
+      background: rgba(5, 12, 14, 0.9);
+      color: var(--green);
+    }
+    .timer-box.timer-warn {
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+    .timer-box.timer-crit {
+      border-color: var(--red);
+      color: var(--coral);
+      animation: pulse 1s infinite;
+    }
+    .timer-lbl {
+      display: block;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 1px;
+      opacity: 0.85;
+    }
+    .timer-txt {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: inherit !important;
+    }
+    .hud-progress {
+      height: 8px;
+      border-radius: 99px;
+    }
+    .progress-steps {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-top: 4px;
+    }
+    .step-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 11px;
+      border: 1px solid rgba(184, 211, 214, 0.2);
+      background: #0b1017;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      transition: all 0.2s ease;
+    }
+    .step-btn mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+    .step-btn.step-done {
+      border-color: rgba(0, 232, 148, 0.5);
+      background: rgba(0, 232, 148, 0.08);
+      color: var(--green);
+    }
+    .step-btn.step-active {
+      border-color: var(--cyan);
+      background: rgba(0, 229, 244, 0.14);
+      color: var(--cyan-soft);
+      box-shadow: 0 0 14px rgba(0, 229, 244, 0.22);
+    }
+
+    /* ==================== SCENE FRAME DIORAMA ==================== */
+    .scene-frame {
+      position: relative;
+      overflow: hidden;
+      min-height: 190px;
+      padding: 20px;
+      background:
+        radial-gradient(circle at 80% 20%, rgba(0, 229, 244, 0.16), transparent 44%),
+        linear-gradient(180deg, rgba(11, 18, 28, 0.96), rgba(7, 10, 16, 0.98));
+    }
+    .scene-horizon {
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 55%;
+      background:
+        linear-gradient(rgba(0, 229, 244, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 229, 244, 0.06) 1px, transparent 1px);
+      background-size: 28px 28px;
+      transform: perspective(260px) rotateX(48deg);
+      transform-origin: bottom;
+      opacity: 0.45;
+      pointer-events: none;
+    }
+    .scene-content {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      gap: 14px;
+    }
+    .scene-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .coach-orb {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 10px;
+      border: 1px solid rgba(0, 229, 244, 0.35);
+      background: rgba(9, 12, 18, 0.85);
+    }
+    .orb-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan);
+      animation: float 3.2s ease-in-out infinite;
+    }
+    .scene-note {
+      padding: 14px 16px;
+      border: 1px solid rgba(0, 229, 244, 0.25);
+      background: rgba(9, 14, 22, 0.82);
+      backdrop-filter: blur(8px);
+    }
+    .scene-note p {
+      margin: 6px 0 0;
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+    .ctx-lbl {
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--cyan);
+      display: block;
+    }
+
+    .prompt-banner {
+      padding: 16px 20px;
+      border-left: 4px solid var(--amber);
+    }
+    .q-enunciado {
+      margin: 6px 0 0;
+      font-family: var(--display);
+      font-size: clamp(22px, 3vw, 28px);
+      line-height: 1.12;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    /* ==================== MAZO DE CARTAS INTERACTIVO (.card-rail) ==================== */
+    .card-rail {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      overflow-y: visible;
+      padding: 18px 10px 24px;
+      scroll-snap-type: x mandatory;
+      scrollbar-color: var(--cyan) transparent;
+    }
+    .card-rail.has-selection .action-card:not(.selected) {
+      opacity: 0.62;
+      filter: saturate(0.7);
+    }
+    .action-card {
+      position: relative;
+      flex: 0 0 265px;
+      min-height: 310px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 20px 18px;
+      border: 1px solid rgba(184, 211, 214, 0.22);
+      border-radius: 20px;
+      color: var(--text);
+      background: linear-gradient(155deg, rgba(23, 27, 35, 0.98), rgba(8, 12, 18, 0.98));
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.38);
+      text-align: left;
+      cursor: pointer;
+      scroll-snap-align: center;
+      transform: rotate(var(--tilt, 0deg));
+      transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease;
+    }
+    .action-card:hover,
+    .action-card.selected {
+      opacity: 1 !important;
+      filter: none !important;
+      border-color: var(--cyan-soft);
+      box-shadow:
+        0 0 0 2px rgba(168, 248, 255, 0.28),
+        0 26px 46px rgba(0, 0, 0, 0.5);
+      transform: translateY(-10px) rotate(0deg);
+    }
+    .action-card.selected {
+      border-color: var(--green);
+      box-shadow:
+        0 0 0 2px rgba(0, 232, 148, 0.35),
+        0 26px 46px rgba(0, 232, 148, 0.14);
+    }
+    .sr-only-radio {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+      pointer-events: none;
+    }
+    .card-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .mode-pill {
+      width: max-content;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--cyan-soft);
+      color: #062026;
+      font: 700 11px var(--mono);
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+    }
+    .mode-pill.good {
+      background: var(--green);
+      color: #021c11;
+    }
+    .card-symbol {
+      font-size: 26px;
+      line-height: 1;
+      color: var(--cyan);
+    }
+    .card-kicker {
+      color: var(--cyan-soft);
+      font: 11px var(--mono);
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+    }
+    .card-decision-text {
+      color: #fff;
+      font: 600 15px/1.45 var(--body);
+    }
+    .stats {
+      display: grid;
+      gap: 7px;
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(184, 211, 214, 0.2);
+    }
+    .stats label {
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      align-items: center;
+      gap: 8px;
+      font: 10px var(--mono);
+      color: var(--dim);
+    }
+    .stats i {
+      display: block;
+      height: 6px;
+      background: #232a34;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .stats b {
+      display: block;
+      height: 100%;
+      background: var(--cyan);
+    }
+    .touch-label {
+      font: 11px var(--mono);
+      color: var(--dim);
+      text-align: center;
+      padding-top: 4px;
+    }
+    .action-card.selected .touch-label {
+      color: var(--green);
+      font-weight: 700;
+    }
+
+    /* ==================== REFLEXIÓN & LAUNCH PAD ==================== */
+    .refl-panel {
+      padding: 16px 18px !important;
+      margin-bottom: 0 !important;
+    }
+    .refl-textarea {
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 8px;
+      background: rgba(5, 8, 13, 0.78);
+      color: var(--text);
+      border: 1px solid rgba(184, 211, 214, 0.22);
+      border-radius: 0;
+      padding: 12px;
+      font-family: var(--body);
+    }
+    .refl-textarea:focus {
+      outline: none;
+      border-color: var(--cyan);
+    }
+    .launch-pad {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 18px;
+      border-style: dashed;
+      border-color: var(--line-strong);
+      border-radius: 18px;
+    }
+    .selected-brief {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .launch-ico {
+      font-size: 28px;
+      line-height: 1;
+    }
+    .selected-brief small,
+    .selected-brief b {
+      display: block;
+    }
+    .selected-brief small {
+      color: var(--cyan);
+      font: 11px var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .selected-brief b {
+      color: #fff;
+      font: 700 20px var(--display);
+      text-transform: uppercase;
+    }
+    .play-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    /* ==================== PANTALLA RESULTADOS (.score-ring + .chart-card + .events) ==================== */
+    .res-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .result-head {
+      padding: 22px !important;
+      margin-bottom: 0 !important;
+    }
+    .head-top {
+      margin-bottom: 16px;
+    }
+    .head-top h1 {
+      margin: 4px 0 0;
+      font-family: var(--display);
+      font-size: clamp(28px, 4.5vw, 38px);
+      text-transform: uppercase;
+      color: var(--text);
+    }
+    .ref {
+      padding: 8px 12px;
+      border: 1px solid rgba(184, 211, 214, 0.3);
+      background: #232a34;
+      color: var(--text) !important;
+    }
+    .score-layout {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 20px;
+      align-items: center;
+    }
+    .score-ring {
+      --score: 76%;
+      width: 142px;
+      height: 142px;
+      display: grid;
+      place-items: center;
+      position: relative;
+      border-radius: 50%;
+      background: conic-gradient(var(--green) var(--score), rgba(184, 211, 214, 0.14) 0);
+      box-shadow: 0 0 28px rgba(0, 232, 148, 0.16);
+    }
+    .score-ring::after {
+      content: '';
+      position: absolute;
+      inset: 14px;
+      border-radius: 50%;
+      background: #0d1219;
+      border: 1px solid rgba(184, 211, 214, 0.14);
+    }
+    .score-value {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      line-height: 1;
+      text-align: center;
+      font-family: var(--mono);
+    }
+    .score-value span {
+      color: var(--green);
+      font-size: 30px;
+      font-weight: 700;
+    }
+    .score-value small {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .score-copy {
+      display: grid;
+      gap: 10px;
+    }
+    .stats-row {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      color: var(--muted);
+    }
+    .summary {
+      margin: 0;
+      padding-top: 10px;
+      border-top: 1px solid rgba(184, 211, 214, 0.14);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .fb-card {
+      border-left: 4px solid var(--amber) !important;
+      margin-bottom: 0 !important;
+    }
+    .chart-card {
+      display: grid;
+      gap: 16px;
+      background: linear-gradient(145deg, rgba(0, 229, 244, 0.06), rgba(0, 232, 148, 0.04)), rgba(16, 20, 27, 0.94);
+    }
+    .section-heading {
+      margin: 4px 0 0;
+      font-family: var(--display);
+      font-size: 26px;
+      text-transform: uppercase;
+    }
+    .chart-bars {
+      display: grid;
+      gap: 12px;
+    }
+    .chart-row {
+      display: grid;
+      grid-template-columns: 1.1fr 1.6fr 56px;
+      gap: 10px;
+      align-items: center;
+    }
+    .chart-row span {
+      font: 12px var(--mono);
+      text-transform: uppercase;
+      color: #cbd6d8;
+    }
+    .chart-row i {
+      height: 14px;
+      border: 1px solid rgba(184, 211, 214, 0.2);
+      background: #05080d;
+      overflow: hidden;
+    }
+    .chart-row b {
+      display: block;
+      height: 100%;
+      background: var(--cyan);
+      box-shadow: 0 0 14px var(--cyan);
+    }
+    .chart-row strong {
+      color: var(--cyan);
+      font: 15px var(--mono);
+      text-align: right;
+    }
+    .criterios-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 12px;
+    }
+    .crit-card {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      background: #0b1017;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--cyan);
+    }
+    .crit-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .crit-score {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 22px;
+      color: var(--cyan);
+    }
+    .crit-score small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .crit-desc {
+      margin: 0;
+      font-size: 12px;
+    }
+    .events-head {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    .events-head h3 {
+      margin: 4px 0 0;
+      font-family: var(--display);
+      font-size: 24px;
+      text-transform: uppercase;
+    }
+    .q-review-list {
+      display: grid;
+    }
+    .event-row {
+      padding: 16px 20px;
+      border-top: 1px solid rgba(184, 211, 214, 0.12);
+      display: grid;
+      gap: 8px;
+    }
+    .event-row.q-ok {
+      border-left: 4px solid var(--green);
+    }
+    .event-row.q-bad {
+      border-left: 4px solid var(--red);
+    }
+    .event-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .event-badge {
+      display: grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 232, 148, 0.55);
+      color: var(--green);
+      font: 700 14px var(--mono);
+    }
+    .event-badge.amber {
+      border-color: rgba(255, 184, 0, 0.65);
+      color: var(--amber);
+    }
+    .q-title-txt {
+      flex: 1;
+      color: var(--text);
+      font-size: 15px;
+    }
+    .event-body {
+      display: grid;
+      gap: 6px;
+      padding-left: 36px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .q-corr {
+      background: rgba(0, 232, 148, 0.08);
+      border: 1px solid rgba(0, 232, 148, 0.3);
+      padding: 8px 12px;
+      color: #a7f3d0;
+    }
+    .q-refl {
+      background: #0b1017;
+      border: 1px solid rgba(184, 211, 214, 0.16);
+      padding: 8px 12px;
+      color: var(--text);
+    }
+
+    @media (max-width: 780px) {
+      .launch-pad, .score-layout, .chart-row {
+        grid-template-columns: 1fr;
+      }
+      .score-ring {
+        margin: auto;
+      }
+      .chart-row strong {
+        text-align: left;
+      }
+      .play-actions {
+        justify-content: flex-start;
+      }
+      .event-body {
+        padding-left: 0;
+      }
+    }
   `],
 })
 export class SimuladorComponent implements OnInit, OnDestroy {

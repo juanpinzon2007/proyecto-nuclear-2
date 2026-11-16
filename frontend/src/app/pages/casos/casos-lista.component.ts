@@ -35,22 +35,29 @@ import { mensajeError } from '../../core/api-error';
     <div class="page">
       <div class="page-header">
         <div>
+          <p class="eyebrow">Consola de Autoría // RF-05 · RF-09</p>
           <h1>Casos de Estudio</h1>
           <p class="muted">Gestión de casos, escenas situacionales, opciones de decisión y rúbricas de evaluación</p>
         </div>
-        @if (auth.tienePermiso('CREAR_CASOS')) {
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <a mat-flat-button color="primary" routerLink="/casos/nuevo">
-              <mat-icon>add_circle</mat-icon> Nuevo Caso Completo
-            </a>
-            <button mat-stroked-button (click)="mostrarFormularioCrear = !mostrarFormularioCrear">
-              <mat-icon>{{ mostrarFormularioCrear ? 'close' : 'flash_on' }}</mat-icon>
-              {{ mostrarFormularioCrear ? 'Cancelar' : 'Borrador Rápido' }}
-            </button>
+        <div class="header-right">
+          <div class="stat-tile">
+            <small>CASOS</small>
+            <b>{{ casos().length }}</b>
           </div>
-        } @else {
-          <span class="chip">Solo lectura (sin permiso CREAR_CASOS)</span>
-        }
+          @if (auth.tienePermiso('CREAR_CASOS')) {
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <a mat-flat-button color="primary" routerLink="/casos/nuevo">
+                <mat-icon>add_circle</mat-icon> Nuevo Caso Completo
+              </a>
+              <button mat-stroked-button (click)="mostrarFormularioCrear = !mostrarFormularioCrear">
+                <mat-icon>{{ mostrarFormularioCrear ? 'close' : 'flash_on' }}</mat-icon>
+                {{ mostrarFormularioCrear ? 'Cancelar' : 'Borrador Rápido' }}
+              </button>
+            </div>
+          } @else {
+            <span class="chip">Solo lectura (sin permiso CREAR_CASOS)</span>
+          }
+        </div>
       </div>
 
       @if (error()) {
@@ -65,6 +72,7 @@ import { mensajeError } from '../../core/api-error';
         <mat-card class="crear-card">
           <mat-card-header>
             <mat-card-title>Nuevo Caso de Simulación</mat-card-title>
+            <mat-card-subtitle>Creación directa en estado BORRADOR para edición posterior</mat-card-subtitle>
           </mat-card-header>
           <mat-card-content style="padding-top: 16px;">
             <form (ngSubmit)="crearCaso()" class="stack">
@@ -105,34 +113,35 @@ import { mensajeError } from '../../core/api-error';
       }
 
       @if (cargando()) {
-        <div style="display: flex; justify-content: center; padding: 40px;">
+        <div class="center-spin">
           <mat-spinner diameter="40"></mat-spinner>
         </div>
       } @else if (casos().length === 0) {
-        <mat-card style="text-align: center; padding: 40px;">
-          <mat-icon style="font-size: 48px; width: 48px; height: 48px; opacity: 0.5;">folder_open</mat-icon>
+        <mat-card class="empty-panel">
+          <mat-icon class="empty-ico">folder_open</mat-icon>
           <h3>No hay casos registrados aún</h3>
           <p class="muted">Crea el primer caso para diseñar escenarios y programar sesiones académicas.</p>
         </mat-card>
       } @else {
-        <div class="table-container">
+        <h2 class="section-title">Repositorio de Casos</h2>
+        <div class="table-container stagger">
           <table mat-table [dataSource]="casos()" class="mat-elevation-z1">
             <ng-container matColumnDef="numero">
               <th mat-header-cell *matHeaderCellDef style="width: 70px;">#</th>
-              <td mat-cell *matCellDef="let c"><strong>{{ c.numero }}</strong></td>
+              <td mat-cell *matCellDef="let c"><strong class="mono cyan">0{{ c.numero }}</strong></td>
             </ng-container>
 
             <ng-container matColumnDef="nombre">
               <th mat-header-cell *matHeaderCellDef>Nombre del Caso</th>
               <td mat-cell *matCellDef="let c">
-                <div style="font-weight: 500;">{{ c.nombre }}</div>
+                <div style="font-weight: 600; color: var(--text);">{{ c.nombre }}</div>
                 <div class="mono muted" style="font-size: 11px;">ID: {{ c.version_id }}</div>
               </td>
             </ng-container>
 
             <ng-container matColumnDef="tiempo">
               <th mat-header-cell *matHeaderCellDef>Tiempo</th>
-              <td mat-cell *matCellDef="let c">{{ c.tiempo_estimado_min }} min</td>
+              <td mat-cell *matCellDef="let c"><span class="mono">{{ c.tiempo_estimado_min }} MIN</span></td>
             </ng-container>
 
             <ng-container matColumnDef="estado">
@@ -146,7 +155,7 @@ import { mensajeError } from '../../core/api-error';
 
             <ng-container matColumnDef="creado">
               <th mat-header-cell *matHeaderCellDef>Fecha</th>
-              <td mat-cell *matCellDef="let c">{{ c.creado_en | date:'shortDate' }}</td>
+              <td mat-cell *matCellDef="let c"><span class="mono muted">{{ c.creado_en | date:'shortDate' }}</span></td>
             </ng-container>
 
             <ng-container matColumnDef="acciones">
@@ -182,15 +191,49 @@ import { mensajeError } from '../../core/api-error';
     </div>
   `,
   styles: [`
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .stat-tile {
+      min-width: 88px;
+      padding: 8px 14px;
+      border: 1px solid var(--line-strong);
+      background: #1a212b;
+      font-family: var(--mono);
+    }
+    .stat-tile small {
+      display: block;
+      font-size: 10px;
+      color: var(--cyan);
+      letter-spacing: 1px;
+    }
+    .stat-tile b {
+      font-size: 20px;
+      color: var(--text);
+    }
     .crear-card {
       margin-bottom: 24px;
-      border-left: 4px solid var(--mat-sys-primary);
+      border-left: 4px solid var(--cyan) !important;
+    }
+    .empty-panel {
+      text-align: center;
+      padding: 42px 20px !important;
+    }
+    .empty-ico {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: var(--dim);
+      margin-bottom: 8px;
     }
     .table-container {
       overflow-x: auto;
-      background: rgba(14, 22, 38, 0.72);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
+      background: rgba(16, 20, 27, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 0;
     }
   `],
 })

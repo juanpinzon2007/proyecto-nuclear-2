@@ -69,12 +69,13 @@ interface CriterioDraft {
   ],
   template: `
     <div class="editor-wrap">
-      <div class="header-bar">
+      <div class="page-header">
         <div style="display:flex; align-items:center; gap:10px;">
           <a mat-icon-button routerLink="/casos" title="Volver"><mat-icon>arrow_back</mat-icon></a>
           <div>
+            <p class="eyebrow">Autoría Clínica // RF-05 · RF-06 · RF-07 · RF-08 · RF-17</p>
             <h2>{{ versionId ? 'Editar Caso de Simulación (Borrador)' : 'Nuevo Caso de Simulación & Rúbrica' }}</h2>
-            <p class="subtitle">RF-05 · RF-06 · RF-07 · RF-08 · RF-17 — Estructura clínica, escenarios, justificaciones y rúbrica</p>
+            <p class="subtitle">Estructura clínica, escenarios, justificaciones teóricas y matriz de evaluación</p>
           </div>
         </div>
         <div class="top-actions">
@@ -94,10 +95,10 @@ interface CriterioDraft {
       @if (cargando()) {
         <div class="center-spin"><mat-spinner diameter="42"></mat-spinner></div>
       } @else {
-        <!-- Ficha Académica (RF-05) -->
-        <mat-card>
+        <!-- 01. Ficha Académica (RF-05) -->
+        <mat-card class="panel panel-cyan-left">
           <mat-card-header>
-            <mat-card-title>1. Ficha Académica del Caso (RF-05)</mat-card-title>
+            <mat-card-title>01 // Ficha Académica del Caso (RF-05)</mat-card-title>
             <mat-card-subtitle>Nombre, contexto narrativo, desarrollo situacional y tiempo estimado máximo</mat-card-subtitle>
           </mat-card-header>
           <mat-card-content class="form-grid" style="padding-top:16px;">
@@ -120,16 +121,28 @@ interface CriterioDraft {
           </mat-card-content>
         </mat-card>
 
-        <!-- Rúbrica de Evaluación (RF-17) -->
-        <mat-card>
+        <!-- 02. Rúbrica de Evaluación (RF-17) -->
+        <mat-card class="panel panel-amber-left">
           <mat-card-header>
-            <mat-card-title>2. Rúbrica de Evaluación (RF-17)</mat-card-title>
+            <mat-card-title>02 // Rúbrica de Evaluación (RF-17)</mat-card-title>
             <mat-card-subtitle>
               Los pesos de los criterios deben sumar exactamente <strong>100%</strong>
               (Suma actual: <strong [class.ok-txt]="sumaPesos() === 100" [class.bad-txt]="sumaPesos() !== 100">{{ sumaPesos() }}%</strong>)
             </mat-card-subtitle>
           </mat-card-header>
           <mat-card-content style="padding-top:16px;">
+            <div class="rubric-meter">
+              <div class="meter">
+                <span
+                  [style.width.%]="sumaPesos() > 100 ? 100 : sumaPesos()"
+                  [style.--meter-color]="sumaPesos() === 100 ? 'var(--green)' : 'var(--amber)'"
+                ></span>
+              </div>
+              <span class="mono" [class.ok-txt]="sumaPesos() === 100" [class.bad-txt]="sumaPesos() !== 100">
+                CALIBRACIÓN: {{ sumaPesos() }}% / 100%
+              </span>
+            </div>
+
             <div class="form-grid" style="margin-bottom:16px;">
               <mat-form-field appearance="outline" class="span-2">
                 <mat-label>Nombre de la rúbrica</mat-label>
@@ -147,7 +160,7 @@ interface CriterioDraft {
             @for (crit of criterios; track $index; let ci = $index) {
               <div class="sub-box">
                 <div class="sub-head">
-                  <strong>Criterio {{ ci + 1 }}</strong>
+                  <strong class="mono cyan">CRITERIO #0{{ ci + 1 }}</strong>
                   <button mat-icon-button color="warn" type="button" (click)="eliminarCriterio(ci)" [disabled]="criterios.length <= 1">
                     <mat-icon>delete</mat-icon>
                   </button>
@@ -194,19 +207,19 @@ interface CriterioDraft {
           </mat-card-content>
         </mat-card>
 
-        <!-- Escenarios, Preguntas, Opciones y Justificaciones (RF-06, RF-07, RF-08) -->
-        <mat-card>
+        <!-- 03. Escenarios, Preguntas, Opciones y Justificaciones (RF-06, RF-07, RF-08) -->
+        <mat-card class="panel panel-green-left">
           <mat-card-header>
-            <mat-card-title>3. Escenarios, Preguntas y Opciones con Justificación (RF-06 · RF-07 · RF-08)</mat-card-title>
+            <mat-card-title>03 // Escenarios, Preguntas y Opciones con Justificación (RF-06 · RF-07 · RF-08)</mat-card-title>
             <mat-card-subtitle>
-              Para recorrido ejecutable y publicación directa, define 1 pregunta clave con al menos 2 opciones (1+ correcta) por cada escenario.
+              Define al menos 1 pregunta clave con mínimo 2 opciones (1+ correcta) por cada escenario.
             </mat-card-subtitle>
           </mat-card-header>
           <mat-card-content style="padding-top:16px;">
             @for (esc of escenarios; track $index; let ei = $index) {
               <div class="escenario-box">
                 <div class="sub-head">
-                  <strong>Escenario #{{ ei + 1 }}</strong>
+                  <strong class="mono green">ESCENARIO #0{{ ei + 1 }}</strong>
                   <div class="mini-actions">
                     <button mat-icon-button type="button" (click)="moverEscenario(ei, -1)" [disabled]="ei === 0" title="Subir">
                       <mat-icon>arrow_upward</mat-icon>
@@ -228,7 +241,7 @@ interface CriterioDraft {
                 @for (preg of esc.questions; track $index; let pi = $index) {
                   <div class="preg-box">
                     <div class="sub-head">
-                      <span>Pregunta {{ ei + 1 }}.{{ pi + 1 }}</span>
+                      <span class="mono cyan">PREGUNTA {{ ei + 1 }}.{{ pi + 1 }}</span>
                       @if (esc.questions.length > 1) {
                         <button mat-icon-button color="warn" type="button" (click)="eliminarPregunta(ei, pi)">
                           <mat-icon>close</mat-icon>
@@ -298,32 +311,66 @@ interface CriterioDraft {
     </div>
   `,
   styles: [`
-    .editor-wrap { padding: 8px 0 40px; }
-    .header-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
-    h2 { margin: 0; font-size: 22px; font-weight: 700; color: #f8fafc; }
-    .subtitle { margin: 4px 0 0; color: #94a3b8; font-size: 13px; }
-    .top-actions { display: flex; gap: 10px; }
-    .center-spin { display: flex; justify-content: center; padding: 48px; }
-    .error-banner { background: rgba(239, 68, 68, 0.14); border: 1px solid rgba(239, 68, 68, 0.45); color: #fecaca; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; white-space: pre-wrap; }
+    .editor-wrap { padding: 4px 0 40px; max-width: 1160px; margin: 0 auto; }
+    .subtitle { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .top-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .error-banner {
+      background: rgba(232, 67, 81, 0.14);
+      border: 1px solid rgba(232, 67, 81, 0.55);
+      border-left: 4px solid var(--red);
+      color: var(--coral);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-family: var(--mono);
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+    .rubric-meter {
+      display: grid;
+      gap: 8px;
+      padding: 12px 14px;
+      background: #070a10;
+      border: 1px solid var(--line);
+      margin-bottom: 16px;
+    }
     .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .span-2 { grid-column: span 2; }
     .span-3 { grid-column: span 3; }
     @media (max-width: 900px) { .form-grid { grid-template-columns: 1fr; } .span-2, .span-3 { grid-column: span 1; } }
     .full-w { width: 100%; }
     .row-2 { display: flex; gap: 12px; flex-wrap: wrap; }
-    .sub-box, .escenario-box { background: rgba(6, 11, 22, 0.55); border: 1px solid rgba(255,255,255,0.09); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
-    .sub-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; color: #e2e8f0; }
+    .sub-box, .escenario-box {
+      background: #0b1017;
+      border: 1px solid var(--line);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .sub-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; color: var(--text); }
     .mini-actions { display: flex; gap: 4px; }
     .niveles-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
     .nivel-item { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .preg-box { background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
-    .op-box { border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px; margin-bottom: 10px; background: rgba(9, 14, 26, 0.7); }
-    .op-box.op-ok { border-color: rgba(16, 185, 129, 0.45); background: rgba(16, 185, 129, 0.06); }
+    .preg-box {
+      background: #080c12;
+      border: 1px solid rgba(184, 211, 214, 0.14);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .op-box {
+      border: 1px solid rgba(184, 211, 214, 0.16);
+      padding: 12px;
+      margin-bottom: 10px;
+      background: #0d121a;
+    }
+    .op-box.op-ok {
+      border-color: rgba(0, 232, 148, 0.55);
+      border-left: 4px solid var(--green);
+      background: rgba(0, 232, 148, 0.06);
+    }
     .op-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .val-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .val-lbl { font-size: 12px; color: #94a3b8; }
-    .ok-txt { color: #34d399; }
-    .bad-txt { color: #f87171; }
+    .val-lbl { font-family: var(--mono); font-size: 11px; color: var(--cyan); }
+    .ok-txt { color: var(--green); }
+    .bad-txt { color: var(--coral); }
   `],
 })
 export class CasoEditorComponent implements OnInit {

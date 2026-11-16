@@ -32,13 +32,14 @@ import { IdentityService } from '../../core/identity.service';
   template: `
     <div class="page">
       <div class="page-header">
-        <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
           <a mat-icon-button routerLink="/seguimiento" title="Volver a seguimiento">
             <mat-icon>arrow_back</mat-icon>
           </a>
           <div>
-            <h1>Auditoría de Participación y Feedback (RF-15 · RF-25 · RF-26)</h1>
-            <p class="muted">Participación #{{ participacionId }}</p>
+            <p class="eyebrow">Revisión Individual // RF-15 · RF-25 · RF-26</p>
+            <h1>Auditoría de Participación y Feedback</h1>
+            <p class="muted">Participación <span class="mono">#{{ participacionId }}</span></p>
           </div>
         </div>
         @if (detalle(); as d) {
@@ -54,39 +55,48 @@ import { IdentityService } from '../../core/identity.service';
       @if (mensajeExito()) { <div class="success-box">{{ mensajeExito() }}</div> }
 
       @if (cargando()) {
-        <div style="display: flex; justify-content: center; padding: 40px;">
+        <div class="center-spin">
           <mat-spinner diameter="40"></mat-spinner>
         </div>
       } @else if (detalle(); as d) {
-        <mat-card>
+        <mat-card class="panel panel-cyan-left">
           <mat-card-header>
             <mat-card-title>{{ d.nombre_estudiante || ('Estudiante #' + d.id_estudiante) }}</mat-card-title>
             <mat-card-subtitle>{{ d.correo_estudiante }} · Caso: {{ d.nombre_caso || d.id_caso }}</mat-card-subtitle>
           </mat-card-header>
-          <mat-card-content style="padding-top: 14px; display:flex; gap:18px; flex-wrap:wrap; align-items:center;">
-            <div><strong>Estado:</strong> <span class="chip ok">{{ d.estado }}</span></div>
+          <mat-card-content style="padding-top: 16px; display:flex; gap:18px; flex-wrap:wrap; align-items:center;">
+            <div class="metric-tile">
+              <small>ESTADO</small>
+              <span class="chip ok">{{ d.estado }}</span>
+            </div>
             @if (d.nota_final !== null && d.nota_final !== undefined) {
-              <div><strong>Nota obtenida:</strong> <strong class="nota-big">{{ d.nota_final | number:'1.1-2' }} / 100</strong> ({{ d.modalidad }})</div>
+              <div class="metric-tile">
+                <small>CALIFICACIÓN ({{ d.modalidad }})</small>
+                <strong class="nota-big mono">{{ d.nota_final | number:'1.1-2' }} / 100</strong>
+              </div>
             }
             @if (d.intentos?.length) {
-              <div><strong>Intentos realizados:</strong> {{ d.intentos!.length }}</div>
+              <div class="metric-tile">
+                <small>INTENTOS REGISTRADOS</small>
+                <strong class="mono cyan">{{ d.intentos!.length }}</strong>
+              </div>
             }
           </mat-card-content>
         </mat-card>
 
         <!-- Retroalimentación docente RF-26 -->
-        <mat-card style="border-left: 4px solid #10b981;">
+        <mat-card class="panel panel-green-left">
           <mat-card-header>
             <mat-card-title>Retroalimentación General Docente (RF-26)</mat-card-title>
           </mat-card-header>
           <mat-card-content style="padding-top: 16px;">
             @if (feedback(); as fb) {
               <div class="info-box">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                  <strong>Valoración registrada</strong>
-                  <span class="muted" style="font-size: 12px;">{{ fb.fecha | date:'short' }}</span>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; gap:10px;">
+                  <strong class="mono cyan">VALORACIÓN REGISTRADA</strong>
+                  <span class="muted mono" style="font-size: 11px;">{{ fb.fecha | date:'short' }}</span>
                 </div>
-                <p style="margin: 0; font-size: 14px;">{{ fb.texto }}</p>
+                <p style="margin: 0; font-size: 14px; color: var(--text);">{{ fb.texto }}</p>
               </div>
             } @else {
               <p class="muted">No se ha registrado retroalimentación todavía.</p>
@@ -107,7 +117,7 @@ import { IdentityService } from '../../core/identity.service';
         </mat-card>
 
         <!-- Decisiones registradas -->
-        <mat-card>
+        <mat-card class="panel">
           <mat-card-header>
             <mat-card-title>Decisiones y Justificaciones ({{ d.respuestas.length }})</mat-card-title>
           </mat-card-header>
@@ -115,11 +125,11 @@ import { IdentityService } from '../../core/identity.service';
             @if (d.respuestas.length === 0) {
               <p class="muted">No hay respuestas registradas en esta participación.</p>
             } @else {
-              <div class="stack" style="gap:12px;">
+              <div class="stack stagger" style="gap:12px;">
                 @for (r of d.respuestas; track r.id_pregunta + '_' + r.numero_paso) {
                   <div class="respuesta-box" [class.ok-resp]="r.es_correcta === true" [class.bad-resp]="r.es_correcta === false">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; gap:10px;">
-                      <strong style="color:#f8fafc;">{{ r.enunciado_pregunta || ('Pregunta ' + r.id_pregunta) }}</strong>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; gap:10px; flex-wrap:wrap;">
+                      <strong style="color:var(--text);">{{ r.enunciado_pregunta || ('Pregunta ' + r.id_pregunta) }}</strong>
                       <div style="display:flex; gap:6px; align-items:center;">
                         @if (r.numero_paso) {
                           <span class="chip">Paso #{{ r.numero_paso }}</span>
@@ -132,12 +142,12 @@ import { IdentityService } from '../../core/identity.service';
                       </div>
                     </div>
                     <div>
-                      <strong>Respuesta elegida:</strong>
-                      <span style="margin-left: 8px; color:#cbd5e1;">{{ r.texto_opcion || r.id_opcion || 'Sin responder' }}</span>
+                      <strong class="cyan">Respuesta elegida:</strong>
+                      <span style="margin-left: 8px; color:var(--text);">{{ r.texto_opcion || r.id_opcion || 'Sin responder' }}</span>
                     </div>
                     @if (r.reflexion_estudiante) {
                       <div class="refl-box">
-                        <strong class="muted" style="font-size: 12px;">Reflexión del estudiante:</strong>
+                        <strong class="mono cyan" style="font-size: 11px;">REFLEXIÓN DEL ESTUDIANTE:</strong>
                         <p style="margin: 4px 0 0;">{{ r.reflexion_estudiante }}</p>
                       </div>
                     }
@@ -156,26 +166,35 @@ import { IdentityService } from '../../core/identity.service';
     </div>
   `,
   styles: [`
-    .nota-big { color: #34d399; font-size: 18px; }
-    .info-box { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 10px; padding: 12px; color: #e2e8f0; }
-    .respuesta-box {
-      background: rgba(6, 11, 22, 0.65);
-      padding: 14px;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+    .metric-tile {
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      background: #070a10;
+      display: grid;
+      gap: 4px;
     }
-    .respuesta-box.ok-resp { border-color: rgba(16, 185, 129, 0.45); }
-    .respuesta-box.bad-resp { border-color: rgba(239, 68, 68, 0.45); }
+    .metric-tile small {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 0.8px;
+    }
+    .nota-big { color: var(--green) !important; font-size: 20px !important; font-weight: 700; }
+    .respuesta-box {
+      background: #0b1017;
+      padding: 14px;
+      border: 1px solid var(--line);
+    }
+    .respuesta-box.ok-resp { border-color: rgba(0, 232, 148, 0.55); border-left: 4px solid var(--green); }
+    .respuesta-box.bad-resp { border-color: rgba(232, 67, 81, 0.55); border-left: 4px solid var(--red); }
     .refl-box {
       margin-top: 8px;
-      background: rgba(15, 23, 42, 0.85);
-      padding: 8px 10px;
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #e2e8f0;
+      background: #070a10;
+      padding: 10px 12px;
+      border: 1px solid rgba(184, 211, 214, 0.16);
+      color: var(--text);
     }
     .full { width: 100%; }
-    .success-box { background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.45); color: #a7f3d0; padding: 12px; border-radius: 8px; margin-bottom: 12px; }
   `],
 })
 export class ParticipacionDetalleComponent implements OnInit {

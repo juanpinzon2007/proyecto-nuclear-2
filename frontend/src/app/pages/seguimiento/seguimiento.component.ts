@@ -34,7 +34,8 @@ import { SchedulingService } from '../../core/scheduling.service';
     <div class="page">
       <div class="page-header">
         <div>
-          <h1>Seguimiento Académico y Reportes (RF-15 · RF-16)</h1>
+          <p class="eyebrow">Auditoría & Telemetría // RF-15 · RF-16</p>
+          <h1>Seguimiento Académico y Reportes</h1>
           <p class="muted">Consulta participaciones por caso, revisa calificaciones, emite feedback docente y descarga actas oficiales.</p>
         </div>
       </div>
@@ -43,7 +44,7 @@ import { SchedulingService } from '../../core/scheduling.service';
       @if (mensajeExito()) { <div class="success-box">{{ mensajeExito() }}</div> }
 
       <!-- Reporte Oficial RF-16 -->
-      <mat-card style="margin-bottom: 24px; border-left: 4px solid #fbbf24;">
+      <mat-card class="panel panel-amber-left" style="margin-bottom: 22px;">
         <mat-card-header>
           <mat-card-title>Descargar Reporte Oficial de Sesión (RF-16)</mat-card-title>
           <mat-card-subtitle>Solo sesiones finalizadas con publicación oficial aprobada</mat-card-subtitle>
@@ -78,25 +79,25 @@ import { SchedulingService } from '../../core/scheduling.service';
 
       <div class="seg-grid">
         <!-- Casos con participaciones -->
-        <mat-card>
+        <mat-card class="panel panel-cyan-left">
           <mat-card-header>
             <mat-card-title>Casos con Participaciones ({{ casos().length }})</mat-card-title>
           </mat-card-header>
           <mat-card-content style="padding-top: 14px;">
             @if (cargandoCasos()) {
-              <div style="display:flex; justify-content:center; padding:24px;"><mat-spinner diameter="30"></mat-spinner></div>
+              <div class="center-spin"><mat-spinner diameter="30"></mat-spinner></div>
             } @else if (!casos().length) {
               <p class="muted">No hay participaciones estudiantiles registradas en tus casos aún.</p>
             } @else {
-              <div class="stack" style="gap: 8px;">
+              <div class="stack stagger" style="gap: 8px;">
                 @for (c of casos(); track c.id_caso) {
                   <div class="caso-item" [class.seleccionado]="casoSeleccionado()?.id_caso === c.id_caso"
                        (click)="seleccionarCaso(c)">
                     <div>
-                      <div style="font-weight: 600; color:#f8fafc;">{{ c.nombre }}</div>
+                      <div style="font-weight: 600; color:var(--text);">{{ c.nombre }}</div>
                       <div class="mono muted" style="font-size: 11px;">{{ c.id_caso }}</div>
                     </div>
-                    <mat-icon color="primary">chevron_right</mat-icon>
+                    <mat-icon class="cyan">chevron_right</mat-icon>
                   </div>
                 }
               </div>
@@ -105,7 +106,7 @@ import { SchedulingService } from '../../core/scheduling.service';
         </mat-card>
 
         <!-- Participaciones del caso -->
-        <mat-card>
+        <mat-card class="panel">
           <mat-card-header>
             <mat-card-title>
               Participaciones del Caso
@@ -116,52 +117,54 @@ import { SchedulingService } from '../../core/scheduling.service';
             @if (!casoSeleccionado()) {
               <p class="muted">Selecciona un caso para ver los estudiantes participantes.</p>
             } @else if (cargandoParticipaciones()) {
-              <div style="display:flex; justify-content:center; padding:24px;"><mat-spinner diameter="30"></mat-spinner></div>
+              <div class="center-spin"><mat-spinner diameter="30"></mat-spinner></div>
             } @else if (!participaciones().length) {
               <p class="muted">Sin participaciones registradas aún.</p>
             } @else {
-              <table mat-table [dataSource]="participaciones()" style="width:100%;">
-                <ng-container matColumnDef="estudiante">
-                  <th mat-header-cell *matHeaderCellDef>Estudiante</th>
-                  <td mat-cell *matCellDef="let p">
-                    <div style="font-weight:600; color:#f8fafc;">{{ p.nombre_estudiante || 'Estudiante #' + p.id_estudiante }}</div>
-                    <div class="muted" style="font-size:12px;">{{ p.correo_estudiante }}</div>
-                  </td>
-                </ng-container>
+              <div style="overflow-x:auto;">
+                <table mat-table [dataSource]="participaciones()" style="width:100%;">
+                  <ng-container matColumnDef="estudiante">
+                    <th mat-header-cell *matHeaderCellDef>Estudiante</th>
+                    <td mat-cell *matCellDef="let p">
+                      <div style="font-weight:600; color:var(--text);">{{ p.nombre_estudiante || 'Estudiante #' + p.id_estudiante }}</div>
+                      <div class="muted" style="font-size:12px;">{{ p.correo_estudiante }}</div>
+                    </td>
+                  </ng-container>
 
-                <ng-container matColumnDef="nota">
-                  <th mat-header-cell *matHeaderCellDef>Nota</th>
-                  <td mat-cell *matCellDef="let p">
-                    @if (p.nota_final !== null && p.nota_final !== undefined) {
-                      <strong class="nota-txt">{{ p.nota_final | number:'1.1-2' }} / 100</strong>
-                      <div class="muted" style="font-size:11px;">{{ p.modalidad }}</div>
-                    } @else {
-                      <span class="muted">Pendiente</span>
-                    }
-                  </td>
-                </ng-container>
+                  <ng-container matColumnDef="nota">
+                    <th mat-header-cell *matHeaderCellDef>Nota</th>
+                    <td mat-cell *matCellDef="let p">
+                      @if (p.nota_final !== null && p.nota_final !== undefined) {
+                        <strong class="nota-txt mono">{{ p.nota_final | number:'1.1-2' }} / 100</strong>
+                        <div class="muted" style="font-size:11px;">{{ p.modalidad }}</div>
+                      } @else {
+                        <span class="muted">Pendiente</span>
+                      }
+                    </td>
+                  </ng-container>
 
-                <ng-container matColumnDef="estado">
-                  <th mat-header-cell *matHeaderCellDef>Estado</th>
-                  <td mat-cell *matCellDef="let p">
-                    <span class="chip" [class.ok]="p.estado === 'finalizada' || p.estado === 'COMPLETA'">
-                      {{ p.estado }}
-                    </span>
-                  </td>
-                </ng-container>
+                  <ng-container matColumnDef="estado">
+                    <th mat-header-cell *matHeaderCellDef>Estado</th>
+                    <td mat-cell *matCellDef="let p">
+                      <span class="chip" [class.ok]="p.estado === 'finalizada' || p.estado === 'COMPLETA'">
+                        {{ p.estado }}
+                      </span>
+                    </td>
+                  </ng-container>
 
-                <ng-container matColumnDef="acciones">
-                  <th mat-header-cell *matHeaderCellDef style="text-align:right;">Auditoría</th>
-                  <td mat-cell *matCellDef="let p" style="text-align:right;">
-                    <a mat-stroked-button color="primary" [routerLink]="['/seguimiento/participaciones', p.id_participacion]">
-                      <mat-icon>rate_review</mat-icon> Respuestas & Feedback
-                    </a>
-                  </td>
-                </ng-container>
+                  <ng-container matColumnDef="acciones">
+                    <th mat-header-cell *matHeaderCellDef style="text-align:right;">Auditoría</th>
+                    <td mat-cell *matCellDef="let p" style="text-align:right;">
+                      <a mat-stroked-button color="primary" [routerLink]="['/seguimiento/participaciones', p.id_participacion]">
+                        <mat-icon>rate_review</mat-icon> Respuestas & Feedback
+                      </a>
+                    </td>
+                  </ng-container>
 
-                <tr mat-header-row *matHeaderRowDef="columnasParticipaciones"></tr>
-                <tr mat-row *matRowDef="let row; columns: columnasParticipaciones;"></tr>
-              </table>
+                  <tr mat-header-row *matHeaderRowDef="columnasParticipaciones"></tr>
+                  <tr mat-row *matRowDef="let row; columns: columnasParticipaciones;"></tr>
+                </table>
+              </div>
             }
           </mat-card-content>
         </mat-card>
@@ -176,16 +179,22 @@ import { SchedulingService } from '../../core/scheduling.service';
       justify-content: space-between;
       align-items: center;
       padding: 12px 14px;
-      border-radius: 10px;
       cursor: pointer;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(6, 11, 22, 0.65);
+      border: 1px solid var(--line);
+      border-left: 3px solid transparent;
+      background: #0b1017;
       transition: all 0.2s ease;
     }
-    .caso-item:hover { border-color: rgba(16, 185, 129, 0.45); background: rgba(16, 185, 129, 0.06); }
-    .caso-item.seleccionado { border-color: #10b981; background: rgba(16, 185, 129, 0.14); }
-    .nota-txt { color: #34d399; }
-    .success-box { background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.45); color: #a7f3d0; padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+    .caso-item:hover {
+      border-color: var(--cyan);
+      background: rgba(0, 229, 244, 0.08);
+    }
+    .caso-item.seleccionado {
+      border-color: var(--green);
+      border-left: 4px solid var(--green);
+      background: rgba(0, 232, 148, 0.12);
+    }
+    .nota-txt { color: var(--green) !important; font-weight: 700; font-size: 14px !important; }
   `],
 })
 export class SeguimientoComponent implements OnInit {
