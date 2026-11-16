@@ -39,9 +39,14 @@ export class AuthService {
   /** Convocatoria vinculada al token de un estudiante (claim `convocatoria_id`). */
   readonly convocatoriaId = computed(() => this.claims()?.convocatoria_id ?? null);
   readonly roles = computed<Rol[]>(() => this._usuario()?.roles ?? []);
+  readonly permisos = computed<string[]>(() => this._usuario()?.permisos ?? []);
   readonly esAdmin = computed(() => this.roles().includes('ADMINISTRADOR'));
   readonly esDocente = computed(() => this.roles().includes('DOCENTE'));
   readonly esEstudiante = computed(() => this.roles().includes('ESTUDIANTE'));
+
+  tienePermiso(codigo: string): boolean {
+    return this.permisos().includes(codigo);
+  }
 
   tokenVigente(): boolean {
     const c = this.claims();

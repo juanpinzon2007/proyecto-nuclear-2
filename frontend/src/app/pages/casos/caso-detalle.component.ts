@@ -8,6 +8,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { CasesService } from '../../core/cases.service';
+import { AuthService } from '../../core/auth.service';
 import { CasoDetalleResponse } from '../../core/api.models';
 import { mensajeError } from '../../core/api-error';
 
@@ -37,8 +38,13 @@ import { mensajeError } from '../../core/api-error';
           </div>
         </div>
         <div style="display: flex; gap: 8px;">
+          @if (caso()?.estado === 'BORRADOR' && auth.tienePermiso('CREAR_CASOS')) {
+            <a mat-flat-button color="primary" [routerLink]="['/casos', versionId, 'editar']">
+              <mat-icon>edit</mat-icon> Editar Borrador
+            </a>
+          }
           <a mat-stroked-button [routerLink]="['/casos', versionId, 'grafo']">
-            <mat-icon>account_tree</mat-icon> Ver Grafo de Transiciones
+            <mat-icon>account_tree</mat-icon> Ver / Configurar Grafo
           </a>
         </div>
       </div>
@@ -172,25 +178,28 @@ import { mensajeError } from '../../core/api-error';
   `,
   styles: [`
     .pregunta-box {
-      background: var(--mat-sys-surface-container-low);
+      background: rgba(10, 16, 30, 0.72);
       padding: 12px;
       border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .opcion-item {
       padding: 8px 12px;
-      background: white;
+      background: rgba(15, 23, 42, 0.7);
       border-radius: 6px;
-      border: 1px solid var(--mat-sys-outline-variant);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
     }
     .opcion-item.correcta {
-      border-color: #4caf50;
-      background: #f1f8e9;
+      border-color: rgba(16, 185, 129, 0.55);
+      background: rgba(16, 185, 129, 0.12);
     }
     .criterio-card {
-      border: 1px solid var(--mat-sys-outline-variant);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 8px;
       padding: 12px;
-      background: white;
+      background: rgba(15, 23, 42, 0.65);
+      color: #f8fafc;
     }
     .niveles-grid {
       display: grid;
@@ -209,6 +218,7 @@ import { mensajeError } from '../../core/api-error';
 export class CasoDetalleComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly casesService = inject(CasesService);
+  readonly auth = inject(AuthService);
 
   versionId = '';
   readonly caso = signal<CasoDetalleResponse | null>(null);

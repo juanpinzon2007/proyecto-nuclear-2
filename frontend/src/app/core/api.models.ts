@@ -43,10 +43,13 @@ export interface ResumenCaso { id_caso: string; nombre: string; version_caso_id?
 export interface ResumenParticipacion {
   id_participacion: string; id_estudiante: string; id_caso: string; version_caso_id: string;
   id_convocatoria: string; id_sesion: string; estado: string;
+  nombre_estudiante?: string | null; correo_estudiante?: string | null;
+  nombre_caso?: string | null; nota_final?: number | null; modalidad?: string | null;
 }
 export interface RespuestaSeguimiento {
   id_pregunta: string; id_opcion: string | null; retroalimentacion: string | null;
   id_intento?: string | null; numero_paso?: number | null; reflexion_estudiante?: string | null;
+  enunciado_pregunta?: string | null; texto_opcion?: string | null; es_correcta?: boolean | null;
 }
 export interface IntentoSeguimiento {
   id_intento: string; numero_intento: number; estado: string; inicio: string; fin: string | null; respondidas: number;
@@ -55,6 +58,26 @@ export interface DetalleParticipacion {
   id_participacion: string; id_estudiante: string; id_caso: string; respuestas: RespuestaSeguimiento[];
   feedback_docente: string | null; intentos?: IntentoSeguimiento[]; version_caso_id?: string | null;
   id_convocatoria?: string | null; id_sesion?: string | null; estado?: string | null;
+  nombre_estudiante?: string | null; correo_estudiante?: string | null;
+  nombre_caso?: string | null; nota_final?: number | null; modalidad?: string | null;
+}
+
+// Gestión integral Admin (RF-03)
+export interface UsuarioGestionItem {
+  id_usuario: string; nombre: string; correo: string; rol: string; activo: boolean;
+  permisos_rol: string[]; permisos_individuales: Record<string, boolean>; permisos_efectivos: string[];
+  identidad_cases?: string | null; identidad_scheduling?: string | null;
+}
+export interface CatalogoUsuariosRespuesta {
+  usuarios: UsuarioGestionItem[]; permisos_disponibles: string[]; roles_disponibles: string[];
+}
+export interface CrearUsuarioAdminSolicitud {
+  nombre: string; correo: string; rol: Rol; clave?: string | null; activo?: boolean;
+  permisos_individuales?: Record<string, boolean>; crear_identidades_academicas?: boolean;
+}
+export interface ActualizarUsuarioAdminSolicitud {
+  nombre?: string | null; correo?: string | null; rol?: Rol | null; activo?: boolean | null;
+  clave?: string | null; permisos_individuales?: Record<string, boolean> | null;
 }
 export interface FeedbackDocente { id_participacion: string; id_docente: string; texto: string; fecha: string; }
 export interface ReporteFiltros {
@@ -158,5 +181,59 @@ export interface SeleccionRespuesta { id_decision: Uuid | number; id_opcion: Uui
 export interface ProgresoRespuesta {
   intento: IntentoRespuesta; decisiones_aplicables: (Uuid | number)[] | null; selecciones: SeleccionRespuesta[];
   pendientes: (Uuid | number)[] | null; total_aplicable: number | null; respondidas: number;
+}
+
+// ---------- Organización Académica & Flujo Interactivo Completo ----------
+export interface DocenteBreve { id_usuario: number; nombre: string; correo: string; uuid_scheduling?: Uuid | null; }
+export interface EspacioConAutorizaciones { id: Uuid; nombre: string; autorizado_para_mi: boolean; docentes_autorizados: DocenteBreve[]; }
+export interface EstudianteDisponibleItem { id_usuario: number; nombre: string; correo: string; uuid_scheduling?: Uuid | null; }
+export interface EstudianteMatriculadoItem {
+  id_usuario: number; nombre: string; correo: string; uuid_scheduling?: Uuid | null; fecha_ingreso: string; activo: boolean;
+}
+export interface GrupoResponse { id_grupo: number; nombre: string; periodo: string; id_profesor: number; estudiantes: EstudianteMatriculadoItem[]; }
+export interface ActualizarSesionRequest {
+  fecha_inicio?: string; fecha_fin?: string; tiempo_maximo_minutos?: number; lugar?: string | null; mensaje_personalizado?: string | null;
+}
+export interface MiConvocatoriaItem {
+  convocatoria_id: Uuid; sesion_id: Uuid; espacio_nombre: string; caso_nombre: string;
+  contexto_historia: string; desarrollo_situacional: string; escenarios_count: number; docente_nombre: string;
+  fecha_inicio: string; fecha_fin: string; fecha_limite_mitad_tiempo: string; tiempo_maximo_minutos: number;
+  lugar: string | null; mensaje_personalizado: string | null; estado_sesion: string; estado_convocatoria: string;
+  consentimiento_aceptado: boolean; id_participacion?: number | null; estado_participacion?: string | null;
+  intento_id?: number | null; intento_estado?: string | null; intento_inicio?: string | null;
+  intento_vence_en?: string | null; intentos_realizados: number; permisos_extra_disponibles: number;
+  nota_visible?: number | null; tiene_retroalimentacion: boolean; es_ausente: boolean; notificaciones_recientes: string[];
+}
+export interface ConsentimientoEstado {
+  id_version_documento: number; documento_id: string; version: string; autoridad_aprobadora: string;
+  texto: string; aceptado: boolean; fecha_aceptacion: string | null;
+}
+export interface OpcionWorkspace { id: Uuid; orden: number; texto: string; }
+export interface PreguntaWorkspace { id: Uuid; orden: number; enunciado: string; opciones: OpcionWorkspace[]; }
+export interface EscenarioWorkspace { id: Uuid; orden: number; contexto_situacional: string; preguntas: PreguntaWorkspace[]; }
+export interface BorradorDecisionItem { id_opcion: Uuid; reflexion_estudiante: string | null; actualizado_en: string; }
+export interface WorkspaceIntento {
+  id_intento: number; numero_intento?: number; convocatoria_id?: string; estado: string; cerrado: boolean;
+  modo_recorrido?: 'RAMIFICADO' | 'LINEAL'; caso_nombre?: string; contexto_historia?: string;
+  desarrollo_situacional?: string; inicio?: string; vence_en?: string; segundos_restantes?: number;
+  total_preguntas?: number; respondidas?: number; listo_para_enviar?: boolean; cambios_realizados?: number;
+  escenarios?: EscenarioWorkspace[]; borradores?: Record<string, BorradorDecisionItem>;
+  resultado?: ResultadoIntentoDetalle;
+}
+export interface CriterioResultadoItem {
+  id_criterio: string; nombre: string; peso: number; puntaje_obtenido: number; nivel_nombre: string; nivel_descriptor: string;
+}
+export interface PreguntaResultadoItem {
+  pregunta_id: string; escenario_orden: number; escenario_contexto: string; enunciado: string; respondida: boolean;
+  opcion_elegida_id: string | null; opcion_elegida_texto: string; es_correcta: boolean;
+  justificacion_elegida: string; opcion_correcta_texto: string | null; justificacion_correcta: string | null;
+  reflexion_estudiante: string | null;
+}
+export interface ResultadoIntentoDetalle {
+  id_intento: number; id_participacion: number; convocatoria_id: string; estado_intento: string;
+  estado_participacion: string; caso_nombre: string; rubrica_nombre: string; nota_final: number;
+  modalidad: string; comentario_automatico: string; fecha_calculo: string; aciertos: number;
+  respondidas: number; total_preguntas: number; criterios: CriterioResultadoItem[];
+  preguntas: PreguntaResultadoItem[]; retroalimentacion_docente: string | null; fecha_retroalimentacion: string | null;
 }
 

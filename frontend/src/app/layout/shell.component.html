@@ -29,22 +29,22 @@
 
     <!-- Navegación Categorizada -->
     <nav class="sidebar-nav">
-      <!-- Sección: Plataforma Core -->
-      @if (auth.esDocente() || auth.esAdmin()) {
+      <!-- Sección: Plataforma Core (Exclusivo Docente) -->
+      @if (auth.esDocente()) {
         <div class="nav-group">
-          <span class="nav-group-title">SISTEMA CORE</span>
+          <span class="nav-group-title">SISTEMA CORE DOCENTE</span>
           <ul class="nav-list">
             <li class="nav-item">
               <a routerLink="/casos" routerLinkActive="active" class="nav-link">
                 <mat-icon>folder_special</mat-icon>
                 <span class="nav-text">Casos de Simulación</span>
-                <span class="nav-pill active-pill">2 ACTIVOS</span>
+                <span class="nav-pill active-pill">AUTORÍA</span>
               </a>
             </li>
             <li class="nav-item">
               <a routerLink="/programacion" routerLinkActive="active" class="nav-link">
                 <mat-icon>event</mat-icon>
-                <span class="nav-text">Programación & Sesiones</span>
+                <span class="nav-text">Programación & Grupos</span>
                 <span class="nav-pill pulse-pill">LIVE</span>
               </a>
             </li>
@@ -74,7 +74,7 @@
             <li class="nav-item">
               <a routerLink="/administracion/docentes" routerLinkActive="active" class="nav-link">
                 <mat-icon>admin_panel_settings</mat-icon>
-                <span class="nav-text">Directorio Docente</span>
+                <span class="nav-text">Usuarios, Roles & Permisos</span>
                 <span class="nav-pill active-pill">ADMIN</span>
               </a>
             </li>

@@ -2,9 +2,10 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
-  AceptacionRespuesta, AceptarConsentimiento, AutorizacionRepeticion, AutorizacionesDocente, CrearDocente,
+  AceptacionRespuesta, AceptarConsentimiento, ActualizarUsuarioAdminSolicitud, AutorizacionRepeticion,
+  AutorizacionesDocente, CatalogoUsuariosRespuesta, CrearDocente, CrearUsuarioAdminSolicitud,
   DetalleParticipacion, DocumentoRespuesta, FeedbackDocente, PaginaDocentesRespuesta, PerfilPermisosDocentesRespuesta,
-  ReporteFiltros, ResumenCaso, ResumenParticipacion, SolicitudRepeticion, UsuarioPublico,
+  ReporteFiltros, ResumenCaso, ResumenParticipacion, SolicitudRepeticion, UsuarioGestionItem, UsuarioPublico,
 } from './api.models';
 
 const BASE = '/api/v1/identity';
@@ -30,6 +31,18 @@ export class IdentityService {
   }
   actualizarPermisosRolDocente(permisos: string[]): Observable<PerfilPermisosDocentesRespuesta> {
     return this.http.put<PerfilPermisosDocentesRespuesta>(`${BASE}/roles/docente/permisos`, { permisos });
+  }
+  listarUsuarios(): Observable<CatalogoUsuariosRespuesta> {
+    return this.http.get<CatalogoUsuariosRespuesta>(`${BASE}/usuarios`);
+  }
+  crearUsuario(body: CrearUsuarioAdminSolicitud): Observable<UsuarioGestionItem> {
+    return this.http.post<UsuarioGestionItem>(`${BASE}/usuarios`, body);
+  }
+  actualizarUsuario(idUsuario: string, body: ActualizarUsuarioAdminSolicitud): Observable<UsuarioGestionItem> {
+    return this.http.patch<UsuarioGestionItem>(`${BASE}/usuarios/${encodeURIComponent(idUsuario)}`, body);
+  }
+  asegurarIdentidades(idUsuario: string): Observable<UsuarioGestionItem> {
+    return this.http.post<UsuarioGestionItem>(`${BASE}/usuarios/${encodeURIComponent(idUsuario)}/identidades-academicas`, {});
   }
   autorizarRepeticion(body: SolicitudRepeticion): Observable<AutorizacionRepeticion> {
     return this.http.post<AutorizacionRepeticion>(`${BASE}/excepciones/repeticiones`, body);

@@ -2,8 +2,9 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
-  ComprobanteAdmision, ConsolidacionSesion, ConvocatoriaDetalleResponse, ConvocatoriaResponse, EspacioAcademicoResponse,
-  NotificacionResponse, PreparacionSesionRespuesta, ProgramarSesionRequest, ResultadoTecnicoRespuesta,
+  ActualizarSesionRequest, ComprobanteAdmision, ConsolidacionSesion, ConvocatoriaDetalleResponse, ConvocatoriaResponse,
+  DocenteBreve, EspacioAcademicoResponse, EspacioConAutorizaciones, EstudianteDisponibleItem, GrupoResponse,
+  MiConvocatoriaItem, NotificacionResponse, PreparacionSesionRespuesta, ProgramarSesionRequest, ResultadoTecnicoRespuesta,
   SesionConAsignacionResponse, SesionResponse,
 } from './api.models';
 
@@ -90,6 +91,47 @@ export class SchedulingService {
   }
   visibilidad(sesionId: string, mostrarProvisional: boolean): Observable<unknown> {
     return this.http.put(`${BASE}/sesiones/${sesionId}/evaluacion/visibilidad`, { mostrar_provisional: mostrarProvisional });
+  }
+  notificarCalificacion(estudianteId: string, participacionId: string): Observable<{ notificado: boolean; notificacion_id: string }> {
+    return this.http.post<{ notificado: boolean; notificacion_id: string }>(`${BASE}/calificaciones/notificar`, {
+      estudiante_id: estudianteId,
+      participacion_id: participacionId,
+    });
+  }
+
+  // Organización académica RF-04 & edición sesiones RF-21 & portal estudiante
+  todosEspacios(): Observable<EspacioConAutorizaciones[]> {
+    return this.http.get<EspacioConAutorizaciones[]>(`${BASE}/espacios/todos`);
+  }
+  autorizarEspacio(espacioId: string, idDocente?: number): Observable<unknown> {
+    return this.http.post(`${BASE}/espacios/${espacioId}/autorizar`, idDocente !== undefined ? { id_docente: idDocente } : {});
+  }
+  docentes(): Observable<DocenteBreve[]> {
+    return this.http.get<DocenteBreve[]>(`${BASE}/docentes`);
+  }
+  estudiantes(): Observable<EstudianteDisponibleItem[]> {
+    return this.http.get<EstudianteDisponibleItem[]>(`${BASE}/estudiantes`);
+  }
+  grupos(): Observable<GrupoResponse[]> {
+    return this.http.get<GrupoResponse[]>(`${BASE}/grupos`);
+  }
+  crearGrupo(nombre: string, periodo: string, idProfesor?: number): Observable<GrupoResponse> {
+    return this.http.post<GrupoResponse>(`${BASE}/grupos`, idProfesor !== undefined ? { nombre, periodo, id_profesor: idProfesor } : { nombre, periodo });
+  }
+  matricularEstudiante(grupoId: number, idUsuario: number): Observable<GrupoResponse> {
+    return this.http.post<GrupoResponse>(`${BASE}/grupos/${grupoId}/estudiantes`, { id_usuario: idUsuario });
+  }
+  retirarEstudiante(grupoId: number, idUsuario: number): Observable<GrupoResponse> {
+    return this.http.delete<GrupoResponse>(`${BASE}/grupos/${grupoId}/estudiantes/${idUsuario}`);
+  }
+  actualizarSesion(sesionId: string, body: ActualizarSesionRequest): Observable<SesionResponse> {
+    return this.http.patch<SesionResponse>(`${BASE}/sesiones/${sesionId}`, body);
+  }
+  misConvocatorias(): Observable<MiConvocatoriaItem[]> {
+    return this.http.get<MiConvocatoriaItem[]>(`${BASE}/mis-convocatorias`);
+  }
+  resultadoEstudiante(convocatoriaId: string): Observable<unknown> {
+    return this.http.get(`${BASE}/convocatorias/${convocatoriaId}/resultado`);
   }
 }
 

@@ -1,18 +1,28 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTableModule } from '@angular/material/table';
+import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { IdentityService } from '../../core/identity.service';
-import { CuentaDocenteRespuesta, PerfilPermisosDocentesRespuesta, Rol } from '../../core/api.models';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTableModule } from '@angular/material/table';
+import { MatTabsModule } from '@angular/material/tabs';
+import { firstValueFrom } from 'rxjs';
 import { mensajeError } from '../../core/api-error';
+import {
+  DocenteBreve,
+  EspacioConAutorizaciones,
+  PerfilPermisosDocentesRespuesta,
+  Rol,
+  UsuarioGestionItem,
+} from '../../core/api.models';
+import { IdentityService } from '../../core/identity.service';
+import { SchedulingService } from '../../core/scheduling.service';
 
 @Component({
   selector: 'app-docentes',
@@ -22,164 +32,273 @@ import { mensajeError } from '../../core/api-error';
     FormsModule,
     MatCardModule,
     MatTabsModule,
-    MatButtonModule,
-    MatIconModule,
     MatTableModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatProgressSpinnerModule,
+    MatCheckboxModule,
+    MatButtonModule,
+    MatIconModule,
+    MatChipsModule,
+    MatSnackBarModule,
   ],
   template: `
-    <div class="page">
-      <div class="page-header">
+    <div class="admin-wrap">
+      <div class="header-bar">
         <div>
-          <h1>Administración de Identidad y Roles</h1>
-          <p class="muted">Gestión de usuarios docentes, permisos institucionales y excepciones académicas</p>
+          <h2>Gobernanza de Usuarios, Roles y Permisos (RF-03)</h2>
+          <p class="subtitle">
+            Administración integral de cuentas, autorización de permisos por rol o individuales y espacios académicos.
+          </p>
         </div>
+        <button mat-stroked-button (click)="cargarTodo()" [disabled]="cargando()">
+          <mat-icon>refresh</mat-icon> Actualizar
+        </button>
       </div>
 
-      @if (error()) {
-        <div class="error-box">{{ error() }}</div>
-      }
-      @if (mensajeExito()) {
-        <div class="success-box">{{ mensajeExito() }}</div>
-      }
-
-      <mat-tab-group mat-stretch-tabs="false">
-        <!-- Pestaña 1: Cuentas Docentes -->
-        <mat-tab label="Cuentas Docentes">
-          <div style="padding-top: 16px;">
-            <!-- Formulario crear docente -->
-            <mat-card style="margin-bottom: 24px;">
+      <mat-tab-group animationDuration="200ms">
+        <!-- TAB 1: Usuarios, Roles y Permisos Individuales -->
+        <mat-tab label="Usuarios & Permisos">
+          <div class="tab-grid">
+            <mat-card class="panel-card">
               <mat-card-header>
-                <mat-card-title>Crear Nueva Cuenta Docente</mat-card-title>
+                <mat-card-title>{{ usuarioEditando() ? 'Editar Usuario #' + usuarioEditando()!.id_usuario : 'Registrar Nueva Cuenta' }}</mat-card-title>
+                <mat-card-subtitle>Docentes, Estudiantes y Administradores con vínculo automático CASES/SCHEDULING</mat-card-subtitle>
               </mat-card-header>
-              <mat-card-content style="padding-top: 16px;">
-                <form (ngSubmit)="crearDocente()" class="row">
+              <mat-card-content>
+                <form class="form-stack" (ngSubmit)="guardarUsuario()">
                   <mat-form-field appearance="outline">
-                    <mat-label>Nombre Completo</mat-label>
-                    <input matInput [(ngModel)]="nuevoDocenteNombre" name="nuevoDocenteNombre" required placeholder="Prof. Carlos Mendoza" />
+                    <mat-label>Nombre completo</mat-label>
+                    <input matInput [(ngModel)]="formUser.nombre" name="nombre" required />
                   </mat-form-field>
 
                   <mat-form-field appearance="outline">
-                    <mat-label>Correo Institucional</mat-label>
-                    <input matInput type="email" [(ngModel)]="nuevoDocenteCorreo" name="nuevoDocenteCorreo" required placeholder="carlos@universidad.edu.co" />
+                    <mat-label>Correo institucional</mat-label>
+                    <input matInput type="email" [(ngModel)]="formUser.correo" name="correo" required />
                   </mat-form-field>
 
                   <mat-form-field appearance="outline">
-                    <mat-label>Contraseña Inicial</mat-label>
-                    <input matInput type="password" [(ngModel)]="nuevoDocenteClave" name="nuevoDocenteClave" required />
+                    <mat-label>Rol asignado</mat-label>
+                    <mat-select [(ngModel)]="formUser.rol" name="rol" required>
+                      <mat-option value="DOCENTE">DOCENTE</mat-option>
+                      <mat-option value="ESTUDIANTE">ESTUDIANTE</mat-option>
+                      <mat-option value="ADMINISTRADOR">ADMINISTRADOR</mat-option>
+                    </mat-select>
                   </mat-form-field>
 
-                  <div style="display: flex; align-items: center;">
-                    <button mat-flat-button color="primary" type="submit" style="height: 56px;" [disabled]="guardando()">
-                      @if (guardando()) {
-                        <mat-spinner diameter="18"></mat-spinner>
-                      } @else {
-                        <span>Registrar Docente</span>
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ usuarioEditando() ? 'Nueva contraseña (opcional)' : (formUser.rol === 'ESTUDIANTE' ? 'Clave interna opcional (estudiante accede con código)' : 'Contraseña') }}</mat-label>
+                    <input matInput type="password" [(ngModel)]="formUser.clave" name="clave"
+                           [required]="!usuarioEditando() && formUser.rol !== 'ESTUDIANTE'" />
+                  </mat-form-field>
+
+                  <mat-checkbox [(ngModel)]="formUser.activo" name="activo">Cuenta activa</mat-checkbox>
+
+                  @if (permisosDisponibles().length) {
+                    <div class="perm-box">
+                      <span class="perm-label">Excepciones de permisos individuales (sobreescriben el rol):</span>
+                      @for (p of permisosDisponibles(); track p) {
+                        <div class="perm-row">
+                          <span class="perm-code">{{ p }}</span>
+                          <select class="perm-select"
+                                  [ngModel]="estadoPermisoIndividual(p)"
+                                  (ngModelChange)="cambiarPermisoIndividual(p, $event)"
+                                  [name]="'perm_' + p">
+                            <option value="HEREDADO">Heredar del rol</option>
+                            <option value="CONCEDIDO">Conceder</option>
+                            <option value="REVOCADO">Revocar</option>
+                          </select>
+                        </div>
                       }
-                    </button>
-                  </div>
-                </form>
-              </mat-card-content>
-            </mat-card>
-
-            @if (cargando()) {
-              <div style="display: flex; justify-content: center; padding: 40px;">
-                <mat-spinner diameter="40"></mat-spinner>
-              </div>
-            } @else {
-              <table mat-table [dataSource]="docentes()" class="mat-elevation-z1">
-                <ng-container matColumnDef="nombre">
-                  <th mat-header-cell *matHeaderCellDef>Nombre</th>
-                  <td mat-cell *matCellDef="let d"><strong>{{ d.nombre }}</strong></td>
-                </ng-container>
-
-                <ng-container matColumnDef="correo">
-                  <th mat-header-cell *matHeaderCellDef>Correo</th>
-                  <td mat-cell *matCellDef="let d">{{ d.correo }}</td>
-                </ng-container>
-
-                <ng-container matColumnDef="id">
-                  <th mat-header-cell *matHeaderCellDef>ID Usuario</th>
-                  <td mat-cell *matCellDef="let d"><span class="mono">{{ d.id_usuario }}</span></td>
-                </ng-container>
-
-                <ng-container matColumnDef="estado">
-                  <th mat-header-cell *matHeaderCellDef>Estado</th>
-                  <td mat-cell *matCellDef="let d">
-                    <span class="chip" [class.ok]="d.activo" [class.bad]="!d.activo">
-                      {{ d.activo ? 'ACTIVO' : 'INACTIVO' }}
-                    </span>
-                  </td>
-                </ng-container>
-
-                <tr mat-header-row *matHeaderRowDef="columnasDocentes"></tr>
-                <tr mat-row *matRowDef="let row; columns: columnasDocentes;"></tr>
-              </table>
-            }
-          </div>
-        </mat-tab>
-
-        <!-- Pestaña 2: Permisos Globales del Rol Docente -->
-        <mat-tab label="Permisos del Rol Docente">
-          <div style="padding-top: 16px; max-width: 700px;">
-            <mat-card>
-              <mat-card-header>
-                <mat-card-title>Configuración Institucional del Rol Docente</mat-card-title>
-                <mat-card-subtitle>
-                  Alcance: {{ perfilPermisos()?.alcance || 'Global' }} · Docentes vinculados: {{ perfilPermisos()?.docentes_afectados || 0 }}
-                </mat-card-subtitle>
-              </mat-card-header>
-              <mat-card-content style="padding-top: 16px;">
-                <p>Permisos actualmente asignados a la plantilla docente:</p>
-                <div class="stack" style="margin: 12px 0;">
-                  @for (permiso of permisosDisponibles(); track permiso) {
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--mat-sys-surface-container-low); border-radius: 6px;">
-                      <span class="mono">{{ permiso }}</span>
-                      <button mat-stroked-button [color]="tienePermiso(permiso) ? 'warn' : 'primary'" (click)="togglePermiso(permiso)">
-                        {{ tienePermiso(permiso) ? 'Revocar' : 'Otorgar' }}
-                      </button>
                     </div>
                   }
-                </div>
-                <div style="text-align: right; margin-top: 16px;">
-                  <button mat-flat-button color="primary" (click)="guardarPermisosRol()" [disabled]="guardando()">
-                    Guardar Cambios de Permisos
-                  </button>
+
+                  <div class="actions-row">
+                    <button mat-flat-button color="primary" type="submit" [disabled]="guardando()">
+                      <mat-icon>{{ usuarioEditando() ? 'save' : 'person_add' }}</mat-icon>
+                      {{ usuarioEditando() ? 'Guardar cambios' : 'Crear usuario' }}
+                    </button>
+                    @if (usuarioEditando()) {
+                      <button mat-button type="button" (click)="cancelarEdicion()">Cancelar</button>
+                    }
+                  </div>
+                </form>
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card class="table-card">
+              <mat-card-header>
+                <mat-card-title>Directorio Completo ({{ usuarios().length }})</mat-card-title>
+                <mat-card-subtitle>Visualiza roles, estado, permisos efectivos y UUID académicos</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="table-scroll">
+                  <table mat-table [dataSource]="usuarios()" class="full-table">
+                    <ng-container matColumnDef="usuario">
+                      <th mat-header-cell *matHeaderCellDef>Usuario</th>
+                      <td mat-cell *matCellDef="let u">
+                        <div class="cell-main">{{ u.nombre }}</div>
+                        <div class="cell-sub">{{ u.correo }}</div>
+                      </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="rol">
+                      <th mat-header-cell *matHeaderCellDef>Rol</th>
+                      <td mat-cell *matCellDef="let u">
+                        <span class="role-badge" [class]="'role-' + u.rol.toLowerCase()">{{ u.rol }}</span>
+                      </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="permisos">
+                      <th mat-header-cell *matHeaderCellDef>Permisos</th>
+                      <td mat-cell *matCellDef="let u">
+                        <div class="chips-inline">
+                          @for (p of u.permisos_efectivos; track p) {
+                            <span class="mini-chip">{{ p }}</span>
+                          }
+                          @if (!u.permisos_efectivos.length) {
+                            <span class="muted">Sin permisos extra</span>
+                          }
+                        </div>
+                      </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="identidades">
+                      <th mat-header-cell *matHeaderCellDef>Vínculos</th>
+                      <td mat-cell *matCellDef="let u">
+                        @if (u.identidad_cases && u.identidad_scheduling) {
+                          <span class="ok-badge">CASES + SCHEDULING</span>
+                        } @else if (u.rol === 'ADMINISTRADOR') {
+                          <span class="muted">N/A (Admin)</span>
+                        } @else {
+                          <button mat-stroked-button type="button" (click)="generarIdentidades(u)">
+                            Generar UUID
+                          </button>
+                        }
+                      </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="estado">
+                      <th mat-header-cell *matHeaderCellDef>Estado</th>
+                      <td mat-cell *matCellDef="let u">
+                        <button mat-button type="button" (click)="alternarEstado(u)"
+                                [class]="u.activo ? 'btn-active' : 'btn-inactive'">
+                          {{ u.activo ? 'ACTIVO' : 'INACTIVO' }}
+                        </button>
+                      </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="acciones">
+                      <th mat-header-cell *matHeaderCellDef>Acciones</th>
+                      <td mat-cell *matCellDef="let u">
+                        <button mat-icon-button type="button" (click)="editarUsuario(u)" title="Editar usuario y permisos">
+                          <mat-icon>edit</mat-icon>
+                        </button>
+                      </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="['usuario', 'rol', 'permisos', 'identidades', 'estado', 'acciones']"></tr>
+                    <tr mat-row *matRowDef="let row; columns: ['usuario', 'rol', 'permisos', 'identidades', 'estado', 'acciones']"></tr>
+                  </table>
                 </div>
               </mat-card-content>
             </mat-card>
           </div>
         </mat-tab>
 
-        <!-- Pestaña 3: Excepciones de Repetición -->
-        <mat-tab label="Excepción de Repetición">
-          <div style="padding-top: 16px; max-width: 600px;">
-            <mat-card>
+        <!-- TAB 2: Perfil Global del Rol DOCENTE -->
+        <mat-tab label="Permisos Globales Docentes">
+          <mat-card class="panel-card">
+            <mat-card-header>
+              <mat-card-title>Perfil Base del Rol DOCENTE</mat-card-title>
+              <mat-card-subtitle>
+                Aplica por defecto a todos los docentes ({{ perfilDocentes()?.docentes_afectados ?? 0 }} cuentas),
+                salvo excepciones individuales asignadas en la pestaña anterior.
+              </mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              @if (perfilDocentes(); as perfil) {
+                <div class="perm-list">
+                  @for (perm of perfil.permisos_disponibles; track perm) {
+                    <mat-checkbox [checked]="permisosGlobalesSeleccionados.has(perm)"
+                                  (change)="togglePermisoGlobal(perm, $event.checked)">
+                      <strong>{{ perm }}</strong>
+                    </mat-checkbox>
+                  }
+                </div>
+                <div class="actions-row" style="margin-top: 16px;">
+                  <button mat-flat-button color="primary" (click)="guardarPerfilGlobal()" [disabled]="guardando()">
+                    <mat-icon>verified_user</mat-icon> Guardar permisos globales docentes
+                  </button>
+                </div>
+              }
+            </mat-card-content>
+          </mat-card>
+        </mat-tab>
+
+        <!-- TAB 3: Espacios Académicos -->
+        <mat-tab label="Espacios Académicos">
+          <div class="tab-grid">
+            <mat-card class="panel-card">
               <mat-card-header>
-                <mat-card-title>Autorizar Repetición Excepcional</mat-card-title>
+                <mat-card-title>Crear Espacio Académico</mat-card-title>
+                <mat-card-subtitle>Registra asignaturas o módulos y autoriza docentes titulares (RF-04)</mat-card-subtitle>
               </mat-card-header>
-              <mat-card-content style="padding-top: 16px;">
-                <p class="muted">Habilita a un estudiante para presentar nuevamente un intento en una sesión con restricciones.</p>
-                <form (ngSubmit)="autorizarRepeticion()" class="stack">
-                  <mat-form-field appearance="outline" class="full">
-                    <mat-label>UUID de la Sesión</mat-label>
-                    <input matInput [(ngModel)]="repeticionSesionId" name="repeticionSesionId" required />
+              <mat-card-content>
+                <form class="form-stack" (ngSubmit)="crearYAutorizarEspacio()">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Nombre del espacio académico</mat-label>
+                    <input matInput [(ngModel)]="nuevoEspacioNombre" name="espNombre" required />
                   </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="full">
-                    <mat-label>ID / UUID del Estudiante</mat-label>
-                    <input matInput [(ngModel)]="repeticionEstudianteId" name="repeticionEstudianteId" required />
+                  <mat-form-field appearance="outline">
+                    <mat-label>Autorizar inicialmente al docente (opcional)</mat-label>
+                    <mat-select [(ngModel)]="espacioDocenteInicial" name="espDoc">
+                      <mat-option [value]="null">-- Ninguno por ahora --</mat-option>
+                      @for (d of docentesList(); track d.id_usuario) {
+                        <mat-option [value]="d.id_usuario">{{ d.nombre }} ({{ d.correo }})</mat-option>
+                      }
+                    </mat-select>
                   </mat-form-field>
-
-                  <div style="display: flex; justify-content: flex-end;">
-                    <button mat-flat-button color="primary" type="submit" [disabled]="guardando()">
-                      Emitir Autorización de Repetición
-                    </button>
-                  </div>
+                  <button mat-flat-button color="primary" type="submit" [disabled]="guardando()">
+                    <mat-icon>add_business</mat-icon> Crear espacio
+                  </button>
                 </form>
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card class="table-card">
+              <mat-card-header>
+                <mat-card-title>Espacios Registrados ({{ espacios().length }})</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @for (e of espacios(); track e.id) {
+                  <div class="space-row">
+                    <div>
+                      <div class="cell-main">{{ e.nombre }}</div>
+                      <div class="cell-sub">ID: {{ e.id }}</div>
+                      <div class="chips-inline" style="margin-top: 6px;">
+                        @for (d of e.docentes_autorizados; track d.id_usuario) {
+                          <span class="mini-chip">{{ d.nombre }}</span>
+                        }
+                        @if (!e.docentes_autorizados.length) {
+                          <span class="muted">Sin docentes autorizados aún</span>
+                        }
+                      </div>
+                    </div>
+                    <div class="grant-box">
+                      <select class="perm-select" [(ngModel)]="asignacionDocentePorEspacio[e.id]" [name]="'grant_' + e.id">
+                        <option [ngValue]="null">Seleccionar docente...</option>
+                        @for (d of docentesList(); track d.id_usuario) {
+                          <option [ngValue]="d.id_usuario">{{ d.nombre }}</option>
+                        }
+                      </select>
+                      <button mat-stroked-button type="button" (click)="autorizarDocenteEspacio(e.id)"
+                              [disabled]="!asignacionDocentePorEspacio[e.id] || guardando()">
+                        Autorizar
+                      </button>
+                    </div>
+                  </div>
+                }
               </mat-card-content>
             </mat-card>
           </div>
@@ -187,130 +306,248 @@ import { mensajeError } from '../../core/api-error';
       </mat-tab-group>
     </div>
   `,
+  styles: [`
+    .admin-wrap { padding: 8px 0; }
+    .header-bar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
+    h2 { margin: 0; font-size: 22px; font-weight: 700; color: #f8fafc; }
+    .subtitle { margin: 4px 0 0; color: #94a3b8; font-size: 13px; }
+    .tab-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; margin-top: 16px; align-items: start; }
+    @media (max-width: 1080px) { .tab-grid { grid-template-columns: 1fr; } }
+    .panel-card, .table-card { margin-top: 12px; }
+    .form-stack { display: flex; flex-direction: column; gap: 12px; padding-top: 12px; }
+    .actions-row { display: flex; gap: 10px; align-items: center; }
+    .perm-box { background: rgba(6, 11, 22, 0.65); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .perm-label { font-size: 12px; color: #94a3b8; font-weight: 600; }
+    .perm-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .perm-code { font-size: 12px; font-family: monospace; color: #e2e8f0; }
+    .perm-select { background: #0f172a; color: #f8fafc; border: 1px solid rgba(255,255,255,0.16); border-radius: 6px; padding: 5px 8px; font-size: 12px; }
+    .table-scroll { overflow-x: auto; }
+    .full-table { width: 100%; }
+    .cell-main { font-weight: 600; color: #f8fafc; }
+    .cell-sub { font-size: 12px; color: #94a3b8; }
+    .role-badge { padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; }
+    .role-administrador { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .role-docente { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .role-estudiante { background: rgba(56, 189, 248, 0.16); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
+    .chips-inline { display: flex; flex-wrap: wrap; gap: 4px; }
+    .mini-chip { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 6px; padding: 2px 6px; font-size: 11px; color: #cbd5e1; }
+    .ok-badge { color: #34d399; font-size: 11px; font-weight: 700; }
+    .muted { color: #64748b; font-size: 12px; }
+    .btn-active { color: #34d399 !important; font-weight: 700; font-size: 11px; }
+    .btn-inactive { color: #f87171 !important; font-weight: 700; font-size: 11px; }
+    .perm-list { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; }
+    .space-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .grant-box { display: flex; align-items: center; gap: 8px; }
+  `],
 })
 export class DocentesComponent implements OnInit {
-  private readonly identityService = inject(IdentityService);
+  private readonly identity = inject(IdentityService);
+  private readonly scheduling = inject(SchedulingService);
+  private readonly snack = inject(MatSnackBar);
 
-  readonly columnasDocentes = ['nombre', 'correo', 'id', 'estado'];
-  readonly docentes = signal<CuentaDocenteRespuesta[]>([]);
-  readonly perfilPermisos = signal<PerfilPermisosDocentesRespuesta | null>(null);
-  readonly permisosAsignados = signal<string[]>([]);
+  readonly cargando = signal(false);
+  readonly guardando = signal(false);
+  readonly usuarios = signal<UsuarioGestionItem[]>([]);
   readonly permisosDisponibles = signal<string[]>([]);
+  readonly perfilDocentes = signal<PerfilPermisosDocentesRespuesta | null>(null);
+  readonly espacios = signal<EspacioConAutorizaciones[]>([]);
+  readonly docentesList = signal<DocenteBreve[]>([]);
+  readonly usuarioEditando = signal<UsuarioGestionItem | null>(null);
 
-  readonly cargando = signal<boolean>(true);
-  readonly guardando = signal<boolean>(false);
-  readonly error = signal<string | null>(null);
-  readonly mensajeExito = signal<string | null>(null);
+  permisosGlobalesSeleccionados = new Set<string>();
+  nuevoEspacioNombre = '';
+  espacioDocenteInicial: number | null = null;
+  asignacionDocentePorEspacio: Record<string, number | null> = {};
 
-  // Crear docente
-  nuevoDocenteNombre = '';
-  nuevoDocenteCorreo = '';
-  nuevoDocenteClave = '';
-
-  // Excepción
-  repeticionSesionId = '';
-  repeticionEstudianteId = '';
+  formUser = {
+    nombre: '',
+    correo: '',
+    rol: 'DOCENTE' as Rol,
+    clave: '',
+    activo: true,
+    permisosIndividuales: {} as Record<string, boolean>,
+  };
 
   ngOnInit(): void {
-    this.cargarDatos();
+    void this.cargarTodo();
   }
 
-  cargarDatos(): void {
+  async cargarTodo(): Promise<void> {
     this.cargando.set(true);
-    this.error.set(null);
-
-    this.identityService.listarDocentes().subscribe({
-      next: (res) => this.docentes.set(res.docentes),
-      error: (err) => this.error.set(mensajeError(err)),
-      complete: () => this.cargando.set(false),
-    });
-
-    this.identityService.permisosRolDocente().subscribe({
-      next: (res) => {
-        this.perfilPermisos.set(res);
-        this.permisosAsignados.set([...res.permisos]);
-        this.permisosDisponibles.set([...res.permisos_disponibles]);
-      },
-      error: () => {},
-    });
-  }
-
-  crearDocente(): void {
-    if (!this.nuevoDocenteCorreo || !this.nuevoDocenteClave) return;
-    this.guardando.set(true);
-    this.error.set(null);
-
-    this.identityService.crearDocente({
-      nombre: this.nuevoDocenteNombre,
-      correo: this.nuevoDocenteCorreo,
-      clave: this.nuevoDocenteClave,
-      roles: ['DOCENTE' as Rol],
-    }).subscribe({
-      next: () => {
-        this.mensajeExito.set('Docente registrado correctamente.');
-        this.nuevoDocenteNombre = '';
-        this.nuevoDocenteCorreo = '';
-        this.nuevoDocenteClave = '';
-        this.guardando.set(false);
-        this.cargarDatos();
-      },
-      error: (err) => {
-        this.error.set(mensajeError(err));
-        this.guardando.set(false);
-      },
-    });
-  }
-
-  tienePermiso(p: string): boolean {
-    return this.permisosAsignados().includes(p);
-  }
-
-  togglePermiso(p: string): void {
-    const act = this.permisosAsignados();
-    if (act.includes(p)) {
-      this.permisosAsignados.set(act.filter((x) => x !== p));
-    } else {
-      this.permisosAsignados.set([...act, p]);
+    try {
+      const [cat, perfil, esp, docs] = await Promise.all([
+        firstValueFrom(this.identity.listarUsuarios()),
+        firstValueFrom(this.identity.permisosRolDocente()),
+        firstValueFrom(this.scheduling.todosEspacios()),
+        firstValueFrom(this.scheduling.docentes()),
+      ]);
+      this.usuarios.set(cat.usuarios);
+      this.permisosDisponibles.set(cat.permisos_disponibles);
+      this.perfilDocentes.set(perfil);
+      this.permisosGlobalesSeleccionados = new Set(perfil.permisos);
+      this.espacios.set(esp);
+      this.docentesList.set(docs);
+    } catch (e) {
+      this.snack.open(mensajeError(e), 'Cerrar', { duration: 4500 });
+    } finally {
+      this.cargando.set(false);
     }
   }
 
-  guardarPermisosRol(): void {
-    this.guardando.set(true);
-    this.error.set(null);
-    this.identityService.actualizarPermisosRolDocente(this.permisosAsignados()).subscribe({
-      next: (res) => {
-        this.perfilPermisos.set(res);
-        this.permisosAsignados.set([...res.permisos]);
-        this.mensajeExito.set('Permisos del rol docente actualizados institucionalmente.');
-        this.guardando.set(false);
-      },
-      error: (err) => {
-        this.error.set(mensajeError(err));
-        this.guardando.set(false);
-      },
-    });
+  estadoPermisoIndividual(codigo: string): 'HEREDADO' | 'CONCEDIDO' | 'REVOCADO' {
+    if (!(codigo in this.formUser.permisosIndividuales)) return 'HEREDADO';
+    return this.formUser.permisosIndividuales[codigo] ? 'CONCEDIDO' : 'REVOCADO';
   }
 
-  autorizarRepeticion(): void {
-    if (!this.repeticionSesionId || !this.repeticionEstudianteId) return;
-    this.guardando.set(true);
-    this.error.set(null);
+  cambiarPermisoIndividual(codigo: string, valor: 'HEREDADO' | 'CONCEDIDO' | 'REVOCADO'): void {
+    if (valor === 'HEREDADO') {
+      delete this.formUser.permisosIndividuales[codigo];
+    } else {
+      this.formUser.permisosIndividuales[codigo] = valor === 'CONCEDIDO';
+    }
+  }
 
-    this.identityService.autorizarRepeticion({
-      id_sesion: this.repeticionSesionId.trim(),
-      id_estudiante: this.repeticionEstudianteId.trim(),
-    }).subscribe({
-      next: () => {
-        this.mensajeExito.set('Excepción de repetición concedida exitosamente.');
-        this.repeticionSesionId = '';
-        this.repeticionEstudianteId = '';
-        this.guardando.set(false);
-      },
-      error: (err) => {
-        this.error.set(mensajeError(err));
-        this.guardando.set(false);
-      },
-    });
+  editarUsuario(u: UsuarioGestionItem): void {
+    this.usuarioEditando.set(u);
+    this.formUser = {
+      nombre: u.nombre,
+      correo: u.correo,
+      rol: u.rol as Rol,
+      clave: '',
+      activo: u.activo,
+      permisosIndividuales: { ...u.permisos_individuales },
+    };
+  }
+
+  cancelarEdicion(): void {
+    this.usuarioEditando.set(null);
+    this.formUser = {
+      nombre: '',
+      correo: '',
+      rol: 'DOCENTE',
+      clave: '',
+      activo: true,
+      permisosIndividuales: {},
+    };
+  }
+
+  async guardarUsuario(): Promise<void> {
+    this.guardando.set(true);
+    try {
+      const editando = this.usuarioEditando();
+      if (editando) {
+        await firstValueFrom(
+          this.identity.actualizarUsuario(editando.id_usuario, {
+            nombre: this.formUser.nombre.trim(),
+            correo: this.formUser.correo.trim(),
+            rol: this.formUser.rol,
+            activo: this.formUser.activo,
+            clave: this.formUser.clave.trim() || null,
+            permisos_individuales: this.formUser.permisosIndividuales,
+          }),
+        );
+        this.snack.open('Usuario actualizado correctamente.', 'OK', { duration: 3000 });
+      } else {
+        await firstValueFrom(
+          this.identity.crearUsuario({
+            nombre: this.formUser.nombre.trim(),
+            correo: this.formUser.correo.trim(),
+            rol: this.formUser.rol,
+            clave: this.formUser.clave.trim() || null,
+            activo: this.formUser.activo,
+            permisos_individuales: this.formUser.permisosIndividuales,
+            crear_identidades_academicas: true,
+          }),
+        );
+        this.snack.open('Usuario creado con identidades académicas listas.', 'OK', { duration: 3000 });
+      }
+      this.cancelarEdicion();
+      await this.cargarTodo();
+    } catch (e) {
+      this.snack.open(mensajeError(e), 'Cerrar', { duration: 5000 });
+    } finally {
+      this.guardando.set(false);
+    }
+  }
+
+  async alternarEstado(u: UsuarioGestionItem): Promise<void> {
+    this.guardando.set(true);
+    try {
+      await firstValueFrom(this.identity.actualizarUsuario(u.id_usuario, { activo: !u.activo }));
+      this.snack.open(`Cuenta ${!u.activo ? 'activada' : 'desactivada'}.`, 'OK', { duration: 2500 });
+      await this.cargarTodo();
+    } catch (e) {
+      this.snack.open(mensajeError(e), 'Cerrar', { duration: 4000 });
+    } finally {
+      this.guardando.set(false);
+    }
+  }
+
+  async generarIdentidades(u: UsuarioGestionItem): Promise<void> {
+    this.guardando.set(true);
+    try {
+      await firstValueFrom(this.identity.asegurarIdentidades(u.id_usuario));
+      this.snack.open('Vínculos CASES y SCHEDULING generados.', 'OK', { duration: 2500 });
+      await this.cargarTodo();
+    } catch (e) {
+      this.snack.open(mensajeError(e), 'Cerrar', { duration: 4000 });
+    } finally {
+      this.guardando.set(false);
+    }
+  }
+
+  togglePermisoGlobal(perm: string, checked: boolean): void {
+    if (checked) this.permisosGlobalesSeleccionados.add(perm);
+    else this.permisosGlobalesSeleccionados.delete(perm);
+  }
+
+  async guardarPerfilGlobal(): Promise<void> {
+    this.guardando.set(true);
+    try {
+      const resp = await firstValueFrom(
+        this.identity.actualizarPermisosRolDocente([...this.permisosGlobalesSeleccionados]),
+      );
+      this.perfilDocentes.set(resp);
+      this.snack.open('Perfil global docente actualizado.', 'OK', { duration: 3000 });
+      await this.cargarTodo();
+    } catch (e) {
+      this.snack.open(mensajeError(e), 'Cerrar', { duration: 4000 });
+    } finally {
+      this.guardando.set(false);
+    }
+  }
+
+  async crearYAutorizarEspacio(): Promise<void> {
+    if (!this.nuevoEspacioNombre.trim()) return;
+    this.guardando.set(true);
+    try {
+      const espacio = await firstValueFrom(this.scheduling.crearEspacio(this.nuevoEspacioNombre.trim()));
+      if (this.espacioDocenteInicial) {
+        await firstValueFrom(this.scheduling.autorizarEspacio(espacio.id, this.espacioDocenteInicial));
+      }
+      this.nuevoEspacioNombre = '';
+      this.espacioDocenteInicial = null;
+      this.snack.open('Espacio académico creado.', 'OK', { duration: 3000 });
+      await this.cargarTodo();
+    } catch (e) {
+      this.snack.open(mensajeError(e), 'Cerrar', { duration: 4000 });
+    } finally {
+      this.guardando.set(false);
+    }
+  }
+
+  async autorizarDocenteEspacio(espacioId: string): Promise<void> {
+    const idDocente = this.asignacionDocentePorEspacio[espacioId];
+    if (!idDocente) return;
+    this.guardando.set(true);
+    try {
+      await firstValueFrom(this.scheduling.autorizarEspacio(espacioId, idDocente));
+      this.snack.open('Docente autorizado sobre el espacio.', 'OK', { duration: 2500 });
+      await this.cargarTodo();
+    } catch (e) {
+      this.snack.open(mensajeError(e), 'Cerrar', { duration: 4000 });
+    } finally {
+      this.guardando.set(false);
+    }
   }
 }
-

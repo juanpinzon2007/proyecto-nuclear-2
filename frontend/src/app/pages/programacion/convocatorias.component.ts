@@ -1,216 +1,197 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTableModule } from '@angular/material/table';
+import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { SchedulingService } from '../../core/scheduling.service';
-import { ConvocatoriaDetalleResponse, ConvocatoriaResponse } from '../../core/api.models';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTableModule } from '@angular/material/table';
+import { firstValueFrom } from 'rxjs';
 import { mensajeError } from '../../core/api-error';
+import { ConvocatoriaDetalleResponse, EstudianteDisponibleItem } from '../../core/api.models';
+import { SchedulingService } from '../../core/scheduling.service';
 
 @Component({
   selector: 'app-convocatorias',
   standalone: true,
   imports: [
     CommonModule,
-    RouterLink,
     FormsModule,
+    RouterLink,
     MatCardModule,
-    MatButtonModule,
-    MatIconModule,
     MatTableModule,
     MatFormFieldModule,
-    MatInputModule,
-    MatProgressSpinnerModule,
+    MatSelectModule,
+    MatButtonModule,
+    MatIconModule,
+    MatSnackBarModule,
   ],
   template: `
-    <div class="page">
-      <div class="page-header">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <a mat-icon-button routerLink="/programacion" title="Volver a programación">
-            <mat-icon>arrow_back</mat-icon>
-          </a>
+    <div class="conv-wrap">
+      <div class="header-bar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <a mat-icon-button routerLink="/programacion"><mat-icon>arrow_back</mat-icon></a>
           <div>
-            <h1>Convocatorias de la Sesión</h1>
-            <p class="muted">Sesión ID: <span class="mono">{{ sesionId }}</span></p>
+            <h2>Convocatorias & Códigos de Autorización (RF-20 · RF-21)</h2>
+            <p class="subtitle">Sesión <span class="mono">{{ sesionId }}</span></p>
           </div>
         </div>
       </div>
 
-      @if (error()) {
-        <div class="error-box">{{ error() }}</div>
-      }
-      @if (mensajeExito()) {
-        <div class="success-box">{{ mensajeExito() }}</div>
+      @if (ultimoCodigo(); as code) {
+        <div class="code-box">
+          <div>
+            <div style="font-weight:700; color:#34d399;">Código de autorización individual emitido</div>
+            <div class="subtitle">Entrégalo únicamente a {{ code.nombre }}. Con este código inicia sesión en el Portal Estudiantil.</div>
+          </div>
+          <div class="mono code-val">{{ code.codigo }}</div>
+        </div>
       }
 
-      <!-- Tarjeta destacada cuando se genera un código nuevo -->
-      @if (ultimoCodigoGenerado(); as cod) {
-        <mat-card style="border-left: 4px solid #4caf50; margin-bottom: 20px;">
+      <div class="grid-2">
+        <mat-card>
           <mat-card-header>
-            <mat-card-title>¡Convocatoria Generada con Éxito!</mat-card-title>
+            <mat-card-title>Emitir / Renovar Convocatoria</mat-card-title>
+            <mat-card-subtitle>Selecciona el estudiante por nombre y correo</mat-card-subtitle>
           </mat-card-header>
-          <mat-card-content style="padding-top: 12px;">
-            <p>Comparte este código de acceso con el estudiante para que pueda ingresar al simulador:</p>
-            <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
-              <span class="mono" style="font-size: 20px; font-weight: 700; background: #e8f5e9; padding: 6px 16px; border-radius: 6px; letter-spacing: 1px;">
-                {{ cod.codigo_acceso }}
-              </span>
-              <span class="muted mono" style="font-size: 12px;">ID Convocatoria: {{ cod.convocatoria_id }}</span>
-            </div>
+          <mat-card-content style="padding-top:16px;">
+            <form (ngSubmit)="convocar()" class="stack-form">
+              <mat-form-field appearance="outline">
+                <mat-label>Estudiante registrado</mat-label>
+                <mat-select [(ngModel)]="estudianteSeleccionadoUuid" name="estUuid" required>
+                  @for (e of estudiantesConUuid(); track e.id_usuario) {
+                    <mat-option [value]="e.uuid_scheduling">{{ e.nombre }} — {{ e.correo }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              <button mat-flat-button color="primary" type="submit" [disabled]="!estudianteSeleccionadoUuid || cargando()">
+                <mat-icon>vpn_key</mat-icon> Generar código y convocar
+              </button>
+            </form>
           </mat-card-content>
         </mat-card>
-      }
 
-      <!-- Formulario para agregar estudiante -->
-      <mat-card style="margin-bottom: 24px;">
-        <mat-card-header>
-          <mat-card-title>Convocar Estudiante</mat-card-title>
-        </mat-card-header>
-        <mat-card-content style="padding-top: 16px;">
-          <form (ngSubmit)="convocarEstudiante()" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-            <mat-form-field appearance="outline" style="flex: 1; min-width: 300px;">
-              <mat-label>UUID del Estudiante</mat-label>
-              <input matInput [(ngModel)]="estudianteIdInput" name="estudianteIdInput" required placeholder="Ej: 550e8400-e29b-41d4-a716-446655440000" />
-            </mat-form-field>
-            <button mat-flat-button color="primary" type="submit" style="height: 56px;" [disabled]="guardando()">
-              @if (guardando()) {
-                <mat-spinner diameter="18"></mat-spinner>
-              } @else {
-                <span>Generar Convocatoria</span>
-              }
-            </button>
-          </form>
-        </mat-card-content>
-      </mat-card>
-
-      <!-- Tabla de convocatorias existentes -->
-      @if (cargando()) {
-        <div style="display: flex; justify-content: center; padding: 40px;">
-          <mat-spinner diameter="40"></mat-spinner>
-        </div>
-      } @else if (convocatorias().length === 0) {
-        <mat-card style="text-align: center; padding: 32px;">
-          <mat-icon style="font-size: 48px; width: 48px; height: 48px; opacity: 0.5;">group_off</mat-icon>
-          <h3>No hay estudiantes convocados en esta sesión</h3>
-          <p class="muted">Ingresa el UUID del estudiante para generar su convocatoria y código individual.</p>
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>Estudiantes Convocados ({{ convocatorias().length }})</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <table mat-table [dataSource]="convocatorias()" style="width:100%;">
+              <ng-container matColumnDef="estudiante">
+                <th mat-header-cell *matHeaderCellDef>Estudiante</th>
+                <td mat-cell *matCellDef="let c">
+                  <div style="font-weight:600;">{{ nombreEstudiante(c.estudiante_id) }}</div>
+                  <div class="mono muted">{{ c.id }}</div>
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="estado">
+                <th mat-header-cell *matHeaderCellDef>Estado</th>
+                <td mat-cell *matCellDef="let c">
+                  <span class="chip" [class.ok]="c.estado === 'ACTIVA'" [class.bad]="c.estado !== 'ACTIVA'">{{ c.estado }}</span>
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="acciones">
+                <th mat-header-cell *matHeaderCellDef>Acciones</th>
+                <td mat-cell *matCellDef="let c">
+                  @if (c.estado === 'ACTIVA') {
+                    <button mat-button color="warn" type="button" (click)="retirar(c.id)">Retirar</button>
+                  }
+                </td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="['estudiante', 'estado', 'acciones']"></tr>
+              <tr mat-row *matRowDef="let row; columns: ['estudiante', 'estado', 'acciones']"></tr>
+            </table>
+          </mat-card-content>
         </mat-card>
-      } @else {
-        <table mat-table [dataSource]="convocatorias()" class="mat-elevation-z1">
-          <ng-container matColumnDef="estudiante">
-            <th mat-header-cell *matHeaderCellDef>Estudiante (ID)</th>
-            <td mat-cell *matCellDef="let c">
-              <span class="mono">{{ c.estudiante_id }}</span>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="convocatoria">
-            <th mat-header-cell *matHeaderCellDef>Convocatoria ID</th>
-            <td mat-cell *matCellDef="let c">
-              <span class="mono muted" style="font-size: 11px;">{{ c.id }}</span>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="estado">
-            <th mat-header-cell *matHeaderCellDef>Estado</th>
-            <td mat-cell *matCellDef="let c">
-              <span class="chip" [class.ok]="c.estado === 'ACTIVA'" [class.bad]="c.estado === 'RETIRADA'">
-                {{ c.estado }}
-              </span>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="acciones">
-            <th mat-header-cell *matHeaderCellDef style="text-align: right;">Acciones</th>
-            <td mat-cell *matCellDef="let c" style="text-align: right;">
-              @if (c.estado !== 'RETIRADA') {
-                <button mat-button color="warn" (click)="retirar(c.id)">
-                  <mat-icon>person_remove</mat-icon> Retirar
-                </button>
-              }
-            </td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="columnas"></tr>
-          <tr mat-row *matRowDef="let row; columns: columnas;"></tr>
-        </table>
-      }
+      </div>
     </div>
   `,
+  styles: [`
+    .conv-wrap { padding: 8px 0; }
+    .header-bar { margin-bottom: 16px; }
+    h2 { margin: 0; font-size: 22px; font-weight: 700; color: #f8fafc; }
+    .subtitle { margin: 4px 0 0; color: #94a3b8; font-size: 13px; }
+    .grid-2 { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 950px) { .grid-2 { grid-template-columns: 1fr; } }
+    .stack-form { display: flex; flex-direction: column; gap: 12px; }
+    .code-box { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 12px; background: rgba(16,185,129,0.14); border: 1px solid rgba(16,185,129,0.45); margin-bottom: 16px; }
+    .code-val { font-size: 20px; font-weight: 800; color: #fbbf24; letter-spacing: 0.08em; }
+    .muted { color: #94a3b8; font-size: 11px; }
+  `],
 })
 export class ConvocatoriasComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
-  private readonly schedulingService = inject(SchedulingService);
+  private readonly scheduling = inject(SchedulingService);
+  private readonly snack = inject(MatSnackBar);
 
   sesionId = '';
-  readonly columnas = ['estudiante', 'convocatoria', 'estado', 'acciones'];
+  readonly cargando = signal(false);
   readonly convocatorias = signal<ConvocatoriaDetalleResponse[]>([]);
-  readonly cargando = signal<boolean>(true);
-  readonly guardando = signal<boolean>(false);
-  readonly error = signal<string | null>(null);
-  readonly mensajeExito = signal<string | null>(null);
-
-  estudianteIdInput = '';
-  readonly ultimoCodigoGenerado = signal<ConvocatoriaResponse | null>(null);
+  readonly estudiantes = signal<EstudianteDisponibleItem[]>([]);
+  readonly ultimoCodigo = signal<{ nombre: string; codigo: string } | null>(null);
+  estudianteSeleccionadoUuid = '';
 
   ngOnInit(): void {
     this.sesionId = this.route.snapshot.paramMap.get('id') ?? '';
-    if (this.sesionId) {
-      this.cargarConvocatorias();
+    if (this.sesionId) void this.cargar();
+  }
+
+  estudiantesConUuid(): EstudianteDisponibleItem[] {
+    return this.estudiantes().filter((e) => !!e.uuid_scheduling);
+  }
+
+  async cargar(): Promise<void> {
+    this.cargando.set(true);
+    try {
+      const [convs, ests] = await Promise.all([
+        firstValueFrom(this.scheduling.convocatorias(this.sesionId)),
+        firstValueFrom(this.scheduling.estudiantes()),
+      ]);
+      this.convocatorias.set(convs);
+      this.estudiantes.set(ests);
+    } catch (e) {
+      this.snack.open(mensajeError(e), 'Cerrar', { duration: 4000 });
+    } finally {
+      this.cargando.set(false);
     }
   }
 
-  cargarConvocatorias(): void {
+  async convocar(): Promise<void> {
+    if (!this.estudianteSeleccionadoUuid) return;
     this.cargando.set(true);
-    this.error.set(null);
-    this.schedulingService.convocatorias(this.sesionId).subscribe({
-      next: (data) => {
-        this.convocatorias.set(data);
-        this.cargando.set(false);
-      },
-      error: (err) => {
-        this.error.set(mensajeError(err));
-        this.cargando.set(false);
-      },
-    });
+    try {
+      const res = await firstValueFrom(this.scheduling.crearConvocatoria(this.sesionId, this.estudianteSeleccionadoUuid));
+      this.ultimoCodigo.set({
+        nombre: this.nombreEstudiante(this.estudianteSeleccionadoUuid),
+        codigo: res.codigo_acceso,
+      });
+      this.snack.open('Convocatoria generada y notificada al estudiante.', 'OK', { duration: 3000 });
+      await this.cargar();
+    } catch (e) {
+      this.snack.open(mensajeError(e), 'Cerrar', { duration: 4500 });
+    } finally {
+      this.cargando.set(false);
+    }
   }
 
-  convocarEstudiante(): void {
-    if (!this.estudianteIdInput.trim()) return;
-    this.guardando.set(true);
-    this.error.set(null);
-    this.mensajeExito.set(null);
-
-    this.schedulingService.crearConvocatoria(this.sesionId, this.estudianteIdInput.trim()).subscribe({
-      next: (res) => {
-        this.ultimoCodigoGenerado.set(res);
-        this.mensajeExito.set('Convocatoria creada y código de acceso emitido.');
-        this.estudianteIdInput = '';
-        this.guardando.set(false);
-        this.cargarConvocatorias();
-      },
-      error: (err) => {
-        this.error.set(mensajeError(err));
-        this.guardando.set(false);
-      },
-    });
+  async retirar(convId: string): Promise<void> {
+    this.cargando.set(true);
+    try {
+      await firstValueFrom(this.scheduling.retirarConvocatoria(this.sesionId, convId));
+      this.snack.open('Convocatoria retirada.', 'OK', { duration: 2500 });
+      await this.cargar();
+    } catch (e) {
+      this.snack.open(mensajeError(e), 'Cerrar', { duration: 4000 });
+    } finally {
+      this.cargando.set(false);
+    }
   }
 
-  retirar(convocatoriaId: string): void {
-    if (!confirm('¿Deseas retirar esta convocatoria? El estudiante ya no podrá ingresar a la sesión.')) return;
-    this.error.set(null);
-    this.schedulingService.retirarConvocatoria(this.sesionId, convocatoriaId).subscribe({
-      next: () => {
-        this.mensajeExito.set('Convocatoria retirada.');
-        this.cargarConvocatorias();
-      },
-      error: (err) => this.error.set(mensajeError(err)),
-    });
+  nombreEstudiante(uuid: string): string {
+    const e = this.estudiantes().find((x) => x.uuid_scheduling === uuid);
+    return e ? `${e.nombre} (${e.correo})` : uuid;
   }
 }
-

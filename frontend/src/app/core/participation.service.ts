@@ -2,7 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
-  EscenarioActualRespuesta, InicioConvocatoriaSolicitud, IntentoRespuesta, ProgresoRespuesta, SeleccionSolicitud,
+  ConsentimientoEstado, EscenarioActualRespuesta, InicioConvocatoriaSolicitud, IntentoRespuesta,
+  ProgresoRespuesta, ResultadoIntentoDetalle, SeleccionSolicitud, WorkspaceIntento,
 } from './api.models';
 
 const BASE = '/api/v1';
@@ -27,6 +28,36 @@ export class ParticipationService {
   }
   finalizar(idIntento: number): Observable<IntentoRespuesta> {
     return this.http.post<IntentoRespuesta>(`${BASE}/attempts/${idIntento}/finish`, {});
+  }
+
+  // Flujo interactivo completo (consentimiento, RF-22, borradores editables RF-10, envío y resultado RF-14)
+  consultarConsentimiento(convocatoriaId: string): Observable<ConsentimientoEstado> {
+    return this.http.get<ConsentimientoEstado>(`${BASE}/simulacion/convocatorias/${convocatoriaId}/consentimiento`);
+  }
+  aceptarConsentimiento(convocatoriaId: string): Observable<{ aceptado: boolean; id_consentimiento: number; fecha_aceptacion: string }> {
+    return this.http.post<{ aceptado: boolean; id_consentimiento: number; fecha_aceptacion: string }>(
+      `${BASE}/simulacion/convocatorias/${convocatoriaId}/consentimiento`, {});
+  }
+  iniciarSimulacion(convocatoriaId: string): Observable<{ id_intento: number; numero_intento: number; estado: string; retomado: boolean }> {
+    return this.http.post<{ id_intento: number; numero_intento: number; estado: string; retomado: boolean }>(
+      `${BASE}/simulacion/convocatorias/${convocatoriaId}/iniciar`, {});
+  }
+  obtenerWorkspace(idIntento: number): Observable<WorkspaceIntento> {
+    return this.http.get<WorkspaceIntento>(`${BASE}/simulacion/intentos/${idIntento}/workspace`);
+  }
+  guardarBorrador(idIntento: number, preguntaId: string, idOpcion: string, reflexionEstudiante?: string | null): Observable<WorkspaceIntento> {
+    return this.http.put<WorkspaceIntento>(`${BASE}/simulacion/intentos/${idIntento}/borradores/${preguntaId}`, {
+      id_opcion: idOpcion,
+      reflexion_estudiante: reflexionEstudiante ?? null,
+    });
+  }
+  enviarSimulacion(idIntento: number, permitirParcial = false): Observable<ResultadoIntentoDetalle> {
+    return this.http.post<ResultadoIntentoDetalle>(`${BASE}/simulacion/intentos/${idIntento}/enviar`, {
+      permitir_parcial: permitirParcial,
+    });
+  }
+  resultadoSimulacion(idIntento: number): Observable<ResultadoIntentoDetalle> {
+    return this.http.get<ResultadoIntentoDetalle>(`${BASE}/simulacion/intentos/${idIntento}/resultado`);
   }
 
   /** Recuerda el intento activo en la pestaña (el backend no expone un listado de intentos del estudiante). */

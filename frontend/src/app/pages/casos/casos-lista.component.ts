@@ -11,6 +11,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CasesService } from '../../core/cases.service';
+import { AuthService } from '../../core/auth.service';
 import { CasoPayload, CasoResumenResponse } from '../../core/api.models';
 import { mensajeError } from '../../core/api-error';
 
@@ -37,10 +38,19 @@ import { mensajeError } from '../../core/api-error';
           <h1>Casos de Estudio</h1>
           <p class="muted">Gestión de casos, escenas situacionales, opciones de decisión y rúbricas de evaluación</p>
         </div>
-        <button mat-flat-button color="primary" (click)="mostrarFormularioCrear = !mostrarFormularioCrear">
-          <mat-icon>{{ mostrarFormularioCrear ? 'close' : 'add' }}</mat-icon>
-          {{ mostrarFormularioCrear ? 'Cancelar' : 'Crear Caso' }}
-        </button>
+        @if (auth.tienePermiso('CREAR_CASOS')) {
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a mat-flat-button color="primary" routerLink="/casos/nuevo">
+              <mat-icon>add_circle</mat-icon> Nuevo Caso Completo
+            </a>
+            <button mat-stroked-button (click)="mostrarFormularioCrear = !mostrarFormularioCrear">
+              <mat-icon>{{ mostrarFormularioCrear ? 'close' : 'flash_on' }}</mat-icon>
+              {{ mostrarFormularioCrear ? 'Cancelar' : 'Borrador Rápido' }}
+            </button>
+          </div>
+        } @else {
+          <span class="chip">Solo lectura (sin permiso CREAR_CASOS)</span>
+        }
       </div>
 
       @if (error()) {
@@ -145,15 +155,18 @@ import { mensajeError } from '../../core/api-error';
                 <a mat-button color="primary" [routerLink]="['/casos', c.version_id]" title="Ver Escenarios y Rúbrica">
                   <mat-icon>visibility</mat-icon> Detalle
                 </a>
-                <a mat-button [routerLink]="['/casos', c.version_id, 'grafo']" title="Ver Flujo de Escenas">
+                <a mat-button [routerLink]="['/casos', c.version_id, 'grafo']" title="Ver / Editar Grafo de Escenas">
                   <mat-icon>account_tree</mat-icon> Grafo
                 </a>
-                @if (c.estado === 'BORRADOR') {
+                @if (c.estado === 'BORRADOR' && auth.tienePermiso('CREAR_CASOS')) {
+                  <a mat-button [routerLink]="['/casos', c.version_id, 'editar']" title="Editar estructura completa y rúbrica">
+                    <mat-icon>edit</mat-icon> Editar
+                  </a>
                   <button mat-button color="accent" (click)="publicar(c.version_id)" title="Publicar caso para permitir sesiones">
                     <mat-icon>publish</mat-icon> Publicar
                   </button>
                 }
-                @if (c.estado === 'PUBLICADO') {
+                @if (c.estado === 'PUBLICADO' && auth.tienePermiso('CREAR_CASOS')) {
                   <button mat-button color="warn" (click)="archivar(c.version_id)" title="Archivar versión">
                     <mat-icon>archive</mat-icon> Archivar
                   </button>
@@ -175,13 +188,15 @@ import { mensajeError } from '../../core/api-error';
     }
     .table-container {
       overflow-x: auto;
-      background: white;
-      border-radius: 8px;
+      background: rgba(14, 22, 38, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
     }
   `],
 })
 export class CasosListaComponent implements OnInit {
   private readonly casesService = inject(CasesService);
+  readonly auth = inject(AuthService);
 
   readonly columnas = ['numero', 'nombre', 'tiempo', 'estado', 'creado', 'acciones'];
   readonly casos = signal<CasoResumenResponse[]>([]);
