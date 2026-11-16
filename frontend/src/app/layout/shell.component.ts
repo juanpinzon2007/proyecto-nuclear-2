@@ -41,7 +41,6 @@ export class ShellComponent {
     if (this.rutaActual.startsWith('/seguimiento')) return 'Auditoría & Seguimiento Académico';
     if (this.rutaActual.startsWith('/administracion')) return 'Gobernanza & Directorio Docente';
     if (this.rutaActual.startsWith('/estudiante')) return 'Portal de Simulación Estudiantil';
-    if (this.rutaActual.startsWith('/maqueta')) return 'Maqueta Estática Fintech Dark Luxury';
     return 'Consola Principal SPS';
   }
 

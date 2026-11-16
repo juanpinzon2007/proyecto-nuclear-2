@@ -496,6 +496,10 @@ export class ProgramacionComponent implements OnInit {
   }
 
   async crearSesion(): Promise<void> {
+    if (!this.formSes.espacioId || !this.formSes.versionCasoId) {
+      this.snack.open('Selecciona un espacio académico y un caso publicado antes de programar.', 'OK', { duration: 3500 });
+      return;
+    }
     this.guardando.set(true);
     try {
       const payload: any = {
@@ -542,6 +546,7 @@ export class ProgramacionComponent implements OnInit {
     this.formSes.tiempoMax = s.tiempo_maximo_minutos;
     this.formSes.lugar = s.lugar ?? '';
     this.formSes.mensaje = s.mensaje_personalizado ?? '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   cancelarEdicionSesion(): void {

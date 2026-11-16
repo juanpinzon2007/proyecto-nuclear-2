@@ -415,6 +415,7 @@ export class DocentesComponent implements OnInit {
       activo: u.activo,
       permisosIndividuales: { ...u.permisos_individuales },
     };
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   cancelarEdicion(): void {

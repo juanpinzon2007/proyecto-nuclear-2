@@ -174,6 +174,28 @@ import { SchedulingService } from '../../core/scheduling.service';
                   <div class="alert-warn">Se registró ausencia confirmada para esta sesión (calificación 0.00).</div>
                 }
 
+                @if (c.estado_sesion === 'SIN_INICIAR') {
+                  <div class="msg-docente">
+                    <strong>Sesión programada:</strong> La simulación se habilitará el {{ c.fecha_inicio | date:'short' }}.
+                  </div>
+                } @else if (c.consentimiento_aceptado && c.estado_sesion === 'EN_CURSO' && !(c.intento_id && c.intento_estado === 'EN_CURSO') && !puedeIniciarNuevoIntento(c)) {
+                  @if (ingresoExpirado(c)) {
+                    <div class="alert-warn">
+                      La ventana de ingreso oportuno cerró el {{ c.fecha_limite_mitad_tiempo | date:'short' }} (RF-22). No es posible iniciar un nuevo intento.
+                    </div>
+                  } @else if (c.intentos_realizados > 0 && c.permisos_extra_disponibles <= 0) {
+                    <div class="msg-docente">
+                      <strong>Intento completado:</strong> Ya agotaste tu intento regular. Si necesitas repetir por fuerza mayor, solicita autorización excepcional al docente (RF-25).
+                    </div>
+                  }
+                }
+
+                @if (c.tiene_retroalimentacion) {
+                  <div class="msg-docente" style="border-left-color: var(--green);">
+                    <strong>Retroalimentación docente disponible (RF-26):</strong> Abre el detalle de tu resultado para leer los comentarios de tu docente.
+                  </div>
+                }
+
                 @if (c.notificaciones_recientes.length) {
                   <div class="notif-box">
                     <strong><mat-icon style="font-size:16px; width:16px; height:16px; vertical-align:middle;">notifications</mat-icon> Avisos recientes:</strong>
@@ -559,8 +581,7 @@ export class EstudiantePortalComponent implements OnInit, OnDestroy {
 
   puedeIniciarNuevoIntento(c: MiConvocatoriaItem): boolean {
     if (this.ingresoExpirado(c)) return false;
-    if (c.intentos_realizados === 0) return true;
-    return c.permisos_extra_disponibles > c.intentos_realizados - 1;
+    return c.intentos_realizados === 0 || c.permisos_extra_disponibles > 0;
   }
 
   async abrirConsentimiento(convocatoriaId: string): Promise<void> {

@@ -57,6 +57,7 @@ import { SchedulingService } from '../../core/scheduling.service';
                 @for (s of sesiones(); track s.id) {
                   <mat-option [value]="s.id">
                     {{ s.fecha_inicio | date:'short' }} · {{ s.estado }} ({{ s.lugar || 'Virtual' }})
+                    · {{ esSesionPublicada(s.id) ? '[ACTA OFICIAL LISTA]' : '[PENDIENTE DE PUBLICAR]' }}
                   </mat-option>
                 }
               </mat-select>
@@ -70,9 +71,15 @@ import { SchedulingService } from '../../core/scheduling.service';
               </mat-select>
             </mat-form-field>
 
-            <button mat-flat-button color="primary" type="submit" [disabled]="descargandoReporte() || !reporteSesionId">
+            <button mat-flat-button color="primary" type="submit" [disabled]="descargandoReporte() || !reporteSesionId || !esSesionPublicada(reporteSesionId)">
               <mat-icon>download</mat-icon> Descargar Reporte
             </button>
+
+            @if (reporteSesionId && !esSesionPublicada(reporteSesionId)) {
+              <a mat-stroked-button color="accent" [routerLink]="['/programacion', reporteSesionId, 'evaluacion']">
+                <mat-icon>fact_check</mat-icon> Ir a Evaluación y Publicar Acta →
+              </a>
+            }
           </form>
         </mat-card-content>
       </mat-card>
@@ -210,6 +217,7 @@ export class SeguimientoComponent implements OnInit {
   readonly cargandoCasos = signal<boolean>(true);
   readonly cargandoParticipaciones = signal<boolean>(false);
   readonly descargandoReporte = signal<boolean>(false);
+  readonly publicadasIds = signal<Set<string>>(new Set());
   readonly error = signal<string | null>(null);
   readonly mensajeExito = signal<string | null>(null);
 
@@ -218,6 +226,10 @@ export class SeguimientoComponent implements OnInit {
 
   ngOnInit(): void {
     void this.cargarInicial();
+  }
+
+  esSesionPublicada(sesionId: string): boolean {
+    return this.publicadasIds().has(sesionId);
   }
 
   async cargarInicial(): Promise<void> {
@@ -229,9 +241,23 @@ export class SeguimientoComponent implements OnInit {
       ]);
       this.casos.set(casos);
       this.sesiones.set(ses);
+
+      const checks = await Promise.allSettled(
+        ses.map(async (s) => {
+          await firstValueFrom(this.schedulingService.publicaciones(s.id));
+          return s.id;
+        }),
+      );
+      const pubSet = new Set<string>();
+      for (const ch of checks) {
+        if (ch.status === 'fulfilled') pubSet.add(ch.value);
+      }
+      this.publicadasIds.set(pubSet);
+
       if (ses.length) {
+        const pub = ses.find((s) => pubSet.has(s.id));
         const fin = ses.find((s) => s.estado === 'FINALIZADO');
-        this.reporteSesionId = fin ? fin.id : ses[0].id;
+        this.reporteSesionId = (pub ?? fin ?? ses[0]).id;
       }
       if (casos.length) {
         this.seleccionarCaso(casos[0]);

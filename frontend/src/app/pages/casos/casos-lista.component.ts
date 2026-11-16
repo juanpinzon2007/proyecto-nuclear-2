@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -239,6 +239,7 @@ import { mensajeError } from '../../core/api-error';
 })
 export class CasosListaComponent implements OnInit {
   private readonly casesService = inject(CasesService);
+  private readonly router = inject(Router);
   readonly auth = inject(AuthService);
 
   readonly columnas = ['numero', 'nombre', 'tiempo', 'estado', 'creado', 'acciones'];
@@ -289,14 +290,14 @@ export class CasosListaComponent implements OnInit {
     };
 
     this.casesService.crear(payload).subscribe({
-      next: () => {
+      next: (res) => {
         this.guardando.set(false);
         this.mostrarFormularioCrear = false;
         this.nuevoNombre = '';
         this.nuevoDesarrollo = '';
         this.nuevoContexto = '';
-        this.mensajeExito.set('Caso creado correctamente en estado BORRADOR.');
-        this.cargarCasos();
+        this.mensajeExito.set('Caso creado en BORRADOR. Redirigiendo al editor para configurar escenarios y rúbrica...');
+        void this.router.navigate(['/casos', res.version_id, 'editar']);
       },
       error: (err) => {
         this.error.set(mensajeError(err));

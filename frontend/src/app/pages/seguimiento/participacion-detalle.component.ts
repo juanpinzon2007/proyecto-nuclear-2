@@ -94,7 +94,9 @@ import { IdentityService } from '../../core/identity.service';
               <div class="info-box">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 6px; gap:10px;">
                   <strong class="mono cyan">VALORACIÓN REGISTRADA</strong>
-                  <span class="muted mono" style="font-size: 11px;">{{ fb.fecha | date:'short' }}</span>
+                  @if (fb.fecha) {
+                    <span class="muted mono" style="font-size: 11px;">{{ fb.fecha | date:'short' }}</span>
+                  }
                 </div>
                 <p style="margin: 0; font-size: 14px; color: var(--text);">{{ fb.texto }}</p>
               </div>
@@ -226,12 +228,14 @@ export class ParticipacionDetalleComponent implements OnInit {
       this.detalle.set(d);
       if (d.feedback_docente) {
         this.nuevoFeedbackTexto = d.feedback_docente;
-      }
-      try {
-        const fb = await firstValueFrom(this.identityService.feedback(this.participacionId));
-        this.feedback.set(fb);
-      } catch {
-        // Sin feedback registrado aún
+        this.feedback.set({
+          id_participacion: this.participacionId,
+          id_docente: '',
+          texto: d.feedback_docente,
+          fecha: '',
+        });
+      } else {
+        this.feedback.set(null);
       }
     } catch (err) {
       this.error.set(mensajeError(err));

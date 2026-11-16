@@ -160,7 +160,7 @@ export interface CriterioTecnicoRespuesta {
 export interface ResultadoTecnicoRespuesta {
   id_sesion: Uuid; id_convocatoria: Uuid; id_participacion: number; id_intento: number; id_resultado: number;
   version_caso_id: Uuid; rubrica_id: Uuid; version_regla: string; modalidad: 'COMPLETA' | 'PARCIAL';
-  ambito: 'TECNICO' | 'LABORATORIO'; oficial: boolean; fecha_calculo: string; nota_final: string; procedencia_sha256: string;
+  ambito: 'TECNICO' | 'LABORATORIO' | 'RUBRICA_V1'; oficial: boolean; fecha_calculo: string; nota_final: string; procedencia_sha256: string;
   preguntas_exigidas?: number | null; preguntas_respondidas?: number | null; pendientes_con_cero?: number | null;
   suma_puntajes?: string | null; preguntas: PreguntaTecnicaRespuesta[]; criterios: CriterioTecnicoRespuesta[];
 }

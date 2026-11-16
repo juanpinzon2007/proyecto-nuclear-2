@@ -157,11 +157,16 @@ import { SchedulingService } from '../../core/scheduling.service';
             <mat-card-header>
               <mat-card-title>Resultado Técnico — Intento #{{ res.id_intento }}</mat-card-title>
               <mat-card-subtitle>
-                Nota: <strong class="nota-val">{{ res.nota_final }} / 100</strong> · Modalidad: {{ res.modalidad }}
+                Nota: <strong class="nota-val">{{ res.nota_final }} / 100</strong> · Modalidad: {{ res.modalidad }} · Ámbito: {{ res.ambito }}
               </mat-card-subtitle>
             </mat-card-header>
             <mat-card-content style="padding-top: 12px;">
-              <p>Regla: <strong>{{ res.version_regla }}</strong> · Fecha: {{ res.fecha_calculo | date:'medium' }}</p>
+              <p>
+                Regla: <strong>{{ res.version_regla }}</strong> · Fecha: {{ res.fecha_calculo | date:'medium' }}
+                @if (res.preguntas_respondidas !== null && res.preguntas_respondidas !== undefined) {
+                  · Respondidas: <strong>{{ res.preguntas_respondidas }} / {{ res.preguntas_exigidas ?? '?' }}</strong>
+                }
+              </p>
               <button mat-button type="button" (click)="resultadoSeleccionado.set(null)">Cerrar detalle</button>
             </mat-card-content>
           </mat-card>
@@ -204,9 +209,15 @@ import { SchedulingService } from '../../core/scheduling.service';
                     }
 
                     @if (conv.intentos.length === 0) {
-                      <button mat-button color="warn" (click)="marcarAusencia(conv.id_convocatoria)" [disabled]="accionEnProgreso()">
-                        <mat-icon>person_off</mat-icon> Marcar Ausencia (RF-24)
-                      </button>
+                      @if (p.estado_sesion === 'FINALIZADO') {
+                        <button mat-button color="warn" (click)="marcarAusencia(conv.id_convocatoria)" [disabled]="accionEnProgreso()">
+                          <mat-icon>person_off</mat-icon> Marcar Ausencia (RF-24)
+                        </button>
+                      } @else {
+                        <span class="chip" title="Las ausencias solo pueden confirmarse cuando la sesión finalice (RF-24)">
+                          Ausencia disponible al finalizar
+                        </span>
+                      }
                     }
                   </div>
                 </div>
@@ -309,10 +320,12 @@ export class EvaluacionSesionComponent implements OnInit {
     try {
       const res = await firstValueFrom(this.schedulingService.resultadoTecnico(this.sesionId, idIntento));
       this.resultadoSeleccionado.set(res);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch {
       try {
         const res = await firstValueFrom(this.schedulingService.calcularResultadoTecnico(this.sesionId, idIntento));
         this.resultadoSeleccionado.set(res);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } catch (err) {
         this.error.set(mensajeError(err));
       }
