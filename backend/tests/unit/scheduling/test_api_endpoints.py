@@ -301,6 +301,7 @@ def test_listar_notificaciones_estudiante(entorno_estudiante):
 
 def test_rol_docente_no_autoriza_publicar_calificacion_sin_contrato(entorno_docente):
     client, db, _ = entorno_docente
+    db.execute.return_value.first.return_value = None
     estudiante_id = uuid4()
     participacion_id = uuid4()
 

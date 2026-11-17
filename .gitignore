@@ -47,3 +47,4 @@ dist/
 *.db
 *.sqlite
 *.sqlite3
+scripts/dev_mail_outbox.log
