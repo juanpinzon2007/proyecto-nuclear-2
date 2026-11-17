@@ -13,6 +13,7 @@ import { firstValueFrom } from 'rxjs';
 import { mensajeError } from '../../core/api-error';
 import { DetalleParticipacion, FeedbackDocente } from '../../core/api.models';
 import { IdentityService } from '../../core/identity.service';
+import { avatarUsuario } from '../../core/user-avatar';
 
 @Component({
   selector: 'app-participacion-detalle',
@@ -61,6 +62,9 @@ import { IdentityService } from '../../core/identity.service';
       } @else if (detalle(); as d) {
         <mat-card class="panel panel-cyan-left">
           <mat-card-header>
+            <div mat-card-avatar style="width: 56px; height: 56px;">
+              <img class="game-avatar-lg" [src]="avatarUsuario({ id_usuario: d.id_estudiante, nombre: d.nombre_estudiante, correo: d.correo_estudiante, rol: 'ESTUDIANTE' })" [alt]="d.nombre_estudiante || 'Estudiante'" />
+            </div>
             <mat-card-title>{{ d.nombre_estudiante || ('Estudiante #' + d.id_estudiante) }}</mat-card-title>
             <mat-card-subtitle>{{ d.correo_estudiante }} · Caso: {{ d.nombre_caso || d.id_caso }}</mat-card-subtitle>
           </mat-card-header>
@@ -202,6 +206,7 @@ import { IdentityService } from '../../core/identity.service';
 export class ParticipacionDetalleComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly identityService = inject(IdentityService);
+  readonly avatarUsuario = avatarUsuario;
 
   participacionId = '';
   readonly detalle = signal<DetalleParticipacion | null>(null);

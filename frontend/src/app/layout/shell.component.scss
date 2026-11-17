@@ -149,17 +149,32 @@
 }
 
 .user-avatar {
-  width: 34px;
-  height: 34px;
-  min-width: 34px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--line-strong);
-  background: rgba(0, 229, 244, 0.12);
-  color: var(--cyan);
-  font-family: var(--mono);
-  font-weight: 700;
-  font-size: 14px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1.5px solid var(--cyan);
+  background: #0c1824;
+  box-shadow: 0 0 12px rgba(0, 229, 244, 0.25);
+
+  &.av-admin {
+    border-color: var(--amber);
+    box-shadow: 0 0 12px rgba(255, 184, 0, 0.28);
+  }
+
+  &.av-doc {
+    border-color: var(--green);
+    box-shadow: 0 0 12px rgba(0, 232, 148, 0.28);
+  }
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 15%;
+  display: block;
 }
 
 .user-meta {

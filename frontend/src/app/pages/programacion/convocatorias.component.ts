@@ -13,6 +13,7 @@ import { firstValueFrom } from 'rxjs';
 import { mensajeError } from '../../core/api-error';
 import { ConvocatoriaDetalleResponse, EstudianteDisponibleItem } from '../../core/api.models';
 import { SchedulingService } from '../../core/scheduling.service';
+import { avatarUsuario } from '../../core/user-avatar';
 
 @Component({
   selector: 'app-convocatorias',
@@ -84,8 +85,13 @@ import { SchedulingService } from '../../core/scheduling.service';
               <ng-container matColumnDef="estudiante">
                 <th mat-header-cell *matHeaderCellDef>Estudiante</th>
                 <td mat-cell *matCellDef="let c">
-                  <div style="font-weight:600;">{{ nombreEstudiante(c.estudiante_id) }}</div>
-                  <div class="mono muted">{{ c.id }}</div>
+                  <div class="user-inline">
+                    <img class="game-avatar" [src]="avatarEstudiante(c.estudiante_id)" [alt]="nombreEstudiante(c.estudiante_id)" />
+                    <div>
+                      <div style="font-weight:600;">{{ nombreEstudiante(c.estudiante_id) }}</div>
+                      <div class="mono muted">{{ c.id }}</div>
+                    </div>
+                  </div>
                 </td>
               </ng-container>
               <ng-container matColumnDef="estado">
@@ -210,5 +216,15 @@ export class ConvocatoriasComponent implements OnInit {
   nombreEstudiante(uuid: string): string {
     const e = this.estudiantes().find((x) => x.uuid_scheduling === uuid);
     return e ? `${e.nombre} (${e.correo})` : uuid;
+  }
+
+  avatarEstudiante(uuid: string): string {
+    const e = this.estudiantes().find((x) => x.uuid_scheduling === uuid);
+    return avatarUsuario({
+      id_usuario: e?.id_usuario,
+      nombre: e?.nombre,
+      correo: e?.correo,
+      rol: 'ESTUDIANTE',
+    });
   }
 }

@@ -14,6 +14,7 @@ import { mensajeError, mensajeErrorAsync } from '../../core/api-error';
 import { ResumenCaso, ResumenParticipacion, SesionResponse } from '../../core/api.models';
 import { IdentityService } from '../../core/identity.service';
 import { SchedulingService } from '../../core/scheduling.service';
+import { avatarUsuario } from '../../core/user-avatar';
 
 @Component({
   selector: 'app-seguimiento',
@@ -136,8 +137,13 @@ import { SchedulingService } from '../../core/scheduling.service';
                   <ng-container matColumnDef="estudiante">
                     <th mat-header-cell *matHeaderCellDef>Estudiante</th>
                     <td mat-cell *matCellDef="let p">
-                      <div style="font-weight:600; color:var(--text);">{{ p.nombre_estudiante || 'Estudiante #' + p.id_estudiante }}</div>
-                      <div class="muted" style="font-size:12px;">{{ p.correo_estudiante }}</div>
+                      <div class="user-inline">
+                        <img class="game-avatar" [src]="avatarUsuario({ id_usuario: p.id_estudiante, nombre: p.nombre_estudiante, correo: p.correo_estudiante, rol: 'ESTUDIANTE' })" [alt]="p.nombre_estudiante || 'Estudiante'" />
+                        <div>
+                          <div style="font-weight:600; color:var(--text);">{{ p.nombre_estudiante || 'Estudiante #' + p.id_estudiante }}</div>
+                          <div class="muted" style="font-size:12px;">{{ p.correo_estudiante }}</div>
+                        </div>
+                      </div>
                     </td>
                   </ng-container>
 
@@ -210,6 +216,7 @@ import { SchedulingService } from '../../core/scheduling.service';
 export class SeguimientoComponent implements OnInit {
   private readonly identityService = inject(IdentityService);
   private readonly schedulingService = inject(SchedulingService);
+  readonly avatarUsuario = avatarUsuario;
 
   readonly columnasParticipaciones = ['estudiante', 'nota', 'estado', 'acciones'];
   readonly casos = signal<ResumenCaso[]>([]);

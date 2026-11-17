@@ -6,7 +6,7 @@
         <mat-icon>psychology</mat-icon>
       </div>
       <div class="brand-copy">
-        <span class="brand-title">SPS // NEUROCOMMAND</span>
+        <span class="brand-title">SPS</span>
         <span class="brand-view">{{ obtenerTituloVista() }}</span>
       </div>
     </a>
@@ -24,7 +24,9 @@
 
     @if (auth.usuario(); as u) {
       <div class="user-hud">
-        <div class="user-avatar">{{ obtenerInicial() }}</div>
+        <div class="user-avatar" [class.av-admin]="auth.esAdmin()" [class.av-doc]="auth.esDocente() && !auth.esAdmin()">
+          <img class="avatar-img" [src]="obtenerAvatar()" [alt]="u.correo" />
+        </div>
         <div class="user-meta">
           <span class="user-mail" [title]="u.correo">{{ u.correo }}</span>
           <div class="roles-row">

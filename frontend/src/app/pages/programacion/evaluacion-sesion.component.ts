@@ -19,6 +19,7 @@ import {
 import { IdentityService } from '../../core/identity.service';
 import { SchedulingService } from '../../core/scheduling.service';
 import { UiDialogService } from '../../core/ui-dialog.service';
+import { avatarUsuario } from '../../core/user-avatar';
 
 @Component({
   selector: 'app-evaluacion-sesion',
@@ -182,16 +183,19 @@ import { UiDialogService } from '../../core/ui-dialog.service';
             <div class="stack stagger">
               @for (conv of p.convocatorias; track conv.id_convocatoria) {
                 <div class="convocatoria-row">
-                  <div>
-                    <div class="est-title">{{ nombreEstudianteId(conv.id_estudiante) }}</div>
-                    <div class="mono muted" style="font-size: 11px;">Convocatoria: {{ conv.id_convocatoria }}</div>
-                    <div style="margin-top:6px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                      <span class="chip" [class.ok]="conv.estado === 'ACTIVA'" [class.bad]="conv.estado === 'RETIRADA'">
-                        {{ conv.estado }}
-                      </span>
-                      @if (conv.id_participacion) {
-                        <span class="chip">Participación #{{ conv.id_participacion }}</span>
-                      }
+                  <div class="user-inline">
+                    <img class="game-avatar" [src]="avatarEstudianteId(conv.id_estudiante)" [alt]="nombreEstudianteId(conv.id_estudiante)" />
+                    <div>
+                      <div class="est-title">{{ nombreEstudianteId(conv.id_estudiante) }}</div>
+                      <div class="mono muted" style="font-size: 11px;">Convocatoria: {{ conv.id_convocatoria }}</div>
+                      <div style="margin-top:6px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                        <span class="chip" [class.ok]="conv.estado === 'ACTIVA'" [class.bad]="conv.estado === 'RETIRADA'">
+                          {{ conv.estado }}
+                        </span>
+                        @if (conv.id_participacion) {
+                          <span class="chip">Participación #{{ conv.id_participacion }}</span>
+                        }
+                      </div>
                     </div>
                   </div>
 
@@ -314,6 +318,16 @@ export class EvaluacionSesionComponent implements OnInit {
   nombreEstudianteId(idEst: number | string): string {
     const e = this.estudiantes().find((x) => String(x.id_usuario) === String(idEst));
     return e ? `${e.nombre} (${e.correo})` : `Estudiante #${idEst}`;
+  }
+
+  avatarEstudianteId(idEst: number | string): string {
+    const e = this.estudiantes().find((x) => String(x.id_usuario) === String(idEst));
+    return avatarUsuario({
+      id_usuario: e?.id_usuario ?? idEst,
+      nombre: e?.nombre,
+      correo: e?.correo,
+      rol: 'ESTUDIANTE',
+    });
   }
 
   async verResultadoTecnico(idIntento: number): Promise<void> {

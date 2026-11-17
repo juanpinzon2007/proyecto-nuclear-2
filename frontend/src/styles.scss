@@ -866,3 +866,34 @@ pre.json {
   color: var(--cyan) !important;
   font-family: var(--mono) !important;
 }
+
+/* ==================== AVATARES DE PERSONAJE 3D ==================== */
+.user-inline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.game-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+  object-position: center 15%;
+  border: 1px solid rgba(0, 229, 244, 0.55);
+  background: #0c1824;
+  box-shadow: 0 0 12px rgba(0, 229, 244, 0.18);
+  flex-shrink: 0;
+}
+
+.game-avatar-lg {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  object-fit: cover;
+  object-position: center 15%;
+  border: 2px solid var(--cyan);
+  background: #0c1824;
+  box-shadow: 0 0 18px rgba(0, 229, 244, 0.28);
+  flex-shrink: 0;
+}

@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../core/auth.service';
+import { avatarUsuario } from '../core/user-avatar';
 
 @Component({
   selector: 'app-shell',
@@ -44,9 +45,12 @@ export class ShellComponent {
     return 'Consola Principal SPS';
   }
 
-  obtenerInicial(): string {
-    const usuario = this.auth.usuario();
-    if (!usuario?.correo) return 'U';
-    return usuario.correo.charAt(0).toUpperCase();
+  obtenerAvatar(): string {
+    const u = this.auth.usuario();
+    return avatarUsuario({
+      id_usuario: u?.id_usuario,
+      correo: u?.correo,
+      rol: u?.roles?.[0],
+    });
   }
 }

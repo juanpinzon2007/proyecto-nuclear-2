@@ -298,7 +298,7 @@ interface PasoPlano {
           <section class="coach panel" [class.coach-pulse]="!!opcionElegida || !!respuestaAnimada()">
             <div class="coach-orb">🧠</div>
             <div class="grow">
-              <span class="eyebrow">Coach Neuro · Asistente de Escenario</span>
+              <span class="eyebrow">Asistente SPS · Guía de Escenario</span>
               <p class="coach-msg">{{ coachMensaje() }}</p>
             </div>
             <span class="tag" [class.green]="!!opcionElegida || !!opcionLanzada()">

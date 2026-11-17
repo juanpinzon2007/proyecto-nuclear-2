@@ -23,6 +23,7 @@ import {
 } from '../../core/api.models';
 import { IdentityService } from '../../core/identity.service';
 import { SchedulingService } from '../../core/scheduling.service';
+import { avatarUsuario } from '../../core/user-avatar';
 
 @Component({
   selector: 'app-docentes',
@@ -138,8 +139,13 @@ import { SchedulingService } from '../../core/scheduling.service';
                     <ng-container matColumnDef="usuario">
                       <th mat-header-cell *matHeaderCellDef>Usuario</th>
                       <td mat-cell *matCellDef="let u">
-                        <div class="cell-main">{{ u.nombre }}</div>
-                        <div class="cell-sub">{{ u.correo }}</div>
+                        <div class="user-inline">
+                          <img class="game-avatar" [src]="avatarUsuario({ id_usuario: u.id_usuario, nombre: u.nombre, correo: u.correo, rol: u.rol })" [alt]="u.nombre" />
+                          <div>
+                            <div class="cell-main">{{ u.nombre }}</div>
+                            <div class="cell-sub">{{ u.correo }}</div>
+                          </div>
+                        </div>
                       </td>
                     </ng-container>
 
@@ -342,6 +348,7 @@ export class DocentesComponent implements OnInit {
   private readonly identity = inject(IdentityService);
   private readonly scheduling = inject(SchedulingService);
   private readonly snack = inject(MatSnackBar);
+  readonly avatarUsuario = avatarUsuario;
 
   readonly cargando = signal(false);
   readonly guardando = signal(false);

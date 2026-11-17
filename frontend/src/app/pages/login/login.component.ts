@@ -32,14 +32,12 @@ import { mensajeError } from '../../core/api-error';
             <mat-icon>psychology</mat-icon>
           </div>
           <div>
-            <p class="module">Módulo de Acceso · NeuroCommand</p>
-            <h1>Simulador SPS</h1>
-            <small>Plataforma Académica de Psicología Social</small>
+            <h1>SPS</h1>
+            <small>Simulador de Psicología Social</small>
           </div>
         </section>
 
         <mat-card class="panel auth-card">
-          <span class="tag green">Protocolo autenticado · Acceso seguro</span>
           <p class="auth-hint">Ingresa tu correo institucional y tu contraseña o código de convocatoria.</p>
 
           <form (ngSubmit)="iniciarSesion()" class="login-form">
@@ -86,11 +84,6 @@ import { mensajeError } from '../../core/api-error';
               }
             </button>
           </form>
-
-          <div class="secure mono">
-            <i></i>
-            <span>CONEXIÓN CIFRADA · SIMULADOR DE PSICOLOGÍA SOCIAL</span>
-          </div>
         </mat-card>
       </div>
     </main>
