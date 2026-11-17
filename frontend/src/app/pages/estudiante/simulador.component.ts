@@ -17,6 +17,7 @@ import {
   WorkspaceIntento,
 } from '../../core/api.models';
 import { ParticipationService } from '../../core/participation.service';
+import { UiDialogService } from '../../core/ui-dialog.service';
 
 interface PasoPlano {
   escenario: EscenarioWorkspace;
@@ -1567,6 +1568,7 @@ export class SimuladorComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly participation = inject(ParticipationService);
   private readonly snack = inject(MatSnackBar);
+  private readonly uiDialog = inject(UiDialogService);
 
   readonly Math = Math;
   idIntento = 0;
@@ -1805,16 +1807,26 @@ export class SimuladorComponent implements OnInit, OnDestroy {
 
       let permitirParcial = false;
       if (!wsFresco.listo_para_enviar) {
-        const ok = confirm(
-          `Faltan preguntas por responder (${wsFresco.respondidas}/${wsFresco.total_preguntas}). ` +
-            'Las preguntas pendientes obtendrán 0 puntos. ¿Confirmas entrega parcial definitiva?',
-        );
+        const ok = await this.uiDialog.confirmar({
+          eyebrow: 'Entrega Parcial // RF-12',
+          titulo: 'Preguntas Pendientes',
+          mensaje: `Faltan preguntas por responder (${wsFresco.respondidas}/${wsFresco.total_preguntas}). Las preguntas pendientes obtendrán 0 puntos. ¿Confirmas la entrega parcial definitiva?`,
+          botonConfirmar: 'Confirmar Entrega Parcial',
+          botonCancelar: 'Seguir Respondiendo',
+          tono: 'amber',
+        });
         if (!ok) return;
         permitirParcial = true;
       } else {
-        if (!confirm('¿Confirmas la entrega definitiva? Una vez enviada no podrás modificar tus respuestas.')) {
-          return;
-        }
+        const ok = await this.uiDialog.confirmar({
+          eyebrow: 'Entrega Definitiva // RF-12',
+          titulo: 'Finalizar Simulación',
+          mensaje: '¿Confirmas la entrega definitiva? Una vez enviada no podrás modificar tus respuestas y se calculará tu resultado.',
+          botonConfirmar: 'Sí, Entregar Ahora',
+          botonCancelar: 'Revisar Respuestas',
+          tono: 'green',
+        });
+        if (!ok) return;
       }
 
       const res = await firstValueFrom(this.participation.enviarSimulacion(this.idIntento, permitirParcial));

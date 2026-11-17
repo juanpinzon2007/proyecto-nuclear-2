@@ -65,6 +65,15 @@ export class AuthService {
     return this.iniciarSesion(r.access_token);
   }
 
+  /** Autentica de forma transparente tanto a docentes/administradores (clave) como a estudiantes (código). */
+  async loginUnificado(correo: string, credencial: string): Promise<UsuarioPublico | null> {
+    try {
+      return await this.loginPersonal(correo, credencial);
+    } catch {
+      return await this.loginEstudiante(correo, credencial);
+    }
+  }
+
   private async iniciarSesion(token: string): Promise<UsuarioPublico | null> {
     sessionStorage.setItem(TOKEN_KEY, token);
     this._token.set(token);

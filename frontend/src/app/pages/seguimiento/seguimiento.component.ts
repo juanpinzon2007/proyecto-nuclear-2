@@ -10,7 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { firstValueFrom } from 'rxjs';
-import { mensajeError } from '../../core/api-error';
+import { mensajeError, mensajeErrorAsync } from '../../core/api-error';
 import { ResumenCaso, ResumenParticipacion, SesionResponse } from '../../core/api.models';
 import { IdentityService } from '../../core/identity.service';
 import { SchedulingService } from '../../core/scheduling.service';
@@ -43,11 +43,13 @@ import { SchedulingService } from '../../core/scheduling.service';
       @if (error()) { <div class="error-box">{{ error() }}</div> }
       @if (mensajeExito()) { <div class="success-box">{{ mensajeExito() }}</div> }
 
-      <!-- Reporte Oficial RF-16 -->
+      <!-- Reporte Oficial / Provisional RF-16 -->
       <mat-card class="panel panel-amber-left" style="margin-bottom: 22px;">
         <mat-card-header>
-          <mat-card-title>Descargar Reporte Oficial de Sesión (RF-16)</mat-card-title>
-          <mat-card-subtitle>Solo sesiones finalizadas con publicación oficial aprobada</mat-card-subtitle>
+          <mat-card-title>Descargar Reporte de Sesión (RF-16)</mat-card-title>
+          <mat-card-subtitle>
+            Genera reportes oficiales de sesiones publicadas o reportes provisionales en tiempo real para sesiones activas
+          </mat-card-subtitle>
         </mat-card-header>
         <mat-card-content style="padding-top: 16px;">
           <form (ngSubmit)="descargarReporte()" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
@@ -57,7 +59,7 @@ import { SchedulingService } from '../../core/scheduling.service';
                 @for (s of sesiones(); track s.id) {
                   <mat-option [value]="s.id">
                     {{ s.fecha_inicio | date:'short' }} · {{ s.estado }} ({{ s.lugar || 'Virtual' }})
-                    · {{ esSesionPublicada(s.id) ? '[ACTA OFICIAL LISTA]' : '[PENDIENTE DE PUBLICAR]' }}
+                    · {{ esSesionPublicada(s.id) ? '[ACTA OFICIAL]' : '[PROVISIONAL]' }}
                   </mat-option>
                 }
               </mat-select>
@@ -71,13 +73,14 @@ import { SchedulingService } from '../../core/scheduling.service';
               </mat-select>
             </mat-form-field>
 
-            <button mat-flat-button color="primary" type="submit" [disabled]="descargandoReporte() || !reporteSesionId || !esSesionPublicada(reporteSesionId)">
-              <mat-icon>download</mat-icon> Descargar Reporte
+            <button mat-flat-button color="primary" type="submit" [disabled]="descargandoReporte() || !reporteSesionId">
+              <mat-icon>download</mat-icon>
+              {{ reporteSesionId && esSesionPublicada(reporteSesionId) ? 'Descargar Reporte Oficial' : 'Descargar Reporte Provisional' }}
             </button>
 
             @if (reporteSesionId && !esSesionPublicada(reporteSesionId)) {
               <a mat-stroked-button color="accent" [routerLink]="['/programacion', reporteSesionId, 'evaluacion']">
-                <mat-icon>fact_check</mat-icon> Ir a Evaluación y Publicar Acta →
+                <mat-icon>fact_check</mat-icon> Evaluación y Publicar Acta →
               </a>
             }
           </form>
@@ -284,26 +287,38 @@ export class SeguimientoComponent implements OnInit {
     });
   }
 
-  descargarReporte(): void {
-    if (!this.reporteSesionId.trim()) return;
+  async descargarReporte(): Promise<void> {
+    const sid = this.reporteSesionId.trim();
+    if (!sid) return;
     this.descargandoReporte.set(true);
     this.error.set(null);
+    this.mensajeExito.set(null);
 
-    this.identityService.reporteSesion(this.reporteSesionId.trim(), { formato: this.reporteFormato }).subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `reporte_sesion_${this.reporteSesionId}.${this.reporteFormato}`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-        this.descargandoReporte.set(false);
-        this.mensajeExito.set('Reporte generado y descargado correctamente.');
-      },
-      error: (err) => {
-        this.error.set(mensajeError(err));
-        this.descargandoReporte.set(false);
-      },
-    });
+    const esOficial = this.esSesionPublicada(sid);
+    try {
+      const blob = await firstValueFrom(
+        esOficial
+          ? this.identityService.reporteSesion(sid, { formato: this.reporteFormato })
+          : this.identityService.reporteProvisionalSesion(sid, this.reporteFormato),
+      );
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `${esOficial ? 'reporte_oficial' : 'reporte_provisional'}_${sid}.${this.reporteFormato}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => window.URL.revokeObjectURL(url), 1500);
+      this.mensajeExito.set(
+        esOficial
+          ? 'Reporte oficial generado y descargado correctamente.'
+          : 'Reporte provisional en curso generado y descargado correctamente.',
+      );
+    } catch (err) {
+      this.error.set(await mensajeErrorAsync(err));
+    } finally {
+      this.descargandoReporte.set(false);
+    }
   }
 }

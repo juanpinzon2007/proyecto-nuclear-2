@@ -86,5 +86,12 @@ export class IdentityService {
     }
     return this.http.get(`${BASE}/seguimiento/sesiones/${encodeURIComponent(idSesion)}/reporte`, { params, responseType: 'blob' });
   }
+  reporteProvisionalSesion(idSesion: string, formato: 'xlsx' | 'pdf'): Observable<Blob> {
+    const params = new HttpParams().set('formato', formato);
+    return this.http.get(`${BASE}/seguimiento/sesiones/${encodeURIComponent(idSesion)}/reporte-provisional`, {
+      params,
+      responseType: 'blob',
+    });
+  }
 }
 

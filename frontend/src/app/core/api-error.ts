@@ -34,3 +34,26 @@ export function mensajeError(err: unknown): string {
   return err instanceof Error ? err.message : 'Error inesperado.';
 }
 
+/** Versión asíncrona que también extrae el mensaje JSON cuando la respuesta fallida llega como Blob. */
+export async function mensajeErrorAsync(err: unknown): Promise<string> {
+  if (err instanceof HttpErrorResponse && err.error instanceof Blob) {
+    try {
+      const txt = await err.error.text();
+      const parsed = JSON.parse(txt) as { detail?: unknown };
+      if (typeof parsed?.detail === 'string') {
+        const cloned = new HttpErrorResponse({
+          error: { detail: parsed.detail },
+          headers: err.headers,
+          status: err.status,
+          statusText: err.statusText,
+          url: err.url ?? undefined,
+        });
+        return mensajeError(cloned);
+      }
+    } catch {
+      // Continuar con el manejo estándar
+    }
+  }
+  return mensajeError(err);
+}
+

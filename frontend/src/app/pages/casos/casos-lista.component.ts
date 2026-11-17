@@ -14,6 +14,7 @@ import { CasesService } from '../../core/cases.service';
 import { AuthService } from '../../core/auth.service';
 import { CasoPayload, CasoResumenResponse } from '../../core/api.models';
 import { mensajeError } from '../../core/api-error';
+import { UiDialogService } from '../../core/ui-dialog.service';
 
 @Component({
   selector: 'app-casos-lista',
@@ -240,6 +241,7 @@ import { mensajeError } from '../../core/api-error';
 export class CasosListaComponent implements OnInit {
   private readonly casesService = inject(CasesService);
   private readonly router = inject(Router);
+  private readonly uiDialog = inject(UiDialogService);
   readonly auth = inject(AuthService);
 
   readonly columnas = ['numero', 'nombre', 'tiempo', 'estado', 'creado', 'acciones'];
@@ -306,8 +308,16 @@ export class CasosListaComponent implements OnInit {
     });
   }
 
-  publicar(versionId: string): void {
-    if (!confirm('¿Deseas publicar esta versión del caso? Una vez publicada, estará disponible para sesiones académicas.')) return;
+  async publicar(versionId: string): Promise<void> {
+    const ok = await this.uiDialog.confirmar({
+      eyebrow: 'Validación y Publicación // RF-09',
+      titulo: 'Publicar Versión del Caso',
+      mensaje: '¿Deseas publicar esta versión del caso? Una vez publicada, quedará inmutable y disponible para programar sesiones académicas.',
+      botonConfirmar: 'Publicar Caso',
+      botonCancelar: 'Cancelar',
+      tono: 'green',
+    });
+    if (!ok) return;
     this.error.set(null);
     this.casesService.publicar(versionId).subscribe({
       next: () => {
@@ -318,8 +328,16 @@ export class CasosListaComponent implements OnInit {
     });
   }
 
-  archivar(versionId: string): void {
-    if (!confirm('¿Deseas archivar esta versión del caso?')) return;
+  async archivar(versionId: string): Promise<void> {
+    const ok = await this.uiDialog.confirmar({
+      eyebrow: 'Gestión de Versiones // Casos',
+      titulo: 'Archivar Caso',
+      mensaje: '¿Deseas archivar esta versión del caso? Dejará de mostrarse como versión activa para nuevas sesiones.',
+      botonConfirmar: 'Archivar Versión',
+      botonCancelar: 'Cancelar',
+      tono: 'warn',
+    });
+    if (!ok) return;
     this.error.set(null);
     this.casesService.archivar(versionId).subscribe({
       next: () => {

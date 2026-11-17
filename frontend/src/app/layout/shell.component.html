@@ -14,12 +14,7 @@
     <div class="header-spacer"></div>
 
     <div class="hud-telemetry">
-      <div class="hud-node">
-        <span class="hud-dot"></span>
-        <span>NODO CORE ACTIVO · PG17</span>
-      </div>
-
-      @if (auth.esDocente() || auth.esAdmin()) {
+      @if (auth.esDocente() && auth.tienePermiso('CREAR_CASOS')) {
         <a routerLink="/casos/nuevo" class="hud-cta">
           <mat-icon>add</mat-icon>
           <span>NUEVO CASO</span>

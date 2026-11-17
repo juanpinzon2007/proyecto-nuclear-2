@@ -18,6 +18,7 @@ import {
 } from '../../core/api.models';
 import { IdentityService } from '../../core/identity.service';
 import { SchedulingService } from '../../core/scheduling.service';
+import { UiDialogService } from '../../core/ui-dialog.service';
 
 @Component({
   selector: 'app-evaluacion-sesion',
@@ -255,6 +256,7 @@ export class EvaluacionSesionComponent implements OnInit {
   private readonly schedulingService = inject(SchedulingService);
   private readonly identityService = inject(IdentityService);
   private readonly snack = inject(MatSnackBar);
+  private readonly uiDialog = inject(UiDialogService);
 
   sesionId = '';
   readonly preparacion = signal<PreparacionSesionRespuesta | null>(null);
@@ -349,7 +351,15 @@ export class EvaluacionSesionComponent implements OnInit {
   }
 
   async publicarOficial(revisionSha256: string): Promise<void> {
-    if (!confirm('¿Publicar oficialmente las calificaciones de la sesión?')) return;
+    const ok = await this.uiDialog.confirmar({
+      eyebrow: 'Acta Oficial // RF-13 · RF-27',
+      titulo: 'Publicar Calificaciones Oficiales',
+      mensaje: 'Publicar congela las notas definitivas de la sesión, habilita el reporte oficial y notifica automáticamente a toda la cohorte.',
+      botonConfirmar: 'Publicar Acta Oficial',
+      botonCancelar: 'Cancelar',
+      tono: 'green',
+    });
+    if (!ok) return;
     this.accionEnProgreso.set(true);
     this.error.set(null);
     try {
@@ -377,7 +387,15 @@ export class EvaluacionSesionComponent implements OnInit {
   }
 
   async marcarAusencia(convocatoriaId: string): Promise<void> {
-    const motivo = prompt('Ingresa el motivo académico de la ausencia (nota 0):');
+    const motivo = await this.uiDialog.solicitarTexto({
+      eyebrow: 'Inasistencia Académica // RF-24',
+      titulo: 'Confirmar Ausencia (Nota 0)',
+      mensaje: 'Registra la justificación institucional o académica para confirmar la inasistencia del estudiante en esta sesión.',
+      etiquetaCampo: 'Motivo de la ausencia',
+      placeholder: 'Ej: Inasistencia injustificada a la sesión evaluativa.',
+      botonConfirmar: 'Confirmar Ausencia',
+      tono: 'warn',
+    });
     if (!motivo) return;
     this.accionEnProgreso.set(true);
     try {
@@ -392,7 +410,15 @@ export class EvaluacionSesionComponent implements OnInit {
   }
 
   async rectificarAusencia(convocatoriaId: string, idConfirmacion: string): Promise<void> {
-    const motivo = prompt('Motivo para rectificar/anular la ausencia:');
+    const motivo = await this.uiDialog.solicitarTexto({
+      eyebrow: 'Rectificación Académica // RF-24',
+      titulo: 'Anular o Rectificar Ausencia',
+      mensaje: 'Indica el motivo académico por el cual se rectifica o anula la ausencia registrada.',
+      etiquetaCampo: 'Motivo de rectificación',
+      placeholder: 'Ej: Excusa médica o reprogramación autorizada.',
+      botonConfirmar: 'Rectificar Ausencia',
+      tono: 'amber',
+    });
     if (!motivo) return;
     this.accionEnProgreso.set(true);
     try {

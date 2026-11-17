@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -19,7 +18,6 @@ import { mensajeError } from '../../core/api-error';
     CommonModule,
     FormsModule,
     MatCardModule,
-    MatTabsModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
@@ -42,78 +40,56 @@ import { mensajeError } from '../../core/api-error';
 
         <mat-card class="panel auth-card">
           <span class="tag green">Protocolo autenticado · Acceso seguro</span>
-          <p class="auth-hint">Selecciona tu perfil e ingresa tus credenciales institucionales o código de convocatoria.</p>
+          <p class="auth-hint">Ingresa tu correo institucional y tu contraseña o código de convocatoria.</p>
 
-          <mat-tab-group mat-stretch-tabs="false" mat-align-tabs="center" [(selectedIndex)]="tabSeleccionada">
-            <!-- Login Personal Docente / Admin -->
-            <mat-tab label="Personal Docente / Admin">
-              <form (ngSubmit)="loginPersonal()" class="login-form">
-                <mat-form-field appearance="outline" class="full">
-                  <mat-label>Correo electrónico</mat-label>
-                  <input matInput type="email" [(ngModel)]="correoPersonal" name="correoPersonal" required autocomplete="username" placeholder="docente@universidad.edu.co" />
-                  <mat-icon matPrefix class="cyan">email</mat-icon>
-                </mat-form-field>
+          <form (ngSubmit)="iniciarSesion()" class="login-form">
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Correo institucional</mat-label>
+              <input
+                matInput
+                type="email"
+                [(ngModel)]="correo"
+                name="correo"
+                required
+                autocomplete="username"
+                placeholder="usuario@universidad.edu.co"
+              />
+              <mat-icon matPrefix class="cyan">alternate_email</mat-icon>
+            </mat-form-field>
 
-                <mat-form-field appearance="outline" class="full">
-                  <mat-label>Contraseña</mat-label>
-                  <input matInput [type]="mostrarClave ? 'text' : 'password'" [(ngModel)]="clavePersonal" name="clavePersonal" required autocomplete="current-password" />
-                  <mat-icon matPrefix class="cyan">lock</mat-icon>
-                  <button mat-icon-button matSuffix type="button" (click)="mostrarClave = !mostrarClave">
-                    <mat-icon>{{ mostrarClave ? 'visibility_off' : 'visibility' }}</mat-icon>
-                  </button>
-                </mat-form-field>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Contraseña o código de convocatoria</mat-label>
+              <input
+                matInput
+                [type]="mostrarCredencial ? 'text' : 'password'"
+                [(ngModel)]="credencial"
+                name="credencial"
+                required
+                autocomplete="current-password"
+                placeholder="Clave institucional o código de sesión"
+              />
+              <mat-icon matPrefix class="cyan">lock</mat-icon>
+              <button mat-icon-button matSuffix type="button" (click)="mostrarCredencial = !mostrarCredencial">
+                <mat-icon>{{ mostrarCredencial ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </mat-form-field>
 
-                @if (errorPersonal()) {
-                  <div class="error-box">{{ errorPersonal() }}</div>
-                }
+            @if (errorLogin()) {
+              <div class="error-box">{{ errorLogin() }}</div>
+            }
 
-                <button mat-flat-button color="primary" class="full submit-btn" type="submit" [disabled]="cargando()">
-                  @if (cargando()) {
-                    <mat-spinner diameter="20"></mat-spinner>
-                  } @else {
-                    Ingresar como Personal
-                  }
-                </button>
-              </form>
-            </mat-tab>
-
-            <!-- Login Estudiante -->
-            <mat-tab label="Estudiante">
-              <form (ngSubmit)="loginEstudiante()" class="login-form">
-                <div class="info-box">
-                  Ingresa con tu correo y el <strong>código de acceso de convocatoria</strong> emitido por tu docente.
-                </div>
-
-                <mat-form-field appearance="outline" class="full">
-                  <mat-label>Correo del estudiante</mat-label>
-                  <input matInput type="email" [(ngModel)]="correoEstudiante" name="correoEstudiante" required placeholder="estudiante@universidad.edu.co" />
-                  <mat-icon matPrefix class="cyan">school</mat-icon>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="full">
-                  <mat-label>Código de Convocatoria</mat-label>
-                  <input matInput type="password" [(ngModel)]="codigoConvocatoria" name="codigoConvocatoria" required placeholder="Código seguro de la sesión" />
-                  <mat-icon matPrefix class="cyan">key</mat-icon>
-                </mat-form-field>
-
-                @if (errorEstudiante()) {
-                  <div class="error-box">{{ errorEstudiante() }}</div>
-                }
-
-                <button mat-flat-button color="primary" class="full submit-btn" type="submit" [disabled]="cargando()">
-                  @if (cargando()) {
-                    <mat-spinner diameter="20"></mat-spinner>
-                  } @else {
-                    Ingresar al Simulador
-                  }
-                </button>
-              </form>
-            </mat-tab>
-          </mat-tab-group>
+            <button mat-flat-button color="primary" class="full submit-btn" type="submit" [disabled]="cargando() || !correo.trim() || !credencial.trim()">
+              @if (cargando()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                Ingresar a la Plataforma
+              }
+            </button>
+          </form>
 
           <div class="secure mono">
             <i></i>
-            <span>CONEXIÓN SEGURA · NODO POSTGRESQL ACTIVO</span>
+            <span>CONEXIÓN CIFRADA · SIMULADOR DE PSICOLOGÍA SOCIAL</span>
           </div>
         </mat-card>
       </div>
@@ -249,48 +225,24 @@ export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  tabSeleccionada = 0;
-  mostrarClave = false;
-
-  correoPersonal = '';
-  clavePersonal = '';
-  errorPersonal = signal<string | null>(null);
-
-  correoEstudiante = '';
-  codigoConvocatoria = '';
-  errorEstudiante = signal<string | null>(null);
-
+  mostrarCredencial = false;
+  correo = '';
+  credencial = '';
+  errorLogin = signal<string | null>(null);
   cargando = signal<boolean>(false);
 
-  async loginPersonal(): Promise<void> {
-    this.errorPersonal.set(null);
+  async iniciarSesion(): Promise<void> {
+    this.errorLogin.set(null);
     this.cargando.set(true);
     try {
-      const u = await this.auth.loginPersonal(this.correoPersonal, this.clavePersonal);
+      const u = await this.auth.loginUnificado(this.correo.trim(), this.credencial.trim());
       if (u) {
         void this.router.navigateByUrl(this.auth.rutaInicio());
       } else {
-        this.errorPersonal.set('No se pudo obtener el perfil de usuario.');
+        this.errorLogin.set('No se pudo obtener el perfil de usuario.');
       }
     } catch (err) {
-      this.errorPersonal.set(mensajeError(err));
-    } finally {
-      this.cargando.set(false);
-    }
-  }
-
-  async loginEstudiante(): Promise<void> {
-    this.errorEstudiante.set(null);
-    this.cargando.set(true);
-    try {
-      const u = await this.auth.loginEstudiante(this.correoEstudiante, this.codigoConvocatoria);
-      if (u) {
-        void this.router.navigateByUrl('/estudiante');
-      } else {
-        this.errorEstudiante.set('No se pudo verificar la credencial de estudiante.');
-      }
-    } catch (err) {
-      this.errorEstudiante.set(mensajeError(err));
+      this.errorLogin.set(mensajeError(err));
     } finally {
       this.cargando.set(false);
     }

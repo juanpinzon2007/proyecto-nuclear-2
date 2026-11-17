@@ -833,3 +833,36 @@ pre.json {
   color: var(--coral);
   border: 1px solid rgba(232, 67, 81, 0.45);
 }
+
+/* ==================== DIÁLOGOS Y NOTIFICACIONES NEUROCOMMAND ==================== */
+.neuro-backdrop {
+  background: rgba(4, 7, 11, 0.78) !important;
+  backdrop-filter: blur(6px);
+}
+
+.neuro-dialog-panel .mat-mdc-dialog-surface {
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65) !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+.mat-mdc-snack-bar-container .mdc-snackbar__surface {
+  background: #0d141d !important;
+  color: var(--text) !important;
+  border: 1px solid rgba(0, 229, 244, 0.45) !important;
+  border-left: 4px solid var(--cyan) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55) !important;
+}
+
+.mat-mdc-snack-bar-container .mdc-snackbar__label {
+  color: var(--text) !important;
+  font-family: var(--body) !important;
+}
+
+.mat-mdc-snack-bar-container .mat-mdc-snack-bar-action {
+  color: var(--cyan) !important;
+  font-family: var(--mono) !important;
+}
