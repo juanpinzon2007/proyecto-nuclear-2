@@ -147,6 +147,41 @@ def descargar_reporte(id_sesion: IdPublico, usuario: UsuarioActual, proxy: Segui
         'X-Publicacion-SHA256':archivo.sha256})
 
 
+@router.get(
+    "/seguimiento/sesiones/{id_sesion}/reporte-provisional",
+    response_class=Response,
+    responses={
+        200: {
+            "content": {
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {"schema": {"type": "string", "format": "binary"}},
+                "application/pdf": {"schema": {"type": "string", "format": "binary"}},
+            },
+            "description": "Reporte provisional en tiempo real de sesiones activas o no publicadas aún.",
+        },
+        404: {"description": "Sesión inexistente"},
+    },
+)
+def descargar_reporte_provisional(
+    id_sesion: IdPublico,
+    usuario: UsuarioActual,
+    formato: Literal["xlsx", "pdf"] = "pdf",
+) -> Response:
+    from app.db.session import get_session_factory
+    from app.modules.identity.infrastructure.provisional_reports import generar_reporte_provisional
+
+    with get_session_factory()() as db:
+        contenido, media_type, nombre = generar_reporte_provisional(db, usuario, id_sesion, formato)
+    return Response(
+        contenido,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{nombre}"',
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
 @router.post("/seguimiento/participaciones/{id_participacion}/feedback", response_model=FeedbackDocente, status_code=201)
 def registrar_feedback(id_participacion: IdPublico, solicitud: SolicitudFeedback,
                        usuario: UsuarioActual, proxy: Seguimiento):
