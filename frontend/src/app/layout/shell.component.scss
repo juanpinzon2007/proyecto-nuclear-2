@@ -32,22 +32,23 @@
 }
 
 .brand-mark {
-  width: 50px;
-  height: 44px;
-  min-width: 50px;
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--line-strong);
+  padding: 4px;
+  border: 1.5px solid var(--cyan);
   border-radius: 12px;
-  background: radial-gradient(circle at center, rgba(0, 229, 244, 0.22), #08121b 75%);
-  box-shadow: 0 0 16px rgba(0, 229, 244, 0.16);
-  color: var(--cyan);
+  background: #ffffff;
+  box-shadow: 0 0 16px rgba(0, 229, 244, 0.22);
+}
 
-  mat-icon {
-    font-size: 26px;
-    width: 26px;
-    height: 26px;
-  }
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .brand-copy {
@@ -63,7 +64,25 @@
   font-weight: 700;
   letter-spacing: 1.5px;
   color: var(--cyan);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
   white-space: nowrap;
+}
+
+.brand-slogan {
+  font-family: var(--body);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .brand-slogan {
+    display: none;
+  }
 }
 
 .brand-view {

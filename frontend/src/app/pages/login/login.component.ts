@@ -29,11 +29,12 @@ import { mensajeError } from '../../core/api-error';
       <div class="login-wrap stagger">
         <section class="brand-card">
           <div class="brand-emblem">
-            <mat-icon>psychology</mat-icon>
+            <img class="brand-logo" src="/logo-sps.png" alt="Logo SPS" />
           </div>
           <div>
             <h1>SPS</h1>
             <small>Simulador de Psicología Social</small>
+            <p class="brand-slogan">Aprender a comprender la sociedad.</p>
           </div>
         </section>
 
@@ -121,42 +122,46 @@ import { mensajeError } from '../../core/api-error';
       box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
     }
     .brand-emblem {
-      width: 78px;
-      height: 78px;
+      width: 84px;
+      height: 84px;
       display: grid;
       place-items: center;
-      border: 2px solid #00a7b8;
-      background: radial-gradient(circle, rgba(0, 229, 244, 0.22), #0a1b24 78%);
-      color: var(--cyan);
+      border: 2px solid #0b3b6e;
+      border-radius: 14px;
+      padding: 6px;
+      background: #ffffff;
+      box-shadow: 0 6px 18px rgba(11, 59, 110, 0.14);
     }
-    .brand-emblem mat-icon {
-      font-size: 42px;
-      width: 42px;
-      height: 42px;
-    }
-    .module {
-      margin: 0 0 4px;
-      color: #00727e;
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
+    .brand-logo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
     }
     .brand-card h1 {
       margin: 0;
-      color: #0d3038;
+      color: #0b3b6e;
       font-family: var(--display);
-      font-size: 36px;
-      font-weight: 700;
+      font-size: 38px;
+      font-weight: 800;
       line-height: 0.96;
       text-transform: uppercase;
+      letter-spacing: 1px;
     }
     .brand-card small {
       display: block;
-      margin-top: 5px;
-      color: #536069;
-      font-family: var(--mono);
-      font-size: 11px;
+      margin-top: 4px;
+      color: #1d2d3a;
+      font-family: var(--body);
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .brand-slogan {
+      margin: 4px 0 0;
+      color: #4a5e6d;
+      font-family: var(--body);
+      font-style: italic;
+      font-size: 13px;
     }
     .auth-card {
       display: grid;

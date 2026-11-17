@@ -3,10 +3,10 @@
   <header class="neuro-header">
     <a class="brand-link" routerLink="/">
       <div class="brand-mark">
-        <mat-icon>psychology</mat-icon>
+        <img class="brand-logo" src="/logo-sps.png" alt="Logo SPS" />
       </div>
       <div class="brand-copy">
-        <span class="brand-title">SPS</span>
+        <span class="brand-title">SPS <em class="brand-slogan">· Aprender a comprender la sociedad.</em></span>
         <span class="brand-view">{{ obtenerTituloVista() }}</span>
       </div>
     </a>
@@ -15,34 +15,30 @@
 
     <div class="hud-telemetry">
       @if (auth.esDocente() && auth.tienePermiso('CREAR_CASOS')) {
-        <a routerLink="/casos/nuevo" class="hud-cta">
-          <mat-icon>add</mat-icon>
-          <span>NUEVO CASO</span>
-        </a>
+      <a routerLink="/casos/nuevo" class="hud-cta">
+        <mat-icon>add</mat-icon>
+        <span>NUEVO CASO</span>
+      </a>
       }
     </div>
 
     @if (auth.usuario(); as u) {
-      <div class="user-hud">
-        <div class="user-avatar" [class.av-admin]="auth.esAdmin()" [class.av-doc]="auth.esDocente() && !auth.esAdmin()">
-          <img class="avatar-img" [src]="obtenerAvatar()" [alt]="u.correo" />
-        </div>
-        <div class="user-meta">
-          <span class="user-mail" [title]="u.correo">{{ u.correo }}</span>
-          <div class="roles-row">
-            @for (r of u.roles; track r) {
-              <span
-                class="role-tag"
-                [class.role-admin]="r === 'ADMINISTRADOR'"
-                [class.role-doc]="r === 'DOCENTE'"
-                [class.role-est]="r === 'ESTUDIANTE'"
-              >
-                {{ r }}
-              </span>
-            }
-          </div>
+    <div class="user-hud">
+      <div class="user-avatar" [class.av-admin]="auth.esAdmin()" [class.av-doc]="auth.esDocente() && !auth.esAdmin()">
+        <img class="avatar-img" [src]="obtenerAvatar()" [alt]="u.correo" />
+      </div>
+      <div class="user-meta">
+        <span class="user-mail" [title]="u.correo">{{ u.correo }}</span>
+        <div class="roles-row">
+          @for (r of u.roles; track r) {
+          <span class="role-tag" [class.role-admin]="r === 'ADMINISTRADOR'" [class.role-doc]="r === 'DOCENTE'"
+            [class.role-est]="r === 'ESTUDIANTE'">
+            {{ r }}
+          </span>
+          }
         </div>
       </div>
+    </div>
     }
 
     <button type="button" class="logout-btn" (click)="auth.logout()" title="Cerrar Sesión">
@@ -61,37 +57,37 @@
   <!-- ==================== DOCK TÁCTICO INFERIOR FIJO (72px) ==================== -->
   <nav class="bottom-nav" aria-label="Navegación principal">
     @if (auth.esDocente()) {
-      <a routerLink="/casos" routerLinkActive="active" class="dock-item">
-        <mat-icon>folder_special</mat-icon>
-        <b>Casos</b>
-        <span>Autoría</span>
-      </a>
-      <a routerLink="/programacion" routerLinkActive="active" class="dock-item">
-        <mat-icon>event</mat-icon>
-        <b>Sesiones</b>
-        <span>Grupos</span>
-      </a>
-      <a routerLink="/seguimiento" routerLinkActive="active" class="dock-item">
-        <mat-icon>insights</mat-icon>
-        <b>Auditoría</b>
-        <span>Notas RF-15</span>
-      </a>
+    <a routerLink="/casos" routerLinkActive="active" class="dock-item">
+      <mat-icon>folder_special</mat-icon>
+      <b>Casos</b>
+      <span>Autoría</span>
+    </a>
+    <a routerLink="/programacion" routerLinkActive="active" class="dock-item">
+      <mat-icon>event</mat-icon>
+      <b>Sesiones</b>
+      <span>Grupos</span>
+    </a>
+    <a routerLink="/seguimiento" routerLinkActive="active" class="dock-item">
+      <mat-icon>insights</mat-icon>
+      <b>Auditoría</b>
+      <span>Notas RF-15</span>
+    </a>
     }
 
     @if (auth.esAdmin()) {
-      <a routerLink="/administracion/docentes" routerLinkActive="active" class="dock-item">
-        <mat-icon>admin_panel_settings</mat-icon>
-        <b>Admin</b>
-        <span>Gobernanza</span>
-      </a>
+    <a routerLink="/administracion/docentes" routerLinkActive="active" class="dock-item">
+      <mat-icon>admin_panel_settings</mat-icon>
+      <b>Admin</b>
+      <span>Gobernanza</span>
+    </a>
     }
 
     @if (auth.esEstudiante()) {
-      <a routerLink="/estudiante" routerLinkActive="active" class="dock-item">
-        <mat-icon>school</mat-icon>
-        <b>Misión</b>
-        <span>Convocatoria</span>
-      </a>
+    <a routerLink="/estudiante" routerLinkActive="active" class="dock-item">
+      <mat-icon>school</mat-icon>
+      <b>Misión</b>
+      <span>Convocatoria</span>
+    </a>
     }
   </nav>
 </div>
