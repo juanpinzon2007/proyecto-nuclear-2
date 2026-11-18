@@ -152,7 +152,10 @@ def _serializar_grupo(db: Session, grupo: GrupoAcademicoORM) -> GrupoResponse:
             GrupoEstudianteORM.activo,
         )
         .join(GrupoEstudianteORM, GrupoEstudianteORM.id_estudiante == UsuarioORM.id_usuario)
-        .where(GrupoEstudianteORM.id_grupo == grupo.id_grupo)
+        .where(
+            GrupoEstudianteORM.id_grupo == grupo.id_grupo,
+            GrupoEstudianteORM.activo.is_(True),
+        )
         .order_by(UsuarioORM.nombre, UsuarioORM.id_usuario)
     ).all()
 

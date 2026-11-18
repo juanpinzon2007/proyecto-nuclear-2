@@ -1,5 +1,5 @@
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 from app.core.config import get_settings
 from app.db.models import registrar_modelos_integrados
@@ -21,6 +21,18 @@ registrar_modelos_integrados()
 
 # Crear la aplicación principal.
 app = FastAPI(title=get_settings().app_name)
+
+
+@app.middleware("http")
+async def agregar_cabeceras_seguridad(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "geolocation=(), camera=(), microphone=()")
+    if request.url.path.startswith(("/api/v1/", "/scheduling/")):
+        response.headers.setdefault("Cache-Control", "no-store")
+    return response
 
 
 # Módulo de Casos - Juan Andrés.
