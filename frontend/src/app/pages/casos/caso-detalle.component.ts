@@ -1,16 +1,18 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
+import { firstValueFrom } from 'rxjs';
 import { CasesService } from '../../core/cases.service';
 import { AuthService } from '../../core/auth.service';
 import { CasoDetalleResponse } from '../../core/api.models';
 import { mensajeError } from '../../core/api-error';
+import { UiDialogService } from '../../core/ui-dialog.service';
 
 @Component({
   selector: 'app-caso-detalle',
@@ -43,6 +45,25 @@ import { mensajeError } from '../../core/api-error';
             <a mat-flat-button color="primary" [routerLink]="['/casos', versionId, 'editar']">
               <mat-icon>edit</mat-icon> Editar Borrador
             </a>
+            <button mat-flat-button color="accent" type="button" (click)="publicar()">
+              <mat-icon>publish</mat-icon> Publicar
+            </button>
+          }
+          @if (caso()?.estado === 'PUBLICADO' && auth.tienePermiso('CREAR_CASOS')) {
+            <button mat-stroked-button color="accent" type="button" (click)="clonar()">
+              <mat-icon>content_copy</mat-icon> Nueva Versión
+            </button>
+            <button mat-stroked-button color="warn" type="button" (click)="archivar()">
+              <mat-icon>archive</mat-icon> Archivar
+            </button>
+          }
+          @if (caso()?.estado === 'ARCHIVADO' && auth.tienePermiso('CREAR_CASOS')) {
+            <button mat-flat-button color="accent" type="button" (click)="republicar()">
+              <mat-icon>replay</mat-icon> Republicar como Nueva Versión
+            </button>
+            <button mat-stroked-button type="button" (click)="clonar()">
+              <mat-icon>content_copy</mat-icon> Crear Borrador Editable
+            </button>
           }
           <a mat-stroked-button [routerLink]="['/casos', versionId, 'grafo']">
             <mat-icon>account_tree</mat-icon> Ver / Configurar Grafo
@@ -52,6 +73,9 @@ import { mensajeError } from '../../core/api-error';
 
       @if (error()) {
         <div class="error-box">{{ error() }}</div>
+      }
+      @if (exito()) {
+        <div class="success-box">{{ exito() }}</div>
       }
 
       @if (cargando()) {
@@ -64,7 +88,7 @@ import { mensajeError } from '../../core/api-error';
           <mat-card-header>
             <mat-card-title>01 // Ficha Descriptiva</mat-card-title>
             <mat-card-subtitle>
-              Estado: <span class="chip" [class.ok]="c.estado === 'PUBLICADO'" [class.warn]="c.estado === 'BORRADOR'">{{ c.estado }}</span>
+              Estado: <span class="chip" [class.ok]="c.estado === 'PUBLICADO'" [class.warn]="c.estado === 'BORRADOR'" [class.bad]="c.estado === 'ARCHIVADO'">{{ c.estado }}</span>
               · Tiempo estimado: <strong class="cyan">{{ c.tiempo_estimado_min }} MIN</strong>
             </mat-card-subtitle>
           </mat-card-header>
@@ -289,19 +313,25 @@ import { mensajeError } from '../../core/api-error';
 })
 export class CasoDetalleComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly casesService = inject(CasesService);
+  private readonly uiDialog = inject(UiDialogService);
   readonly auth = inject(AuthService);
 
   versionId = '';
   readonly caso = signal<CasoDetalleResponse | null>(null);
   readonly cargando = signal<boolean>(true);
   readonly error = signal<string | null>(null);
+  readonly exito = signal<string | null>(null);
 
   ngOnInit(): void {
-    this.versionId = this.route.snapshot.paramMap.get('id') ?? '';
-    if (this.versionId) {
-      this.cargarDetalle();
-    }
+    this.route.paramMap.subscribe((pm) => {
+      const id = pm.get('id') ?? '';
+      if (id && id !== this.versionId) {
+        this.versionId = id;
+        this.cargarDetalle();
+      }
+    });
   }
 
   cargarDetalle(): void {
@@ -317,6 +347,79 @@ export class CasoDetalleComponent implements OnInit {
         this.cargando.set(false);
       },
     });
+  }
+
+  async publicar(): Promise<void> {
+    const ok = await this.uiDialog.confirmar({
+      eyebrow: 'Validación y Publicación // RF-09',
+      titulo: 'Publicar Caso',
+      mensaje: '¿Deseas validar, completar el recorrido lineal si falta y publicar esta versión?',
+      botonConfirmar: 'Publicar',
+      botonCancelar: 'Cancelar',
+      tono: 'green',
+    });
+    if (!ok) return;
+    this.error.set(null);
+    this.exito.set(null);
+    try {
+      await this.casesService.publicarInteligente(this.versionId);
+      this.exito.set('Caso publicado exitosamente.');
+      this.cargarDetalle();
+    } catch (err) {
+      this.error.set(mensajeError(err));
+    }
+  }
+
+  async archivar(): Promise<void> {
+    const ok = await this.uiDialog.confirmar({
+      eyebrow: 'Gestión de Versiones // Casos',
+      titulo: 'Archivar Versión',
+      mensaje: 'Esta versión pasará a ARCHIVADO. Luego podrás republicarla o crear una nueva versión editable cuando quieras.',
+      botonConfirmar: 'Archivar',
+      botonCancelar: 'Cancelar',
+      tono: 'warn',
+    });
+    if (!ok) return;
+    this.error.set(null);
+    this.exito.set(null);
+    try {
+      await firstValueFrom(this.casesService.archivar(this.versionId));
+      this.exito.set('Versión archivada.');
+      this.cargarDetalle();
+    } catch (err) {
+      this.error.set(mensajeError(err));
+    }
+  }
+
+  async republicar(): Promise<void> {
+    const ok = await this.uiDialog.confirmar({
+      eyebrow: 'Reactivación // RF-09',
+      titulo: 'Republicar como Nueva Versión Activa',
+      mensaje: 'Se generará y publicará una nueva versión (v+1) con esta misma estructura, manteniendo intacta la versión archivada.',
+      botonConfirmar: 'Republicar Ahora',
+      botonCancelar: 'Cancelar',
+      tono: 'green',
+    });
+    if (!ok) return;
+    this.error.set(null);
+    this.exito.set(null);
+    try {
+      const res = await firstValueFrom(this.casesService.republicar(this.versionId));
+      this.exito.set('Nueva versión publicada correctamente.');
+      void this.router.navigate(['/casos', res.version_id]);
+    } catch (err) {
+      this.error.set(mensajeError(err));
+    }
+  }
+
+  async clonar(): Promise<void> {
+    this.error.set(null);
+    try {
+      const res = await firstValueFrom(this.casesService.clonar(this.versionId));
+      void this.router.navigate(['/casos', res.version_id, 'editar']);
+    } catch (err) {
+      this.error.set(mensajeError(err));
+    }
   }
 }
 

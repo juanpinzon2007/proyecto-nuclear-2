@@ -10,6 +10,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { firstValueFrom } from 'rxjs';
 import { CasesService } from '../../core/cases.service';
 import { AuthService } from '../../core/auth.service';
 import { CasoPayload, CasoResumenResponse } from '../../core/api.models';
@@ -177,8 +178,19 @@ import { UiDialogService } from '../../core/ui-dialog.service';
                   </button>
                 }
                 @if (c.estado === 'PUBLICADO' && auth.tienePermiso('CREAR_CASOS')) {
+                  <button mat-button color="accent" (click)="clonarComoBorrador(c.version_id)" title="Crear una nueva versión borrador editable">
+                    <mat-icon>content_copy</mat-icon> Nueva Versión
+                  </button>
                   <button mat-button color="warn" (click)="archivar(c.version_id)" title="Archivar versión">
                     <mat-icon>archive</mat-icon> Archivar
+                  </button>
+                }
+                @if (c.estado === 'ARCHIVADO' && auth.tienePermiso('CREAR_CASOS')) {
+                  <button mat-button color="accent" (click)="republicar(c.version_id)" title="Crear y publicar nueva versión activa sin alterar el histórico">
+                    <mat-icon>replay</mat-icon> Republicar
+                  </button>
+                  <button mat-button (click)="clonarComoBorrador(c.version_id)" title="Crear nueva versión en borrador para editar antes de publicar">
+                    <mat-icon>content_copy</mat-icon> Nueva Versión
                   </button>
                 }
               </td>
@@ -312,40 +324,94 @@ export class CasosListaComponent implements OnInit {
     const ok = await this.uiDialog.confirmar({
       eyebrow: 'Validación y Publicación // RF-09',
       titulo: 'Publicar Versión del Caso',
-      mensaje: '¿Deseas publicar esta versión del caso? Una vez publicada, quedará inmutable y disponible para programar sesiones académicas.',
+      mensaje: '¿Deseas validar el caso, completar su recorrido si falta y publicarlo? Una vez publicada la versión quedará inmutable y lista para programar sesiones.',
       botonConfirmar: 'Publicar Caso',
       botonCancelar: 'Cancelar',
       tono: 'green',
     });
     if (!ok) return;
     this.error.set(null);
-    this.casesService.publicar(versionId).subscribe({
-      next: () => {
-        this.mensajeExito.set('Caso publicado exitosamente.');
-        this.cargarCasos();
-      },
-      error: (err) => this.error.set(mensajeError(err)),
-    });
+    this.mensajeExito.set(null);
+    try {
+      await this.casesService.publicarInteligente(versionId);
+      this.mensajeExito.set('Caso validado y publicado exitosamente.');
+      this.cargarCasos();
+    } catch (err) {
+      const msg = mensajeError(err);
+      this.error.set(msg);
+      const irEditar = await this.uiDialog.confirmar({
+        eyebrow: 'Publicación Incompleta // RF-09',
+        titulo: 'Faltan Datos Obligatorios',
+        mensaje: `${msg}\n\n¿Deseas abrir el editor para completar la rúbrica, justificaciones o escenarios?`,
+        botonConfirmar: 'Ir al Editor',
+        botonCancelar: 'Cerrar',
+        tono: 'amber',
+      });
+      if (irEditar) {
+        void this.router.navigate(['/casos', versionId, 'editar']);
+      }
+    }
   }
 
   async archivar(versionId: string): Promise<void> {
     const ok = await this.uiDialog.confirmar({
       eyebrow: 'Gestión de Versiones // Casos',
       titulo: 'Archivar Caso',
-      mensaje: '¿Deseas archivar esta versión del caso? Dejará de mostrarse como versión activa para nuevas sesiones.',
+      mensaje: '¿Deseas archivar esta versión del caso? Dejará de mostrarse como versión activa para nuevas sesiones, y podrás republicarla como nueva versión cuando quieras.',
       botonConfirmar: 'Archivar Versión',
       botonCancelar: 'Cancelar',
       tono: 'warn',
     });
     if (!ok) return;
     this.error.set(null);
+    this.mensajeExito.set(null);
     this.casesService.archivar(versionId).subscribe({
       next: () => {
-        this.mensajeExito.set('Caso archivado.');
+        this.mensajeExito.set('Caso archivado. Puedes volver a publicarlo usando "Republicar" o "Nueva Versión".');
         this.cargarCasos();
       },
       error: (err) => this.error.set(mensajeError(err)),
     });
+  }
+
+  async republicar(versionId: string): Promise<void> {
+    const ok = await this.uiDialog.confirmar({
+      eyebrow: 'Reactivación de Caso // RF-09',
+      titulo: 'Republicar como Nueva Versión Activa',
+      mensaje: 'Se creará y publicará una nueva versión (v+1) con los mismos escenarios, rúbrica y grafo, conservando intacto el histórico de la versión archivada.',
+      botonConfirmar: 'Republicar Ahora',
+      botonCancelar: 'Cancelar',
+      tono: 'green',
+    });
+    if (!ok) return;
+    this.error.set(null);
+    this.mensajeExito.set(null);
+    try {
+      const res = await firstValueFrom(this.casesService.republicar(versionId));
+      this.mensajeExito.set(`Nueva versión publicada (${res.version_id.slice(0, 8)}…) lista para programar sesiones.`);
+      this.cargarCasos();
+    } catch (err) {
+      this.error.set(mensajeError(err));
+    }
+  }
+
+  async clonarComoBorrador(versionId: string): Promise<void> {
+    const ok = await this.uiDialog.confirmar({
+      eyebrow: 'Versionado de Casos // RF-05',
+      titulo: 'Crear Nueva Versión en Borrador',
+      mensaje: 'Se creará un borrador editable (v+1) copiando escenarios, opciones y rúbrica de esta versión para modificarlo y volver a publicar.',
+      botonConfirmar: 'Crear Borrador y Editar',
+      botonCancelar: 'Cancelar',
+      tono: 'cyan',
+    });
+    if (!ok) return;
+    this.error.set(null);
+    try {
+      const res = await firstValueFrom(this.casesService.clonar(versionId));
+      void this.router.navigate(['/casos', res.version_id, 'editar']);
+    } catch (err) {
+      this.error.set(mensajeError(err));
+    }
   }
 }
 

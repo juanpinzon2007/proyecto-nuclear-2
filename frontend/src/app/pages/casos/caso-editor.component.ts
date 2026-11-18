@@ -14,7 +14,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 import { mensajeError } from '../../core/api-error';
-import { CasoPayload, GrafoSolicitud, TransicionSolicitud } from '../../core/api.models';
+import { CasoPayload } from '../../core/api.models';
 import { CasesService } from '../../core/cases.service';
 
 interface OpcionDraft {
@@ -464,6 +464,10 @@ export class CasoEditorComponent implements OnInit {
         }));
       }
 
+      const critNombrePorId = new Map<string, string>(
+        (d.rubrica?.criterios ?? []).map((c) => [c.id, c.nombre]),
+      );
+
       if (d.escenarios.length) {
         this.escenarios = d.escenarios.map((e, ei) => ({
           orden: ei + 1,
@@ -477,7 +481,7 @@ export class CasoEditorComponent implements OnInit {
               esCorrecta: o.es_correcta,
               justificacion: o.justificacion,
               valoraciones: Object.fromEntries(
-                Object.entries(o.valoraciones ?? {}).map(([k, v]) => [k, Number(v)]),
+                Object.entries(o.valoraciones ?? {}).map(([k, v]) => [critNombrePorId.get(k) ?? k, Number(v)]),
               ),
             })),
           })),
@@ -631,6 +635,42 @@ export class CasoEditorComponent implements OnInit {
     };
   }
 
+  private validarAntesDePublicar(): string[] {
+    const errs: string[] = [];
+    if (!this.casoNombre.trim()) errs.push('El caso debe tener nombre.');
+    if (!(Number(this.tiempoEstimadoMin) > 0)) errs.push('El tiempo estimado debe ser mayor que 0.');
+    if (!this.contextoHistoria.trim()) errs.push('Falta el contexto / historia del caso.');
+    if (!this.desarrolloSituacional.trim()) errs.push('Falta el desarrollo situacional.');
+    if (!this.rubricaNombre.trim()) errs.push('La rúbrica debe tener nombre.');
+    if (!this.criterios.length) errs.push('Debes definir al menos un criterio de rúbrica.');
+    if (Math.round(this.sumaPesos() * 100) !== 10000) {
+      errs.push(`Los pesos de la rúbrica suman ${this.sumaPesos()}%, deben sumar exactamente 100%.`);
+    }
+    for (let i = 0; i < this.criterios.length; i++) {
+      const c = this.criterios[i];
+      if (!c.nombre.trim()) errs.push(`Criterio #${i + 1}: falta nombre.`);
+      if (!c.niveles.length) errs.push(`Criterio '${c.nombre}': falta al menos un nivel.`);
+    }
+    if (!this.escenarios.length) errs.push('Debes incluir al menos un escenario.');
+    this.escenarios.forEach((esc, ei) => {
+      if (!esc.contextoSituacional.trim()) errs.push(`Escenario #${ei + 1}: falta contexto situacional.`);
+      if (esc.questions.length !== 1) {
+        errs.push(`Escenario #${ei + 1}: debe tener exactamente 1 pregunta para el recorrido ejecutable.`);
+      }
+      esc.questions.forEach((q, pi) => {
+        if (!q.enunciado.trim()) errs.push(`Escenario #${ei + 1}, pregunta ${pi + 1}: falta enunciado.`);
+        if (q.options.length < 2) errs.push(`Escenario #${ei + 1}, pregunta ${pi + 1}: mínimo 2 opciones.`);
+        if (!q.options.some((o) => o.esCorrecta)) errs.push(`Escenario #${ei + 1}, pregunta ${pi + 1}: marca al menos 1 opción correcta.`);
+        if (!q.options.some((o) => !o.esCorrecta)) errs.push(`Escenario #${ei + 1}, pregunta ${pi + 1}: requiere al menos 1 opción incorrecta.`);
+        q.options.forEach((o, oi) => {
+          if (!o.texto.trim()) errs.push(`Escenario #${ei + 1}, opción ${oi + 1}: falta texto de respuesta.`);
+          if (!o.justificacion.trim()) errs.push(`Escenario #${ei + 1}, opción ${oi + 1}: falta justificación teórica (RF-08).`);
+        });
+      });
+    });
+    return errs;
+  }
+
   async guardar(silencioso = false): Promise<string | null> {
     this.errorDetalle.set('');
     this.guardando.set(true);
@@ -656,38 +696,24 @@ export class CasoEditorComponent implements OnInit {
   }
 
   async guardarYPublicar(): Promise<void> {
+    const previos = this.validarAntesDePublicar();
+    if (previos.length > 0) {
+      this.errorDetalle.set(`Validación previa a publicación: ${previos.join(' · ')}`);
+      this.snack.open('Corrige los campos señalados arriba antes de publicar.', 'Cerrar', { duration: 4500 });
+      return;
+    }
+
     const id = await this.guardar(true);
     if (!id) return;
     this.guardando.set(true);
     this.errorDetalle.set('');
     try {
-      // Autoconfigurar recorrido lineal cuando cada escenario tiene 1 pregunta
-      const detalle = await firstValueFrom(this.cases.obtener(id));
-      if (detalle.escenarios.length > 0 && detalle.escenarios.every((e) => e.preguntas.length === 1)) {
-        const transiciones: TransicionSolicitud[] = [];
-        detalle.escenarios.forEach((esc, idx) => {
-          const siguiente = detalle.escenarios[idx + 1];
-          for (const op of esc.preguntas[0].opciones) {
-            transiciones.push(
-              siguiente
-                ? { opcion_id: op.id, tipo: 'ESCENA', destino_id: siguiente.id }
-                : { opcion_id: op.id, tipo: 'FIN', destino_id: null },
-            );
-          }
-        });
-        const grafoSol: GrafoSolicitud = {
-          escenario_inicial_id: detalle.escenarios[0].id,
-          transiciones,
-        };
-        await firstValueFrom(this.cases.guardarGrafo(id, grafoSol));
-      }
-
-      await firstValueFrom(this.cases.publicar(id));
+      await this.cases.publicarInteligente(id);
       this.snack.open('Caso validado y PUBLICADO con éxito.', 'OK', { duration: 3500 });
       await this.router.navigate(['/casos', id]);
     } catch (e) {
       this.errorDetalle.set(mensajeError(e));
-      this.snack.open('Revisa los errores de validación de estructura o grafo.', 'Cerrar', { duration: 4500 });
+      this.snack.open('No se pudo publicar el caso. Revisa el detalle en rojo.', 'Cerrar', { duration: 4500 });
     } finally {
       this.guardando.set(false);
     }

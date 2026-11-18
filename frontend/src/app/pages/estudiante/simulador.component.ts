@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,6 +18,7 @@ import {
 } from '../../core/api.models';
 import { ParticipationService } from '../../core/participation.service';
 import { UiDialogService } from '../../core/ui-dialog.service';
+import { SimuladorResultadoComponent } from './simulador-resultado.component';
 
 interface PasoPlano {
   escenario: EscenarioWorkspace;
@@ -30,158 +31,20 @@ interface PasoPlano {
   imports: [
     CommonModule,
     FormsModule,
-    RouterLink,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    SimuladorResultadoComponent,
   ],
   template: `
     <div class="sim-wrap content">
       @if (cargando()) {
         <div class="center-spin"><mat-spinner diameter="44"></mat-spinner></div>
       } @else if (resultado(); as res) {
-        <!-- PANTALLA RF-14: RESULTADO FINAL GAMIFICADO (.score-ring + .chart-card + .events) -->
-        <div class="res-header">
-          <a mat-stroked-button routerLink="/estudiante">
-            <mat-icon>arrow_back</mat-icon> Volver al Portal
-          </a>
-          <span class="tag green">{{ res.estado_intento }} · {{ res.modalidad }}</span>
-        </div>
-
-        <mat-card class="panel result-head stagger">
-          <mat-card-content>
-            <div class="spread head-top">
-              <div>
-                <p class="eyebrow green">Estado: Simulación Finalizada (RF-13 · RF-14)</p>
-                <h1>{{ res.caso_nombre }}</h1>
-              </div>
-              <span class="ref mono">{{ res.rubrica_nombre }}</span>
-            </div>
-
-            <div class="score-layout">
-              <div class="score-ring" [style.--score]="res.nota_final + '%'">
-                <div class="score-value">
-                  <span>{{ res.nota_final | number:'1.1-2' }}</span>
-                  <small>/ 100 PTS</small>
-                </div>
-              </div>
-
-              <div class="score-copy">
-                <div class="spread mono">
-                  <span>ÍNDICE DE DESEMPEÑO GLOBAL</span>
-                  <b class="green">{{ res.nota_final | number:'1.1-2' }} / 100</b>
-                </div>
-                <div class="meter">
-                  <span [style.width.%]="res.nota_final" style="--meter-color: var(--green)"></span>
-                </div>
-                <div class="stats-row mono">
-                  <span>ACIERTOS: <strong class="cyan">{{ res.aciertos }} / {{ res.total_preguntas }}</strong></span>
-                  <span>RESPONDIDAS: <strong class="cyan">{{ res.respondidas }} / {{ res.total_preguntas }}</strong></span>
-                </div>
-                <p class="summary">{{ res.comentario_automatico }}</p>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-
-        @if (res.retroalimentacion_docente) {
-          <mat-card class="panel fb-card">
-            <mat-card-header>
-              <mat-card-title>Retroalimentación General del Docente (RF-26)</mat-card-title>
-              <mat-card-subtitle>{{ res.fecha_retroalimentacion | date:'medium' }}</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content style="padding-top:14px; font-size:15px; line-height:1.6;">
-              {{ res.retroalimentacion_docente }}
-            </mat-card-content>
-          </mat-card>
-        }
-
-        @if (res.criterios.length) {
-          <section class="panel panel-pad chart-card">
-            <div class="spread">
-              <div>
-                <p class="eyebrow green">Desglose de Evaluación</p>
-                <h2 class="section-heading">Criterios de Rúbrica (RF-17)</h2>
-              </div>
-              <span class="tag green">RÚBRICA</span>
-            </div>
-
-            <div class="chart-bars">
-              @for (c of res.criterios; track c.id_criterio) {
-                <div class="chart-row">
-                  <span>{{ c.nombre }} ({{ c.peso }}%)</span>
-                  <i><b [style.width.%]="c.puntaje_obtenido"></b></i>
-                  <strong>{{ c.puntaje_obtenido | number:'1.1-2' }}</strong>
-                </div>
-              }
-            </div>
-
-            <div class="criterios-grid stagger">
-              @for (c of res.criterios; track c.id_criterio) {
-                <article class="crit-card">
-                  <div class="crit-top">
-                    <strong>{{ c.nombre }}</strong>
-                    <span class="tag amber">PESO {{ c.peso }}%</span>
-                  </div>
-                  <div class="crit-score mono">
-                    <span>{{ c.puntaje_obtenido | number:'1.1-2' }}<small>/100</small></span>
-                    <span class="tag green">{{ c.nivel_nombre }}</span>
-                  </div>
-                  <div class="meter" style="height: 8px;">
-                    <span [style.width.%]="c.puntaje_obtenido"></span>
-                  </div>
-                  <p class="muted crit-desc">{{ c.nivel_descriptor }}</p>
-                </article>
-              }
-            </div>
-          </section>
-        }
-
-        <section class="panel events">
-          <div class="events-head spread">
-            <div>
-              <p class="eyebrow">Bitácora de Decisiones (RF-08 · RF-14)</p>
-              <h3>Justificaciones Teóricas por Pregunta</h3>
-            </div>
-            <span class="tag">{{ res.preguntas.length }} ITEMS</span>
-          </div>
-
-          <div class="q-review-list">
-            @for (q of res.preguntas; track q.pregunta_id; let qi = $index) {
-              <div class="event-row" [class.q-ok]="q.es_correcta" [class.q-bad]="!q.es_correcta">
-                <div class="event-top">
-                  <b class="event-badge" [class.amber]="!q.es_correcta">
-                    {{ q.es_correcta ? '✓' : '!' }}
-                  </b>
-                  <span class="mono cyan">ESC-{{ q.escenario_orden }} · P{{ qi + 1 }}</span>
-                  <strong class="q-title-txt">{{ q.enunciado }}</strong>
-                  <span class="chip" [class.ok]="q.es_correcta" [class.bad]="!q.es_correcta">
-                    {{ !q.respondida ? 'SIN RESPONDER (0 PTS)' : (q.es_correcta ? 'CORRECTA' : 'INCORRECTA') }}
-                  </span>
-                </div>
-
-                <div class="event-body">
-                  <div class="q-ans"><strong>Tu selección:</strong> {{ q.opcion_elegida_texto }}</div>
-                  <div class="q-just"><strong>Justificación:</strong> {{ q.justificacion_elegida }}</div>
-                  @if (!q.es_correcta && q.opcion_correcta_texto) {
-                    <div class="q-corr">
-                      <strong>Respuesta esperada:</strong> {{ q.opcion_correcta_texto }}
-                      @if (q.justificacion_correcta) {
-                        <div style="margin-top:4px;"><em>Fundamento:</em> {{ q.justificacion_correcta }}</div>
-                      }
-                    </div>
-                  }
-                  @if (q.reflexion_estudiante) {
-                    <div class="q-refl"><strong>Tu reflexión:</strong> {{ q.reflexion_estudiante }}</div>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-        </section>
+        <app-simulador-resultado [res]="res" />
       } @else if (workspace(); as ws) {
         <!-- MODO ACTIVO: CONSOLA TÁCTICA + MAZO DE CARTAS INTERACTIVO (RF-10 + RF-23) -->
         <section class="panel panel-pad mission-strip">
@@ -232,64 +95,157 @@ interface PasoPlano {
         </section>
 
         @if (pasoActual(); as actual) {
-          <!-- Escenario Diorama Animado (heredado de proyecto-nuclear-final) -->
+          <!-- Escenario Cinemático Dinámico Estilo GTA 6 / Leonida Vice -->
           <section
             class="panel scene-frame"
+            [ngClass]="'theme-' + escenarioTema()"
             [class.scene-armed]="!!opcionElegida && !opcionLanzada()"
             [class.scene-responding]="!!opcionLanzada()"
             [class.stage-enter]="transicionandoEscena()"
-            [class.comisaria]="(actual.escenario.orden - 1) % 4 === 2"
           >
-            <span class="tag scene-tag">ESCENARIO 0{{ actual.escenario.orden }} · DECISIÓN {{ indiceActual() + 1 }}/{{ pasosPlanos().length }}</span>
+            <div class="scene-top-bar">
+              <span class="tag scene-tag">
+                ESCENARIO 0{{ actual.escenario.orden }} · DECISIÓN {{ indiceActual() + 1 }}/{{ pasosPlanos().length }}
+              </span>
+              <span class="hud-rec-pill mono">
+                <i class="rec-dot"></i> CAM-0{{ actual.escenario.orden }} // {{ etiquetaTemaEscenario() }}
+              </span>
+            </div>
+
             <div class="fx-orb o1"></div>
             <div class="fx-orb o2"></div>
+            <div class="vice-lens-flare"></div>
 
-            @switch ((actual.escenario.orden - 1) % 4) {
-              @case (0) {
-                <div class="stage hospital-crisis" aria-hidden="true">
-                  <div class="rain"></div>
-                  <div class="moon"></div>
-                  <div class="hospital"><b>CASO</b><i></i><i></i><i></i><i></i><em></em></div>
-                  <div class="ambulance"><span></span><b></b><i></i><i></i></div>
-                  <div class="family"><span></span><span></span><span></span></div>
-                  <div class="pulse-line"></div>
+            <div class="stage" [ngClass]="escenarioTema()" aria-hidden="true">
+              <div class="vice-sky"></div>
+              <div class="vice-grid-floor"></div>
+              <div class="scanline-veil"></div>
+
+              <!-- Silueta panorámica de palmeras y rascacielos Leonida / Vice -->
+              <svg class="vice-skyline" viewBox="0 0 800 180" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="sunGlow" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#ff4fd8" stop-opacity="0.72" />
+                    <stop offset="55%" stop-color="#ff9e3d" stop-opacity="0.55" />
+                    <stop offset="100%" stop-color="#0b1220" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <circle cx="620" cy="86" r="46" fill="url(#sunGlow)" />
+                <path d="M0 155 L45 155 L45 110 L75 110 L75 155 L110 155 L110 82 L152 82 L152 155 L210 155 L210 120 L248 120 L248 155 L520 155 L520 96 L562 96 L562 155 L590 155 L590 70 L642 70 L642 155 L695 155 L695 108 L745 108 L745 155 L800 155 L800 180 L0 180 Z"
+                      fill="#070b15" fill-opacity="0.88" />
+                <g class="palm-sway" stroke="#0d1526" stroke-width="4" fill="none">
+                  <path d="M90 165 Q98 118 82 88" />
+                  <path d="M82 88 Q56 76 42 92 M82 88 Q62 66 84 56 M82 88 Q106 70 118 88 M82 88 Q102 88 112 104" stroke-width="3" />
+                </g>
+              </svg>
+
+              @switch (escenarioTema()) {
+                @case ('tribunal_comite') {
+                  <div class="diorama-tribunal">
+                    <div class="board-window"></div>
+                    <div class="vote-scoreboard">
+                      <small>COMISIÓN EN VIVO</small>
+                      <b>{{ opcionLanzada() ? 'ACTA BLOQUEADA' : (opcionElegida ? 'VOTO LISTO' : 'VOTACIÓN 4 : 1') }}</b>
+                      <div class="vote-bars">
+                        <span class="vb warn"></span><span class="vb warn"></span>
+                        <span class="vb warn"></span><span class="vb warn"></span>
+                        <span class="vb you"></span>
+                      </div>
+                    </div>
+                    <div class="council-table">
+                      <div class="council-members">
+                        <div class="npc raised"><i></i><b></b><em>✋</em></div>
+                        <div class="npc raised d2"><i></i><b></b><em>✋</em></div>
+                        <div class="npc player-seat" [class.stood]="!!opcionLanzada()"><i></i><b></b></div>
+                        <div class="npc raised d3"><i></i><b></b><em>✋</em></div>
+                        <div class="npc"><i></i><b></b></div>
+                      </div>
+                    </div>
+                    <div class="spotlight s1"></div>
+                    <div class="spotlight s2"></div>
+                  </div>
+                }
+                @case ('laboratorio_autoridad') {
+                  <div class="diorama-lab">
+                    <div class="voltage-rack">
+                      <div class="dial-face"><div class="dial-needle"></div></div>
+                      <span class="volt-tag">150V // 300V</span>
+                    </div>
+                    <svg class="oscilloscope" viewBox="0 0 220 60">
+                      <path class="wave-trace" d="M0 30 L28 30 L38 10 L48 52 L58 18 L70 30 L110 30 L122 8 L134 54 L146 22 L156 30 L220 30" />
+                    </svg>
+                    <div class="lab-glass"></div>
+                    <div class="lab-subject"><i></i><b></b></div>
+                    <div class="lab-authority"><i></i><b></b><em>👉</em></div>
+                    <div class="emergency-beacon"></div>
+                  </div>
+                }
+                @case ('hospital_urgencias') {
+                  <div class="diorama-hospital">
+                    <div class="rain"></div>
+                    <div class="chopper-beam"></div>
+                    <div class="hospital"><b>URGENCIAS 24H</b><i></i><i></i><i></i><i></i><em></em></div>
+                    <div class="ambulance">
+                      <span class="lightbar"></span><b></b><i></i><i></i>
+                    </div>
+                    <svg class="ecg-svg" viewBox="0 0 400 40" preserveAspectRatio="none">
+                      <path class="ecg-path" d="M0 24 L80 24 L95 24 L105 6 L116 36 L126 14 L138 24 L240 24 L255 24 L265 4 L276 37 L288 12 L298 24 L400 24" />
+                    </svg>
+                  </div>
+                }
+                @case ('entrevista_clinica') {
+                  <div class="diorama-epicee">
+                    <div class="room-light"></div>
+                    <div class="venetian-glow"></div>
+                    <div class="clinician"><i></i><b></b></div>
+                    <div class="family-group"><span></span><span></span><span></span></div>
+                    <div class="message-card">
+                      <b>SESIÓN EN CURSO</b>
+                      <small>{{ opcionElegida ? 'Enfoque preparado' : 'Escucha activa' }}</small>
+                    </div>
+                    <div class="calm-wave w1"></div>
+                    <div class="calm-wave w2"></div>
+                  </div>
+                }
+                @case ('proteccion_riesgo') {
+                  <div class="diorama-protection">
+                    <div class="safe-door"></div>
+                    <div class="hex-shield">🛡️ PROTOCOLO</div>
+                    <div class="person protected"></div>
+                    <div class="radar-scan"><i></i></div>
+                    <div class="risk-meter"><span></span></div>
+                    <div class="path"></div>
+                  </div>
+                }
+                @default {
+                  <div class="diorama-network">
+                    <div class="node victim">NÚCLEO</div>
+                    <div class="node rights">ÉTICA</div>
+                    <div class="node health">PROTOCOLO</div>
+                    <div class="node mental">CONTEXTO</div>
+                    <div class="node risk">IMPACTO</div>
+                    <div class="net l1"></div>
+                    <div class="net l2"></div>
+                    <div class="route-dot"></div>
+                  </div>
+                }
+              }
+
+              <!-- Overlay Cinemático GTA 6 al seleccionar o lanzar carta -->
+              @if (opcionLanzada()) {
+                <div class="gta-cutscene">
+                  <div class="gta-stripes"></div>
+                  <div class="gta-banner">
+                    <span class="gta-tag">MISIÓN // DECISIÓN REGISTRADA</span>
+                    <h4>{{ etiquetaImpactoCarta() }}</h4>
+                    <small>ACTUALIZANDO TELEMETRÍA Y RUTA DEL CASO...</small>
+                  </div>
                 </div>
               }
-              @case (1) {
-                <div class="stage epicee-room" aria-hidden="true">
-                  <div class="room-light"></div>
-                  <div class="clinician"><i></i><b></b></div>
-                  <div class="family-group"><span></span><span></span><span></span></div>
-                  <div class="message-card"><b>DIÁLOGO</b><small>Escucha y análisis</small></div>
-                  <div class="calm-wave w1"></div>
-                  <div class="calm-wave w2"></div>
-                </div>
-              }
-              @case (2) {
-                <div class="stage protection-risk" aria-hidden="true">
-                  <div class="safe-door"></div>
-                  <div class="person protected"></div>
-                  <div class="risk-meter"><span></span></div>
-                  <div class="shield">CRITERIO ÉTICO</div>
-                  <div class="path"></div>
-                </div>
-              }
-              @default {
-                <div class="stage care-network" aria-hidden="true">
-                  <div class="node victim">Caso</div>
-                  <div class="node rights">Ética</div>
-                  <div class="node health">Protocolo</div>
-                  <div class="node mental">Contexto</div>
-                  <div class="node risk">Riesgo</div>
-                  <div class="net l1"></div>
-                  <div class="net l2"></div>
-                  <div class="route-dot"></div>
-                </div>
-              }
-            }
+            </div>
 
             <div class="scene-note">
-              <div class="ctx-lbl">Situación del Escenario {{ actual.escenario.orden }}</div>
+              <div class="ctx-lbl">Contexto del Escenario 0{{ actual.escenario.orden }}</div>
               <p>{{ actual.escenario.contexto_situacional }}</p>
             </div>
           </section>
@@ -298,11 +254,11 @@ interface PasoPlano {
           <section class="coach panel" [class.coach-pulse]="!!opcionElegida || !!respuestaAnimada()">
             <div class="coach-orb">🧠</div>
             <div class="grow">
-              <span class="eyebrow">Asistente SPS · Guía de Escenario</span>
+              <span class="eyebrow">Asistente SPS · Guía Táctica</span>
               <p class="coach-msg">{{ coachMensaje() }}</p>
             </div>
             <span class="tag" [class.green]="!!opcionElegida || !!opcionLanzada()">
-              {{ opcionLanzada() ? 'REGISTRADO ✓' : (opcionElegida ? 'CARTA ARMADA' : 'ELIGE CARTA') }}
+              {{ opcionLanzada() ? 'REGISTRADO ✓' : (opcionElegida ? 'CARTA ARMADA' : 'ELIGE UNA CARTA') }}
             </span>
           </section>
 
@@ -312,15 +268,18 @@ interface PasoPlano {
             <h2 class="q-enunciado">{{ actual.pregunta.enunciado }}</h2>
           </div>
 
-          <!-- Carril Horizontal de Cartas Inclinadas (Deck Gamificado) -->
+          <!-- Mazo de Cartas Estilo Poker (♠ ♥ ♦ ♣) -->
           <div class="card-rail" [class.has-selection]="!!opcionElegida" [class.locked]="!!opcionLanzada()">
             @for (op of actual.pregunta.opciones; track op.id; let oi = $index) {
+              @let palo = paloCarta(oi);
               <label
-                class="action-card"
+                class="poker-card"
+                [class.suit-red]="palo.rojo"
+                [class.suit-dark]="!palo.rojo"
                 [class.selected]="opcionElegida === op.id"
-                [class.option-selected]="opcionElegida === op.id"
                 [class.launched]="opcionLanzada() === op.id"
                 [style.--tilt]="cardTilt(oi)"
+                [style.--deal-delay]="(oi * 75) + 'ms'"
               >
                 <input
                   type="radio"
@@ -331,35 +290,43 @@ interface PasoPlano {
                   [disabled]="!!opcionLanzada() || guardando()"
                 />
 
-                <div class="card-top-row">
-                  <span class="mode-pill" [class.good]="opcionElegida === op.id || opcionLanzada() === op.id">
-                    OPCIÓN 0{{ oi + 1 }}
-                  </span>
-                  <span class="card-symbol">{{ opcionLanzada() === op.id ? '🚀' : (opcionElegida === op.id ? '✦' : '◆') }}</span>
+                <!-- Índice superior izquierdo estilo Poker -->
+                <div class="poker-corner top-left">
+                  <span class="poker-rank">{{ palo.rango }}</span>
+                  <span class="poker-suit">{{ palo.simbolo }}</span>
+                  <span class="poker-stack mono">OPC0{{ oi + 1 }}</span>
                 </div>
 
-                <span class="card-kicker">{{ opcionLanzada() === op.id ? 'DECISIÓN LANZADA' : 'CARTA DE INTERVENCIÓN' }}</span>
-                <strong class="card-decision-text">{{ op.texto }}</strong>
+                <!-- Marco central ilustrado de carta estilo Poker -->
+                <div class="poker-inner-frame">
+                  <div class="poker-crest">
+                    <svg class="crest-wreath" viewBox="0 0 80 80" aria-hidden="true">
+                      <circle cx="40" cy="40" r="32" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.45"/>
+                      <polygon points="40,6 44,14 36,14" fill="currentColor" opacity="0.5"/>
+                      <polygon points="40,74 44,66 36,66" fill="currentColor" opacity="0.5"/>
+                    </svg>
+                    <span class="crest-suit">{{ palo.simbolo }}</span>
+                    <span class="crest-arquetipo">{{ palo.arquetipo }}</span>
+                  </div>
 
-                <div class="stats">
-                  <label>
-                    <span>IMPACTO</span>
-                    <i><b [style.width.%]="70 + ((oi * 9) % 25)"></b></i>
-                  </label>
-                  <label>
-                    <span>CRITERIO</span>
-                    <i><b [style.width.%]="65 + ((oi * 13) % 30)"></b></i>
-                  </label>
+                  <div class="poker-hairline"></div>
+                  <strong class="poker-decision-text">{{ op.texto }}</strong>
+
+                  <div class="poker-footer-seal">
+                    @if (opcionLanzada() === op.id) {
+                      <span class="seal launched-seal">⚡ JUGADA LANZADA</span>
+                    } @else if (opcionElegida === op.id) {
+                      <span class="seal armed-seal">★ CARTA ELEGIDA</span>
+                    } @else {
+                      <span class="seal idle-seal">TOCAR PARA JUGAR {{ palo.simbolo }}</span>
+                    }
+                  </div>
                 </div>
 
-                <div class="touch-label">
-                  {{
-                    opcionLanzada() === op.id
-                      ? '[ ✓ CARTA LANZADA ]'
-                      : opcionElegida === op.id
-                        ? '[ ● CARTA SELECCIONADA ]'
-                        : '[ TOCA PARA SELECCIONAR ]'
-                  }}
+                <!-- Índice inferior derecho invertido 180° -->
+                <div class="poker-corner bottom-right" aria-hidden="true">
+                  <span class="poker-rank">{{ palo.rango }}</span>
+                  <span class="poker-suit">{{ palo.simbolo }}</span>
                 </div>
               </label>
             }
@@ -519,395 +486,175 @@ interface PasoPlano {
       box-shadow: 0 0 14px rgba(0, 229, 244, 0.22);
     }
 
-    /* ==================== SCENE FRAME DIORAMA ANIMADO ==================== */
-    .scene-frame {
-      position: relative;
-      overflow: hidden;
-      min-height: 310px;
-      padding: 20px;
-      display: grid;
-      gap: 14px;
-      background:
-        radial-gradient(circle at 80% 18%, rgba(0, 229, 244, 0.16), transparent 44%),
-        linear-gradient(180deg, rgba(11, 18, 28, 0.96), rgba(7, 10, 16, 0.98));
-      transition: border-color 0.28s ease, box-shadow 0.28s ease, transform 0.28s ease;
-    }
-    .scene-frame.comisaria {
-      background:
-        radial-gradient(circle at 22% 20%, rgba(255, 184, 0, 0.14), transparent 44%),
-        linear-gradient(180deg, rgba(16, 20, 28, 0.97), rgba(7, 10, 16, 0.99));
-    }
-    .scene-frame.scene-armed {
-      border-color: rgba(0, 229, 244, 0.72);
-      box-shadow: 0 0 28px rgba(0, 229, 244, 0.16);
-    }
-    .scene-frame.scene-responding {
-      border-color: var(--green);
-      box-shadow: 0 0 36px rgba(0, 232, 148, 0.26);
-      animation: sceneRespond 0.65s ease;
-    }
-    .scene-frame.stage-enter,
-    .prompt-banner.stage-enter {
-      animation: stageEnter 0.34s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    .scene-tag {
-      position: relative;
-      z-index: 3;
-      width: max-content;
-    }
-    .fx-orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(22px);
-      pointer-events: none;
-      opacity: 0.38;
-      animation: orbDrift 7s ease-in-out infinite alternate;
-    }
-    .fx-orb.o1 {
-      width: 140px;
-      height: 140px;
-      top: -30px;
-      right: 12%;
-      background: rgba(0, 229, 244, 0.3);
-    }
-    .fx-orb.o2 {
-      width: 110px;
-      height: 110px;
-      bottom: 40px;
-      left: 8%;
-      background: rgba(0, 232, 148, 0.22);
-      animation-delay: -3.2s;
-    }
-    .stage {
-      position: relative;
-      z-index: 2;
-      height: 168px;
-      border-radius: 14px;
-      border: 1px solid rgba(184, 211, 214, 0.2);
-      background: linear-gradient(180deg, rgba(7, 12, 20, 0.92), rgba(14, 21, 32, 0.95));
-      overflow: hidden;
-    }
+    /* ==================== SCENE FRAME GTA 6 / VICE LEONIDA ==================== */
+    .scene-frame { position: relative; overflow: hidden; min-height: 350px; padding: 20px; display: grid; gap: 14px; border-top: 2px solid rgba(255,79,216,.55); background: radial-gradient(circle at 86% 14%, rgba(255,79,216,.22), transparent 44%), linear-gradient(180deg, rgba(16,12,30,.97), rgba(7,10,18,.99)); transition: border-color .28s ease, box-shadow .28s ease; }
+    .scene-frame.scene-armed { border-color: #ff9e3d; box-shadow: 0 0 32px rgba(255,158,61,.28); }
+    .scene-frame.scene-responding { border-color: #ff4fd8; box-shadow: 0 0 42px rgba(255,79,216,.4); animation: gtaImpactFlash .9s cubic-bezier(.22,1,.36,1); }
+    .scene-frame.stage-enter, .prompt-banner.stage-enter { animation: stageEnter .4s cubic-bezier(.22,1,.36,1); }
+    .scene-top-bar { position: relative; z-index: 3; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .scene-tag { width: max-content; }
+    .hud-rec-pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; border: 1px solid rgba(255,79,216,.5); background: rgba(12,8,22,.85); color: #ffd1f5; font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; }
+    .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #ff4f79; box-shadow: 0 0 10px #ff4f79; animation: sirenGlow .85s ease-in-out infinite alternate; }
+    .fx-orb { position: absolute; border-radius: 50%; filter: blur(26px); pointer-events: none; opacity: .45; animation: orbDrift 7s ease-in-out infinite alternate; }
+    .fx-orb.o1 { width: 170px; height: 170px; top: -40px; right: 10%; background: rgba(255,79,216,.34); }
+    .fx-orb.o2 { width: 130px; height: 130px; bottom: 40px; left: 6%; background: rgba(0,229,244,.25); animation-delay: -3.2s; }
+    .vice-lens-flare { position: absolute; top: 42px; left: -20%; width: 140%; height: 2px; background: linear-gradient(90deg, transparent, rgba(255,79,216,.55), rgba(0,240,255,.7), rgba(255,158,61,.45), transparent); filter: blur(1px); opacity: .45; pointer-events: none; animation: flareSweep 7s ease-in-out infinite alternate; }
+    .stage { position: relative; z-index: 2; height: 214px; border-radius: 14px; border: 1px solid rgba(255,79,216,.34); background: #090c18; overflow: hidden; perspective: 900px; box-shadow: inset 0 0 42px rgba(0,0,0,.72); }
+    .scene-frame.scene-armed .stage { transform: scale(1.018); transition: transform .35s cubic-bezier(.22,1,.36,1); }
+    .vice-sky { position: absolute; inset: 0; background: linear-gradient(180deg, #160a2a 0%, #4d194d 45%, #c84b31 76%, #0c1220 100%); opacity: .92; animation: gtaCamFloat 10s ease-in-out infinite alternate; }
+    .stage.hospital_urgencias .vice-sky { background: linear-gradient(180deg, #070d1c 0%, #162242 52%, #2b1636 82%, #070b14 100%); }
+    .stage.entrevista_clinica .vice-sky { background: linear-gradient(180deg, #132234 0%, #24485a 48%, #c97a49 84%, #0b111c 100%); }
+    .stage.laboratorio_autoridad .vice-sky { background: linear-gradient(180deg, #091819 0%, #0f2f35 55%, #1d122b 88%, #070a10 100%); }
+    .vice-grid-floor { position: absolute; left: -20%; right: -20%; bottom: 0; height: 54px; background-image: linear-gradient(rgba(0,240,255,.22) 1px, transparent 1px), linear-gradient(90deg, rgba(255,79,216,.22) 1px, transparent 1px); background-size: 28px 14px; transform: perspective(260px) rotateX(62deg); transform-origin: bottom center; opacity: .45; }
+    .scanline-veil { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 4px); pointer-events: none; z-index: 6; }
+    .vice-skyline { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+    .palm-sway { transform-origin: 90px 165px; animation: palmSway 4.8s ease-in-out infinite; }
 
-    /* Escenario 1: Hospital / Urgencia clínica */
-    .hospital-crisis .rain {
+    .diorama-tribunal, .diorama-lab, .diorama-hospital, .diorama-epicee, .diorama-protection, .diorama-network { position: absolute; inset: 0; z-index: 3; }
+
+    /* 1. Tribunal / Comisión Directiva (Asch / Comité) */
+    .board-window { position: absolute; left: 20px; right: 20px; top: 14px; height: 96px; border: 1px solid rgba(0, 240, 255, 0.28); background: rgba(8, 12, 24, 0.36); backdrop-filter: blur(2px); }
+    .vote-scoreboard { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); padding: 8px 18px; border-radius: 8px; border: 1px solid rgba(255, 158, 61, 0.65); background: rgba(11, 14, 24, 0.92); box-shadow: 0 0 24px rgba(255, 79, 216, 0.28); text-align: center; z-index: 4; }
+    .vote-scoreboard small { display: block; font: 700 9px var(--mono); color: #ff9e3d; letter-spacing: 1.4px; }
+    .vote-scoreboard b { display: block; font: 800 16px var(--display); letter-spacing: 1px; color: #fff; margin: 2px 0 4px; }
+    .vote-bars { display: flex; justify-content: center; gap: 5px; }
+    .vote-bars .vb { width: 18px; height: 5px; border-radius: 3px; }
+    .vote-bars .vb.warn { background: #ff4f79; box-shadow: 0 0 8px #ff4f79; animation: blinkWin 1.4s infinite; }
+    .vote-bars .vb.you { background: #00f0ff; box-shadow: 0 0 10px #00f0ff; }
+    .council-table { position: absolute; left: 10%; right: 10%; bottom: 16px; height: 42px; border-radius: 22px 22px 6px 6px; background: linear-gradient(180deg, #1b253a, #0b101b); border: 1px solid rgba(0, 240, 255, 0.45); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.7); }
+    .council-members { position: relative; display: flex; justify-content: space-around; align-items: flex-end; top: -42px; padding: 0 16px; }
+    .npc { position: relative; display: grid; justify-items: center; gap: 3px; }
+    .npc i { width: 18px; height: 18px; border-radius: 50%; background: #9ca3af; }
+    .npc b { width: 28px; height: 32px; border-radius: 10px 10px 3px 3px; background: linear-gradient(180deg, #334155, #1e293b); border: 1px solid rgba(255,255,255,0.2); }
+    .npc em { position: absolute; top: -18px; right: -10px; font-style: normal; font-size: 16px; animation: handRaise 1.6s ease-in-out infinite alternate; }
+    .npc.d2 em { animation-delay: 0.25s; }
+    .npc.d3 em { animation-delay: 0.5s; }
+    .npc.player-seat i { background: #00f0ff; box-shadow: 0 0 14px #00f0ff; }
+    .npc.player-seat b { background: linear-gradient(180deg, #0891b2, #0f172a); border-color: #00f0ff; }
+    .npc.player-seat.stood { transform: translateY(-10px) scale(1.12); transition: transform 0.35s ease; }
+    .spotlight { position: absolute; top: -20px; width: 120px; height: 240px; pointer-events: none; background: linear-gradient(180deg, rgba(255, 79, 216, 0.22), transparent 82%); transform-origin: top center; animation: spotlightSweep 4.4s ease-in-out infinite alternate; }
+    .spotlight.s1 { left: 16%; }
+    .spotlight.s2 { right: 16%; background: linear-gradient(180deg, rgba(0, 240, 255, 0.2), transparent 82%); animation-delay: -2.2s; }
+
+    /* 2. Laboratorio Conductual */
+    .voltage-rack { position: absolute; left: 50%; top: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 6px 14px; border-radius: 8px; background: rgba(10, 14, 22, 0.92); border: 1px solid rgba(255, 79, 121, 0.6); }
+    .dial-face { position: relative; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #ff9e3d; background: #0b0f18; }
+    .dial-needle { position: absolute; left: 50%; bottom: 50%; width: 2px; height: 11px; background: #ff4f79; transform-origin: bottom center; animation: dialSwing 2.2s ease-in-out infinite alternate; }
+    .volt-tag { font: 700 12px var(--mono); color: #ff9e3d; letter-spacing: 1px; }
+    .oscilloscope { position: absolute; left: 50%; top: 68px; transform: translateX(-50%); width: 220px; height: 52px; background: rgba(6, 18, 22, 0.85); border: 1px solid rgba(0, 240, 255, 0.4); border-radius: 6px; }
+    .wave-trace { fill: none; stroke: #00f0ff; stroke-width: 2.2; stroke-dasharray: 260; animation: oscSweep 2.1s linear infinite; }
+    .lab-glass { position: absolute; left: 50%; top: 16px; bottom: 16px; width: 2px; background: linear-gradient(180deg, transparent, rgba(0, 240, 255, 0.6), transparent); }
+    .lab-subject, .lab-authority { position: absolute; bottom: 26px; display: grid; justify-items: center; gap: 4px; }
+    .lab-subject { left: 16%; animation: moonFloat 2.4s ease-in-out infinite; }
+    .lab-authority { right: 16%; }
+    .lab-subject i { width: 20px; height: 20px; border-radius: 50%; background: #ff9e3d; }
+    .lab-subject b { width: 30px; height: 40px; border-radius: 10px 10px 4px 4px; background: #334155; }
+    .lab-authority i { width: 22px; height: 22px; border-radius: 50%; background: #e2e8f0; }
+    .lab-authority b { width: 34px; height: 48px; border-radius: 10px 10px 4px 4px; background: linear-gradient(180deg, #f8fafc, #cbd5e1); border: 1px solid #00f0ff; }
+    .lab-authority em { position: absolute; left: -24px; top: 20px; font-style: normal; font-size: 18px; }
+    .emergency-beacon { position: absolute; top: 14px; right: 20px; width: 14px; height: 14px; border-radius: 50%; background: #ff4f79; box-shadow: 0 0 18px #ff4f79; animation: sirenGlow 0.6s infinite alternate; }
+
+    /* 3. Hospital */
+    .diorama-hospital .rain { position: absolute; inset: 0; background-image: repeating-linear-gradient(108deg, transparent 0 16px, rgba(0, 240, 255, 0.16) 16px 18px); animation: rainFall 0.9s linear infinite; opacity: 0.55; }
+    .chopper-beam { position: absolute; top: -15px; right: 18%; width: 130px; height: 230px; background: linear-gradient(180deg, rgba(168, 248, 255, 0.25), transparent 80%); transform-origin: top center; animation: spotlightSweep 3.8s ease-in-out infinite alternate; }
+    .diorama-hospital .hospital { position: absolute; left: 28px; bottom: 26px; width: 126px; height: 96px; border: 2px solid rgba(0, 240, 255, 0.5); background: #10192b; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 24px 10px 10px; }
+    .diorama-hospital .hospital b { position: absolute; top: 4px; left: 8px; font: 700 10px var(--mono); color: #00f0ff; letter-spacing: 1px; }
+    .diorama-hospital .hospital i { display: block; background: rgba(0, 240, 255, 0.3); border-radius: 2px; animation: blinkWin 2s infinite; }
+    .diorama-hospital .hospital em { position: absolute; top: -8px; right: 10px; width: 14px; height: 14px; border-radius: 50%; background: #ff3b5c; box-shadow: 0 0 16px #ff3b5c; animation: sirenGlow 0.7s infinite alternate; }
+    .diorama-hospital .ambulance { position: absolute; right: 34px; bottom: 26px; width: 92px; height: 38px; border-radius: 8px 16px 4px 4px; background: #e2f4f8; border: 2px solid #00f0ff; animation: ambulanceDrive 3.2s ease-in-out infinite; }
+    .diorama-hospital .ambulance .lightbar { position: absolute; top: -7px; left: 24px; width: 18px; height: 6px; background: linear-gradient(90deg, #ff3b5c, #00f0ff); box-shadow: 0 0 14px #00f0ff; animation: sirenGlow 0.45s linear infinite alternate; }
+    .diorama-hospital .ambulance b { position: absolute; top: 7px; right: 8px; width: 22px; height: 12px; border-radius: 3px; background: #0d2230; }
+    .diorama-hospital .ambulance i { position: absolute; bottom: -8px; width: 14px; height: 14px; border-radius: 50%; background: #0b0e14; border: 2px solid #00f0ff; }
+    .diorama-hospital .ambulance i:first-of-type { left: 10px; }
+    .diorama-hospital .ambulance i:last-of-type { right: 10px; }
+    .ecg-svg { position: absolute; left: 0; right: 0; bottom: 6px; height: 24px; opacity: 0.85; }
+    .ecg-path { fill: none; stroke: #00e894; stroke-width: 2; stroke-dasharray: 420; animation: oscSweep 2.4s linear infinite; }
+
+    /* 4. Entrevista Clínica / EPICEE */
+    .diorama-epicee .room-light { position: absolute; top: 14px; left: 50%; width: 190px; height: 60px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(circle, rgba(255, 158, 61, 0.35), transparent 72%); animation: roomGlow 3.2s infinite; }
+    .venetian-glow { position: absolute; inset: 0; background: repeating-linear-gradient(125deg, rgba(255, 158, 61, 0.06) 0 14px, transparent 14px 32px); pointer-events: none; }
+    .diorama-epicee .clinician { position: absolute; left: 48px; bottom: 28px; display: grid; justify-items: center; gap: 4px; }
+    .diorama-epicee .clinician i { width: 22px; height: 22px; border-radius: 50%; background: #00f0ff; box-shadow: 0 0 16px rgba(0, 240, 255, 0.55); }
+    .diorama-epicee .clinician b { width: 34px; height: 44px; border-radius: 12px 12px 4px 4px; background: linear-gradient(180deg, #1b3848, #0f1d28); border: 1px solid #00f0ff; }
+    .diorama-epicee .family-group { position: absolute; right: 48px; bottom: 28px; display: flex; align-items: flex-end; gap: 8px; }
+    .diorama-epicee .family-group span { width: 18px; height: 48px; border-radius: 10px 10px 4px 4px; background: linear-gradient(180deg, #00e894, rgba(0, 232, 148, 0.25)); animation: moonFloat 3.4s ease-in-out infinite; }
+    .diorama-epicee .family-group span:nth-child(2) { height: 56px; animation-delay: 0.45s; }
+    .diorama-epicee .family-group span:nth-child(3) { height: 38px; animation-delay: 0.9s; }
+    .diorama-epicee .message-card { position: absolute; left: 50%; top: 32px; transform: translateX(-50%); padding: 10px 18px; border-radius: 12px; border: 1px solid rgba(0, 240, 255, 0.55); background: rgba(11, 18, 28, 0.92); text-align: center; animation: cardFloat 3s ease-in-out infinite; }
+    .diorama-epicee .message-card b { display: block; font: 700 11px var(--mono); letter-spacing: 1.5px; color: #00f0ff; }
+    .diorama-epicee .message-card small { color: var(--text); font-size: 12px; }
+    .diorama-epicee .calm-wave { position: absolute; left: 50%; bottom: 24px; width: 170px; height: 22px; transform: translateX(-50%); border-radius: 50%; border: 1px solid rgba(0, 232, 148, 0.5); animation: waveExpand 2.8s ease-out infinite; }
+    .diorama-epicee .calm-wave.w2 { animation-delay: 1.4s; }
+
+    /* 5. Protección */
+    .diorama-protection .safe-door { position: absolute; left: 32px; bottom: 22px; width: 60px; height: 102px; border-radius: 10px 10px 2px 2px; border: 2px solid #00e894; background: linear-gradient(180deg, rgba(0, 232, 148, 0.25), rgba(0, 232, 148, 0.05)); box-shadow: 0 0 24px rgba(0, 232, 148, 0.22); }
+    .diorama-protection .person.protected { position: absolute; left: 112px; bottom: 24px; width: 24px; height: 54px; border-radius: 12px 12px 4px 4px; background: linear-gradient(180deg, #00f0ff, #173a48); animation: moonFloat 3s infinite; }
+    .diorama-protection .hex-shield { position: absolute; left: 50%; top: 58px; transform: translateX(-50%); padding: 10px 20px; border-radius: 999px; border: 1px solid #00f0ff; background: rgba(0, 240, 255, 0.16); font: 700 12px var(--mono); letter-spacing: 1.4px; color: #b8faff; animation: shieldPulse 2.4s infinite; }
+    .diorama-protection .risk-meter { position: absolute; top: 24px; right: 26px; width: 140px; height: 14px; border-radius: 999px; border: 1px solid rgba(255, 184, 0, 0.6); background: #0a0f16; overflow: hidden; }
+    .diorama-protection .risk-meter span { display: block; height: 100%; width: 66%; background: linear-gradient(90deg, #ff9e3d, #ff3b5c); animation: meterPulse 2.2s infinite alternate; }
+    .radar-scan { position: absolute; right: 42px; bottom: 32px; width: 52px; height: 52px; border-radius: 50%; border: 1px solid rgba(0, 240, 255, 0.45); overflow: hidden; }
+    .radar-scan i { position: absolute; inset: 0; background: conic-gradient(rgba(0, 240, 255, 0.55) 0 55deg, transparent 55deg 360deg); animation: radarSpin 2.5s linear infinite; }
+    .diorama-protection .path { position: absolute; left: 24px; right: 24px; bottom: 18px; height: 3px; background: linear-gradient(90deg, #00e894, #00f0ff, #ff4fd8); animation: blinkWin 2.6s infinite; }
+
+    /* 6. Red Ciudad */
+    .diorama-network .node { position: absolute; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(0, 240, 255, 0.55); background: rgba(9, 16, 26, 0.92); font: 700 11px var(--mono); text-transform: uppercase; color: #a8f8ff; box-shadow: 0 0 18px rgba(0, 240, 255, 0.18); animation: moonFloat 3.4s ease-in-out infinite; }
+    .diorama-network .node.victim { left: 50%; top: 50%; transform: translate(-50%, -50%); border-color: #ff4fd8; color: #ff9de8; animation: none; }
+    .diorama-network .node.rights { left: 26px; top: 24px; }
+    .diorama-network .node.health { right: 26px; top: 24px; animation-delay: 0.6s; }
+    .diorama-network .node.mental { left: 28px; bottom: 22px; animation-delay: 1.2s; }
+    .diorama-network .node.risk { right: 28px; bottom: 22px; border-color: #ff9e3d; color: #ffd49c; animation-delay: 1.8s; }
+    .diorama-network .net { position: absolute; left: 16%; right: 16%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 79, 216, 0.55), transparent); pointer-events: none; }
+    .diorama-network .net.l1 { top: 48px; transform: rotate(9deg); }
+    .diorama-network .net.l2 { bottom: 46px; transform: rotate(-9deg); }
+    .diorama-network .route-dot { position: absolute; top: 50%; left: 20%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%; background: #00f0ff; box-shadow: 0 0 14px #00f0ff; animation: dotTravel 2.8s ease-in-out infinite; }
+
+    /* Overlay Cinemático GTA 6 al lanzar jugada */
+    .gta-cutscene {
       position: absolute;
       inset: 0;
-      background-image: repeating-linear-gradient(
-        105deg,
-        transparent 0 18px,
-        rgba(0, 229, 244, 0.14) 18px 20px
-      );
-      animation: rainFall 1.1s linear infinite;
-      opacity: 0.45;
-    }
-    .hospital-crisis .moon {
-      position: absolute;
-      top: 16px;
-      right: 26px;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background: rgba(168, 248, 255, 0.85);
-      box-shadow: 0 0 20px rgba(0, 229, 244, 0.55);
-      animation: moonFloat 4s ease-in-out infinite;
-    }
-    .hospital-crisis .hospital {
-      position: absolute;
-      left: 28px;
-      bottom: 24px;
-      width: 116px;
-      height: 92px;
-      border: 2px solid rgba(184, 211, 214, 0.45);
-      background: #121c2a;
+      z-index: 8;
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
-      padding: 24px 10px 10px;
+      place-items: center;
+      background: radial-gradient(circle, rgba(255, 79, 216, 0.22), rgba(7, 10, 18, 0.82));
+      animation: cutsceneFade 0.9s ease forwards;
     }
-    .hospital-crisis .hospital b {
+    .gta-stripes {
       position: absolute;
-      top: 4px;
-      left: 8px;
-      font: 700 10px var(--mono);
-      color: var(--cyan);
-      letter-spacing: 1.5px;
+      inset: 0;
+      background: repeating-linear-gradient(-24deg, rgba(255, 79, 216, 0.08) 0 12px, transparent 12px 26px);
+      animation: stripesMove 0.6s linear infinite;
     }
-    .hospital-crisis .hospital i {
-      display: block;
-      background: rgba(0, 229, 244, 0.26);
-      border-radius: 2px;
-      animation: blinkWin 2.4s ease-in-out infinite;
-    }
-    .hospital-crisis .hospital i:nth-of-type(2) { animation-delay: 0.5s; }
-    .hospital-crisis .hospital i:nth-of-type(3) { animation-delay: 1.1s; }
-    .hospital-crisis .hospital em {
-      position: absolute;
-      top: -9px;
-      right: 10px;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: var(--red);
-      box-shadow: 0 0 14px var(--red);
-      animation: sirenGlow 0.9s ease-in-out infinite alternate;
-    }
-    .hospital-crisis .ambulance {
-      position: absolute;
-      right: 36px;
-      bottom: 26px;
-      width: 82px;
-      height: 36px;
-      border-radius: 8px 14px 4px 4px;
-      background: #d9edf2;
-      border: 2px solid var(--cyan);
-      animation: ambulanceDrive 3.8s ease-in-out infinite;
-    }
-    .hospital-crisis .ambulance span {
-      position: absolute;
-      top: -6px;
-      left: 22px;
-      width: 14px;
-      height: 6px;
-      background: var(--cyan);
-      box-shadow: 0 0 10px var(--cyan);
-      animation: sirenGlow 0.6s linear infinite alternate;
-    }
-    .hospital-crisis .ambulance b {
-      position: absolute;
-      top: 7px;
-      right: 8px;
-      width: 22px;
-      height: 12px;
-      border-radius: 3px;
-      background: #0d2230;
-    }
-    .hospital-crisis .ambulance i {
-      position: absolute;
-      bottom: -8px;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #0b0e14;
-      border: 2px solid var(--cyan);
-    }
-    .hospital-crisis .ambulance i:first-of-type { left: 10px; }
-    .hospital-crisis .ambulance i:last-of-type { right: 10px; }
-    .hospital-crisis .family {
-      position: absolute;
-      left: 46%;
-      bottom: 26px;
-      display: flex;
-      gap: 7px;
-      transform: translateX(-50%);
-    }
-    .hospital-crisis .family span {
-      width: 12px;
-      height: 32px;
-      border-radius: 8px 8px 3px 3px;
-      background: linear-gradient(180deg, var(--amber), rgba(255, 184, 0, 0.35));
-      animation: moonFloat 2.6s ease-in-out infinite;
-    }
-    .hospital-crisis .family span:nth-child(2) { height: 38px; animation-delay: 0.4s; }
-    .hospital-crisis .family span:nth-child(3) { height: 26px; animation-delay: 0.8s; }
-    .hospital-crisis .pulse-line {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 14px;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--cyan), var(--green), transparent);
-      animation: pulseBeat 2.2s ease-in-out infinite;
-    }
-
-    /* Escenario 2: Sala EPICEE / Diálogo clínico */
-    .epicee-room .room-light {
-      position: absolute;
-      top: 12px;
-      left: 50%;
-      width: 170px;
-      height: 54px;
-      transform: translateX(-50%);
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(0, 229, 244, 0.32), transparent 72%);
-      animation: roomGlow 3.2s ease-in-out infinite;
-    }
-    .epicee-room .clinician {
-      position: absolute;
-      left: 48px;
-      bottom: 28px;
-      display: grid;
-      justify-items: center;
-      gap: 4px;
-    }
-    .epicee-room .clinician i {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: var(--cyan);
-      box-shadow: 0 0 14px rgba(0, 229, 244, 0.5);
-    }
-    .epicee-room .clinician b {
-      width: 34px;
-      height: 44px;
-      border-radius: 12px 12px 4px 4px;
-      background: linear-gradient(180deg, #1b3848, #0f1d28);
-      border: 1px solid rgba(0, 229, 244, 0.55);
-    }
-    .epicee-room .family-group {
-      position: absolute;
-      right: 48px;
-      bottom: 28px;
-      display: flex;
-      align-items: flex-end;
-      gap: 8px;
-    }
-    .epicee-room .family-group span {
-      width: 18px;
-      height: 48px;
-      border-radius: 10px 10px 4px 4px;
-      background: linear-gradient(180deg, var(--green), rgba(0, 232, 148, 0.28));
-      animation: moonFloat 3.4s ease-in-out infinite;
-    }
-    .epicee-room .family-group span:nth-child(2) { height: 56px; animation-delay: 0.45s; }
-    .epicee-room .family-group span:nth-child(3) { height: 38px; animation-delay: 0.9s; }
-    .epicee-room .message-card {
-      position: absolute;
-      left: 50%;
-      top: 32px;
-      transform: translateX(-50%);
-      padding: 10px 16px;
-      border-radius: 12px;
-      border: 1px solid rgba(0, 229, 244, 0.5);
-      background: rgba(11, 18, 28, 0.94);
+    .gta-banner {
+      position: relative;
+      padding: 14px 28px;
+      border-radius: 10px;
+      border: 2px solid #ff4fd8;
+      background: linear-gradient(125deg, rgba(20, 10, 34, 0.96), rgba(9, 24, 34, 0.96));
+      box-shadow: 0 0 38px rgba(255, 79, 216, 0.45), 0 0 24px rgba(0, 240, 255, 0.35);
       text-align: center;
-      animation: cardFloat 3s ease-in-out infinite;
+      transform: skewX(-4deg);
+      animation: gtaBannerPop 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     }
-    .epicee-room .message-card b {
+    .gta-tag {
       display: block;
-      font: 700 11px var(--mono);
-      letter-spacing: 1.5px;
-      color: var(--cyan);
+      font: 800 11px var(--mono);
+      letter-spacing: 2.2px;
+      background: linear-gradient(90deg, #ff4fd8, #ff9e3d, #00f0ff);
+      -webkit-background-clip: text;
+      color: transparent;
     }
-    .epicee-room .message-card small {
-      color: var(--text);
-      font-size: 12px;
-    }
-    .epicee-room .calm-wave {
-      position: absolute;
-      left: 50%;
-      bottom: 24px;
-      width: 160px;
-      height: 22px;
-      transform: translateX(-50%);
-      border-radius: 50%;
-      border: 1px solid rgba(0, 232, 148, 0.45);
-      animation: waveExpand 2.8s ease-out infinite;
-    }
-    .epicee-room .calm-wave.w2 { animation-delay: 1.4s; }
-
-    /* Escenario 3: Protección, riesgo y criterio ético */
-    .protection-risk .safe-door {
-      position: absolute;
-      left: 34px;
-      bottom: 22px;
-      width: 58px;
-      height: 98px;
-      border-radius: 10px 10px 2px 2px;
-      border: 2px solid var(--green);
-      background: linear-gradient(180deg, rgba(0, 232, 148, 0.24), rgba(0, 232, 148, 0.05));
-      box-shadow: 0 0 22px rgba(0, 232, 148, 0.18);
-    }
-    .protection-risk .person.protected {
-      position: absolute;
-      left: 112px;
-      bottom: 24px;
-      width: 24px;
-      height: 54px;
-      border-radius: 12px 12px 4px 4px;
-      background: linear-gradient(180deg, var(--cyan), #173a48);
-      animation: moonFloat 3s ease-in-out infinite;
-    }
-    .protection-risk .risk-meter {
-      position: absolute;
-      top: 24px;
-      right: 30px;
-      width: 136px;
-      height: 14px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 184, 0, 0.55);
-      background: #0a0f16;
-      overflow: hidden;
-    }
-    .protection-risk .risk-meter span {
-      display: block;
-      height: 100%;
-      width: 66%;
-      background: linear-gradient(90deg, var(--amber), var(--red));
-      animation: meterPulse 2.4s ease-in-out infinite alternate;
-    }
-    .protection-risk .shield {
-      position: absolute;
-      left: 50%;
-      top: 56px;
-      transform: translateX(-50%);
-      padding: 10px 18px;
-      border-radius: 999px;
-      border: 1px solid var(--cyan);
-      background: rgba(0, 229, 244, 0.14);
-      font: 700 12px var(--mono);
-      letter-spacing: 1.4px;
-      color: var(--cyan-soft);
-      animation: shieldPulse 2.6s ease-in-out infinite;
-    }
-    .protection-risk .path {
-      position: absolute;
-      left: 24px;
-      right: 24px;
-      bottom: 20px;
-      height: 3px;
-      background: linear-gradient(90deg, var(--green), var(--cyan), var(--amber));
-      animation: pathTrace 2.8s ease-in-out infinite;
-    }
-
-    /* Escenario 4: Red de cuidado y articulación */
-    .care-network .node {
-      position: absolute;
-      padding: 6px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(0, 229, 244, 0.5);
-      background: rgba(9, 16, 26, 0.92);
-      font: 700 11px var(--mono);
+    .gta-banner h4 {
+      margin: 4px 0 2px;
+      font-family: var(--display);
+      font-size: clamp(22px, 4vw, 32px);
       text-transform: uppercase;
-      color: var(--cyan-soft);
-      box-shadow: 0 0 16px rgba(0, 229, 244, 0.14);
-      animation: nodeOrbit 3.6s ease-in-out infinite;
+      color: #fff;
+      text-shadow: 0 2px 16px rgba(255, 79, 216, 0.55);
     }
-    .care-network .node.victim { left: 50%; top: 50%; transform: translate(-50%, -50%); border-color: var(--green); color: var(--green); animation: none; }
-    .care-network .node.rights { left: 26px; top: 22px; }
-    .care-network .node.health { right: 26px; top: 22px; animation-delay: 0.6s; }
-    .care-network .node.mental { left: 28px; bottom: 20px; animation-delay: 1.2s; }
-    .care-network .node.risk { right: 28px; bottom: 20px; border-color: var(--amber); color: var(--amber); animation-delay: 1.8s; }
-    .care-network .net {
-      position: absolute;
-      left: 16%;
-      right: 16%;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(0, 229, 244, 0.48), transparent);
-      pointer-events: none;
-    }
-    .care-network .net.l1 { top: 44px; transform: rotate(10deg); }
-    .care-network .net.l2 { bottom: 42px; transform: rotate(-10deg); }
-    .care-network .route-dot {
-      position: absolute;
-      top: 50%;
-      left: 20%;
-      width: 10px;
-      height: 10px;
-      margin-top: -5px;
-      border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 14px var(--green);
-      animation: dotTravel 3s ease-in-out infinite;
+    .gta-banner small {
+      font: 11px var(--mono);
+      color: #a8f8ff;
+      letter-spacing: 1px;
     }
 
     /* Coach Neuro */
@@ -980,149 +727,91 @@ interface PasoPlano {
       color: var(--text);
     }
 
-    /* ==================== MAZO DE CARTAS INTERACTIVO (.card-rail) ==================== */
+    /* ==================== MAZO DE CARTAS ESTILO POKER (.card-rail + .poker-card) ==================== */
     .card-rail {
       display: flex;
       gap: 20px;
       overflow-x: auto;
       overflow-y: visible;
-      padding: 18px 10px 24px;
+      padding: 20px 12px 28px;
       scroll-snap-type: x mandatory;
-      scrollbar-color: var(--cyan) transparent;
+      scrollbar-color: #ff4fd8 transparent;
     }
-    .card-rail.has-selection .action-card:not(.selected) {
+    .card-rail.has-selection .poker-card:not(.selected) {
       opacity: 0.62;
-      filter: saturate(0.7);
+      filter: saturate(0.75);
+      transform: scale(0.97) rotate(var(--tilt, 0deg));
     }
-    .card-rail.locked .action-card:not(.launched) {
-      opacity: 0.35;
-      transform: scale(0.95);
+    .card-rail.locked .poker-card:not(.launched) {
+      opacity: 0.34;
+      transform: scale(0.94);
       pointer-events: none;
     }
-    .action-card {
+    .poker-card {
       position: relative;
-      flex: 0 0 min(82vw, 265px);
-      min-height: 290px;
+      flex: 0 0 min(82vw, 256px);
+      min-height: 332px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      padding: 20px 18px;
-      border: 1px solid rgba(184, 211, 214, 0.22);
-      border-radius: 20px;
-      color: var(--text);
-      background: linear-gradient(155deg, rgba(23, 27, 35, 0.98), rgba(8, 12, 18, 0.98));
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.38);
-      text-align: left;
+      justify-content: space-between;
+      padding: 14px 12px;
+      border-radius: 18px;
+      background: linear-gradient(162deg, #fffdf7 0%, #f4efe1 60%, #ece3ce 100%);
+      color: #111827;
+      border: 2px solid #e2d8be;
+      box-shadow:
+        inset 0 0 0 5px #fcfaf4,
+        inset 0 0 0 6px rgba(17, 24, 39, 0.2),
+        0 20px 40px rgba(0, 0, 0, 0.55);
       cursor: pointer;
       scroll-snap-align: center;
       transform: rotate(var(--tilt, 0deg));
-      transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease;
+      transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.24s ease, box-shadow 0.24s ease, opacity 0.24s ease;
+      overflow: hidden;
+      animation: pokerDeal 0.42s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+      animation-delay: var(--deal-delay, 0ms);
     }
-    .action-card:nth-child(2) { margin-top: 8px; }
-    .action-card:nth-child(3) { margin-top: 4px; }
-    .action-card:hover,
-    .action-card.selected {
-      opacity: 1 !important;
-      filter: none !important;
-      border-color: var(--cyan-soft);
-      box-shadow:
-        0 0 0 2px rgba(168, 248, 255, 0.28),
-        0 26px 46px rgba(0, 0, 0, 0.5);
-      transform: translateY(-10px) rotate(0deg);
-    }
-    .action-card.selected {
-      border-color: var(--green);
-      box-shadow:
-        0 0 0 2px rgba(0, 232, 148, 0.35),
-        0 26px 46px rgba(0, 232, 148, 0.14);
-    }
-    .action-card.launched {
-      opacity: 1 !important;
-      filter: none !important;
-      border-color: var(--green);
-      box-shadow:
-        0 0 0 3px rgba(0, 232, 148, 0.5),
-        0 28px 60px rgba(0, 232, 148, 0.28);
-      animation: cardLaunch 0.68s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    }
-    .sr-only-radio {
+    .poker-card::before {
+      content: '';
       position: absolute;
-      opacity: 0;
-      width: 1px;
-      height: 1px;
+      inset: -40%;
+      background: linear-gradient(125deg, transparent 40%, rgba(255, 255, 255, 0.65) 50%, transparent 60%);
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
       pointer-events: none;
     }
-    .card-top-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .poker-card:hover::before {
+      transform: translateX(100%);
     }
-    .mode-pill {
-      width: max-content;
-      padding: 5px 10px;
-      border-radius: 999px;
-      background: var(--cyan-soft);
-      color: #062026;
-      font: 700 11px var(--mono);
-      letter-spacing: 1.4px;
-      text-transform: uppercase;
+    .poker-card:nth-child(2) { margin-top: 8px; }
+    .poker-card:nth-child(3) { margin-top: 4px; }
+    .poker-card.suit-red .poker-corner, .poker-card.suit-red .poker-crest { color: #b91c1c; }
+    .poker-card.suit-dark .poker-corner, .poker-card.suit-dark .poker-crest { color: #0f172a; }
+    .poker-card:hover, .poker-card.selected {
+      opacity: 1 !important; filter: none !important; transform: translateY(-12px) rotate(0deg) scale(1.02);
+      border-color: #00e5f4; box-shadow: inset 0 0 0 5px #fffdf8, 0 0 26px rgba(0, 229, 244, 0.42), 0 26px 48px rgba(0,0,0,.62);
     }
-    .mode-pill.good {
-      background: var(--green);
-      color: #021c11;
-    }
-    .card-symbol {
-      font-size: 26px;
-      line-height: 1;
-      color: var(--cyan);
-    }
-    .card-kicker {
-      color: var(--cyan-soft);
-      font: 11px var(--mono);
-      letter-spacing: 1.8px;
-      text-transform: uppercase;
-    }
-    .card-decision-text {
-      color: #fff;
-      font: 600 15px/1.45 var(--body);
-    }
-    .stats {
-      display: grid;
-      gap: 7px;
-      margin-top: auto;
-      padding-top: 10px;
-      border-top: 1px dashed rgba(184, 211, 214, 0.2);
-    }
-    .stats label {
-      display: grid;
-      grid-template-columns: 64px 1fr;
-      align-items: center;
-      gap: 8px;
-      font: 10px var(--mono);
-      color: var(--dim);
-    }
-    .stats i {
-      display: block;
-      height: 6px;
-      background: #232a34;
-      border-radius: 99px;
-      overflow: hidden;
-    }
-    .stats b {
-      display: block;
-      height: 100%;
-      background: var(--cyan);
-    }
-    .touch-label {
-      font: 11px var(--mono);
-      color: var(--dim);
-      text-align: center;
-      padding-top: 4px;
-    }
-    .action-card.selected .touch-label {
-      color: var(--green);
-      font-weight: 700;
-    }
+    .poker-card.selected { border-color: #00e894; box-shadow: inset 0 0 0 5px #fffdf8, 0 0 32px rgba(0, 232, 148, 0.48), 0 28px 50px rgba(0,0,0,.68); }
+    .poker-card.launched { opacity: 1 !important; filter: none !important; border-color: #ff4fd8; box-shadow: inset 0 0 0 5px #fffdf8, 0 0 42px rgba(255,79,216,.65); animation: cardLaunch .85s cubic-bezier(.22,1,.36,1) forwards; }
+    .sr-only-radio { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+    .poker-corner { display: flex; flex-direction: column; align-items: center; width: max-content; line-height: 0.95; z-index: 2; user-select: none; }
+    .poker-corner.top-left { align-self: flex-start; }
+    .poker-corner.bottom-right { align-self: flex-end; transform: rotate(180deg); }
+    .poker-rank { font: 800 22px Georgia, 'Times New Roman', serif; letter-spacing: -0.5px; }
+    .poker-suit { font-size: 20px; line-height: 1; }
+    .poker-stack { margin-top: 2px; font-size: 9px; font-weight: 700; letter-spacing: 0.8px; opacity: 0.65; }
+    .poker-inner-frame { margin: 6px 14px; padding: 12px 10px; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; border: 1.5px solid rgba(15, 23, 42, 0.22); border-radius: 10px; background: radial-gradient(circle at center, rgba(255, 255, 255, 0.86), rgba(244, 237, 220, 0.7)); }
+    .poker-crest { position: relative; display: grid; place-items: center; min-height: 58px; padding-top: 6px; gap: 2px; }
+    .crest-wreath { position: absolute; top: -2px; width: 52px; height: 52px; pointer-events: none; }
+    .crest-suit { position: relative; font-size: 32px; line-height: 1; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.16)); }
+    .crest-arquetipo { font: 700 9px var(--mono); letter-spacing: 1.4px; text-transform: uppercase; color: #475569; margin-top: 6px; }
+    .poker-hairline { width: 68%; height: 1px; margin: 6px 0; background: linear-gradient(90deg, transparent, rgba(15, 23, 42, 0.35), transparent); }
+    .poker-decision-text { color: #0f172a; font: 700 13.5px/1.4 var(--body); margin: auto 0; }
+    .poker-footer-seal { margin-top: 8px; }
+    .seal { display: inline-block; padding: 4px 10px; border-radius: 999px; font: 700 10px var(--mono); letter-spacing: 0.8px; text-transform: uppercase; }
+    .idle-seal { background: rgba(15, 23, 42, 0.08); color: #334155; border: 1px solid rgba(15, 23, 42, 0.16); }
+    .armed-seal { background: #065f46; color: #ecfdf5; box-shadow: 0 0 12px rgba(0, 232, 148, 0.45); }
+    .launched-seal { background: linear-gradient(90deg, #a21caf, #db2777); color: #fff; box-shadow: 0 0 14px rgba(255, 79, 216, 0.55); }
 
     /* ==================== REFLEXIÓN & LAUNCH PAD ==================== */
     .refl-panel {
@@ -1198,15 +887,67 @@ interface PasoPlano {
       from { opacity: 0; transform: translateY(10px) scale(0.985); }
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
-    @keyframes sceneRespond {
-      0% { transform: scale(1); }
-      45% { transform: scale(1.012); }
-      100% { transform: scale(1); }
+    @keyframes gtaCamFloat {
+      0% { transform: scale(1) translate3d(0, 0, 0); }
+      100% { transform: scale(1.04) translate3d(-1%, -1%, 0); }
+    }
+    @keyframes flareSweep {
+      0% { transform: translateX(-12%) rotate(-1.5deg); opacity: 0.25; }
+      100% { transform: translateX(10%) rotate(1.5deg); opacity: 0.65; }
+    }
+    @keyframes palmSway {
+      0%, 100% { transform: rotate(-1.5deg); }
+      50% { transform: rotate(2.5deg); }
+    }
+    @keyframes gtaImpactFlash {
+      0% { transform: scale(1); filter: brightness(1); }
+      22% { transform: scale(1.018); filter: brightness(1.32) saturate(1.4); }
+      45% { transform: scale(0.996); filter: brightness(1.08); }
+      100% { transform: scale(1); filter: brightness(1); }
+    }
+    @keyframes gtaBannerPop {
+      0% { opacity: 0; transform: skewX(-10deg) scale(0.76); }
+      70% { opacity: 1; transform: skewX(-4deg) scale(1.04); }
+      100% { opacity: 1; transform: skewX(-4deg) scale(1); }
+    }
+    @keyframes stripesMove {
+      from { background-position: 0 0; }
+      to { background-position: 52px 0; }
+    }
+    @keyframes cutsceneFade {
+      0% { opacity: 0; }
+      16% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { opacity: 0.92; }
+    }
+    @keyframes pokerDeal {
+      from { opacity: 0; transform: translateY(24px) scale(0.92) rotate(0deg); }
+      to { opacity: 1; transform: translateY(0) scale(1) rotate(var(--tilt, 0deg)); }
+    }
+    @keyframes handRaise {
+      from { transform: translateY(2px) scale(0.92); opacity: 0.65; }
+      to { transform: translateY(-4px) scale(1.1); opacity: 1; }
+    }
+    @keyframes spotlightSweep {
+      from { transform: rotate(-14deg); opacity: 0.55; }
+      to { transform: rotate(14deg); opacity: 0.9; }
+    }
+    @keyframes dialSwing {
+      from { transform: rotate(-38deg); }
+      to { transform: rotate(48deg); }
+    }
+    @keyframes oscSweep {
+      from { stroke-dashoffset: 420; }
+      to { stroke-dashoffset: 0; }
+    }
+    @keyframes radarSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
     @keyframes cardLaunch {
-      0% { transform: translateY(-10px) scale(1); }
-      45% { transform: translateY(-24px) scale(1.04) rotate(0deg); }
-      100% { transform: translateY(-14px) scale(1.01) rotate(0deg); }
+      0% { transform: translateY(-12px) scale(1.02) rotate(0deg); }
+      45% { transform: translateY(-28px) scale(1.06) rotate(-2deg); }
+      100% { transform: translateY(-16px) scale(1.02) rotate(0deg); }
     }
     @keyframes rocketTakeoff {
       0% { transform: translateY(0) scale(1); }
@@ -1246,10 +987,6 @@ interface PasoPlano {
       0%, 100% { transform: translateX(0); }
       50% { transform: translateX(-18px); }
     }
-    @keyframes pulseBeat {
-      0%, 100% { opacity: 0.35; }
-      50% { opacity: 0.95; }
-    }
     @keyframes roomGlow {
       0%, 100% { opacity: 0.55; }
       50% { opacity: 0.95; }
@@ -1258,30 +995,10 @@ interface PasoPlano {
       0% { opacity: 0.7; transform: translateX(-50%) scale(0.78); }
       100% { opacity: 0; transform: translateX(-50%) scale(1.35); }
     }
-    @keyframes cardFloat {
-      0%, 100% { transform: translate(-50%, 0); }
-      50% { transform: translate(-50%, -6px); }
-    }
-    @keyframes meterPulse {
-      from { width: 48%; }
-      to { width: 78%; }
-    }
-    @keyframes shieldPulse {
-      0%, 100% { box-shadow: 0 0 12px rgba(0, 229, 244, 0.22); }
-      50% { box-shadow: 0 0 24px rgba(0, 232, 148, 0.44); }
-    }
-    @keyframes pathTrace {
-      0%, 100% { opacity: 0.55; }
-      50% { opacity: 1; }
-    }
-    @keyframes nodeOrbit {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-5px); }
-    }
-    @keyframes dotTravel {
-      0%, 100% { left: 18%; }
-      50% { left: 78%; }
-    }
+    @keyframes cardFloat { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -6px); } }
+    @keyframes meterPulse { from { width: 48%; } to { width: 78%; } }
+    @keyframes shieldPulse { 0%, 100% { box-shadow: 0 0 12px rgba(0, 229, 244, 0.22); } 50% { box-shadow: 0 0 24px rgba(0, 232, 148, 0.44); } }
+    @keyframes dotTravel { 0%, 100% { left: 18%; } 50% { left: 78%; } }
     .selected-brief small,
     .selected-brief b {
       display: block;
@@ -1304,285 +1021,24 @@ interface PasoPlano {
       justify-content: flex-end;
     }
 
-    /* ==================== PANTALLA RESULTADOS (.score-ring + .chart-card + .events) ==================== */
-    .res-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .result-head {
-      padding: 22px !important;
-      margin-bottom: 0 !important;
-    }
-    .head-top {
-      margin-bottom: 16px;
-    }
-    .head-top h1 {
-      margin: 4px 0 0;
-      font-family: var(--display);
-      font-size: clamp(28px, 4.5vw, 38px);
-      text-transform: uppercase;
-      color: var(--text);
-    }
-    .ref {
-      padding: 8px 12px;
-      border: 1px solid rgba(184, 211, 214, 0.3);
-      background: #232a34;
-      color: var(--text) !important;
-    }
-    .score-layout {
-      display: grid;
-      grid-template-columns: 150px 1fr;
-      gap: 20px;
-      align-items: center;
-    }
-    .score-ring {
-      --score: 76%;
-      width: 142px;
-      height: 142px;
-      display: grid;
-      place-items: center;
-      position: relative;
-      border-radius: 50%;
-      background: conic-gradient(var(--green) var(--score), rgba(184, 211, 214, 0.14) 0);
-      box-shadow: 0 0 28px rgba(0, 232, 148, 0.16);
-    }
-    .score-ring::after {
-      content: '';
-      position: absolute;
-      inset: 14px;
-      border-radius: 50%;
-      background: #0d1219;
-      border: 1px solid rgba(184, 211, 214, 0.14);
-    }
-    .score-value {
-      position: relative;
-      z-index: 1;
-      display: grid;
-      place-items: center;
-      line-height: 1;
-      text-align: center;
-      font-family: var(--mono);
-    }
-    .score-value span {
-      color: var(--green);
-      font-size: 30px;
-      font-weight: 700;
-    }
-    .score-value small {
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 11px;
-    }
-    .score-copy {
-      display: grid;
-      gap: 10px;
-    }
-    .stats-row {
-      display: flex;
-      gap: 18px;
-      flex-wrap: wrap;
-      color: var(--muted);
-    }
-    .summary {
-      margin: 0;
-      padding-top: 10px;
-      border-top: 1px solid rgba(184, 211, 214, 0.14);
-      color: var(--text);
-      font-size: 14px;
-      line-height: 1.55;
-    }
-    .fb-card {
-      border-left: 4px solid var(--amber) !important;
-      margin-bottom: 0 !important;
-    }
-    .chart-card {
-      display: grid;
-      gap: 16px;
-      background: linear-gradient(145deg, rgba(0, 229, 244, 0.06), rgba(0, 232, 148, 0.04)), rgba(16, 20, 27, 0.94);
-    }
-    .section-heading {
-      margin: 4px 0 0;
-      font-family: var(--display);
-      font-size: 26px;
-      text-transform: uppercase;
-    }
-    .chart-bars {
-      display: grid;
-      gap: 12px;
-    }
-    .chart-row {
-      display: grid;
-      grid-template-columns: 1.1fr 1.6fr 56px;
-      gap: 10px;
-      align-items: center;
-    }
-    .chart-row span {
-      font: 12px var(--mono);
-      text-transform: uppercase;
-      color: #cbd6d8;
-    }
-    .chart-row i {
-      height: 14px;
-      border: 1px solid rgba(184, 211, 214, 0.2);
-      background: #05080d;
-      overflow: hidden;
-    }
-    .chart-row b {
-      display: block;
-      height: 100%;
-      background: var(--cyan);
-      box-shadow: 0 0 14px var(--cyan);
-    }
-    .chart-row strong {
-      color: var(--cyan);
-      font: 15px var(--mono);
-      text-align: right;
-    }
-    .criterios-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-      gap: 12px;
-    }
-    .crit-card {
-      display: grid;
-      gap: 10px;
-      padding: 16px;
-      background: #0b1017;
-      border: 1px solid var(--line);
-      border-left: 4px solid var(--cyan);
-    }
-    .crit-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-    .crit-score {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 22px;
-      color: var(--cyan);
-    }
-    .crit-score small {
-      font-size: 12px;
-      color: var(--muted);
-    }
-    .crit-desc {
-      margin: 0;
-      font-size: 12px;
-    }
-    .events-head {
-      padding: 18px 20px;
-      border-bottom: 1px solid var(--line);
-    }
-    .events-head h3 {
-      margin: 4px 0 0;
-      font-family: var(--display);
-      font-size: 24px;
-      text-transform: uppercase;
-    }
-    .q-review-list {
-      display: grid;
-    }
-    .event-row {
-      padding: 16px 20px;
-      border-top: 1px solid rgba(184, 211, 214, 0.12);
-      display: grid;
-      gap: 8px;
-    }
-    .event-row.q-ok {
-      border-left: 4px solid var(--green);
-    }
-    .event-row.q-bad {
-      border-left: 4px solid var(--red);
-    }
-    .event-top {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .event-badge {
-      display: grid;
-      place-items: center;
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      border: 1px solid rgba(0, 232, 148, 0.55);
-      color: var(--green);
-      font: 700 14px var(--mono);
-    }
-    .event-badge.amber {
-      border-color: rgba(255, 184, 0, 0.65);
-      color: var(--amber);
-    }
-    .q-title-txt {
-      flex: 1;
-      color: var(--text);
-      font-size: 15px;
-    }
-    .event-body {
-      display: grid;
-      gap: 6px;
-      padding-left: 36px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .q-corr {
-      background: rgba(0, 232, 148, 0.08);
-      border: 1px solid rgba(0, 232, 148, 0.3);
-      padding: 8px 12px;
-      color: #a7f3d0;
-    }
-    .q-refl {
-      background: #0b1017;
-      border: 1px solid rgba(184, 211, 214, 0.16);
-      padding: 8px 12px;
-      color: var(--text);
-    }
-
     @media (max-width: 780px) {
-      .launch-pad, .score-layout, .chart-row {
-        grid-template-columns: 1fr;
-      }
-      .coach {
-        grid-template-columns: auto 1fr;
-      }
-      .coach .tag {
-        grid-column: 1 / -1;
-        justify-self: start;
-      }
-      .score-ring {
-        margin: auto;
-      }
-      .chart-row strong {
-        text-align: left;
-      }
-      .play-actions {
-        width: 100%;
-        justify-content: stretch;
-      }
-      .play-actions button {
-        flex: 1 1 140px;
-      }
-      .event-body {
-        padding-left: 0;
-      }
+      .launch-pad { grid-template-columns: 1fr; }
+      .coach { grid-template-columns: auto 1fr; }
+      .coach .tag { grid-column: 1 / -1; justify-self: start; }
+      .play-actions { width: 100%; justify-content: stretch; }
+      .play-actions button { flex: 1 1 140px; }
     }
     @media (max-width: 520px) {
-      .stage { height: 148px; }
-      .hospital-crisis .hospital { left: 12px; width: 92px; height: 80px; }
-      .hospital-crisis .ambulance { right: 12px; width: 66px; }
-      .epicee-room .clinician { left: 14px; }
-      .epicee-room .family-group { right: 14px; }
-      .protection-risk .safe-door { left: 14px; width: 46px; }
-      .protection-risk .person.protected { left: 72px; }
-      .protection-risk .risk-meter { right: 12px; width: 106px; }
-      .care-network .node { font-size: 9px; padding: 4px 8px; }
+      .stage { height: 172px; }
+      .poker-card { flex: 0 0 min(82vw, 232px); min-height: 295px; }
+      .diorama-hospital .hospital { left: 12px; width: 96px; height: 80px; }
+      .diorama-hospital .ambulance { right: 12px; width: 70px; }
+      .diorama-epicee .clinician { left: 14px; }
+      .diorama-epicee .family-group { right: 14px; }
+      .diorama-protection .safe-door { left: 14px; width: 46px; }
+      .diorama-protection .person.protected { left: 72px; }
+      .diorama-protection .risk-meter { right: 12px; width: 106px; }
+      .diorama-network .node { font-size: 9px; padding: 4px 8px; }
     }
   `],
 })
@@ -1644,7 +1100,75 @@ export class SimuladorComponent implements OnInit, OnDestroy {
   }
 
   cardTilt(index: number): string {
-    return `${[-2.4, 1.4, -1.5, 2.1][index % 4]}deg`;
+    return `${[-2.8, 1.4, -1.5, 2.5][index % 4]}deg`;
+  }
+
+  paloCarta(index: number): { rango: string; simbolo: string; arquetipo: string; rojo: boolean } {
+    const palos = [
+      { rango: 'A', simbolo: '♠', arquetipo: 'JUICIO', rojo: false },
+      { rango: 'K', simbolo: '♥', arquetipo: 'CRITERIO', rojo: true },
+      { rango: 'Q', simbolo: '♦', arquetipo: 'ESTRATEGIA', rojo: true },
+      { rango: 'J', simbolo: '♣', arquetipo: 'ACCIÓN', rojo: false },
+      { rango: '10', simbolo: '♠', arquetipo: 'PROTOCOLO', rojo: false },
+    ];
+    return palos[index % palos.length];
+  }
+
+  escenarioTema():
+    | 'tribunal_comite'
+    | 'laboratorio_autoridad'
+    | 'hospital_urgencias'
+    | 'entrevista_clinica'
+    | 'proteccion_riesgo'
+    | 'red_ciudad' {
+    const actual = this.pasoActual();
+    const ws = this.workspace();
+    if (!actual) return 'red_ciudad';
+    const raw = `${ws?.caso_nombre ?? ''} ${actual.escenario.contexto_situacional} ${actual.pregunta.enunciado}`
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
+    if (/(comision|comite|directiv|votac|voto|unanime|decano|expuls|testigo|debido proceso|asch|conformidad|junta)/.test(raw)) {
+      return 'tribunal_comite';
+    }
+    if (/(milgram|experimento|bata|descarga|voltaje|obediencia|investigador|sujeto|laboratorio|orden directa)/.test(raw)) {
+      return 'laboratorio_autoridad';
+    }
+    if (/(hospital|ambulancia|urgenc|emergenc|triaje|medico|uci|herido|trauma|clinica)/.test(raw)) {
+      return 'hospital_urgencias';
+    }
+    if (/(epicee|familia|entrevista|escucha|dialogo|comunicacion|paciente|duelo|consulta)/.test(raw)) {
+      return 'entrevista_clinica';
+    }
+    if (/(proteccion|riesgo|seguridad|violencia|abuso|denuncia|custodia|refugio|alerta|vulnera)/.test(raw)) {
+      return 'proteccion_riesgo';
+    }
+    const temas: Array<
+      'tribunal_comite' | 'laboratorio_autoridad' | 'hospital_urgencias' | 'entrevista_clinica' | 'proteccion_riesgo' | 'red_ciudad'
+    > = ['tribunal_comite', 'entrevista_clinica', 'proteccion_riesgo', 'red_ciudad'];
+    return temas[(actual.escenario.orden - 1) % temas.length];
+  }
+
+  etiquetaTemaEscenario(): string {
+    const etiquetas: Record<string, string> = {
+      tribunal_comite: 'SALA DIRECTIVA · PRESIÓN GRUPAL',
+      laboratorio_autoridad: 'LAB CONDUCTUAL · AUTORIDAD',
+      hospital_urgencias: 'URGENCIAS 24H · CRISIS',
+      entrevista_clinica: 'SALA CLÍNICA · VÍNCULO',
+      proteccion_riesgo: 'PERÍMETRO · PROTECCIÓN',
+      red_ciudad: 'DISTRITO · RED DE CUIDADO',
+    };
+    return etiquetas[this.escenarioTema()] ?? 'SIMULACIÓN ACTIVA';
+  }
+
+  etiquetaImpactoCarta(): string {
+    const id = this.opcionLanzada();
+    const actual = this.pasoActual();
+    if (!id || !actual) return 'CARTA JUGADA';
+    const idx = actual.pregunta.opciones.findIndex((o) => o.id === id);
+    const palo = this.paloCarta(Math.max(0, idx));
+    return `${palo.rango}${palo.simbolo} // ${palo.arquetipo}`;
   }
 
   coachMensaje(): string {
@@ -1776,7 +1300,7 @@ export class SimuladorComponent implements OnInit, OnDestroy {
         paso: actual.escenario.orden,
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await new Promise((resolve) => setTimeout(resolve, 950));
       const nuevos = this.pasosPlanos();
       this.opcionLanzada.set(null);
       this.guardando.set(false);

@@ -16,16 +16,26 @@ export function mensajeError(err: unknown): string {
         .map((d: { loc?: unknown[]; msg?: string }) => `${(d.loc ?? []).slice(1).join('.')}: ${d.msg ?? ''}`)
         .join(' · ');
     } else if (detail && typeof detail === 'object') {
-      const d = detail as { mensaje?: string; codigo?: string; campos?: string[] | null };
-      texto = d.mensaje ?? d.codigo ?? '';
+      const d = detail as {
+        mensaje?: string;
+        codigo?: string;
+        campos?: string[] | null;
+        errores?: unknown[];
+      };
+      if (Array.isArray(d.errores) && d.errores.length) {
+        texto = d.errores.map((item) => String(item)).join(' · ');
+      } else {
+        texto = d.mensaje ?? d.codigo ?? '';
+      }
       if (d.campos?.length) texto += ` (campos: ${d.campos.join(', ')})`;
     }
     const porEstado: Record<number, string> = {
+      400: 'Validación fallida:',
       401: 'Sesión no válida o expirada. Inicia sesión nuevamente.',
       403: 'No tienes permiso para realizar esta acción.',
       404: 'Recurso no encontrado.',
       409: 'Conflicto con el estado actual del recurso.',
-      422: 'Datos inválidos.',
+      422: 'Datos inválidos:',
       503: 'Funcionalidad no disponible en este momento (integración o configuración pendiente en el servidor).',
     };
     const base = porEstado[err.status] ?? `Error ${err.status}.`;
