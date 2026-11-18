@@ -118,6 +118,32 @@ def archivar_caso(
         raise _traducir(exc) from exc
 
 
+@router.post("/{version_id}/republish", response_model=VersionResponse,
+             status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(exigir_permiso_creacion_configurado)])
+def republicar_caso(
+    version_id: uuid.UUID, docente_id: DocenteDep, service: ServicioDep
+) -> VersionResponse:
+    """Clona una versión archivada o publicada en una nueva versión y la publica sin mutar el histórico."""
+    try:
+        return _respuesta(service.clonar_version(docente_id, version_id, publicar=True))
+    except (ErrorDominioCaso, GrafoNoDisponible) as exc:
+        raise _traducir(exc) from exc
+
+
+@router.post("/{version_id}/clone", response_model=VersionResponse,
+             status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(exigir_permiso_creacion_configurado)])
+def clonar_caso(
+    version_id: uuid.UUID, docente_id: DocenteDep, service: ServicioDep
+) -> VersionResponse:
+    """Crea un nuevo BORRADOR editable copiando escenarios, rúbrica y grafo de una versión existente."""
+    try:
+        return _respuesta(service.clonar_version(docente_id, version_id, publicar=False))
+    except (ErrorDominioCaso, GrafoNoDisponible) as exc:
+        raise _traducir(exc) from exc
+
+
 @router.get("/{version_id}/graph", response_model=GrafoResponse)
 def consultar_grafo(version_id: uuid.UUID, docente_id: DocenteDep, service: ServicioDep):
     """Detalle de la configuración propia, incluso del borrador incompleto."""

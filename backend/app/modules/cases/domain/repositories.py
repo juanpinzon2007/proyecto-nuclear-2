@@ -26,7 +26,7 @@ class ICasoRepository(ABC):
         """Resumen de las versiones del docente, más recientes primero."""
 
     @abstractmethod
-    def reemplazar(self, version: VersionCaso) -> None:
+    def reemplazar(self, version: VersionCaso, *, preservar_grafo: bool = False) -> None:
         """Reemplaza la estructura de una versión existente (mismo ``id``) en una transacción.
 
         Raises:
@@ -40,3 +40,9 @@ class ICasoRepository(ABC):
         Raises:
             ErrorPersistenciaCaso: si la transacción falla (se hace rollback).
         """
+
+    def clonar_version(
+        self, version_id: uuid.UUID, docente_creador_id: uuid.UUID, *, publicar: bool = False
+    ) -> VersionCaso:
+        """Clona una versión existente como nueva versión BORRADOR o la publica en una sola transacción."""
+        raise NotImplementedError

@@ -57,7 +57,7 @@ class CasoService:
         nueva.id = existente.id
         nueva.caso_id = existente.caso_id
         nueva.numero = existente.numero
-        self._repositorio.reemplazar(nueva)
+        self._repositorio.reemplazar(nueva, preservar_grafo=True)
         return nueva
 
     def archivar(self, docente_creador_id: uuid.UUID, version_id: uuid.UUID) -> VersionCaso:
@@ -88,6 +88,12 @@ class CasoService:
             # La composición HTTP siempre proporciona el puerto de recorrido.
             self._repositorio.actualizar_estado(version)
         return version
+
+    def clonar_version(
+        self, docente_creador_id: uuid.UUID, version_id: uuid.UUID, *, publicar: bool = False
+    ) -> VersionCaso:
+        """Crea una nueva versión BORRADOR (o PUBLICADA si ``publicar=True``) a partir de una existente."""
+        return self._repositorio.clonar_version(version_id, docente_creador_id, publicar=publicar)
 
     def consultar_recorrido(self, docente_creador_id: uuid.UUID, version_id: uuid.UUID) -> GrafoVersion:
         version = self._obtener_o_fallar(docente_creador_id, version_id)
