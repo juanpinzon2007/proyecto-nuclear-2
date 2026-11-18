@@ -341,7 +341,11 @@ import { avatarUsuario } from '../../core/user-avatar';
     .btn-inactive { color: var(--coral) !important; font-weight: 700; font-size: 11px; }
     .perm-list { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; }
     .space-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-    .grant-box { display: flex; align-items: center; gap: 8px; }
+    .grant-box { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    @media (max-width: 640px) {
+      .actions-row, .grant-box { flex-wrap: wrap; width: 100%; }
+      .grant-box .perm-select, .grant-box button { width: 100%; }
+    }
   `],
 })
 export class DocentesComponent implements OnInit {

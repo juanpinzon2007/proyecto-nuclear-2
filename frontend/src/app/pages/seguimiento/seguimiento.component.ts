@@ -54,7 +54,7 @@ import { avatarUsuario } from '../../core/user-avatar';
         </mat-card-header>
         <mat-card-content style="padding-top: 16px;">
           <form (ngSubmit)="descargarReporte()" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-            <mat-form-field appearance="outline" style="flex: 1; min-width: 280px;">
+            <mat-form-field appearance="outline" style="flex: 1 1 240px; min-width: min(100%, 240px);">
               <mat-label>Seleccionar sesión</mat-label>
               <mat-select [(ngModel)]="reporteSesionId" name="reporteSesionId" required>
                 @for (s of sesiones(); track s.id) {
@@ -66,7 +66,7 @@ import { avatarUsuario } from '../../core/user-avatar';
               </mat-select>
             </mat-form-field>
 
-            <mat-form-field appearance="outline" style="width: 150px;">
+            <mat-form-field appearance="outline" style="flex: 0 1 160px; min-width: 140px;">
               <mat-label>Formato</mat-label>
               <mat-select [(ngModel)]="reporteFormato" name="reporteFormato">
                 <mat-option value="xlsx">Excel (.xlsx)</mat-option>

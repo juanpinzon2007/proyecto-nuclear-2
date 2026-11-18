@@ -91,6 +91,12 @@ export interface NeuroDialogData {
       display: grid;
       gap: 14px;
       min-width: min(86vw, 440px);
+      max-width: 92vw;
+      box-sizing: border-box;
+    }
+    @media (max-width: 480px) {
+      .nd-shell { min-width: 0; width: 100%; padding: 18px 16px; }
+      .nd-title { font-size: 22px; }
     }
     .nd-shell.tone-green { border-left-color: var(--green); }
     .nd-shell.tone-amber { border-left-color: var(--amber); }

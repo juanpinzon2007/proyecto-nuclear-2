@@ -1001,8 +1001,8 @@ interface PasoPlano {
     }
     .action-card {
       position: relative;
-      flex: 0 0 265px;
-      min-height: 310px;
+      flex: 0 0 min(82vw, 265px);
+      min-height: 290px;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -1549,6 +1549,13 @@ interface PasoPlano {
       .launch-pad, .score-layout, .chart-row {
         grid-template-columns: 1fr;
       }
+      .coach {
+        grid-template-columns: auto 1fr;
+      }
+      .coach .tag {
+        grid-column: 1 / -1;
+        justify-self: start;
+      }
       .score-ring {
         margin: auto;
       }
@@ -1556,11 +1563,26 @@ interface PasoPlano {
         text-align: left;
       }
       .play-actions {
-        justify-content: flex-start;
+        width: 100%;
+        justify-content: stretch;
+      }
+      .play-actions button {
+        flex: 1 1 140px;
       }
       .event-body {
         padding-left: 0;
       }
+    }
+    @media (max-width: 520px) {
+      .stage { height: 148px; }
+      .hospital-crisis .hospital { left: 12px; width: 92px; height: 80px; }
+      .hospital-crisis .ambulance { right: 12px; width: 66px; }
+      .epicee-room .clinician { left: 14px; }
+      .epicee-room .family-group { right: 14px; }
+      .protection-risk .safe-door { left: 14px; width: 46px; }
+      .protection-risk .person.protected { left: 72px; }
+      .protection-risk .risk-meter { right: 12px; width: 106px; }
+      .care-network .node { font-size: 9px; padding: 4px 8px; }
     }
   `],
 })

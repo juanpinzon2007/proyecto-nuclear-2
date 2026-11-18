@@ -371,6 +371,16 @@ interface CriterioDraft {
     .val-lbl { font-family: var(--mono); font-size: 11px; color: var(--cyan); }
     .ok-txt { color: var(--green); }
     .bad-txt { color: var(--coral); }
+    @media (max-width: 680px) {
+      .row-2 mat-form-field,
+      .nivel-item mat-form-field,
+      .op-top mat-form-field,
+      .val-row mat-form-field {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+      }
+      .sub-box, .escenario-box, .preg-box { padding: 12px; }
+    }
   `],
 })
 export class CasoEditorComponent implements OnInit {

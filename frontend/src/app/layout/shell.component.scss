@@ -349,16 +349,21 @@
 }
 
 @media (max-width: 920px) {
-  .hud-node,
-  .user-hud {
+  .user-meta {
     display: none;
+  }
+
+  .user-hud {
+    padding: 3px;
+    border-color: transparent;
+    background: transparent;
   }
 }
 
 @media (max-width: 620px) {
   .neuro-header {
     padding: 0 12px;
-    gap: 10px;
+    gap: 8px;
   }
 
   .brand-view {
@@ -375,6 +380,10 @@
 
   .hud-cta span {
     display: none;
+  }
+
+  .dock-item {
+    min-width: 78px;
   }
 
   .neuro-canvas {

@@ -365,7 +365,12 @@ import { SchedulingService } from '../../core/scheduling.service';
     .enroll-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
     .dark-sel { flex: 1; background: #070a10; color: var(--text); border: 1px solid var(--line-strong); padding: 8px 10px; font-family: var(--mono); font-size: 12px; }
     .enrolled-list { display: flex; flex-direction: column; gap: 6px; }
-    .enrolled-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #070a10; border: 1px solid rgba(184, 211, 214, 0.12); font-size: 13px; }
+    .enrolled-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #070a10; border: 1px solid rgba(184, 211, 214, 0.12); font-size: 13px; flex-wrap: wrap; gap: 8px; }
+    @media (max-width: 640px) {
+      .inline-space, .mini-create, .enroll-bar { flex-wrap: wrap; }
+      .mini-create button, .enroll-bar button { width: 100%; }
+      .btn-wrap a, .btn-wrap button { flex: 1 1 auto; }
+    }
   `],
 })
 export class ProgramacionComponent implements OnInit {
@@ -459,13 +464,14 @@ export class ProgramacionComponent implements OnInit {
     const g = this.grupos().find((x) => x.id_grupo === grupoId);
     if (g) {
       for (const e of g.estudiantes) {
-        if (e.uuid_scheduling) this.estudiantesSeleccionados.add(e.uuid_scheduling);
+        if (e.uuid_scheduling && e.activo !== false) this.estudiantesSeleccionados.add(e.uuid_scheduling);
       }
     }
   }
 
   estudiantesGrupoSeleccionado() {
-    return this.grupos().find((g) => g.id_grupo === this.formSes.grupoId)?.estudiantes ?? [];
+    const lista = this.grupos().find((g) => g.id_grupo === this.formSes.grupoId)?.estudiantes ?? [];
+    return lista.filter((e) => e.activo !== false);
   }
 
   seleccionadosCount(): number {
