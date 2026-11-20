@@ -6,6 +6,7 @@ from email.message import EmailMessage
 from email.utils import parseaddr
 import ipaddress
 import json
+import logging
 import smtplib
 import ssl
 from urllib.parse import urlsplit
@@ -20,6 +21,8 @@ from app.modules.identity.infrastructure.models import UsuarioORM
 from app.modules.scheduling.infrastructure.mail_models import DespachoCorreoModel
 from app.modules.scheduling.infrastructure.models import ConvocatoriaModel, EventoAuditoriaModel, NotificacionModel
 from app.modules.scheduling.domain.access_codes import coincide_codigo
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -39,6 +42,10 @@ def _loopback(host):
         return ipaddress.ip_address(host).is_loopback
     except ValueError:
         return False
+
+
+def _es_url_local(parsed) -> bool:
+    return parsed.scheme == 'http' and (parsed.hostname == 'localhost' or _loopback(parsed.hostname))
 
 
 def configuracion_correo():
@@ -65,7 +72,7 @@ def configuracion_correo():
         parsed = urlsplit(url)
         if parsed.username or parsed.password or not parsed.hostname or parsed.fragment:
             raise ValueError()
-        if parsed.scheme != 'https' and not (tls == 'LAB_LOOPBACK' and parsed.scheme == 'http' and _loopback(parsed.hostname)):
+        if parsed.scheme != 'https' and not _es_url_local(parsed):
             raise ValueError()
         password = settings.scheduling_mail_password
         usuario = settings.scheduling_mail_username
@@ -73,8 +80,10 @@ def configuracion_correo():
             raise ValueError()
         key = clave.get_secret_value().encode('ascii')
         Fernet(key)
-        return ConfiguracionCorreo(host, puerto, tls, remitente, url, key, usuario,
-                                   password.get_secret_value() if password else None)
+        raw_pass = password.get_secret_value() if password else None
+        if raw_pass and host.strip().casefold() == 'smtp.gmail.com':
+            raw_pass = ''.join(raw_pass.split())
+        return ConfiguracionCorreo(host, puerto, tls, remitente, url, key, usuario, raw_pass)
     except (ValueError, TypeError, UnicodeError, ImportError):
         raise IntegracionPendiente() from None
 
@@ -111,17 +120,45 @@ _ASUNTOS_POR_TIPO = {
 }
 
 
-def enviar_smtp(config, *, id_notificacion, payload):
+def enviar_mensaje_smtp(
+    config: ConfiguracionCorreo,
+    *,
+    destinatario: str,
+    asunto: str,
+    cuerpo: str,
+    message_id: str | None = None,
+) -> None:
+    """Envía un correo electrónico usando el transporte SMTP configurado (STARTTLS, SSL o LAB_LOOPBACK)."""
     mensaje = EmailMessage()
     mensaje['From'] = config.remitente
-    mensaje['To'] = payload['correo']
-    mensaje['Message-ID'] = f'<{id_notificacion}@{config.remitente.rsplit("@", 1)[1]}>'
+    mensaje['To'] = destinatario
+    if message_id:
+        mensaje['Message-ID'] = message_id
+    mensaje['Subject'] = asunto
+    mensaje.set_content(cuerpo)
+    context = ssl.create_default_context()
+    client = smtplib.SMTP_SSL(config.host, config.puerto, timeout=15, context=context) if config.tls == 'SSL' else smtplib.SMTP(config.host, config.puerto, timeout=15)
+    with client:
+        if config.tls == 'STARTTLS':
+            client.ehlo()
+            client.starttls(context=context)
+            client.ehlo()
+        if config.usuario:
+            client.login(config.usuario, config.password)
+        rechazados = client.send_message(mensaje, from_addr=config.remitente, to_addrs=[destinatario])
+        if rechazados:
+            raise smtplib.SMTPRecipientsRefused(rechazados)
+
+
+def enviar_smtp(config, *, id_notificacion, payload):
     tipo = payload['tipo']
-    mensaje['Subject'] = _ASUNTOS_POR_TIPO.get(tipo, 'Notificación académica SPS')
+    asunto = _ASUNTOS_POR_TIPO.get(tipo, 'Notificación académica SPS')
     texto = [f"Caso: {payload['caso']}", f"Inicio programado: {payload['inicio']}", payload['mensaje'],
-             f"URL: {payload['url']}"]
+             f"URL: {config.url_publica}"]
     if tipo == 'CONVOCATORIA':
+        texto.insert(0, 'Has sido convocado por tu docente a un caso de simulación en SPS.')
         texto.append(f"Código individual: {payload['codigo']}")
+        texto.append('Ingresa a la plataforma en el horario indicado e introduce tu código individual para iniciar la sesión.')
     elif tipo == 'RETIRO_CONVOCATORIA':
         texto.append('El docente retiró tu autorización para esta sesión.')
     elif tipo == 'CAMBIO_SESION':
@@ -130,17 +167,13 @@ def enviar_smtp(config, *, id_notificacion, payload):
         texto.append('Tus resultados oficiales están disponibles en la plataforma.')
     elif tipo == 'RETROALIMENTACION':
         texto.append('Tu docente registró retroalimentación sobre tu participación.')
-    mensaje.set_content('\n'.join(texto))
-    context = ssl.create_default_context()
-    client = smtplib.SMTP_SSL(config.host, config.puerto, timeout=15, context=context) if config.tls == 'SSL' else smtplib.SMTP(config.host, config.puerto, timeout=15)
-    with client:
-        if config.tls == 'STARTTLS':
-            client.starttls(context=context)
-        if config.usuario:
-            client.login(config.usuario, config.password)
-        rechazados = client.send_message(mensaje, from_addr=config.remitente, to_addrs=[payload['correo']])
-        if rechazados:
-            raise smtplib.SMTPRecipientsRefused(rechazados)
+    enviar_mensaje_smtp(
+        config,
+        destinatario=payload['correo'],
+        asunto=asunto,
+        cuerpo='\n'.join(texto),
+        message_id=f'<{id_notificacion}@{config.remitente.rsplit("@", 1)[1]}>',
+    )
 
 
 def _auditar(db, notificacion, convocatoria, despacho, resultado):

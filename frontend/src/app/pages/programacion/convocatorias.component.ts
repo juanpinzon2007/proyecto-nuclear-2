@@ -36,7 +36,7 @@ import { avatarUsuario } from '../../core/user-avatar';
         <div style="display:flex; align-items:center; gap:10px;">
           <a mat-icon-button routerLink="/programacion"><mat-icon>arrow_back</mat-icon></a>
           <div>
-            <p class="eyebrow">Control de Acceso // RF-20 · RF-21</p>
+            <p class="eyebrow">Control de Acceso</p>
             <h2>Convocatorias & Códigos de Autorización</h2>
             <p class="subtitle">Sesión <span class="mono">{{ sesionId }}</span></p>
           </div>

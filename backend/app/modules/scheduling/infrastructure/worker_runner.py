@@ -21,7 +21,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-INTERVALO_SEGUNDOS = 60
+INTERVALO_SEGUNDOS = 3
 
 
 def registrar_error(error: Exception) -> None:

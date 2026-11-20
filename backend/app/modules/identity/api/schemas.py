@@ -23,6 +23,35 @@ class RespuestaToken(EsquemaIdentity):
     token_type: Literal["bearer"] = "bearer"
 
 
+class RespuestaAccesoEstudiante(EsquemaIdentity):
+    requiere_verificacion: bool
+    access_token: str | None = None
+    token_type: Literal["bearer"] = "bearer"
+    correo: str | None = None
+    mensaje: str | None = None
+    expira_en_segundos: int | None = None
+
+
+class SolicitudVerificarPrimerIngreso(EsquemaIdentity):
+    correo: Annotated[str, Field(strict=True, min_length=3, max_length=254)]
+    codigo: Annotated[SecretStr, Field(min_length=4, max_length=32)]
+
+
+class SolicitudRecuperarContrasena(EsquemaIdentity):
+    correo: Annotated[str, Field(strict=True, min_length=3, max_length=254)]
+
+
+class SolicitudConfirmarRecuperacion(EsquemaIdentity):
+    correo: Annotated[str, Field(strict=True, min_length=3, max_length=254)]
+    codigo: Annotated[SecretStr, Field(min_length=4, max_length=32)]
+    nueva_clave: Annotated[SecretStr, Field(min_length=6, max_length=1024)]
+
+
+class RespuestaMensajeOperacion(EsquemaIdentity):
+    ok: bool = True
+    mensaje: str
+
+
 class SolicitudLoginPersonal(EsquemaIdentity):
     correo: Annotated[str, Field(strict=True, min_length=3, max_length=254)]
     # Compatible con el alta existente; sin inventar complejidad o caducidad.

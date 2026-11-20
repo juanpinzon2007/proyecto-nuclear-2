@@ -15,6 +15,15 @@ export interface ErrorHTTP { detail: DetalleErrorHTTP; }
 export interface SolicitudLogin { correo: string; codigo_convocatoria: string; }
 export interface SolicitudLoginPersonal { correo: string; clave: string; }
 export interface RespuestaToken { access_token: string; token_type?: string; }
+export interface RespuestaAccesoEstudiante {
+  requiere_verificacion: boolean;
+  access_token?: string | null;
+  token_type?: string;
+  correo?: string | null;
+  mensaje?: string | null;
+  expira_en_segundos?: number | null;
+}
+export interface RespuestaMensajeOperacion { ok: boolean; mensaje: string; }
 export interface UsuarioPublico { id_usuario: string; correo: string; roles: Rol[]; permisos: string[]; }
 
 export interface CuentaDocenteRespuesta { id_usuario: string; nombre: string; correo: string; activo: boolean; }
@@ -67,6 +76,7 @@ export interface UsuarioGestionItem {
   id_usuario: string; nombre: string; correo: string; rol: string; activo: boolean;
   permisos_rol: string[]; permisos_individuales: Record<string, boolean>; permisos_efectivos: string[];
   identidad_cases?: string | null; identidad_scheduling?: string | null;
+  primer_ingreso_verificado?: boolean;
 }
 export interface CatalogoUsuariosRespuesta {
   usuarios: UsuarioGestionItem[]; permisos_disponibles: string[]; roles_disponibles: string[];
@@ -78,6 +88,7 @@ export interface CrearUsuarioAdminSolicitud {
 export interface ActualizarUsuarioAdminSolicitud {
   nombre?: string | null; correo?: string | null; rol?: Rol | null; activo?: boolean | null;
   clave?: string | null; permisos_individuales?: Record<string, boolean> | null;
+  primer_ingreso_verificado?: boolean | null;
 }
 export interface FeedbackDocente { id_participacion: string; id_docente: string; texto: string; fecha: string; }
 export interface ReporteFiltros {

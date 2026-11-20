@@ -47,7 +47,7 @@ import { avatarUsuario } from '../../core/user-avatar';
     <div class="admin-wrap">
       <div class="page-header">
         <div>
-          <p class="eyebrow amber">Consola de Gobernanza // RF-03</p>
+          <p class="eyebrow amber">Consola de Gobernanza</p>
           <h2>Administración de Usuarios, Roles y Permisos</h2>
           <p class="subtitle">
             Control integral de cuentas, excepciones por permiso, vínculos de identidad y autorización de espacios académicos.
@@ -89,10 +89,22 @@ import { avatarUsuario } from '../../core/user-avatar';
                   </mat-form-field>
 
                   <mat-form-field appearance="outline">
-                    <mat-label>{{ usuarioEditando() ? 'Nueva contraseña (opcional)' : (formUser.rol === 'ESTUDIANTE' ? 'Clave interna opcional (estudiante accede con código)' : 'Contraseña') }}</mat-label>
+                    <mat-label>{{ usuarioEditando() ? 'Nueva contraseña (opcional)' : 'Contraseña inicial' }}</mat-label>
                     <input matInput type="password" [(ngModel)]="formUser.clave" name="clave"
-                           [required]="!usuarioEditando() && formUser.rol !== 'ESTUDIANTE'" />
+                           [required]="!usuarioEditando()" />
                   </mat-form-field>
+
+                  @if (formUser.rol === 'ESTUDIANTE' && !usuarioEditando()) {
+                    <div class="role-hint">
+                      El estudiante iniciará sesión con este correo y contraseña. Únicamente la primera vez recibirá un código de verificación en su correo.
+                    </div>
+                  }
+
+                  @if (formUser.rol === 'ESTUDIANTE' && usuarioEditando()) {
+                    <mat-checkbox [(ngModel)]="formUser.exigirPrimerIngreso" name="exigirPrimerIngreso">
+                      Exigir código por correo en el próximo inicio de sesión
+                    </mat-checkbox>
+                  }
 
                   <mat-checkbox [(ngModel)]="formUser.activo" name="activo">Cuenta activa</mat-checkbox>
 
@@ -188,10 +200,17 @@ import { avatarUsuario } from '../../core/user-avatar';
                     <ng-container matColumnDef="estado">
                       <th mat-header-cell *matHeaderCellDef>Estado</th>
                       <td mat-cell *matCellDef="let u">
-                        <button mat-button type="button" (click)="alternarEstado(u)"
-                                [class]="u.activo ? 'btn-active' : 'btn-inactive'">
-                          {{ u.activo ? 'ACTIVO' : 'INACTIVO' }}
-                        </button>
+                        <div class="state-col">
+                          <button mat-button type="button" (click)="alternarEstado(u)"
+                                  [class]="u.activo ? 'btn-active' : 'btn-inactive'">
+                            {{ u.activo ? 'ACTIVO' : 'INACTIVO' }}
+                          </button>
+                          @if (u.rol === 'ESTUDIANTE') {
+                            <span [class]="u.primer_ingreso_verificado === false ? 'otp-pending-tag' : 'otp-ok-tag'">
+                              {{ u.primer_ingreso_verificado === false ? '1ER INGRESO PENDIENTE' : 'VERIFICADO' }}
+                            </span>
+                          }
+                        </div>
                       </td>
                     </ng-container>
 
@@ -249,7 +268,7 @@ import { avatarUsuario } from '../../core/user-avatar';
             <mat-card class="panel panel-amber-left panel-card">
               <mat-card-header>
                 <mat-card-title>Crear Espacio Académico</mat-card-title>
-                <mat-card-subtitle>Registra asignaturas o módulos y autoriza docentes titulares (RF-04)</mat-card-subtitle>
+                <mat-card-subtitle>Registra asignaturas o módulos y autoriza docentes titulares</mat-card-subtitle>
               </mat-card-header>
               <mat-card-content>
                 <form class="form-stack" (ngSubmit)="crearYAutorizarEspacio()">
@@ -339,6 +358,11 @@ import { avatarUsuario } from '../../core/user-avatar';
     .ok-badge { color: var(--green); font-family: var(--mono); font-size: 11px; font-weight: 700; }
     .btn-active { color: var(--green) !important; font-weight: 700; font-size: 11px; }
     .btn-inactive { color: var(--coral) !important; font-weight: 700; font-size: 11px; }
+    .state-col { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+    .otp-pending-tag, .otp-ok-tag { font-family: var(--mono); font-size: 10px; padding: 2px 6px; letter-spacing: 0.5px; }
+    .otp-pending-tag { color: var(--amber); border: 1px solid rgba(255, 184, 0, 0.5); background: rgba(255, 184, 0, 0.1); }
+    .otp-ok-tag { color: var(--cyan); border: 1px solid rgba(0, 229, 244, 0.35); background: rgba(0, 229, 244, 0.08); }
+    .role-hint { font-size: 12px; color: var(--cyan-soft); background: rgba(0, 229, 244, 0.08); border-left: 3px solid var(--cyan); padding: 8px 10px; line-height: 1.45; }
     .perm-list { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; }
     .space-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
     .grant-box { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -374,6 +398,7 @@ export class DocentesComponent implements OnInit {
     rol: 'DOCENTE' as Rol,
     clave: '',
     activo: true,
+    exigirPrimerIngreso: false,
     permisosIndividuales: {} as Record<string, boolean>,
   };
 
@@ -424,6 +449,7 @@ export class DocentesComponent implements OnInit {
       rol: u.rol as Rol,
       clave: '',
       activo: u.activo,
+      exigirPrimerIngreso: u.primer_ingreso_verificado === false,
       permisosIndividuales: { ...u.permisos_individuales },
     };
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -437,14 +463,19 @@ export class DocentesComponent implements OnInit {
       rol: 'DOCENTE',
       clave: '',
       activo: true,
+      exigirPrimerIngreso: false,
       permisosIndividuales: {},
     };
   }
 
   async guardarUsuario(): Promise<void> {
+    const editando = this.usuarioEditando();
+    if (!editando && !this.formUser.clave.trim()) {
+      this.snack.open('Ingresa una contraseña inicial de al menos 6 caracteres.', 'Cerrar', { duration: 4000 });
+      return;
+    }
     this.guardando.set(true);
     try {
-      const editando = this.usuarioEditando();
       if (editando) {
         await firstValueFrom(
           this.identity.actualizarUsuario(editando.id_usuario, {
@@ -454,6 +485,7 @@ export class DocentesComponent implements OnInit {
             activo: this.formUser.activo,
             clave: this.formUser.clave.trim() || null,
             permisos_individuales: this.formUser.permisosIndividuales,
+            primer_ingreso_verificado: this.formUser.rol === 'ESTUDIANTE' ? !this.formUser.exigirPrimerIngreso : null,
           }),
         );
         this.snack.open('Usuario actualizado correctamente.', 'OK', { duration: 3000 });

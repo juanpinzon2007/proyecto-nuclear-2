@@ -22,7 +22,7 @@ import { ResultadoIntentoDetalle } from '../../core/api.models';
       <mat-card-content>
         <div class="spread head-top">
           <div>
-            <p class="eyebrow green">Estado: Simulación Finalizada (RF-13 · RF-14)</p>
+            <p class="eyebrow green">Estado: Simulación Finalizada</p>
             <h1>{{ res.caso_nombre }}</h1>
           </div>
           <span class="ref mono">{{ res.rubrica_nombre }}</span>
@@ -57,7 +57,7 @@ import { ResultadoIntentoDetalle } from '../../core/api.models';
     @if (res.retroalimentacion_docente) {
       <mat-card class="panel fb-card">
         <mat-card-header>
-          <mat-card-title>Retroalimentación General del Docente (RF-26)</mat-card-title>
+          <mat-card-title>Retroalimentación General del Docente</mat-card-title>
           <mat-card-subtitle>{{ res.fecha_retroalimentacion | date:'medium' }}</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content style="padding-top:14px; font-size:15px; line-height:1.6;">
@@ -71,7 +71,7 @@ import { ResultadoIntentoDetalle } from '../../core/api.models';
         <div class="spread">
           <div>
             <p class="eyebrow green">Desglose de Evaluación</p>
-            <h2 class="section-heading">Criterios de Rúbrica (RF-17)</h2>
+            <h2 class="section-heading">Criterios de Rúbrica</h2>
           </div>
           <span class="tag green">RÚBRICA</span>
         </div>
@@ -110,7 +110,7 @@ import { ResultadoIntentoDetalle } from '../../core/api.models';
     <section class="panel events">
       <div class="events-head spread">
         <div>
-          <p class="eyebrow">Bitácora de Decisiones (RF-08 · RF-14)</p>
+          <p class="eyebrow">Bitácora de Decisiones</p>
           <h3>Justificaciones Teóricas por Pregunta</h3>
         </div>
         <span class="tag">{{ res.preguntas.length }} ITEMS</span>

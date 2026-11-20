@@ -37,7 +37,7 @@ import { UiDialogService } from '../../core/ui-dialog.service';
     <div class="page">
       <div class="page-header">
         <div>
-          <p class="eyebrow">Consola de Autoría // RF-05 · RF-09</p>
+          <p class="eyebrow">Consola de Autoría</p>
           <h1>Casos de Estudio</h1>
           <p class="muted">Gestión de casos, escenas situacionales, opciones de decisión y rúbricas de evaluación</p>
         </div>
@@ -322,7 +322,7 @@ export class CasosListaComponent implements OnInit {
 
   async publicar(versionId: string): Promise<void> {
     const ok = await this.uiDialog.confirmar({
-      eyebrow: 'Validación y Publicación // RF-09',
+      eyebrow: 'Validación y Publicación',
       titulo: 'Publicar Versión del Caso',
       mensaje: '¿Deseas validar el caso, completar su recorrido si falta y publicarlo? Una vez publicada la versión quedará inmutable y lista para programar sesiones.',
       botonConfirmar: 'Publicar Caso',
@@ -340,7 +340,7 @@ export class CasosListaComponent implements OnInit {
       const msg = mensajeError(err);
       this.error.set(msg);
       const irEditar = await this.uiDialog.confirmar({
-        eyebrow: 'Publicación Incompleta // RF-09',
+        eyebrow: 'Publicación Incompleta',
         titulo: 'Faltan Datos Obligatorios',
         mensaje: `${msg}\n\n¿Deseas abrir el editor para completar la rúbrica, justificaciones o escenarios?`,
         botonConfirmar: 'Ir al Editor',
@@ -376,7 +376,7 @@ export class CasosListaComponent implements OnInit {
 
   async republicar(versionId: string): Promise<void> {
     const ok = await this.uiDialog.confirmar({
-      eyebrow: 'Reactivación de Caso // RF-09',
+      eyebrow: 'Reactivación de Caso',
       titulo: 'Republicar como Nueva Versión Activa',
       mensaje: 'Se creará y publicará una nueva versión (v+1) con los mismos escenarios, rúbrica y grafo, conservando intacto el histórico de la versión archivada.',
       botonConfirmar: 'Republicar Ahora',
@@ -397,7 +397,7 @@ export class CasosListaComponent implements OnInit {
 
   async clonarComoBorrador(versionId: string): Promise<void> {
     const ok = await this.uiDialog.confirmar({
-      eyebrow: 'Versionado de Casos // RF-05',
+      eyebrow: 'Versionado de Casos',
       titulo: 'Crear Nueva Versión en Borrador',
       mensaje: 'Se creará un borrador editable (v+1) copiando escenarios, opciones y rúbrica de esta versión para modificarlo y volver a publicar.',
       botonConfirmar: 'Crear Borrador y Editar',

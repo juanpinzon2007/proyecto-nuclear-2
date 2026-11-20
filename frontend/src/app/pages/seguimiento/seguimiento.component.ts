@@ -35,7 +35,7 @@ import { avatarUsuario } from '../../core/user-avatar';
     <div class="page">
       <div class="page-header">
         <div>
-          <p class="eyebrow">Auditoría & Telemetría // RF-15 · RF-16</p>
+          <p class="eyebrow">Auditoría & Telemetría</p>
           <h1>Seguimiento Académico y Reportes</h1>
           <p class="muted">Consulta participaciones por caso, revisa calificaciones, emite feedback docente y descarga actas oficiales.</p>
         </div>
@@ -47,7 +47,7 @@ import { avatarUsuario } from '../../core/user-avatar';
       <!-- Reporte Oficial / Provisional RF-16 -->
       <mat-card class="panel panel-amber-left" style="margin-bottom: 22px;">
         <mat-card-header>
-          <mat-card-title>Descargar Reporte de Sesión (RF-16)</mat-card-title>
+          <mat-card-title>Descargar Reporte de Sesión</mat-card-title>
           <mat-card-subtitle>
             Genera reportes oficiales de sesiones publicadas o reportes provisionales en tiempo real para sesiones activas
           </mat-card-subtitle>

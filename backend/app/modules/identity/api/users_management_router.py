@@ -1,22 +1,28 @@
 """Rutas administrativas para gestión integral de usuarios, roles, permisos e identidades (RF-03)."""
 
+from collections.abc import Callable
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
 import secrets
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.modules.identity.api.dependencies import obtener_usuario_actual
+from app.modules.identity.api.dependencies import obtener_notificador_negocio, obtener_usuario_actual
 from app.modules.identity.application.authorization import ServicioAutorizacion
 from app.modules.identity.domain.entities import ContextoAcceso, Rol, normalizar_correo
 from app.modules.identity.domain.errors import AccesoDenegado, ReglaIdentidadInvalida
 from app.modules.identity.infrastructure.academic_identity_models import IdentidadAcademicaORM
+from app.modules.identity.infrastructure.business_notifications import notificar_registro_usuario
 from app.modules.identity.infrastructure.credentials import obtener_hasheador
 from app.modules.identity.infrastructure.models import PermisoORM, RolORM, RolPermisoORM, UsuarioORM, UsuarioPermisoORM
+from app.modules.identity.infrastructure.onboarding import (
+    estado_primer_ingreso,
+    registrar_estado_primer_ingreso,
+)
 from app.modules.identity.infrastructure.repositories import RepositorioUsuariosSQLAlchemy, id_entero
 
 
@@ -24,6 +30,7 @@ router = APIRouter(tags=["identity-admin"])
 
 UsuarioActual = Annotated[ContextoAcceso, Depends(obtener_usuario_actual)]
 BaseDatos = Annotated[Session, Depends(get_db)]
+NotificadorNegocio = Annotated[Callable[..., None] | None, Depends(obtener_notificador_negocio)]
 
 
 def _exigir_admin(usuario: ContextoAcceso) -> None:
@@ -46,6 +53,7 @@ class UsuarioGestionItem(BaseModel):
     permisos_efectivos: list[str]
     identidad_cases: UUID | None = None
     identidad_scheduling: UUID | None = None
+    primer_ingreso_verificado: bool = True
 
 
 class CatalogoUsuariosRespuesta(BaseModel):
@@ -77,6 +85,7 @@ class ActualizarUsuarioAdminSolicitud(BaseModel):
     activo: bool | None = None
     clave: Annotated[SecretStr | None, Field(min_length=6, max_length=1024)] = None
     permisos_individuales: dict[str, bool] | None = None
+    primer_ingreso_verificado: bool | None = None
 
 
 def _serializar_usuario(db: Session, usuario: UsuarioORM) -> UsuarioGestionItem:
@@ -111,6 +120,7 @@ def _serializar_usuario(db: Session, usuario: UsuarioORM) -> UsuarioGestionItem:
         permisos_efectivos=permisos_efectivos,
         identidad_cases=id_cases,
         identidad_scheduling=id_scheduling,
+        primer_ingreso_verificado=estado_primer_ingreso(db, id_usuario=usuario.id_usuario),
     )
 
 
@@ -168,6 +178,8 @@ def crear_usuario_admin(
     solicitud: CrearUsuarioAdminSolicitud,
     usuario_actual: UsuarioActual,
     db: BaseDatos,
+    background_tasks: BackgroundTasks,
+    notificador: NotificadorNegocio,
 ) -> UsuarioGestionItem:
     _exigir_admin(usuario_actual)
     try:
@@ -214,8 +226,18 @@ def crear_usuario_admin(
     if solicitud.crear_identidades_academicas and solicitud.rol in ("DOCENTE", "ESTUDIANTE"):
         _asegurar_identidades(db, nuevo.id_usuario)
 
+    if solicitud.rol == "ESTUDIANTE":
+        registrar_estado_primer_ingreso(db, id_usuario=nuevo.id_usuario, verificado=False)
+
     db.commit()
     db.refresh(nuevo)
+    notificar_registro_usuario(
+        correo=nuevo.correo,
+        nombre=nuevo.nombre,
+        rol=solicitud.rol,
+        background_tasks=background_tasks,
+        notificador=notificador,
+    )
     return _serializar_usuario(db, nuevo)
 
 
@@ -274,6 +296,9 @@ def actualizar_usuario_admin(
 
     if solicitud.permisos_individuales is not None:
         _aplicar_permisos_individuales(db, uid, solicitud.permisos_individuales)
+
+    if solicitud.primer_ingreso_verificado is not None:
+        registrar_estado_primer_ingreso(db, id_usuario=uid, verificado=solicitud.primer_ingreso_verificado)
 
     db.commit()
     db.refresh(objetivo)

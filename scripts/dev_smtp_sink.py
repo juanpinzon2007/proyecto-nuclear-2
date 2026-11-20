@@ -2,11 +2,26 @@
 
 import asyncio
 from datetime import datetime, timezone
+from email import policy
+from email.parser import BytesParser
 from pathlib import Path
 
 HOST = "127.0.0.1"
 PORT = 1025
 LOG_FILE = Path(__file__).resolve().parent / "dev_mail_outbox.log"
+
+
+def _formatear_correo(raw_bytes: bytes) -> str:
+    try:
+        msg = BytesParser(policy=policy.default).parsebytes(raw_bytes)
+        asunto = msg.get("Subject", "")
+        cuerpo_part = msg.get_body(preferencelist=("plain", "html"))
+        cuerpo = cuerpo_part.get_content() if cuerpo_part is not None else msg.get_content()
+        if isinstance(cuerpo, bytes):
+            cuerpo = cuerpo.decode("utf-8", errors="replace")
+        return f"From: {msg.get('From', '')}\nTo: {msg.get('To', '')}\nSubject: {asunto}\n\n{str(cuerpo).strip()}"
+    except Exception:
+        return raw_bytes.decode("utf-8", errors="replace").replace("\r\n", "\n").strip()
 
 
 async def handle_smtp(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
@@ -27,7 +42,7 @@ async def handle_smtp(reader: asyncio.StreamReader, writer: asyncio.StreamWriter
             if in_data:
                 if raw in (b".\r\n", b".\n"):
                     in_data = False
-                    body = b"".join(data_lines).decode("utf-8", errors="replace")
+                    body = _formatear_correo(b"".join(data_lines))
                     stamp = datetime.now(timezone.utc).isoformat()
                     entry = (
                         f"=== EMAIL [{stamp}] FROM={sender} TO={','.join(recipients)} ===\n"

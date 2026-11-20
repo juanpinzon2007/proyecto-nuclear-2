@@ -73,7 +73,7 @@ interface CriterioDraft {
         <div style="display:flex; align-items:center; gap:10px;">
           <a mat-icon-button routerLink="/casos" title="Volver"><mat-icon>arrow_back</mat-icon></a>
           <div>
-            <p class="eyebrow">Autoría Clínica // RF-05 · RF-06 · RF-07 · RF-08 · RF-17</p>
+            <p class="eyebrow">Autoría Clínica</p>
             <h2>{{ versionId ? 'Editar Caso de Simulación (Borrador)' : 'Nuevo Caso de Simulación & Rúbrica' }}</h2>
             <p class="subtitle">Estructura clínica, escenarios, justificaciones teóricas y matriz de evaluación</p>
           </div>
@@ -98,7 +98,7 @@ interface CriterioDraft {
         <!-- 01. Ficha Académica (RF-05) -->
         <mat-card class="panel panel-cyan-left">
           <mat-card-header>
-            <mat-card-title>01 // Ficha Académica del Caso (RF-05)</mat-card-title>
+            <mat-card-title>01 // Ficha Académica del Caso</mat-card-title>
             <mat-card-subtitle>Nombre, contexto narrativo, desarrollo situacional y tiempo estimado máximo</mat-card-subtitle>
           </mat-card-header>
           <mat-card-content class="form-grid" style="padding-top:16px;">
@@ -124,7 +124,7 @@ interface CriterioDraft {
         <!-- 02. Rúbrica de Evaluación (RF-17) -->
         <mat-card class="panel panel-amber-left">
           <mat-card-header>
-            <mat-card-title>02 // Rúbrica de Evaluación (RF-17)</mat-card-title>
+            <mat-card-title>02 // Rúbrica de Evaluación</mat-card-title>
             <mat-card-subtitle>
               Los pesos de los criterios deben sumar exactamente <strong>100%</strong>
               (Suma actual: <strong [class.ok-txt]="sumaPesos() === 100" [class.bad-txt]="sumaPesos() !== 100">{{ sumaPesos() }}%</strong>)
@@ -210,7 +210,7 @@ interface CriterioDraft {
         <!-- 03. Escenarios, Preguntas, Opciones y Justificaciones (RF-06, RF-07, RF-08) -->
         <mat-card class="panel panel-green-left">
           <mat-card-header>
-            <mat-card-title>03 // Escenarios, Preguntas y Opciones con Justificación (RF-06 · RF-07 · RF-08)</mat-card-title>
+            <mat-card-title>03 // Escenarios, Preguntas y Opciones con Justificación</mat-card-title>
             <mat-card-subtitle>
               Define al menos 1 pregunta clave con mínimo 2 opciones (1+ correcta) por cada escenario.
             </mat-card-subtitle>
@@ -270,7 +270,7 @@ interface CriterioDraft {
                         </div>
 
                         <mat-form-field appearance="outline" class="full-w">
-                          <mat-label>Justificación teórica / retroalimentación de esta opción (RF-08)</mat-label>
+                          <mat-label>Justificación teórica / retroalimentación de esta opción</mat-label>
                           <textarea matInput rows="2" [(ngModel)]="op.justificacion" required></textarea>
                         </mat-form-field>
 
@@ -664,7 +664,7 @@ export class CasoEditorComponent implements OnInit {
         if (!q.options.some((o) => !o.esCorrecta)) errs.push(`Escenario #${ei + 1}, pregunta ${pi + 1}: requiere al menos 1 opción incorrecta.`);
         q.options.forEach((o, oi) => {
           if (!o.texto.trim()) errs.push(`Escenario #${ei + 1}, opción ${oi + 1}: falta texto de respuesta.`);
-          if (!o.justificacion.trim()) errs.push(`Escenario #${ei + 1}, opción ${oi + 1}: falta justificación teórica (RF-08).`);
+          if (!o.justificacion.trim()) errs.push(`Escenario #${ei + 1}, opción ${oi + 1}: falta justificación teórica.`);
         });
       });
     });

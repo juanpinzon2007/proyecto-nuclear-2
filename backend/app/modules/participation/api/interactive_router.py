@@ -528,7 +528,7 @@ def iniciar_o_retomar_intento(
         raise HTTPException(
             403,
             detail=(
-                "Ingreso tardío restringido (RF-22): ya transcurrió más de la mitad del tiempo máximo "
+                "Ingreso tardío restringido: ya transcurrió más de la mitad del tiempo máximo "
                 "asignado para esta sesión."
             ),
         )
@@ -575,7 +575,7 @@ def iniciar_o_retomar_intento(
             if permiso_disponible is None:
                 raise HTTPException(
                     409,
-                    detail="Ya agotaste tu intento en esta sesión. Solicita a tu docente una autorización excepcional de repetición (RF-25).",
+                    detail="Ya agotaste tu intento en esta sesión. Solicita a tu docente una autorización excepcional de repetición.",
                 )
             permiso_extra_id = permiso_disponible.id_permiso_extra
     else:

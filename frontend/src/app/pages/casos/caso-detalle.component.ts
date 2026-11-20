@@ -351,7 +351,7 @@ export class CasoDetalleComponent implements OnInit {
 
   async publicar(): Promise<void> {
     const ok = await this.uiDialog.confirmar({
-      eyebrow: 'Validación y Publicación // RF-09',
+      eyebrow: 'Validación y Publicación',
       titulo: 'Publicar Caso',
       mensaje: '¿Deseas validar, completar el recorrido lineal si falta y publicar esta versión?',
       botonConfirmar: 'Publicar',
@@ -393,7 +393,7 @@ export class CasoDetalleComponent implements OnInit {
 
   async republicar(): Promise<void> {
     const ok = await this.uiDialog.confirmar({
-      eyebrow: 'Reactivación // RF-09',
+      eyebrow: 'Reactivación de Caso',
       titulo: 'Republicar como Nueva Versión Activa',
       mensaje: 'Se generará y publicará una nueva versión (v+1) con esta misma estructura, manteniendo intacta la versión archivada.',
       botonConfirmar: 'Republicar Ahora',

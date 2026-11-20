@@ -54,6 +54,8 @@ DOCENTE_SCHED_ID = uuid.UUID("11111111-1111-4111-8111-222222222222")
 ADMIN_CASES_ID = uuid.UUID("aaaaaaaa-aaaa-4aaa-8aaa-111111111111")
 ADMIN_SCHED_ID = uuid.UUID("aaaaaaaa-aaaa-4aaa-8aaa-222222222222")
 
+ESTUDIANTE_CASES_ID = uuid.UUID("67de66c5-9ec9-4a74-ba40-68e1cc6fbec3")
+ESTUDIANTE2_CASES_ID = uuid.UUID("cc169347-39b5-4d73-a123-82865fa45cf8")
 ESTUDIANTE_SCHED_ID = uuid.UUID("33333333-3333-4333-8333-333333333333")
 ESTUDIANTE2_SCHED_ID = uuid.UUID("44444444-4444-4444-8444-444444444444")
 
@@ -81,10 +83,22 @@ def seed():
                 s.add(IdentidadAcademicaORM(id_usuario=id_user, sistema=sist, id_academico=id_acad))
                 print(f"  + Vinculado usuario {id_user} a {sist}: {id_acad}")
 
+        for nombre_rol, desc_rol in (
+            ("DOCENTE", "Docente de Psicología Social"),
+            ("ESTUDIANTE", "Estudiante participante"),
+            ("ADMINISTRADOR", "Administrador del sistema SPS"),
+        ):
+            if not s.execute(sa.select(RolORM).where(sa.func.upper(RolORM.nombre) == nombre_rol)).scalar_one_or_none():
+                s.add(RolORM(nombre=nombre_rol, descripcion=desc_rol))
+                s.flush()
+        s.execute(sa.text(
+            "SELECT setval(pg_get_serial_sequence('rol', 'id_rol'), COALESCE((SELECT MAX(id_rol) FROM rol), 1), true)"
+        ))
+
         roles_db = {r.nombre.upper(): r.id_rol for r in s.execute(sa.select(RolORM)).scalars().all()}
-        admin_rol_id = roles_db.get("ADMINISTRADOR", 17)
-        docente_rol_id = roles_db.get("DOCENTE", 1)
-        estudiante_rol_id = roles_db.get("ESTUDIANTE", 2)
+        admin_rol_id = roles_db["ADMINISTRADOR"]
+        docente_rol_id = roles_db["DOCENTE"]
+        estudiante_rol_id = roles_db["ESTUDIANTE"]
 
         # 1. Asegurar Admin
         admin = s.execute(sa.select(UsuarioORM).where(UsuarioORM.correo == 'admin@sps.edu.co')).scalar_one_or_none()
@@ -147,6 +161,7 @@ def seed():
             )
             s.add(est1)
             s.flush()
+        vincular(est1.id_usuario, 'CASES', ESTUDIANTE_CASES_ID)
         vincular(est1.id_usuario, 'SCHEDULING', ESTUDIANTE_SCHED_ID)
 
         # 4. Estudiante 2
@@ -161,6 +176,7 @@ def seed():
             )
             s.add(est2)
             s.flush()
+        vincular(est2.id_usuario, 'CASES', ESTUDIANTE2_CASES_ID)
         vincular(est2.id_usuario, 'SCHEDULING', ESTUDIANTE2_SCHED_ID)
 
         # 5. Espacio Académico
@@ -312,15 +328,40 @@ def seed():
                                 orden=1,
                                 enunciado="¿Qué acción tomas ante la orden directa?",
                                 options=[
-                                    OpcionSchema(orden=1, texto="Detener inmediatamente el ensayo y verificar el estado del sujeto.", esCorrecta=True, justificacion="Prioriza la integridad humana sobre la autoridad.", valoraciones={"Ética": 5}),
+                                    OpcionSchema(orden=1, texto="Detener inmediatamente el ensayo y verificar el estado del sujeto.", esCorrecta=True, justificacion="Prioriza la integridad humana sobre la autoridad.", valoraciones={"Ética": 100}),
                                     OpcionSchema(orden=2, texto="Continuar aplicando la descarga como lo indica el investigador.", esCorrecta=False, justificacion="Obediencia destructiva a la figura de autoridad.", valoraciones={"Ética": 0}),
                                 ]
                             )
                         ]
                     )
-                ]
+                ],
+                rubric=RubricaSchema(
+                    nombre="Rúbrica de Ética e Integridad Científica",
+                    versionRegla="RUBRICA_V1",
+                    criterios=[
+                        CriterioSchema(
+                            nombre="Ética",
+                            peso=100,
+                            niveles=[
+                                NivelSchema(nombre="Sobresaliente", puntaje=100, descriptor="Detiene el procedimiento y protege la integridad del sujeto."),
+                                NivelSchema(nombre="Aceptable", puntaje=60, descriptor="Cuestiona la orden antes de actuar."),
+                                NivelSchema(nombre="Insuficiente", puntaje=0, descriptor="Aplica descargas pese a las quejas del participante."),
+                            ]
+                        )
+                    ]
+                )
             )
             version2 = service.crear_borrador(DOCENTE_CASES_ID, payload2)
+            s.commit()
+
+            detalle2 = service.obtener(DOCENTE_CASES_ID, version2.id)
+            esc_mil = detalle2.escenarios[0]
+            service.configurar_recorrido(
+                DOCENTE_CASES_ID,
+                version2.id,
+                inicial_id=esc_mil.id,
+                transiciones=tuple((o.id, "FIN", None) for o in esc_mil.preguntas[0].opciones),
+            )
             s.commit()
 
     # 8. Programar Sesión, Asignación, Convocatorias y Participación
@@ -343,8 +384,8 @@ def seed():
         caso_publicado = next((c for c in casos if c.estado.value == 'PUBLICADO'), None)
 
         if caso_publicado:
-            caso_orm = s.execute(sa.select(CasoModel).where(CasoModel.docente_creador_id == DOCENTE_CASES_ID)).scalars().first()
             version_orm = s.execute(sa.select(VersionCasoModel).where(VersionCasoModel.id == caso_publicado.version_id)).scalar_one()
+            caso_orm = s.get(CasoModel, version_orm.caso_id)
 
             sesion = s.execute(sa.select(SesionProgramadaModel).where(
                 SesionProgramadaModel.docente_id == DOCENTE_SCHED_ID,
@@ -361,7 +402,7 @@ def seed():
                     version_caso_id=caso_publicado.version_id,
                     fecha_inicio=ahora,
                     fecha_fin=ahora + timedelta(hours=12),
-                    tiempo_maximo_minutos=45,
+                    tiempo_maximo_minutos=40,
                     lugar="Laboratorio 301 - Campus Principal",
                     mensaje_personalizado="Bienvenido a la simulación del Experimento de Conformidad Grupal.",
                     estado="EN_CURSO"
@@ -371,6 +412,7 @@ def seed():
             else:
                 sesion.fecha_inicio = ahora
                 sesion.fecha_fin = ahora + timedelta(hours=12)
+                sesion.tiempo_maximo_minutos = 40
                 sesion.estado = "EN_CURSO"
                 s.flush()
 
@@ -387,9 +429,9 @@ def seed():
                     version_caso_id=version_orm.id,
                     apertura=ahora_naive - timedelta(minutes=5),
                     cierre=ahora_naive + timedelta(hours=12),
-                    fecha_limite_ingreso=ahora_naive + timedelta(minutes=45),
+                    fecha_limite_ingreso=ahora_naive + timedelta(minutes=20),
                     intentos_base=1,
-                    tiempo_maximo_min=45,
+                    tiempo_maximo_min=40,
                     estado="activa"
                 )
                 s.add(asig)
@@ -397,7 +439,8 @@ def seed():
             else:
                 asig.apertura = ahora_naive - timedelta(minutes=5)
                 asig.cierre = ahora_naive + timedelta(hours=12)
-                asig.fecha_limite_ingreso = ahora_naive + timedelta(minutes=45)
+                asig.fecha_limite_ingreso = ahora_naive + timedelta(minutes=20)
+                asig.tiempo_maximo_min = 40
                 s.flush()
 
             conv1 = s.execute(sa.select(ConvocatoriaModel).where(
@@ -465,7 +508,7 @@ def seed():
                     estado="EN_CURSO",
                     inicio=comienzo,
                     fin=None,
-                    duracion_concedida_segundos=Decimal("2700.000000")
+                    duracion_concedida_segundos=Decimal("2400.000000")
                 )
                 s.add(intento2)
                 s.flush()

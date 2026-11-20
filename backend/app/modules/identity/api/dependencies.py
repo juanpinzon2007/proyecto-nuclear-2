@@ -172,6 +172,23 @@ def obtener_dominios_login() -> tuple[str, ...]:
     return get_settings().identity_institutional_domains
 
 
+def obtener_remitente_codigo_primer_ingreso() -> Callable[..., None]:
+    from app.modules.identity.infrastructure.onboarding import enviar_codigo_primer_ingreso_smtp
+
+    return enviar_codigo_primer_ingreso_smtp
+
+
+def obtener_remitente_codigo_recuperacion() -> Callable[..., None]:
+    from app.modules.identity.infrastructure.password_recovery import enviar_codigo_recuperacion_smtp
+
+    return enviar_codigo_recuperacion_smtp
+
+
+def obtener_notificador_negocio() -> Callable[..., None] | None:
+    """Punto de inyección para pruebas; en runtime usa despacho SMTP seguro por defecto."""
+    return None
+
+
 def obtener_fabrica_autenticacion(
     sesiones: Annotated[Callable[[], Session], Depends(obtener_fabrica_sesiones_login)],
     tokens: Annotated[Callable[[], TokensJWT], Depends(obtener_fabrica_tokens)],

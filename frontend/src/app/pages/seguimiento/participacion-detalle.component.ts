@@ -38,7 +38,7 @@ import { avatarUsuario } from '../../core/user-avatar';
             <mat-icon>arrow_back</mat-icon>
           </a>
           <div>
-            <p class="eyebrow">Revisión Individual // RF-15 · RF-25 · RF-26</p>
+            <p class="eyebrow">Revisión Individual</p>
             <h1>Auditoría de Participación y Feedback</h1>
             <p class="muted">Participación <span class="mono">#{{ participacionId }}</span></p>
           </div>
@@ -46,7 +46,7 @@ import { avatarUsuario } from '../../core/user-avatar';
         @if (detalle(); as d) {
           @if (d.id_sesion) {
             <button mat-stroked-button color="accent" type="button" (click)="autorizarRepeticion(d)" [disabled]="autorizandoRep()">
-              <mat-icon>replay</mat-icon> Autorizar Repetición Excepcional (RF-25)
+              <mat-icon>replay</mat-icon> Autorizar Repetición Excepcional
             </button>
           }
         }
@@ -91,7 +91,7 @@ import { avatarUsuario } from '../../core/user-avatar';
         <!-- Retroalimentación docente RF-26 -->
         <mat-card class="panel panel-green-left">
           <mat-card-header>
-            <mat-card-title>Retroalimentación General Docente (RF-26)</mat-card-title>
+            <mat-card-title>Retroalimentación General Docente</mat-card-title>
           </mat-card-header>
           <mat-card-content style="padding-top: 16px;">
             @if (feedback(); as fb) {
@@ -277,7 +277,7 @@ export class ParticipacionDetalleComponent implements OnInit {
           id_estudiante: d.id_estudiante,
         }),
       );
-      this.mensajeExito.set('Autorización excepcional de repetición concedida (RF-25).');
+      this.mensajeExito.set('Autorización excepcional de repetición concedida.');
     } catch (err) {
       this.error.set(mensajeError(err));
     } finally {

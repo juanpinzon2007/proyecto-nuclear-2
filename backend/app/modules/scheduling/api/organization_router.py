@@ -1,10 +1,11 @@
 """Rutas operativas de organización académica (espacios, grupos, matrículas RF-04) y portal estudiantil."""
 
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -12,7 +13,11 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.modules.cases.infrastructure.models.caso import EscenarioModel, VersionCasoModel
 from app.modules.identity.api.academic_dependencies import obtener_estudiante_scheduling
-from app.modules.identity.api.dependencies import obtener_estudiante_actual, obtener_usuario_actual
+from app.modules.identity.api.dependencies import (
+    obtener_estudiante_actual,
+    obtener_notificador_negocio,
+    obtener_usuario_actual,
+)
 from app.modules.identity.application.authorization import ServicioAutorizacion
 from app.modules.identity.domain.entities import ContextoAcceso, Rol
 from app.modules.identity.domain.errors import AccesoDenegado
@@ -23,6 +28,7 @@ from app.modules.identity.infrastructure.academic_base_models import (
 )
 from app.modules.identity.infrastructure.academic_identity_models import IdentidadAcademicaORM
 from app.modules.identity.infrastructure.academic_models import PermisoIntentoExtraORM, RetroalimentacionDocenteORM
+from app.modules.identity.infrastructure.business_notifications import notificar_matricula_grupo
 from app.modules.identity.infrastructure.models import RolORM, UsuarioORM
 from app.modules.identity.infrastructure.repositories import id_entero
 from app.modules.participation.api.dependencies import obtener_fechas_escenario
@@ -48,6 +54,7 @@ router = APIRouter(tags=["Organization"])
 
 BaseDatos = Annotated[Session, Depends(get_db)]
 UsuarioActual = Annotated[ContextoAcceso, Depends(obtener_usuario_actual)]
+NotificadorNegocio = Annotated[Callable[..., None] | None, Depends(obtener_notificador_negocio)]
 
 
 def _exigir_docente_o_admin(usuario: ContextoAcceso) -> None:
@@ -347,6 +354,8 @@ def matricular_estudiante(
     datos: MatricularEstudianteRequest,
     usuario: UsuarioActual,
     db: BaseDatos,
+    background_tasks: BackgroundTasks,
+    notificador: NotificadorNegocio,
 ) -> GrupoResponse:
     _exigir_docente_o_admin(usuario)
     grupo = db.get(GrupoAcademicoORM, grupo_id)
@@ -393,6 +402,16 @@ def matricular_estudiante(
         matricula.fecha_ingreso = ahora_naive
 
     db.commit()
+    profesor = db.get(UsuarioORM, grupo.id_profesor)
+    notificar_matricula_grupo(
+        correo=est.correo,
+        nombre=est.nombre,
+        grupo_nombre=grupo.nombre,
+        grupo_periodo=grupo.periodo,
+        docente_nombre=profesor.nombre if profesor is not None else None,
+        background_tasks=background_tasks,
+        notificador=notificador,
+    )
     return _serializar_grupo(db, grupo)
 
 

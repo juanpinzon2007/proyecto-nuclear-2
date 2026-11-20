@@ -1,18 +1,25 @@
 from collections.abc import Callable
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Query, Response, Request, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response, Request, HTTPException
 
 from app.modules.identity.api.dependencies import (
     obtener_fabrica_autenticacion, obtener_proxy_administracion,
     obtener_proxy_excepciones, obtener_proxy_seguimiento, obtener_usuario_actual,
     obtener_consulta_feedback_estudiantil,
     obtener_fabrica_autenticacion_personal,
+    obtener_fabrica_sesiones_login,
+    obtener_fabrica_tokens,
+    obtener_notificador_negocio,
+    obtener_remitente_codigo_primer_ingreso,
+    obtener_remitente_codigo_recuperacion,
 )
 from app.modules.identity.api.errors import RutaIdentity
 from app.modules.identity.api.schemas import (
-    AutorizacionesDocenteSchema, CrearDocente, IdPublico, RespuestaToken,
-    SolicitudFeedback, SolicitudLogin, SolicitudLoginPersonal, SolicitudRepeticion, UsuarioPublico,
+    AutorizacionesDocenteSchema, CrearDocente, IdPublico, RespuestaAccesoEstudiante,
+    RespuestaMensajeOperacion, RespuestaToken,
+    SolicitudConfirmarRecuperacion, SolicitudFeedback, SolicitudLogin, SolicitudLoginPersonal,
+    SolicitudRecuperarContrasena, SolicitudRepeticion, SolicitudVerificarPrimerIngreso, UsuarioPublico,
     PaginaDocentesRespuesta, SolicitudPermisosDocentes, PerfilPermisosDocentesRespuesta,
 )
 from app.modules.identity.application.authentication import ServicioAutenticacion
@@ -21,7 +28,27 @@ from app.modules.identity.application.proxy_excepciones import ProxyExcepciones
 from app.modules.identity.application.proxy_seguimiento import ProxySeguimiento
 from app.modules.identity.domain.entities import (
     AutorizacionRepeticion, ContextoAcceso, DetalleParticipacion, FeedbackDocente, ResumenCaso, ResumenParticipacion,
+    Rol, normalizar_correo,
 )
+from app.modules.identity.domain.errors import IntegracionPendiente, NoAutenticado, ReglaIdentidadInvalida
+from app.modules.identity.infrastructure.business_notifications import notificar_registro_usuario
+from app.modules.identity.infrastructure.credentials import CredencialesPersonalSQLAlchemy
+from app.modules.identity.infrastructure.models import UsuarioORM
+from app.modules.identity.infrastructure.onboarding import (
+    estado_primer_ingreso,
+    generar_y_enviar_codigo_primer_ingreso,
+    verificar_codigo_primer_ingreso,
+)
+from app.modules.identity.infrastructure.password_recovery import (
+    confirmar_recuperacion_contrasena,
+    enviar_codigo_recuperacion_smtp,
+    generar_y_enviar_codigo_recuperacion,
+)
+from app.modules.scheduling.infrastructure.mail_delivery import configuracion_correo
+from app.modules.identity.infrastructure.repositories import RepositorioUsuariosSQLAlchemy, id_entero
+from app.modules.identity.infrastructure.security import TokensJWT
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 
 router = APIRouter(
@@ -54,19 +81,216 @@ def autenticar_personal(
     return RespuestaToken(access_token=token)
 
 
+@router.post("/auth/estudiantes/acceso", response_model=RespuestaAccesoEstudiante)
+def autenticar_estudiante_por_clave(
+    solicitud: SolicitudLoginPersonal,
+    sesiones: Annotated[Callable[[], Session], Depends(obtener_fabrica_sesiones_login)],
+    tokens: Annotated[Callable[[], TokensJWT], Depends(obtener_fabrica_tokens)],
+    remitente_codigo: Annotated[Callable[..., None], Depends(obtener_remitente_codigo_primer_ingreso)],
+) -> RespuestaAccesoEstudiante:
+    """Autentica al estudiante con contraseña y solicita código por correo únicamente en su primer ingreso."""
+    emisor = tokens()
+    try:
+        correo = normalizar_correo(solicitud.correo)
+    except ReglaIdentidadInvalida:
+        raise NoAutenticado() from None
+
+    try:
+        with sesiones() as db:
+            actual = CredencialesPersonalSQLAlchemy(db).validar(correo, solicitud.clave.get_secret_value())
+            if actual is None or not actual.activo or Rol.ESTUDIANTE not in actual.roles:
+                raise NoAutenticado()
+            uid = id_entero(actual.id_usuario)
+            if estado_primer_ingreso(db, id_usuario=uid):
+                return RespuestaAccesoEstudiante(
+                    requiere_verificacion=False,
+                    access_token=emisor.emitir(actual.id_usuario),
+                )
+            fila = db.get(UsuarioORM, uid)
+            nombre = fila.nombre if fila is not None else actual.correo
+            try:
+                ttl = generar_y_enviar_codigo_primer_ingreso(
+                    db,
+                    id_usuario=uid,
+                    correo=actual.correo,
+                    nombre=nombre,
+                    remitente_correo=remitente_codigo,
+                )
+                db.commit()
+            except IntegracionPendiente:
+                db.rollback()
+                raise
+            except SQLAlchemyError:
+                db.rollback()
+                raise IntegracionPendiente() from None
+            return RespuestaAccesoEstudiante(
+                requiere_verificacion=True,
+                correo=actual.correo,
+                mensaje="Primer inicio de sesión detectado. Revisa tu correo e ingresa el código de verificación.",
+                expira_en_segundos=ttl,
+            )
+    except (ValueError, SQLAlchemyError):
+        raise IntegracionPendiente() from None
+
+
+@router.post("/auth/estudiantes/verificar-primer-ingreso", response_model=RespuestaToken)
+def verificar_primer_ingreso_estudiante(
+    solicitud: SolicitudVerificarPrimerIngreso,
+    sesiones: Annotated[Callable[[], Session], Depends(obtener_fabrica_sesiones_login)],
+    tokens: Annotated[Callable[[], TokensJWT], Depends(obtener_fabrica_tokens)],
+) -> RespuestaToken:
+    """Valida el código de verificación enviado al correo en el primer ingreso del estudiante."""
+    emisor = tokens()
+    try:
+        correo = normalizar_correo(solicitud.correo)
+    except ReglaIdentidadInvalida:
+        raise NoAutenticado() from None
+    codigo = solicitud.codigo.get_secret_value().strip()
+    if not codigo:
+        raise NoAutenticado()
+
+    try:
+        with sesiones() as db:
+            actual = RepositorioUsuariosSQLAlchemy(db).obtener_por_correo(correo)
+            if actual is None or not actual.activo or Rol.ESTUDIANTE not in actual.roles:
+                raise NoAutenticado()
+            uid = id_entero(actual.id_usuario)
+            valido = verificar_codigo_primer_ingreso(db, id_usuario=uid, codigo=codigo)
+            db.commit()
+            if not valido:
+                raise HTTPException(
+                    401,
+                    detail={
+                        "codigo": "CODIGO_VERIFICACION_INVALIDO",
+                        "mensaje": "El código de verificación es incorrecto o ha expirado.",
+                    },
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            return RespuestaToken(access_token=emisor.emitir(actual.id_usuario))
+    except (ValueError, SQLAlchemyError):
+        raise IntegracionPendiente() from None
+
+
+@router.post("/auth/recuperar-contrasena/solicitar", response_model=RespuestaMensajeOperacion)
+def solicitar_recuperacion_clave(
+    solicitud: SolicitudRecuperarContrasena,
+    sesiones: Annotated[Callable[[], Session], Depends(obtener_fabrica_sesiones_login)],
+    remitente_codigo: Annotated[Callable[..., None], Depends(obtener_remitente_codigo_recuperacion)],
+) -> RespuestaMensajeOperacion:
+    """Envía un código temporal al correo para recuperar la contraseña."""
+    if remitente_codigo is enviar_codigo_recuperacion_smtp and configuracion_correo() is None:
+        raise IntegracionPendiente()
+
+    try:
+        correo = normalizar_correo(solicitud.correo)
+    except ReglaIdentidadInvalida:
+        raise HTTPException(422, detail="Correo institucional inválido.") from None
+
+    mensaje_ok = (
+        "Si el correo está registrado y activo, enviamos un código de 6 dígitos "
+        "para restablecer tu contraseña."
+    )
+    try:
+        with sesiones() as db:
+            actual = RepositorioUsuariosSQLAlchemy(db).obtener_por_correo(correo)
+            if actual is not None and actual.activo:
+                uid = id_entero(actual.id_usuario)
+                fila = db.get(UsuarioORM, uid)
+                nombre = fila.nombre if fila is not None else actual.correo
+                try:
+                    generar_y_enviar_codigo_recuperacion(
+                        db,
+                        id_usuario=uid,
+                        correo=actual.correo,
+                        nombre=nombre,
+                        remitente_correo=remitente_codigo,
+                    )
+                    db.commit()
+                except IntegracionPendiente:
+                    db.rollback()
+                    raise
+                except SQLAlchemyError:
+                    db.rollback()
+                    raise IntegracionPendiente() from None
+        return RespuestaMensajeOperacion(ok=True, mensaje=mensaje_ok)
+    except (ValueError, SQLAlchemyError):
+        raise IntegracionPendiente() from None
+
+
+@router.post("/auth/recuperar-contrasena/confirmar", response_model=RespuestaMensajeOperacion)
+def confirmar_recuperacion_clave(
+    solicitud: SolicitudConfirmarRecuperacion,
+    sesiones: Annotated[Callable[[], Session], Depends(obtener_fabrica_sesiones_login)],
+) -> RespuestaMensajeOperacion:
+    """Valida el código de recuperación y actualiza la contraseña del usuario."""
+    try:
+        correo = normalizar_correo(solicitud.correo)
+    except ReglaIdentidadInvalida:
+        raise NoAutenticado() from None
+
+    codigo = solicitud.codigo.get_secret_value().strip()
+    nueva_clave = solicitud.nueva_clave.get_secret_value()
+    if not codigo or len(nueva_clave) < 6:
+        raise HTTPException(422, detail="Ingresa el código y una nueva contraseña de al menos 6 caracteres.")
+
+    try:
+        with sesiones() as db:
+            actual = RepositorioUsuariosSQLAlchemy(db).obtener_por_correo(correo)
+            if actual is None or not actual.activo:
+                raise HTTPException(
+                    401,
+                    detail={
+                        "codigo": "CODIGO_RECUPERACION_INVALIDO",
+                        "mensaje": "El código de recuperación es incorrecto o ha expirado.",
+                    },
+                )
+            uid = id_entero(actual.id_usuario)
+            ok = confirmar_recuperacion_contrasena(db, id_usuario=uid, codigo=codigo, nueva_clave=nueva_clave)
+            db.commit()
+            if not ok:
+                raise HTTPException(
+                    401,
+                    detail={
+                        "codigo": "CODIGO_RECUPERACION_INVALIDO",
+                        "mensaje": "El código de recuperación es incorrecto o ha expirado.",
+                    },
+                )
+            return RespuestaMensajeOperacion(
+                ok=True,
+                mensaje="Contraseña restablecida correctamente. Ya puedes iniciar sesión.",
+            )
+    except (ValueError, SQLAlchemyError):
+        raise IntegracionPendiente() from None
+
+
 @router.get("/me", response_model=UsuarioPublico)
 def consultar_identidad(usuario: UsuarioActual) -> UsuarioPublico:
     return UsuarioPublico.desde_contexto(usuario)
 
 
 @router.post("/docentes", response_model=UsuarioPublico, status_code=201)
-def crear_docente(solicitud: CrearDocente, usuario: UsuarioActual, proxy: Administracion) -> UsuarioPublico:
+def crear_docente(
+    solicitud: CrearDocente,
+    usuario: UsuarioActual,
+    proxy: Administracion,
+    background_tasks: BackgroundTasks,
+    notificador: Annotated[Callable[..., None] | None, Depends(obtener_notificador_negocio)],
+) -> UsuarioPublico:
     if solicitud.nombre is not None:
-        return UsuarioPublico.desde_contexto(proxy.crear_docente(
+        creado = proxy.crear_docente(
             usuario, solicitud.correo, solicitud.a_dominio(), nombre=solicitud.nombre,
             clave=solicitud.clave.get_secret_value() if solicitud.clave else None,
-        ))
-    return UsuarioPublico.desde_contexto(proxy.crear_docente(usuario, solicitud.correo, solicitud.a_dominio()))
+        )
+    else:
+        creado = proxy.crear_docente(usuario, solicitud.correo, solicitud.a_dominio())
+    notificar_registro_usuario(
+        correo=creado.correo,
+        nombre=solicitud.nombre or creado.correo,
+        rol="DOCENTE",
+        background_tasks=background_tasks,
+        notificador=notificador,
+    )
+    return UsuarioPublico.desde_contexto(creado)
 
 
 @router.get("/docentes", response_model=PaginaDocentesRespuesta)

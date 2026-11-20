@@ -77,7 +77,7 @@ import { SchedulingService } from '../../core/scheduling.service';
 
       <div class="spread section-head-row">
         <h2 class="section-title">Convocatorias & Casos</h2>
-        <span class="mono">RF-20 · RF-22 · BRIEFING</span>
+        <span class="mono">BRIEFING DE MISIÓN</span>
       </div>
 
       @if (cargando()) {
@@ -130,7 +130,7 @@ import { SchedulingService } from '../../core/scheduling.service';
                     <b>{{ c.fecha_fin | date:'short' }}</b>
                   </div>
                   <div class="fact-tile">
-                    <small>LÍMITE TARDÍO (RF-22)</small>
+                    <small>LÍMITE DE INGRESO</small>
                     <b [class.ok-txt]="!ingresoExpirado(c)" [class.bad-txt]="ingresoExpirado(c)">
                       {{ c.fecha_limite_mitad_tiempo | date:'short' }}
                     </b>
@@ -181,18 +181,18 @@ import { SchedulingService } from '../../core/scheduling.service';
                 } @else if (c.consentimiento_aceptado && c.estado_sesion === 'EN_CURSO' && !(c.intento_id && c.intento_estado === 'EN_CURSO') && !puedeIniciarNuevoIntento(c)) {
                   @if (ingresoExpirado(c)) {
                     <div class="alert-warn">
-                      La ventana de ingreso oportuno cerró el {{ c.fecha_limite_mitad_tiempo | date:'short' }} (RF-22). No es posible iniciar un nuevo intento.
+                      La ventana de ingreso oportuno cerró el {{ c.fecha_limite_mitad_tiempo | date:'short' }}. No es posible iniciar un nuevo intento.
                     </div>
                   } @else if (c.intentos_realizados > 0 && c.permisos_extra_disponibles <= 0) {
                     <div class="msg-docente">
-                      <strong>Intento completado:</strong> Ya agotaste tu intento regular. Si necesitas repetir por fuerza mayor, solicita autorización excepcional al docente (RF-25).
+                      <strong>Intento completado:</strong> Ya agotaste tu intento regular. Si necesitas repetir por fuerza mayor, solicita autorización excepcional al docente.
                     </div>
                   }
                 }
 
                 @if (c.tiene_retroalimentacion) {
                   <div class="msg-docente" style="border-left-color: var(--green);">
-                    <strong>Retroalimentación docente disponible (RF-26):</strong> Abre el detalle de tu resultado para leer los comentarios de tu docente.
+                    <strong>Retroalimentación docente disponible:</strong> Abre el detalle de tu resultado para leer los comentarios de tu docente.
                   </div>
                 }
 
@@ -226,7 +226,7 @@ import { SchedulingService } from '../../core/scheduling.service';
 
                   @if (c.intento_id && c.intento_estado !== 'EN_CURSO') {
                     <button mat-stroked-button color="primary" type="button" (click)="irAlSimulador(c.intento_id!)">
-                      <mat-icon>grading</mat-icon> Ver Resultado, Rúbrica y Justificaciones (RF-14)
+                      <mat-icon>grading</mat-icon> Ver Resultado, Rúbrica y Justificaciones
                     </button>
                   }
                 </div>

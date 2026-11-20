@@ -43,7 +43,7 @@ import { avatarUsuario } from '../../core/user-avatar';
             <mat-icon>arrow_back</mat-icon>
           </a>
           <div>
-            <p class="eyebrow">Cierre de Cohorte // RF-24 · RF-25 · RF-27</p>
+            <p class="eyebrow">Cierre de Cohorte</p>
             <h1>Evaluación, Ausencias y Publicación</h1>
             <p class="muted">Sesión ID: <span class="mono">{{ sesionId }}</span></p>
           </div>
@@ -133,7 +133,7 @@ import { avatarUsuario } from '../../core/user-avatar';
                         @if (publicacionActiva()) {
                           <button mat-stroked-button color="primary" type="button"
                                   (click)="notificarCalificacion(f['convocatoria_id'], f['id_estudiante'])">
-                            <mat-icon>mail</mat-icon> Notificar Nota (RF-27)
+                            <mat-icon>mail</mat-icon> Notificar Nota
                           </button>
                         }
                       </div>
@@ -208,18 +208,18 @@ import { avatarUsuario } from '../../core/user-avatar';
 
                     @if (conv.id_participacion && p.estado_sesion !== 'FINALIZADO') {
                       <button mat-stroked-button color="accent" (click)="autorizarRepeticion(conv.id_estudiante)"
-                              [disabled]="accionEnProgreso()" title="Autorizar un intento adicional excepcional (RF-25)">
-                        <mat-icon>replay</mat-icon> Autorizar Repetición (RF-25)
+                              [disabled]="accionEnProgreso()" title="Autorizar un intento adicional excepcional">
+                        <mat-icon>replay</mat-icon> Autorizar Repetición
                       </button>
                     }
 
                     @if (conv.intentos.length === 0) {
                       @if (p.estado_sesion === 'FINALIZADO') {
                         <button mat-button color="warn" (click)="marcarAusencia(conv.id_convocatoria)" [disabled]="accionEnProgreso()">
-                          <mat-icon>person_off</mat-icon> Marcar Ausencia (RF-24)
+                          <mat-icon>person_off</mat-icon> Marcar Ausencia
                         </button>
                       } @else {
-                        <span class="chip" title="Las ausencias solo pueden confirmarse cuando la sesión finalice (RF-24)">
+                        <span class="chip" title="Las ausencias solo pueden confirmarse cuando la sesión finalice">
                           Ausencia disponible al finalizar
                         </span>
                       }
@@ -366,7 +366,7 @@ export class EvaluacionSesionComponent implements OnInit {
 
   async publicarOficial(revisionSha256: string): Promise<void> {
     const ok = await this.uiDialog.confirmar({
-      eyebrow: 'Acta Oficial // RF-13 · RF-27',
+      eyebrow: 'Acta Oficial',
       titulo: 'Publicar Calificaciones Oficiales',
       mensaje: 'Publicar congela las notas definitivas de la sesión, habilita el reporte oficial y notifica automáticamente a toda la cohorte.',
       botonConfirmar: 'Publicar Acta Oficial',
@@ -402,7 +402,7 @@ export class EvaluacionSesionComponent implements OnInit {
 
   async marcarAusencia(convocatoriaId: string): Promise<void> {
     const motivo = await this.uiDialog.solicitarTexto({
-      eyebrow: 'Inasistencia Académica // RF-24',
+      eyebrow: 'Inasistencia Académica',
       titulo: 'Confirmar Ausencia (Nota 0)',
       mensaje: 'Registra la justificación institucional o académica para confirmar la inasistencia del estudiante en esta sesión.',
       etiquetaCampo: 'Motivo de la ausencia',
@@ -425,7 +425,7 @@ export class EvaluacionSesionComponent implements OnInit {
 
   async rectificarAusencia(convocatoriaId: string, idConfirmacion: string): Promise<void> {
     const motivo = await this.uiDialog.solicitarTexto({
-      eyebrow: 'Rectificación Académica // RF-24',
+      eyebrow: 'Rectificación Académica',
       titulo: 'Anular o Rectificar Ausencia',
       mensaje: 'Indica el motivo académico por el cual se rectifica o anula la ausencia registrada.',
       etiquetaCampo: 'Motivo de rectificación',
@@ -457,7 +457,7 @@ export class EvaluacionSesionComponent implements OnInit {
           id_estudiante: String(idEstudiante),
         }),
       );
-      this.snack.open('Repetición excepcional autorizada (RF-25).', 'OK', { duration: 3500 });
+      this.snack.open('Repetición excepcional autorizada.', 'OK', { duration: 3500 });
     } catch (err) {
       this.error.set(mensajeError(err));
     } finally {

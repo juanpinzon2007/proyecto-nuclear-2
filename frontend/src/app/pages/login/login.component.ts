@@ -39,52 +39,247 @@ import { mensajeError } from '../../core/api-error';
         </section>
 
         <mat-card class="panel auth-card">
-          <p class="auth-hint">Ingresa tu correo institucional y tu contraseña o código de convocatoria.</p>
+          @if (verificacionPendiente(); as verif) {
+            <div class="otp-banner">
+              <div class="otp-title">
+                <mat-icon class="cyan">mark_email_read</mat-icon>
+                <span>Verificación Única de Primer Ingreso</span>
+              </div>
+              <p>
+                {{ verif.mensaje }}
+                <br />
+                Correo destino: <strong class="cyan">{{ verif.correo }}</strong>.
+                <br />
+                <small>Este código solo se solicita la primera vez que inicias sesión.</small>
+              </p>
+            </div>
 
-          <form (ngSubmit)="iniciarSesion()" class="login-form">
-            <mat-form-field appearance="outline" class="full">
-              <mat-label>Correo institucional</mat-label>
-              <input
-                matInput
-                type="email"
-                [(ngModel)]="correo"
-                name="correo"
-                required
-                autocomplete="username"
-                placeholder="usuario@universidad.edu.co"
-              />
-              <mat-icon matPrefix class="cyan">alternate_email</mat-icon>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full">
-              <mat-label>Contraseña o código de convocatoria</mat-label>
-              <input
-                matInput
-                [type]="mostrarCredencial ? 'text' : 'password'"
-                [(ngModel)]="credencial"
-                name="credencial"
-                required
-                autocomplete="current-password"
-                placeholder="Clave institucional o código de sesión"
-              />
-              <mat-icon matPrefix class="cyan">lock</mat-icon>
-              <button mat-icon-button matSuffix type="button" (click)="mostrarCredencial = !mostrarCredencial">
-                <mat-icon>{{ mostrarCredencial ? 'visibility_off' : 'visibility' }}</mat-icon>
-              </button>
-            </mat-form-field>
-
-            @if (errorLogin()) {
-              <div class="error-box">{{ errorLogin() }}</div>
+            @if (infoVerificacion()) {
+              <div class="info-box">{{ infoVerificacion() }}</div>
             }
 
-            <button mat-flat-button color="primary" class="full submit-btn" type="submit" [disabled]="cargando() || !correo.trim() || !credencial.trim()">
-              @if (cargando()) {
-                <mat-spinner diameter="20"></mat-spinner>
-              } @else {
-                Ingresar a la Plataforma
+            <form (ngSubmit)="confirmarCodigoPrimerIngreso()" class="login-form">
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>Código de verificación (6 dígitos)</mat-label>
+                <input
+                  matInput
+                  type="text"
+                  [(ngModel)]="codigoVerificacion"
+                  name="codigoVerificacion"
+                  required
+                  maxlength="12"
+                  inputmode="numeric"
+                  autocomplete="one-time-code"
+                  placeholder="Ej. 482915"
+                  class="otp-input"
+                />
+                <mat-icon matPrefix class="cyan">pin</mat-icon>
+              </mat-form-field>
+
+              @if (errorLogin()) {
+                <div class="error-box">{{ errorLogin() }}</div>
               }
-            </button>
-          </form>
+
+              <button mat-flat-button color="primary" class="full submit-btn" type="submit" [disabled]="cargando() || !codigoVerificacion.trim()">
+                @if (cargando()) {
+                  <mat-spinner diameter="20"></mat-spinner>
+                } @else {
+                  Verificar Código e Ingresar
+                }
+              </button>
+
+              <div class="otp-actions">
+                <button mat-stroked-button type="button" (click)="reenviarCodigo()" [disabled]="cargando()">
+                  <mat-icon>send</mat-icon> Reenviar código
+                </button>
+                <button mat-button type="button" (click)="volverALogin()" [disabled]="cargando()">
+                  Volver
+                </button>
+              </div>
+            </form>
+          } @else if (recuperacionPaso()) {
+            <div class="otp-banner">
+              <div class="otp-title">
+                <mat-icon class="cyan">lock_reset</mat-icon>
+                <span>Recuperación de Contraseña por Correo</span>
+              </div>
+              <p>
+                @if (recuperacionPaso() === 'SOLICITAR') {
+                  Ingresa tu correo registrado y te enviaremos un código temporal de 6 dígitos para crear una nueva contraseña.
+                } @else {
+                  Enviamos un código de recuperación a <strong class="cyan">{{ correoRecuperacion }}</strong>.
+                  Ingrésalo abajo junto con tu nueva contraseña.
+                }
+              </p>
+            </div>
+
+            @if (infoVerificacion()) {
+              <div class="info-box">{{ infoVerificacion() }}</div>
+            }
+
+            @if (recuperacionPaso() === 'SOLICITAR') {
+              <form (ngSubmit)="enviarCodigoRecuperacion()" class="login-form">
+                <mat-form-field appearance="outline" class="full">
+                  <mat-label>Correo registrado</mat-label>
+                  <input
+                    matInput
+                    type="email"
+                    [(ngModel)]="correoRecuperacion"
+                    name="correoRecuperacion"
+                    required
+                    autocomplete="email"
+                    placeholder="usuario@correo.com"
+                  />
+                  <mat-icon matPrefix class="cyan">alternate_email</mat-icon>
+                </mat-form-field>
+
+                @if (errorLogin()) {
+                  <div class="error-box">{{ errorLogin() }}</div>
+                }
+
+                <button mat-flat-button color="primary" class="full submit-btn" type="submit" [disabled]="cargando() || !correoRecuperacion.trim()">
+                  @if (cargando()) {
+                    <mat-spinner diameter="20"></mat-spinner>
+                  } @else {
+                    Enviar Código al Correo
+                  }
+                </button>
+
+                <div class="otp-actions">
+                  <button mat-button type="button" (click)="volverALogin()" [disabled]="cargando()">
+                    Volver al inicio de sesión
+                  </button>
+                </div>
+              </form>
+            } @else {
+              <form (ngSubmit)="confirmarRecuperacionClave()" class="login-form">
+                <mat-form-field appearance="outline" class="full">
+                  <mat-label>Código de recuperación (6 dígitos)</mat-label>
+                  <input
+                    matInput
+                    type="text"
+                    [(ngModel)]="codigoRecuperacion"
+                    name="codigoRecuperacion"
+                    required
+                    maxlength="12"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    placeholder="Ej. 482915"
+                    class="otp-input"
+                  />
+                  <mat-icon matPrefix class="cyan">pin</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full">
+                  <mat-label>Nueva contraseña (mín. 6 caracteres)</mat-label>
+                  <input
+                    matInput
+                    [type]="mostrarNuevaClave ? 'text' : 'password'"
+                    [(ngModel)]="nuevaClave"
+                    name="nuevaClave"
+                    required
+                    minlength="6"
+                    autocomplete="new-password"
+                  />
+                  <mat-icon matPrefix class="cyan">lock</mat-icon>
+                  <button mat-icon-button matSuffix type="button" (click)="mostrarNuevaClave = !mostrarNuevaClave">
+                    <mat-icon>{{ mostrarNuevaClave ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  </button>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full">
+                  <mat-label>Confirmar nueva contraseña</mat-label>
+                  <input
+                    matInput
+                    [type]="mostrarNuevaClave ? 'text' : 'password'"
+                    [(ngModel)]="confirmarNuevaClave"
+                    name="confirmarNuevaClave"
+                    required
+                    autocomplete="new-password"
+                  />
+                  <mat-icon matPrefix class="cyan">verified_user</mat-icon>
+                </mat-form-field>
+
+                @if (errorLogin()) {
+                  <div class="error-box">{{ errorLogin() }}</div>
+                }
+
+                <button mat-flat-button color="primary" class="full submit-btn" type="submit" [disabled]="cargando() || !codigoRecuperacion.trim() || nuevaClave.length < 6">
+                  @if (cargando()) {
+                    <mat-spinner diameter="20"></mat-spinner>
+                  } @else {
+                    Restablecer Contraseña
+                  }
+                </button>
+
+                <div class="otp-actions">
+                  <button mat-stroked-button type="button" (click)="enviarCodigoRecuperacion(true)" [disabled]="cargando()">
+                    <mat-icon>send</mat-icon> Reenviar código
+                  </button>
+                  <button mat-button type="button" (click)="volverALogin()" [disabled]="cargando()">
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            }
+          } @else {
+            <p class="auth-hint">Ingresa tu correo institucional y tu contraseña o código de convocatoria.</p>
+
+            @if (infoVerificacion()) {
+              <div class="info-box">{{ infoVerificacion() }}</div>
+            }
+
+            <form (ngSubmit)="iniciarSesion()" class="login-form">
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>Correo institucional</mat-label>
+                <input
+                  matInput
+                  type="email"
+                  [(ngModel)]="correo"
+                  name="correo"
+                  required
+                  autocomplete="username"
+                  placeholder="usuario@universidad.edu.co"
+                />
+                <mat-icon matPrefix class="cyan">alternate_email</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>Contraseña o código de convocatoria</mat-label>
+                <input
+                  matInput
+                  [type]="mostrarCredencial ? 'text' : 'password'"
+                  [(ngModel)]="credencial"
+                  name="credencial"
+                  required
+                  autocomplete="current-password"
+                  placeholder="Clave institucional o código de sesión"
+                />
+                <mat-icon matPrefix class="cyan">lock</mat-icon>
+                <button mat-icon-button matSuffix type="button" (click)="mostrarCredencial = !mostrarCredencial">
+                  <mat-icon>{{ mostrarCredencial ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
+              </mat-form-field>
+
+              @if (errorLogin()) {
+                <div class="error-box">{{ errorLogin() }}</div>
+              }
+
+              <button mat-flat-button color="primary" class="full submit-btn" type="submit" [disabled]="cargando() || !correo.trim() || !credencial.trim()">
+                @if (cargando()) {
+                  <mat-spinner diameter="20"></mat-spinner>
+                } @else {
+                  Ingresar a la Plataforma
+                }
+              </button>
+
+              <div class="forgot-row">
+                <button mat-button type="button" class="forgot-btn" (click)="abrirRecuperacion()" [disabled]="cargando()">
+                  <mat-icon>lock_reset</mat-icon> ¿Olvidaste tu contraseña? Recupérala por correo
+                </button>
+              </div>
+            </form>
+          }
         </mat-card>
       </div>
     </main>
@@ -188,6 +383,57 @@ import { mensajeError } from '../../core/api-error';
       letter-spacing: 1.5px !important;
       margin-top: 8px;
     }
+    .otp-banner {
+      background: rgba(0, 229, 244, 0.08);
+      border: 1px solid rgba(0, 229, 244, 0.35);
+      border-left: 4px solid var(--cyan);
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .otp-banner p { margin: 6px 0 0; }
+    .otp-banner small { color: var(--muted); }
+    .otp-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--cyan);
+    }
+    .info-box {
+      padding: 10px 12px;
+      border: 1px solid rgba(0, 232, 148, 0.45);
+      background: rgba(0, 232, 148, 0.1);
+      color: var(--green);
+      font-size: 12px;
+    }
+    .otp-input {
+      font-family: var(--mono) !important;
+      letter-spacing: 4px;
+      font-size: 18px !important;
+      font-weight: 700;
+    }
+    .otp-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+    .forgot-row {
+      display: flex;
+      justify-content: center;
+      margin-top: 6px;
+    }
+    .forgot-btn {
+      font-size: 12px !important;
+      color: var(--cyan-soft) !important;
+    }
     .secure {
       display: flex;
       justify-content: center;
@@ -224,21 +470,153 @@ export class LoginComponent {
   private readonly router = inject(Router);
 
   mostrarCredencial = false;
+  mostrarNuevaClave = false;
   correo = '';
   credencial = '';
+  codigoVerificacion = '';
+  correoRecuperacion = '';
+  codigoRecuperacion = '';
+  nuevaClave = '';
+  confirmarNuevaClave = '';
   errorLogin = signal<string | null>(null);
+  infoVerificacion = signal<string | null>(null);
   cargando = signal<boolean>(false);
+  verificacionPendiente = signal<{ correo: string; mensaje: string; expiraEnSegundos: number } | null>(null);
+  recuperacionPaso = signal<'SOLICITAR' | 'CONFIRMAR' | null>(null);
 
   async iniciarSesion(): Promise<void> {
     this.errorLogin.set(null);
+    this.infoVerificacion.set(null);
     this.cargando.set(true);
     try {
-      const u = await this.auth.loginUnificado(this.correo.trim(), this.credencial.trim());
-      if (u) {
+      const res = await this.auth.loginUnificado(this.correo.trim(), this.credencial.trim());
+      if (res.estado === 'VERIFICACION_REQUERIDA') {
+        this.codigoVerificacion = '';
+        this.verificacionPendiente.set({
+          correo: res.correo,
+          mensaje: res.mensaje,
+          expiraEnSegundos: res.expiraEnSegundos,
+        });
+        return;
+      }
+      if (res.usuario) {
+        this.credencial = '';
+        this.codigoVerificacion = '';
         void this.router.navigateByUrl(this.auth.rutaInicio());
       } else {
         this.errorLogin.set('No se pudo obtener el perfil de usuario.');
       }
+    } catch (err) {
+      this.errorLogin.set(mensajeError(err));
+    } finally {
+      this.cargando.set(false);
+    }
+  }
+
+  async confirmarCodigoPrimerIngreso(): Promise<void> {
+    const verif = this.verificacionPendiente();
+    if (!verif) return;
+    this.errorLogin.set(null);
+    this.infoVerificacion.set(null);
+    this.cargando.set(true);
+    try {
+      const u = await this.auth.verificarPrimerIngreso(verif.correo, this.codigoVerificacion.trim());
+      if (u) {
+        this.credencial = '';
+        this.codigoVerificacion = '';
+        this.verificacionPendiente.set(null);
+        void this.router.navigateByUrl(this.auth.rutaInicio());
+      } else {
+        this.errorLogin.set('No se pudo obtener el perfil de usuario.');
+      }
+    } catch (err) {
+      this.errorLogin.set(mensajeError(err));
+    } finally {
+      this.cargando.set(false);
+    }
+  }
+
+  async reenviarCodigo(): Promise<void> {
+    const verif = this.verificacionPendiente();
+    if (!verif) return;
+    this.errorLogin.set(null);
+    this.infoVerificacion.set(null);
+    this.cargando.set(true);
+    try {
+      const r = await this.auth.loginEstudiantePorClave(verif.correo, this.credencial.trim());
+      if (r.requiere_verificacion) {
+        this.infoVerificacion.set(`Se envió un nuevo código de verificación a ${r.correo ?? verif.correo}.`);
+      } else if (r.access_token) {
+        this.verificacionPendiente.set(null);
+        await this.iniciarSesion();
+      }
+    } catch (err) {
+      this.errorLogin.set(mensajeError(err));
+    } finally {
+      this.cargando.set(false);
+    }
+  }
+
+  volverALogin(): void {
+    this.verificacionPendiente.set(null);
+    this.recuperacionPaso.set(null);
+    this.codigoVerificacion = '';
+    this.codigoRecuperacion = '';
+    this.nuevaClave = '';
+    this.confirmarNuevaClave = '';
+    this.errorLogin.set(null);
+    this.infoVerificacion.set(null);
+  }
+
+  abrirRecuperacion(): void {
+    this.errorLogin.set(null);
+    this.infoVerificacion.set(null);
+    this.verificacionPendiente.set(null);
+    this.correoRecuperacion = this.correo.trim();
+    this.codigoRecuperacion = '';
+    this.nuevaClave = '';
+    this.confirmarNuevaClave = '';
+    this.recuperacionPaso.set('SOLICITAR');
+  }
+
+  async enviarCodigoRecuperacion(esReenvio = false): Promise<void> {
+    const objetivo = this.correoRecuperacion.trim();
+    if (!objetivo) return;
+    this.errorLogin.set(null);
+    this.infoVerificacion.set(null);
+    this.cargando.set(true);
+    try {
+      const resp = await this.auth.solicitarRecuperacionContrasena(objetivo);
+      this.recuperacionPaso.set('CONFIRMAR');
+      this.infoVerificacion.set(esReenvio ? `Código reenviado a ${objetivo}.` : resp.mensaje);
+    } catch (err) {
+      this.errorLogin.set(mensajeError(err));
+    } finally {
+      this.cargando.set(false);
+    }
+  }
+
+  async confirmarRecuperacionClave(): Promise<void> {
+    if (this.nuevaClave !== this.confirmarNuevaClave) {
+      this.errorLogin.set('Las contraseñas nuevas no coinciden.');
+      return;
+    }
+    this.errorLogin.set(null);
+    this.infoVerificacion.set(null);
+    this.cargando.set(true);
+    try {
+      const resp = await this.auth.confirmarRecuperacionContrasena(
+        this.correoRecuperacion.trim(),
+        this.codigoRecuperacion.trim(),
+        this.nuevaClave,
+      );
+      this.correo = this.correoRecuperacion.trim();
+      this.credencial = '';
+      this.recuperacionPaso.set(null);
+      this.codigoRecuperacion = '';
+      this.nuevaClave = '';
+      this.confirmarNuevaClave = '';
+      this.infoVerificacion.set(resp.mensaje);
     } catch (err) {
       this.errorLogin.set(mensajeError(err));
     } finally {

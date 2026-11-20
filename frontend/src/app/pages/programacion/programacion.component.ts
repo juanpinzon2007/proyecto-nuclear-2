@@ -48,7 +48,7 @@ import { SchedulingService } from '../../core/scheduling.service';
     <div class="prog-wrap">
       <div class="page-header">
         <div>
-          <p class="eyebrow">Despliegue de Misiones // RF-04 · RF-18 · RF-19</p>
+          <p class="eyebrow">Despliegue de Misiones</p>
           <h2>Programación de Sesiones, Espacios y Grupos</h2>
           <p class="subtitle">
             Organiza cohortes estudiantiles, autoriza espacios académicos y agenda sesiones con generación automática de códigos.
@@ -83,7 +83,7 @@ import { SchedulingService } from '../../core/scheduling.service';
             <!-- Formulario Crear Sesión / Editar Sesión -->
             <mat-card class="panel panel-cyan-left">
               <mat-card-header>
-                <mat-card-title>{{ sesionEditando() ? 'Editar Horario & Notificar Cambios (RF-21)' : 'Programar Nueva Sesión (RF-18)' }}</mat-card-title>
+                <mat-card-title>{{ sesionEditando() ? 'Editar Horario & Notificar Cambios' : 'Programar Nueva Sesión' }}</mat-card-title>
                 <mat-card-subtitle>Solo aparecen casos en estado PUBLICADO y espacios autorizados</mat-card-subtitle>
               </mat-card-header>
               <mat-card-content>
@@ -147,7 +147,7 @@ import { SchedulingService } from '../../core/scheduling.service';
 
                   @if (!sesionEditando()) {
                     <mat-form-field appearance="outline">
-                      <mat-label>Grupo académico (RF-04, opcional para convocar ahora)</mat-label>
+                      <mat-label>Grupo académico (opcional para convocar ahora)</mat-label>
                       <mat-select [(ngModel)]="formSes.grupoId" name="grpId" (ngModelChange)="alCambiarGrupo($event)">
                         <mat-option [value]="null">-- Convocar manualmente después --</mat-option>
                         @for (g of grupos(); track g.id_grupo) {
@@ -235,7 +235,7 @@ import { SchedulingService } from '../../core/scheduling.service';
                             </button>
                           }
                           @if (s.estado !== 'FINALIZADO') {
-                            <button mat-stroked-button type="button" (click)="iniciarEdicionSesion(s)" title="Editar fechas/lugar y notificar RF-21">
+                            <button mat-stroked-button type="button" (click)="iniciarEdicionSesion(s)" title="Editar fechas/lugar y notificar cambios">
                               Editar
                             </button>
                           }
@@ -255,7 +255,7 @@ import { SchedulingService } from '../../core/scheduling.service';
         </mat-tab>
 
         <!-- TAB 2: Grupos Académicos y Matrículas RF-04 -->
-        <mat-tab label="Grupos & Estudiantes (RF-04)">
+        <mat-tab label="Grupos & Estudiantes">
           <div class="tab-grid">
             <mat-card class="panel panel-amber-left">
               <mat-card-header>

@@ -22,6 +22,8 @@ def registrar_modelos_integrados() -> MetaData:
     # Participation integra estructuras; sus escritores continúan cerrados.
 
     from app.modules.identity.infrastructure import models as identity_models  # noqa: F401
+    from app.modules.identity.infrastructure import onboarding_models as identity_onboarding_models  # noqa: F401
+    from app.modules.identity.infrastructure import password_reset_models as identity_password_reset_models  # noqa: F401
     from app.modules.identity.infrastructure import academic_identity_models  # noqa: F401
     from app.modules.identity.infrastructure import academic_base_models  # noqa: F401
     from app.modules.identity.infrastructure import consent_document_models  # noqa: F401

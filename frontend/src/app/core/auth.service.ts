@@ -1,8 +1,12 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { Rol, RespuestaToken, UsuarioPublico } from './api.models';
+import { RespuestaAccesoEstudiante, RespuestaMensajeOperacion, RespuestaToken, Rol, UsuarioPublico } from './api.models';
+
+export type ResultadoLogin =
+  | { estado: 'AUTENTICADO'; usuario: UsuarioPublico | null }
+  | { estado: 'VERIFICACION_REQUERIDA'; correo: string; mensaje: string; expiraEnSegundos: number };
 
 const TOKEN_KEY = 'sps.token';
 
@@ -65,13 +69,78 @@ export class AuthService {
     return this.iniciarSesion(r.access_token);
   }
 
-  /** Autentica de forma transparente tanto a docentes/administradores (clave) como a estudiantes (código). */
-  async loginUnificado(correo: string, credencial: string): Promise<UsuarioPublico | null> {
+  async loginEstudiantePorClave(correo: string, clave: string): Promise<RespuestaAccesoEstudiante> {
+    return firstValueFrom(
+      this.http.post<RespuestaAccesoEstudiante>('/api/v1/identity/auth/estudiantes/acceso', { correo, clave }),
+    );
+  }
+
+  async verificarPrimerIngreso(correo: string, codigo: string): Promise<UsuarioPublico | null> {
+    const r = await firstValueFrom(
+      this.http.post<RespuestaToken>('/api/v1/identity/auth/estudiantes/verificar-primer-ingreso', { correo, codigo }),
+    );
+    return this.iniciarSesion(r.access_token);
+  }
+
+  async solicitarRecuperacionContrasena(correo: string): Promise<RespuestaMensajeOperacion> {
+    return firstValueFrom(
+      this.http.post<RespuestaMensajeOperacion>('/api/v1/identity/auth/recuperar-contrasena/solicitar', { correo }),
+    );
+  }
+
+  async confirmarRecuperacionContrasena(
+    correo: string,
+    codigo: string,
+    nuevaClave: string,
+  ): Promise<RespuestaMensajeOperacion> {
+    return firstValueFrom(
+      this.http.post<RespuestaMensajeOperacion>('/api/v1/identity/auth/recuperar-contrasena/confirmar', {
+        correo,
+        codigo,
+        nueva_clave: nuevaClave,
+      }),
+    );
+  }
+
+  /**
+   * Autentica docentes/administradores y estudiantes:
+   * - Estudiantes con contraseña reciben OTP por correo únicamente en su primer inicio de sesión.
+   * - También conserva el acceso directo por código de convocatoria cuando corresponda.
+   */
+  async loginUnificado(correo: string, credencial: string): Promise<ResultadoLogin> {
     try {
-      return await this.loginPersonal(correo, credencial);
-    } catch {
-      return await this.loginEstudiante(correo, credencial);
+      const usuario = await this.loginPersonal(correo, credencial);
+      return { estado: 'AUTENTICADO', usuario };
+    } catch (errPersonal) {
+      if (errPersonal instanceof HttpErrorResponse && errPersonal.status !== 401) {
+        throw errPersonal;
+      }
     }
+
+    try {
+      const acceso = await this.loginEstudiantePorClave(correo, credencial);
+      if (acceso.requiere_verificacion) {
+        return {
+          estado: 'VERIFICACION_REQUERIDA',
+          correo: acceso.correo ?? correo,
+          mensaje:
+            acceso.mensaje ??
+            'Se envió un código de verificación a tu correo. Ingrésalo para completar tu primer acceso.',
+          expiraEnSegundos: acceso.expira_en_segundos ?? 900,
+        };
+      }
+      if (acceso.access_token) {
+        const usuario = await this.iniciarSesion(acceso.access_token);
+        return { estado: 'AUTENTICADO', usuario };
+      }
+    } catch (errEst) {
+      if (errEst instanceof HttpErrorResponse && errEst.status !== 401) {
+        throw errEst;
+      }
+    }
+
+    const usuario = await this.loginEstudiante(correo, credencial);
+    return { estado: 'AUTENTICADO', usuario };
   }
 
   private async iniciarSesion(token: string): Promise<UsuarioPublico | null> {
