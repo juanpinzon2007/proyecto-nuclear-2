@@ -179,7 +179,7 @@ export function construirAyudaJoker(params: {
 
   return {
     titulo: 'COMODÍN JOKER · LECTURA TÁCTICA',
-    heroeAsesor: heroe ? `${heroe.universo} · ${heroe.nombre} (${heroe.arquetipo})` : 'Consejo Estratégico SPS',
+    heroeAsesor: heroe ? `${heroe.nombre} (${heroe.arquetipo})` : 'Consejo Estratégico SPS',
     principioPsicosocial: info.principio,
     contrasteEstrategico: info.contraste,
     cartaRiesgoId,

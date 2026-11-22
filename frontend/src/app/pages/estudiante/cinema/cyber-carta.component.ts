@@ -138,18 +138,22 @@ let siguienteIdCarta = 0;
 
           <!-- Emblema facetado del palo o JOKER central -->
           @if (esJoker) {
-            <!-- Corona / Bufón geométrico prismático JOKER -->
-            <path
-              d="M -38 22 L -44 -14 L -18 4 L 0 -32 L 18 4 L 44 -14 L 38 22 Z"
-              [attr.fill]="'url(#' + gradPaloMetal + ')'"
-              stroke="#fef08a"
-              stroke-width="2"
-              stroke-linejoin="round"
-            />
-            <polygon points="0,-16 11,4 0,20 -11,4" fill="#060810" stroke="#00e5ff" stroke-width="1.5" />
-            <circle cx="-44" cy="-16" r="5" fill="#00e5ff" />
-            <circle cx="0" cy="-35" r="6" fill="#fde047" />
-            <circle cx="44" cy="-16" r="5" fill="#ff2ed1" />
+            <g stroke-width="1.8" stroke-linejoin="round">
+              <path d="M-20 19 -45 38 -19 43 0 54 19 43 45 38 20 19Z"
+                fill="#3b195c" stroke="#f472b6" />
+              <path d="M-23 -10C-35 -23 -43 -24 -51 -16Q-48 -43 -27 -36L-13 -27
+                Q-11 -48 11 -52Q5 -39 22 -29Q37 -40 51 -23Q36 -24 26 -9Z"
+                [attr.fill]="'url(#' + gradPaloMetal + ')'" stroke="#fef08a" />
+              <path d="M-25 -10Q0 -25 25 -10L22 9Q19 26 0 33Q-19 26 -22 9Z"
+                fill="#15142c" stroke="#a5f3fc" />
+              <path d="M-17 -7 -5 -4 -10 4 -17 0Z" fill="#a5f3fc" />
+              <path d="M17 -7 5 -4 10 4 17 0Z" fill="#f9a8d4" />
+              <path d="M-11 14Q0 23 11 14" fill="none" stroke="#fde047" stroke-linecap="round" />
+              <path d="M0 34 6 42 0 49 -6 42Z" fill="#fde047" />
+              <circle cx="-51" cy="-15" r="4.5" fill="#67e8f9" />
+              <circle cx="12" cy="-53" r="5" fill="#fde047" />
+              <circle cx="51" cy="-23" r="4.5" fill="#f472b6" />
+            </g>
           } @else {
             @switch (simbolo) {
               @case ('♠') {
@@ -272,7 +276,7 @@ let siguienteIdCarta = 0;
         -8px 0 22px rgba(0, 229, 255, 0.2),
         8px 0 22px rgba(255, 46, 209, 0.2),
         0 20px 38px rgba(0, 0, 0, 0.72);
-      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease, filter 0.28s ease;
+      transition: box-shadow var(--motion-quick) ease, filter var(--motion-quick) ease;
     }
 
     .cyber-card-shell::after {
@@ -281,13 +285,28 @@ let siguienteIdCarta = 0;
       inset: -40%;
       background: linear-gradient(122deg, transparent 40%, rgba(255, 255, 255, 0.14) 50%, transparent 60%);
       transform: translateX(-110%);
-      transition: transform 0.65s ease;
       pointer-events: none;
       z-index: 3;
     }
 
-    :host(:hover) .cyber-card-shell::after {
-      transform: translateX(110%);
+    @media (hover: hover) and (pointer: fine) {
+      :host(:hover) .cyber-card-shell:not(.is-launched)::after {
+        animation: cardSheen 480ms var(--motion-decelerate);
+      }
+    }
+
+    .cyber-card-shell.is-launched::after {
+      animation: cardSheen 560ms var(--motion-decelerate);
+    }
+
+    @keyframes cardSheen {
+      to { transform: translateX(110%); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      :host .cyber-card-shell::after {
+        display: none;
+      }
     }
 
     .cyber-card-shell.is-selected {

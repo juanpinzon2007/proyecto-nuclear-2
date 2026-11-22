@@ -1,4 +1,4 @@
-import { ConfiguracionActor, DireccionMirada, PerfilHeroe, PlanoCamara, TemaEscena } from './cinema.types';
+import { ConfiguracionActor, DireccionMirada, PerfilHeroe, PlanoCamara, SubEscena, TemaEscena } from './cinema.types';
 
 export interface ContextoNarrativoEscena {
   tema: TemaEscena;
@@ -14,7 +14,7 @@ export interface ContextoNarrativoEscena {
 
 export interface ResultadoDireccionEscena {
   actores: ConfiguracionActor[];
-  subEscena: string;
+  subEscena: SubEscena;
   subtituloNarrativo: string;
   planoSugerido: PlanoCamara;
   focoX: number; // -12..+12 porcentaje X para paneo de cámara
@@ -38,7 +38,7 @@ function crearProtagonista(
   return {
     id: 'protagonista',
     nombre: heroe ? `Tú · ${heroe.nombre}` : 'Tú (Psicólogo/a)',
-    rol: heroe ? `${heroe.universo} · ${heroe.arquetipo}` : 'Protagonista',
+    rol: heroe?.arquetipo ?? 'Protagonista',
     pielClara: '#e5b899',
     pielSombra: '#bf8966',
     cabelloColor: '#1f2430',
@@ -89,7 +89,7 @@ function dirigirTribunalComite(ctx: ContextoNarrativoEscena): ResultadoDireccion
         atenuado: true,
         retrasoRespiracionMs: 500,
         retrasoParpadeoMs: 1400,
-        posicion: { xPct: 12, bottomPx: 66, escala: 0.82, zIndex: 2 },
+        posicion: { xPct: 12, zIndex: 2 },
       },
       {
         id: 'decano-autoridad',
@@ -114,7 +114,7 @@ function dirigirTribunalComite(ctx: ContextoNarrativoEscena): ResultadoDireccion
         destacado: !armada && !lanzada,
         retrasoRespiracionMs: 0,
         retrasoParpadeoMs: 900,
-        posicion: { xPct: 33, bottomPx: 42, escala: 1.04, zIndex: 6 },
+        posicion: { xPct: 33, zIndex: 6 },
       },
       crearProtagonista(ctx.heroe, {
         expresion: lanzada || armada ? 'convencimiento' : 'tension',
@@ -122,7 +122,7 @@ function dirigirTribunalComite(ctx: ContextoNarrativoEscena): ResultadoDireccion
         mirada: miradaProtag,
         hablando: lanzada,
         destacado: armada || lanzada,
-        posicion: { xPct: 67, bottomPx: 34, escala: 1.08, zIndex: 8 },
+        posicion: { xPct: 67, zIndex: 8 },
       }),
       {
         id: 'consejero-fondo-2',
@@ -144,7 +144,7 @@ function dirigirTribunalComite(ctx: ContextoNarrativoEscena): ResultadoDireccion
         atenuado: true,
         retrasoRespiracionMs: 850,
         retrasoParpadeoMs: 2100,
-        posicion: { xPct: 88, bottomPx: 66, escala: 0.82, zIndex: 2 },
+        posicion: { xPct: 88, zIndex: 2 },
       },
     ];
 
@@ -193,7 +193,7 @@ function dirigirTribunalComite(ctx: ContextoNarrativoEscena): ResultadoDireccion
       retrasoRespiracionMs: 0,
       retrasoParpadeoMs: 700,
       retrasoGestoMs: 0,
-      posicion: { xPct: 14, bottomPx: 54, escala: 0.9, zIndex: 4 },
+      posicion: { xPct: 14, zIndex: 4 },
     },
     {
       id: 'comite-juridica',
@@ -214,7 +214,7 @@ function dirigirTribunalComite(ctx: ContextoNarrativoEscena): ResultadoDireccion
       retrasoRespiracionMs: 420,
       retrasoParpadeoMs: 1650,
       retrasoGestoMs: 360,
-      posicion: { xPct: 31, bottomPx: 50, escala: 0.95, zIndex: 5 },
+      posicion: { xPct: 31, zIndex: 5 },
     },
     crearProtagonista(ctx.heroe, {
       expresion: lanzada
@@ -232,7 +232,7 @@ function dirigirTribunalComite(ctx: ContextoNarrativoEscena): ResultadoDireccion
       mirada: miradaProtagonista,
       hablando: lanzada,
       destacado: armada || lanzada,
-      posicion: { xPct: 50, bottomPx: 30, escala: 1.07, zIndex: 8 },
+      posicion: { xPct: 50, zIndex: 8 },
     }),
     {
       id: 'comite-senior',
@@ -254,7 +254,7 @@ function dirigirTribunalComite(ctx: ContextoNarrativoEscena): ResultadoDireccion
       retrasoRespiracionMs: 740,
       retrasoParpadeoMs: 1120,
       retrasoGestoMs: 720,
-      posicion: { xPct: 69, bottomPx: 50, escala: 0.95, zIndex: 5 },
+      posicion: { xPct: 69, zIndex: 5 },
     },
     {
       id: 'comite-vocal',
@@ -275,7 +275,7 @@ function dirigirTribunalComite(ctx: ContextoNarrativoEscena): ResultadoDireccion
       retrasoRespiracionMs: 1080,
       retrasoParpadeoMs: 2200,
       retrasoGestoMs: 1050,
-      posicion: { xPct: 86, bottomPx: 54, escala: 0.9, zIndex: 4 },
+      posicion: { xPct: 86, zIndex: 4 },
     },
   ];
 
@@ -319,7 +319,7 @@ function dirigirLaboratorioAutoridad(ctx: ContextoNarrativoEscena): ResultadoDir
       atenuado: true,
       retrasoRespiracionMs: 300,
       retrasoParpadeoMs: 900,
-      posicion: { xPct: 16, bottomPx: 66, escala: 0.84, zIndex: 2 },
+      posicion: { xPct: 16, zIndex: 2 },
     },
     crearProtagonista(ctx.heroe, {
       expresion: lanzada || armada ? 'convencimiento' : 'inseguridad',
@@ -327,7 +327,7 @@ function dirigirLaboratorioAutoridad(ctx: ContextoNarrativoEscena): ResultadoDir
       mirada: armada || lanzada ? 'derecha' : ctx.faseNarrativa === 1 ? 'izquierda' : 'derecha',
       hablando: lanzada,
       destacado: armada || lanzada,
-      posicion: { xPct: 48, bottomPx: 32, escala: 1.06, zIndex: 7 },
+      posicion: { xPct: 48, zIndex: 7 },
     }),
     {
       id: 'investigador-bata',
@@ -351,7 +351,7 @@ function dirigirLaboratorioAutoridad(ctx: ContextoNarrativoEscena): ResultadoDir
       destacado: !armada && !lanzada,
       retrasoRespiracionMs: 650,
       retrasoParpadeoMs: 1700,
-      posicion: { xPct: 79, bottomPx: 38, escala: 1.05, zIndex: 6 },
+      posicion: { xPct: 79, zIndex: 6 },
     },
   ];
 
@@ -362,7 +362,7 @@ function dirigirLaboratorioAutoridad(ctx: ContextoNarrativoEscena): ResultadoDir
       ? 'Respondes a la orden directa del investigador manteniendo tu criterio frente al bienestar del sujeto.'
       : armada
         ? 'Tu decisión ética está preparada frente al panel de control y la presión de la autoridad.'
-        : 'El experimentador con bata blanca ordena continuar tras el cristal mientras el sujeto muestra malestar.',
+        : 'El experimentador ordena continuar tras el cristal mientras el sujeto muestra malestar.',
     planoSugerido: lanzada ? 'decision' : armada ? 'primer_plano' : ctx.faseNarrativa === 0 ? 'general' : 'medio',
     focoX: armada || lanzada ? 2 : -10,
     focoY: armada || lanzada ? 3 : 0,
@@ -396,7 +396,7 @@ function dirigirHospitalUrgencias(ctx: ContextoNarrativoEscena): ResultadoDirecc
       destacado: !armada && !lanzada,
       retrasoRespiracionMs: 180,
       retrasoParpadeoMs: 1200,
-      posicion: { xPct: 24, bottomPx: 40, escala: 1.0, zIndex: 5 },
+      posicion: { xPct: 24, zIndex: 5 },
     },
     crearProtagonista(ctx.heroe, {
       expresion: lanzada || armada ? 'convencimiento' : 'preocupacion',
@@ -404,7 +404,7 @@ function dirigirHospitalUrgencias(ctx: ContextoNarrativoEscena): ResultadoDirecc
       mirada: ctx.faseNarrativa === 2 ? 'derecha' : 'izquierda',
       hablando: lanzada,
       destacado: armada || lanzada,
-      posicion: { xPct: 52, bottomPx: 30, escala: 1.07, zIndex: 8 },
+      posicion: { xPct: 52, zIndex: 8 },
     }),
     {
       id: 'acompanante-urgencias',
@@ -424,7 +424,7 @@ function dirigirHospitalUrgencias(ctx: ContextoNarrativoEscena): ResultadoDirecc
       mirada: 'izquierda',
       retrasoRespiracionMs: 700,
       retrasoParpadeoMs: 2100,
-      posicion: { xPct: 80, bottomPx: 44, escala: 0.96, zIndex: 5 },
+      posicion: { xPct: 80, zIndex: 5 },
     },
   ];
 
@@ -453,7 +453,7 @@ function dirigirEntrevistaClinica(ctx: ContextoNarrativoEscena): ResultadoDirecc
       mirada: 'derecha',
       hablando: lanzada,
       destacado: armada || lanzada,
-      posicion: { xPct: 26, bottomPx: 32, escala: 1.07, zIndex: 8 },
+      posicion: { xPct: 26, zIndex: 8 },
     }),
     {
       id: 'familiar-clinico-1',
@@ -475,7 +475,7 @@ function dirigirEntrevistaClinica(ctx: ContextoNarrativoEscena): ResultadoDirecc
       destacado: !armada && !lanzada,
       retrasoRespiracionMs: 420,
       retrasoParpadeoMs: 1300,
-      posicion: { xPct: 62, bottomPx: 38, escala: 1.0, zIndex: 6 },
+      posicion: { xPct: 62, zIndex: 6 },
     },
     {
       id: 'paciente-clinico-2',
@@ -495,7 +495,7 @@ function dirigirEntrevistaClinica(ctx: ContextoNarrativoEscena): ResultadoDirecc
       mirada: 'abajo',
       retrasoRespiracionMs: 880,
       retrasoParpadeoMs: 1950,
-      posicion: { xPct: 83, bottomPx: 46, escala: 0.92, zIndex: 4 },
+      posicion: { xPct: 83, zIndex: 4 },
     },
   ];
 
@@ -536,7 +536,7 @@ function dirigirProteccionRiesgo(ctx: ContextoNarrativoEscena): ResultadoDirecci
       mirada: 'derecha',
       retrasoRespiracionMs: 360,
       retrasoParpadeoMs: 800,
-      posicion: { xPct: 23, bottomPx: 44, escala: 0.96, zIndex: 5 },
+      posicion: { xPct: 23, zIndex: 5 },
     },
     crearProtagonista(ctx.heroe, {
       expresion: 'convencimiento',
@@ -544,7 +544,7 @@ function dirigirProteccionRiesgo(ctx: ContextoNarrativoEscena): ResultadoDirecci
       mirada: ctx.faseNarrativa === 1 ? 'izquierda' : 'derecha',
       hablando: lanzada,
       destacado: true,
-      posicion: { xPct: 50, bottomPx: 30, escala: 1.07, zIndex: 8 },
+      posicion: { xPct: 50, zIndex: 8 },
     }),
     {
       id: 'especialista-ruta',
@@ -565,7 +565,7 @@ function dirigirProteccionRiesgo(ctx: ContextoNarrativoEscena): ResultadoDirecci
       hablando: !armada && !lanzada,
       retrasoRespiracionMs: 740,
       retrasoParpadeoMs: 1750,
-      posicion: { xPct: 79, bottomPx: 40, escala: 1.0, zIndex: 6 },
+      posicion: { xPct: 79, zIndex: 6 },
     },
   ];
 
@@ -607,7 +607,7 @@ function dirigirRedCiudad(ctx: ContextoNarrativoEscena): ResultadoDireccionEscen
       hablando: !armada && !lanzada,
       retrasoRespiracionMs: 250,
       retrasoParpadeoMs: 1100,
-      posicion: { xPct: 21, bottomPx: 46, escala: 0.94, zIndex: 5 },
+      posicion: { xPct: 21, zIndex: 5 },
     },
     crearProtagonista(ctx.heroe, {
       expresion: lanzada || armada ? 'convencimiento' : 'neutro',
@@ -615,7 +615,7 @@ function dirigirRedCiudad(ctx: ContextoNarrativoEscena): ResultadoDireccionEscen
       mirada: 'centro',
       hablando: lanzada,
       destacado: armada || lanzada,
-      posicion: { xPct: 50, bottomPx: 30, escala: 1.07, zIndex: 8 },
+      posicion: { xPct: 50, zIndex: 8 },
     }),
     {
       id: 'red-salud',
@@ -637,7 +637,7 @@ function dirigirRedCiudad(ctx: ContextoNarrativoEscena): ResultadoDireccionEscen
       mirada: 'izquierda',
       retrasoRespiracionMs: 680,
       retrasoParpadeoMs: 1900,
-      posicion: { xPct: 79, bottomPx: 46, escala: 0.94, zIndex: 5 },
+      posicion: { xPct: 79, zIndex: 5 },
     },
   ];
 

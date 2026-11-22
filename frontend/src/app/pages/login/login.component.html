@@ -1,0 +1,339 @@
+<main class="login-page">
+  <div class="login-stage" aria-hidden="true">
+    <img class="cover-image" src="/simulation-cover.webp" alt="" fetchpriority="high" />
+    <span class="stage-sweep"></span>
+  </div>
+  <div class="login-layout">
+    <aside class="cover" aria-label="Simulador de Psicología Social">
+      <div class="brand">
+        <span class="brand-mark"><img src="/logo-sps.png" alt="" width="38" height="38" /></span>
+        <div class="brand-name">
+          <strong>SPS</strong>
+          <span>Simulador de Psicología Social</span>
+        </div>
+      </div>
+      <div class="cover-copy">
+        <p class="cover-heading">Cada decisión<br /><em>cuenta.</em></p>
+        <p class="cover-description">
+          Entra en situaciones de presión social y decide cómo responder.
+        </p>
+      </div>
+    </aside>
+
+    <section class="auth-panel" aria-labelledby="auth-title">
+      <div class="auth-content">
+        @if (verificacionPendiente(); as verif) {
+          <header class="auth-header">
+            <span class="auth-icon"><mat-icon aria-hidden="true">mark_email_read</mat-icon></span>
+            <h1 id="auth-title">Verifica tu correo</h1>
+            <p>{{ verif.mensaje }}</p>
+            <p>
+              Código enviado a <strong>{{ verif.correo }}</strong>.
+            </p>
+          </header>
+
+          <form
+            (ngSubmit)="confirmarCodigoPrimerIngreso()"
+            class="login-form"
+            [attr.aria-busy]="cargando()"
+          >
+            <div class="form-field">
+              <label for="login-verification-code">Código de verificación</label>
+              <div class="input-shell">
+                <mat-icon aria-hidden="true">pin</mat-icon>
+                <input
+                  id="login-verification-code"
+                  class="code-input"
+                  type="text"
+                  name="codigoVerificacion"
+                  [(ngModel)]="codigoVerificacion"
+                  required
+                  maxlength="12"
+                  inputmode="numeric"
+                  autocomplete="one-time-code"
+                  placeholder="Código de 6 dígitos"
+                />
+              </div>
+            </div>
+            <ng-container [ngTemplateOutlet]="mensajes" />
+            <button
+              class="submit-btn"
+              type="submit"
+              [disabled]="cargando() || !codigoVerificacion.trim()"
+            >
+              Verificar e iniciar sesión
+              <ng-container [ngTemplateOutlet]="indicador" />
+            </button>
+            <div class="form-actions">
+              <button
+                class="text-btn"
+                type="button"
+                (click)="volverALogin()"
+                [disabled]="cargando()"
+              >
+                <mat-icon aria-hidden="true">arrow_back</mat-icon> Volver
+              </button>
+              <button
+                class="text-btn"
+                type="button"
+                (click)="reenviarCodigo()"
+                [disabled]="cargando()"
+              >
+                Reenviar código
+              </button>
+            </div>
+          </form>
+        } @else if (recuperacionPaso(); as paso) {
+          <header class="auth-header">
+            <span class="auth-icon"><mat-icon aria-hidden="true">lock_reset</mat-icon></span>
+            @if (paso === 'SOLICITAR') {
+              <h1 id="auth-title">Recupera tu contraseña</h1>
+              <p>Ingresa tu correo registrado para solicitar un código de recuperación.</p>
+            } @else {
+              <h1 id="auth-title">Crea una contraseña</h1>
+              <p>
+                Ingresa el código enviado a <strong>{{ correoRecuperacion }}</strong> y elige una
+                nueva contraseña.
+              </p>
+            }
+          </header>
+
+          @if (paso === 'SOLICITAR') {
+            <form
+              (ngSubmit)="enviarCodigoRecuperacion()"
+              class="login-form"
+              [attr.aria-busy]="cargando()"
+            >
+              <div class="form-field">
+                <label for="login-recovery-email">Correo registrado</label>
+                <div class="input-shell">
+                  <mat-icon aria-hidden="true">mail_outline</mat-icon>
+                  <input
+                    id="login-recovery-email"
+                    type="email"
+                    name="correoRecuperacion"
+                    [(ngModel)]="correoRecuperacion"
+                    required
+                    autocomplete="email"
+                    autocapitalize="none"
+                    spellcheck="false"
+                    placeholder="usuario@universidad.edu.co"
+                  />
+                </div>
+              </div>
+              <ng-container [ngTemplateOutlet]="mensajes" />
+              <button
+                class="submit-btn"
+                type="submit"
+                [disabled]="cargando() || !correoRecuperacion.trim()"
+              >
+                Enviar código al correo
+                <ng-container [ngTemplateOutlet]="indicador" />
+              </button>
+              <div class="form-actions">
+                <button
+                  class="text-btn"
+                  type="button"
+                  (click)="volverALogin()"
+                  [disabled]="cargando()"
+                >
+                  <mat-icon aria-hidden="true">arrow_back</mat-icon> Volver al inicio de sesión
+                </button>
+              </div>
+            </form>
+          } @else {
+            <form
+              (ngSubmit)="confirmarRecuperacionClave()"
+              class="login-form"
+              [attr.aria-busy]="cargando()"
+            >
+              <div class="form-field">
+                <label for="login-recovery-code">Código de recuperación</label>
+                <div class="input-shell">
+                  <mat-icon aria-hidden="true">pin</mat-icon>
+                  <input
+                    id="login-recovery-code"
+                    class="code-input"
+                    type="text"
+                    name="codigoRecuperacion"
+                    [(ngModel)]="codigoRecuperacion"
+                    required
+                    maxlength="12"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    placeholder="Código de 6 dígitos"
+                  />
+                </div>
+              </div>
+              <div class="form-field">
+                <label for="login-new-password">Nueva contraseña</label>
+                <div class="input-shell">
+                  <mat-icon aria-hidden="true">lock_outline</mat-icon>
+                  <input
+                    id="login-new-password"
+                    [type]="mostrarNuevaClave ? 'text' : 'password'"
+                    name="nuevaClave"
+                    [(ngModel)]="nuevaClave"
+                    required
+                    minlength="6"
+                    autocomplete="new-password"
+                    placeholder="Mínimo 6 caracteres"
+                  />
+                  <button
+                    class="visibility-btn"
+                    type="button"
+                    (click)="mostrarNuevaClave = !mostrarNuevaClave"
+                    [attr.aria-label]="
+                      mostrarNuevaClave ? 'Ocultar nueva contraseña' : 'Mostrar nueva contraseña'
+                    "
+                  >
+                    <mat-icon aria-hidden="true">{{
+                      mostrarNuevaClave ? 'visibility_off' : 'visibility'
+                    }}</mat-icon>
+                  </button>
+                </div>
+              </div>
+              <div class="form-field">
+                <label for="login-confirm-password">Confirmar nueva contraseña</label>
+                <div class="input-shell">
+                  <mat-icon aria-hidden="true">lock_outline</mat-icon>
+                  <input
+                    id="login-confirm-password"
+                    type="password"
+                    name="confirmarNuevaClave"
+                    [(ngModel)]="confirmarNuevaClave"
+                    required
+                    autocomplete="new-password"
+                    placeholder="Repite la contraseña"
+                  />
+                </div>
+              </div>
+              <ng-container [ngTemplateOutlet]="mensajes" />
+              <button
+                class="submit-btn"
+                type="submit"
+                [disabled]="cargando() || !codigoRecuperacion.trim() || nuevaClave.length < 6"
+              >
+                Restablecer contraseña
+                <ng-container [ngTemplateOutlet]="indicador" />
+              </button>
+              <div class="form-actions">
+                <button
+                  class="text-btn"
+                  type="button"
+                  (click)="volverALogin()"
+                  [disabled]="cargando()"
+                >
+                  <mat-icon aria-hidden="true">arrow_back</mat-icon> Cancelar
+                </button>
+                <button
+                  class="text-btn"
+                  type="button"
+                  (click)="enviarCodigoRecuperacion(true)"
+                  [disabled]="cargando()"
+                >
+                  Reenviar código
+                </button>
+              </div>
+            </form>
+          }
+        } @else {
+          <header class="auth-header">
+            <span class="auth-icon"><mat-icon aria-hidden="true">lock_outline</mat-icon></span>
+            <h1 id="auth-title">Inicia sesión</h1>
+            <p>Usa tu correo institucional y tu contraseña o código de convocatoria.</p>
+          </header>
+
+          <form (ngSubmit)="iniciarSesion()" class="login-form" [attr.aria-busy]="cargando()">
+            <div class="form-field">
+              <label for="login-email">Correo institucional</label>
+              <div class="input-shell">
+                <mat-icon aria-hidden="true">mail_outline</mat-icon>
+                <input
+                  id="login-email"
+                  type="email"
+                  name="correo"
+                  [(ngModel)]="correo"
+                  required
+                  autocomplete="username"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  placeholder="usuario@universidad.edu.co"
+                />
+              </div>
+            </div>
+            <div class="form-field">
+              <label for="login-credential">Contraseña o código de convocatoria</label>
+              <div class="input-shell">
+                <mat-icon aria-hidden="true">lock_outline</mat-icon>
+                <input
+                  id="login-credential"
+                  [type]="mostrarCredencial ? 'text' : 'password'"
+                  name="credencial"
+                  [(ngModel)]="credencial"
+                  required
+                  autocomplete="current-password"
+                  placeholder="Contraseña o código"
+                />
+                <button
+                  class="visibility-btn"
+                  type="button"
+                  (click)="mostrarCredencial = !mostrarCredencial"
+                  [attr.aria-label]="
+                    mostrarCredencial
+                      ? 'Ocultar contraseña o código'
+                      : 'Mostrar contraseña o código'
+                  "
+                >
+                  <mat-icon aria-hidden="true">{{
+                    mostrarCredencial ? 'visibility_off' : 'visibility'
+                  }}</mat-icon>
+                </button>
+              </div>
+            </div>
+            <ng-container [ngTemplateOutlet]="mensajes" />
+            <button
+              class="submit-btn"
+              type="submit"
+              [disabled]="cargando() || !correo.trim() || !credencial.trim()"
+            >
+              Iniciar sesión
+              <ng-container [ngTemplateOutlet]="indicador" />
+            </button>
+            <div class="form-actions recovery-action">
+              <button
+                class="text-btn"
+                type="button"
+                (click)="abrirRecuperacion()"
+                [disabled]="cargando()"
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+          </form>
+        }
+      </div>
+    </section>
+  </div>
+</main>
+
+<ng-template #mensajes>
+  @if (errorLogin(); as error) {
+    <p class="auth-message auth-error" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>{{ error }}
+    </p>
+  }
+  @if (infoVerificacion(); as info) {
+    <p class="auth-message auth-info" role="status">
+      <mat-icon aria-hidden="true">info_outline</mat-icon>{{ info }}
+    </p>
+  }
+</ng-template>
+
+<ng-template #indicador>
+  @if (cargando()) {
+    <mat-spinner class="submit-icon" diameter="19" aria-label="Procesando" />
+  } @else {
+    <mat-icon class="submit-icon" aria-hidden="true">arrow_forward</mat-icon>
+  }
+</ng-template>

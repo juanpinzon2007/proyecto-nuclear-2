@@ -1,0 +1,277 @@
+<div class="page role-dashboard">
+  <header class="panel dashboard-hero dashboard-cover-docente">
+    <div class="dashboard-copy">
+      <p class="eyebrow">Consola de autoría</p>
+      <h1>Casos de Estudio</h1>
+      <p class="dashboard-description">
+        Diseña escenarios, conecta decisiones y prepara sus rúbricas de evaluación.
+      </p>
+
+      @if (auth.tienePermiso('CREAR_CASOS')) {
+        <div class="dashboard-actions">
+          <a mat-flat-button color="primary" routerLink="/casos/nuevo">
+            <mat-icon aria-hidden="true">add_circle_outline</mat-icon> Nuevo caso completo
+          </a>
+          <button
+            mat-stroked-button
+            type="button"
+            (click)="mostrarFormularioCrear = !mostrarFormularioCrear"
+            [attr.aria-expanded]="mostrarFormularioCrear"
+            [attr.aria-controls]="mostrarFormularioCrear ? 'borrador-rapido' : null"
+          >
+            <mat-icon aria-hidden="true">{{ mostrarFormularioCrear ? 'close' : 'bolt' }}</mat-icon>
+            {{ mostrarFormularioCrear ? 'Cerrar borrador' : 'Borrador rápido' }}
+          </button>
+        </div>
+      } @else {
+        <span class="chip read-only">Solo lectura</span>
+      }
+    </div>
+  </header>
+
+  <dl class="dashboard-summary" aria-label="Resumen por estado">
+    <div class="dashboard-stat dashboard-tone-green">
+      <dt>
+        <span class="dashboard-stat-icon"><mat-icon aria-hidden="true">task_alt</mat-icon></span>
+        Publicados
+      </dt>
+      <dd>{{ resumen().PUBLICADO }}</dd>
+    </div>
+    <div class="dashboard-stat dashboard-tone-amber">
+      <dt>
+        <span class="dashboard-stat-icon"><mat-icon aria-hidden="true">edit_note</mat-icon></span>
+        Borradores
+      </dt>
+      <dd>{{ resumen().BORRADOR }}</dd>
+    </div>
+    <div class="dashboard-stat dashboard-tone-slate">
+      <dt>
+        <span class="dashboard-stat-icon"><mat-icon aria-hidden="true">inventory_2</mat-icon></span>
+        Archivados
+      </dt>
+      <dd>{{ resumen().ARCHIVADO }}</dd>
+    </div>
+  </dl>
+
+  @if (error(); as aviso) {
+    <div class="error-box" role="alert">{{ aviso }}</div>
+  }
+  @if (mensajeExito(); as aviso) {
+    <div class="success-box" role="status">{{ aviso }}</div>
+  }
+
+  @if (mostrarFormularioCrear) {
+    <mat-card
+      class="draft-panel dashboard-enter"
+      id="borrador-rapido"
+      aria-labelledby="draft-title"
+    >
+      <mat-card-header>
+        <mat-icon mat-card-avatar aria-hidden="true">bolt</mat-icon>
+        <mat-card-title id="draft-title">Borrador rápido</mat-card-title>
+        <mat-card-subtitle
+          >Podrás completar los escenarios y la rúbrica en el editor.</mat-card-subtitle
+        >
+      </mat-card-header>
+      <mat-card-content>
+        <form (ngSubmit)="crearCaso()" class="draft-form" [attr.aria-busy]="guardando()">
+          <div class="draft-fields">
+            <mat-form-field appearance="outline">
+              <mat-label>Nombre del caso</mat-label>
+              <input
+                matInput
+                [(ngModel)]="nuevoNombre"
+                name="nuevoNombre"
+                required
+                placeholder="Ej. Dilema de conformidad grupal"
+              />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Tiempo estimado (min)</mat-label>
+              <input
+                matInput
+                type="number"
+                [(ngModel)]="nuevoTiempo"
+                name="nuevoTiempo"
+                required
+                min="5"
+                max="180"
+              />
+            </mat-form-field>
+          </div>
+          <mat-form-field appearance="outline">
+            <mat-label>Desarrollo situacional</mat-label>
+            <textarea
+              matInput
+              rows="3"
+              [(ngModel)]="nuevoDesarrollo"
+              name="nuevoDesarrollo"
+              required
+              placeholder="Describe la situación en la que se tomarán las decisiones"
+            ></textarea>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Contexto e historia</mat-label>
+            <textarea
+              matInput
+              rows="3"
+              [(ngModel)]="nuevoContexto"
+              name="nuevoContexto"
+              required
+              placeholder="Indica los antecedentes y el rol del estudiante"
+            ></textarea>
+          </mat-form-field>
+          <div class="draft-actions">
+            <button mat-button type="button" (click)="mostrarFormularioCrear = false">
+              Cancelar
+            </button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="guardando()">
+              @if (guardando()) {
+                <mat-spinner diameter="18" aria-label="Guardando borrador" />
+              } @else {
+                <mat-icon aria-hidden="true">save</mat-icon>
+              }
+              Guardar borrador
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <section class="case-library" aria-labelledby="case-library-title" [attr.aria-busy]="cargando()">
+    <div class="dashboard-heading">
+      <h2 id="case-library-title">Repositorio de Casos</h2>
+      @if (casos().length) {
+        <span>{{ casos().length }} {{ casos().length === 1 ? 'versión' : 'versiones' }}</span>
+      }
+    </div>
+
+    @if (cargando()) {
+      <div class="panel dashboard-empty" role="status">
+        <mat-spinner diameter="32" aria-hidden="true" />
+        <p>Cargando casos…</p>
+      </div>
+    } @else if (casos().length) {
+      <div class="dashboard-grid">
+        @for (caso of casos(); track caso.version_id) {
+          <article
+            class="panel dashboard-card"
+            [class.dashboard-tone-green]="caso.estado === 'PUBLICADO'"
+            [class.dashboard-tone-amber]="caso.estado === 'BORRADOR'"
+            [class.dashboard-tone-slate]="caso.estado === 'ARCHIVADO'"
+            [attr.aria-labelledby]="'titulo-caso-' + caso.version_id"
+          >
+            <div class="dashboard-card-content">
+              <div class="dashboard-card-top">
+                <span class="dashboard-icon"
+                  ><mat-icon aria-hidden="true">auto_stories</mat-icon></span
+                >
+                <span class="dashboard-badge">{{ caso.estado }}</span>
+              </div>
+
+              <h3 [id]="'titulo-caso-' + caso.version_id">{{ caso.nombre }}</h3>
+
+              <div class="case-meta">
+                <span>Caso {{ caso.numero }}</span>
+                <span
+                  ><mat-icon aria-hidden="true">schedule</mat-icon>
+                  {{ caso.tiempo_estimado_min }} min</span
+                >
+                <span
+                  ><mat-icon aria-hidden="true">event</mat-icon>
+                  {{ caso.creado_en | date: 'dd/MM/yyyy' }}</span
+                >
+              </div>
+              <p class="case-version">
+                Versión <code>{{ caso.version_id }}</code>
+              </p>
+            </div>
+
+            <div
+              class="dashboard-card-actions"
+              role="group"
+              [attr.aria-label]="'Acciones de ' + caso.nombre"
+            >
+              <a
+                mat-stroked-button
+                color="primary"
+                [routerLink]="['/casos', caso.version_id]"
+                title="Ver escenarios y rúbrica"
+              >
+                <mat-icon aria-hidden="true">visibility</mat-icon> Detalle
+              </a>
+              <a
+                mat-button
+                [routerLink]="['/casos', caso.version_id, 'grafo']"
+                title="Ver o editar grafo de escenas"
+              >
+                <mat-icon aria-hidden="true">account_tree</mat-icon> Grafo
+              </a>
+              @if (auth.tienePermiso('CREAR_CASOS')) {
+                @switch (caso.estado) {
+                  @case ('BORRADOR') {
+                    <a
+                      mat-button
+                      [routerLink]="['/casos', caso.version_id, 'editar']"
+                      title="Editar estructura y rúbrica"
+                    >
+                      <mat-icon aria-hidden="true">edit</mat-icon> Editar
+                    </a>
+                    <button
+                      mat-button
+                      color="accent"
+                      type="button"
+                      (click)="publicar(caso.version_id)"
+                    >
+                      <mat-icon aria-hidden="true">publish</mat-icon> Publicar
+                    </button>
+                  }
+                  @case ('PUBLICADO') {
+                    <button
+                      mat-button
+                      color="accent"
+                      type="button"
+                      (click)="clonarComoBorrador(caso.version_id)"
+                    >
+                      <mat-icon aria-hidden="true">content_copy</mat-icon> Nueva versión
+                    </button>
+                    <button
+                      mat-button
+                      color="warn"
+                      type="button"
+                      (click)="archivar(caso.version_id)"
+                    >
+                      <mat-icon aria-hidden="true">archive</mat-icon> Archivar
+                    </button>
+                  }
+                  @case ('ARCHIVADO') {
+                    <button
+                      mat-button
+                      color="accent"
+                      type="button"
+                      (click)="republicar(caso.version_id)"
+                    >
+                      <mat-icon aria-hidden="true">replay</mat-icon> Republicar
+                    </button>
+                    <button mat-button type="button" (click)="clonarComoBorrador(caso.version_id)">
+                      <mat-icon aria-hidden="true">content_copy</mat-icon> Nueva versión
+                    </button>
+                  }
+                }
+              }
+            </div>
+          </article>
+        }
+      </div>
+    } @else if (!error()) {
+      <div class="panel dashboard-empty">
+        <mat-icon aria-hidden="true">folder_open</mat-icon>
+        <h3>No hay casos registrados aún</h3>
+        @if (auth.tienePermiso('CREAR_CASOS')) {
+          <p>Crea un caso para diseñar escenarios y programar sesiones.</p>
+        }
+      </div>
+    }
+  </section>
+</div>

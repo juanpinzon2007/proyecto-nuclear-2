@@ -1,16 +1,13 @@
-import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { firstValueFrom } from 'rxjs';
 import { mensajeError } from '../../core/api-error';
@@ -29,40 +26,52 @@ import { avatarUsuario } from '../../core/user-avatar';
   selector: 'app-docentes',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatCardModule,
     MatTabsModule,
-    MatTableModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
     MatCheckboxModule,
     MatButtonModule,
     MatIconModule,
-    MatChipsModule,
     MatSnackBarModule,
   ],
   template: `
-    <div class="admin-wrap">
-      <div class="page-header">
-        <div>
-          <p class="eyebrow amber">Consola de Gobernanza</p>
-          <h2>Administración de Usuarios, Roles y Permisos</h2>
-          <p class="subtitle">
-            Control integral de cuentas, excepciones por permiso, vínculos de identidad y autorización de espacios académicos.
-          </p>
+    <div class="page role-dashboard" [attr.aria-busy]="cargando()">
+      <header class="panel dashboard-hero dashboard-cover-administracion">
+        <div class="dashboard-copy">
+          <p class="eyebrow">Consola de administración</p>
+          <h1>Administración</h1>
+          <p class="dashboard-description">Gestiona las cuentas, sus permisos y las autorizaciones de los espacios académicos.</p>
+          <div class="dashboard-actions">
+            <button mat-stroked-button type="button" (click)="cargarTodo()" [disabled]="cargando()">
+              <mat-icon aria-hidden="true">refresh</mat-icon> Actualizar datos
+            </button>
+          </div>
         </div>
-        <button mat-stroked-button (click)="cargarTodo()" [disabled]="cargando()">
-          <mat-icon>refresh</mat-icon> Actualizar
-        </button>
-      </div>
+      </header>
 
-      <mat-tab-group animationDuration="200ms">
+      <dl class="dashboard-summary" aria-label="Resumen de administración">
+        <div class="dashboard-stat">
+          <dt><span class="dashboard-stat-icon"><mat-icon aria-hidden="true">groups</mat-icon></span> Usuarios</dt>
+          <dd>{{ usuarios().length }}</dd>
+        </div>
+        <div class="dashboard-stat dashboard-tone-green">
+          <dt><span class="dashboard-stat-icon"><mat-icon aria-hidden="true">how_to_reg</mat-icon></span> Cuentas activas</dt>
+          <dd>{{ cuentasActivas() }}</dd>
+        </div>
+        <div class="dashboard-stat dashboard-tone-amber">
+          <dt><span class="dashboard-stat-icon"><mat-icon aria-hidden="true">school</mat-icon></span> Espacios</dt>
+          <dd>{{ espacios().length }}</dd>
+        </div>
+      </dl>
+
+      <mat-tab-group animationDuration="0ms">
         <!-- TAB 1: Usuarios, Roles y Permisos Individuales -->
         <mat-tab label="Usuarios & Permisos">
           <div class="tab-grid">
-            <mat-card class="panel panel-cyan-left panel-card">
+            <mat-card class="panel panel-card dashboard-enter" id="admin-user-editor">
               <mat-card-header>
                 <mat-card-title>{{ usuarioEditando() ? 'Editar Usuario #' + usuarioEditando()!.id_usuario : 'Registrar Nueva Cuenta' }}</mat-card-title>
                 <mat-card-subtitle>Docentes, Estudiantes y Administradores con vínculo CASES/SCHEDULING</mat-card-subtitle>
@@ -140,101 +149,87 @@ import { avatarUsuario } from '../../core/user-avatar';
               </mat-card-content>
             </mat-card>
 
-            <mat-card class="panel table-card">
-              <mat-card-header>
-                <mat-card-title>Directorio Completo ({{ usuarios().length }})</mat-card-title>
-                <mat-card-subtitle>Visualiza roles, estado, permisos efectivos y UUID académicos</mat-card-subtitle>
-              </mat-card-header>
-              <mat-card-content>
-                <div class="table-scroll">
-                  <table mat-table [dataSource]="usuarios()" class="full-table">
-                    <ng-container matColumnDef="usuario">
-                      <th mat-header-cell *matHeaderCellDef>Usuario</th>
-                      <td mat-cell *matCellDef="let u">
-                        <div class="user-inline">
-                          <img class="game-avatar" [src]="avatarUsuario({ id_usuario: u.id_usuario, nombre: u.nombre, correo: u.correo, rol: u.rol })" [alt]="u.nombre" />
-                          <div>
-                            <div class="cell-main">{{ u.nombre }}</div>
-                            <div class="cell-sub">{{ u.correo }}</div>
-                          </div>
-                        </div>
-                      </td>
-                    </ng-container>
+            <section class="directory" aria-labelledby="directory-title">
+              <div class="dashboard-heading">
+                <h2 id="directory-title">Directorio de usuarios</h2>
+                <span>{{ usuarios().length }} {{ usuarios().length === 1 ? 'cuenta' : 'cuentas' }}</span>
+              </div>
 
-                    <ng-container matColumnDef="rol">
-                      <th mat-header-cell *matHeaderCellDef>Rol</th>
-                      <td mat-cell *matCellDef="let u">
-                        <span class="role-badge" [class]="'role-' + u.rol.toLowerCase()">{{ u.rol }}</span>
-                      </td>
-                    </ng-container>
+              <div class="dashboard-grid">
+                @for (u of usuarios(); track u.id_usuario) {
+                  <article class="panel dashboard-card directory-card"
+                    [class.dashboard-tone-green]="u.rol === 'DOCENTE'"
+                    [class.dashboard-tone-amber]="u.rol === 'ADMINISTRADOR'"
+                    [attr.aria-labelledby]="'admin-user-' + u.id_usuario">
+                    <div class="dashboard-card-content">
+                      <div class="dashboard-card-top">
+                        <img class="directory-avatar" [src]="avatarUsuario({ id_usuario: u.id_usuario, nombre: u.nombre, correo: u.correo, rol: u.rol })" alt="" width="46" height="46" />
+                        <span class="dashboard-badge">{{ u.rol }}</span>
+                      </div>
 
-                    <ng-container matColumnDef="permisos">
-                      <th mat-header-cell *matHeaderCellDef>Permisos</th>
-                      <td mat-cell *matCellDef="let u">
-                        <div class="chips-inline">
-                          @for (p of u.permisos_efectivos; track p) {
-                            <span class="mini-chip">{{ p }}</span>
-                          }
-                          @if (!u.permisos_efectivos.length) {
-                            <span class="muted">Sin permisos extra</span>
+                      <h3 [id]="'admin-user-' + u.id_usuario">{{ u.nombre }}</h3>
+                      <p class="directory-email">{{ u.correo }}</p>
+
+                      <div class="directory-details">
+                        <div>
+                          <h4>Permisos efectivos</h4>
+                          @if (u.permisos_efectivos.length) {
+                            <div class="chips-inline">
+                              @for (p of u.permisos_efectivos; track p) {
+                                <span class="mini-chip">{{ p }}</span>
+                              }
+                            </div>
+                          } @else {
+                            <p class="cell-sub">Sin permisos efectivos</p>
                           }
                         </div>
-                      </td>
-                    </ng-container>
 
-                    <ng-container matColumnDef="identidades">
-                      <th mat-header-cell *matHeaderCellDef>Vínculos</th>
-                      <td mat-cell *matCellDef="let u">
-                        @if (u.identidad_cases && u.identidad_scheduling) {
-                          <span class="ok-badge">CASES + SCHEDULING</span>
-                        } @else if (u.rol === 'ADMINISTRADOR') {
-                          <span class="muted">N/A (Admin)</span>
-                        } @else {
-                          <button mat-stroked-button type="button" (click)="generarIdentidades(u)">
-                            Generar UUID
-                          </button>
+                        <div>
+                          <h4>Vínculos académicos</h4>
+                          @if (u.identidad_cases && u.identidad_scheduling) {
+                            <span class="dashboard-badge dashboard-tone-green">CASES + SCHEDULING</span>
+                          } @else if (u.rol === 'ADMINISTRADOR') {
+                            <p class="cell-sub">No aplica</p>
+                          } @else {
+                            <button mat-stroked-button type="button" (click)="generarIdentidades(u)">
+                              <mat-icon aria-hidden="true">link</mat-icon> Generar UUID
+                            </button>
+                          }
+                        </div>
+
+                        @if (u.rol === 'ESTUDIANTE') {
+                          <span class="dashboard-badge" [class.dashboard-tone-amber]="u.primer_ingreso_verificado === false">
+                            {{ u.primer_ingreso_verificado === false ? 'Primer ingreso pendiente' : 'Primer ingreso verificado' }}
+                          </span>
                         }
-                      </td>
-                    </ng-container>
+                      </div>
+                    </div>
 
-                    <ng-container matColumnDef="estado">
-                      <th mat-header-cell *matHeaderCellDef>Estado</th>
-                      <td mat-cell *matCellDef="let u">
-                        <div class="state-col">
-                          <button mat-button type="button" (click)="alternarEstado(u)"
-                                  [class]="u.activo ? 'btn-active' : 'btn-inactive'">
-                            {{ u.activo ? 'ACTIVO' : 'INACTIVO' }}
-                          </button>
-                          @if (u.rol === 'ESTUDIANTE') {
-                            <span [class]="u.primer_ingreso_verificado === false ? 'otp-pending-tag' : 'otp-ok-tag'">
-                              {{ u.primer_ingreso_verificado === false ? '1ER INGRESO PENDIENTE' : 'VERIFICADO' }}
-                            </span>
-                          }
-                        </div>
-                      </td>
-                    </ng-container>
-
-                    <ng-container matColumnDef="acciones">
-                      <th mat-header-cell *matHeaderCellDef>Acciones</th>
-                      <td mat-cell *matCellDef="let u">
-                        <button mat-icon-button type="button" (click)="editarUsuario(u)" title="Editar usuario y permisos">
-                          <mat-icon>edit</mat-icon>
-                        </button>
-                      </td>
-                    </ng-container>
-
-                    <tr mat-header-row *matHeaderRowDef="['usuario', 'rol', 'permisos', 'identidades', 'estado', 'acciones']"></tr>
-                    <tr mat-row *matRowDef="let row; columns: ['usuario', 'rol', 'permisos', 'identidades', 'estado', 'acciones']"></tr>
-                  </table>
-                </div>
-              </mat-card-content>
-            </mat-card>
+                    <div class="dashboard-card-actions" role="group" [attr.aria-label]="'Acciones de ' + u.nombre">
+                      <button mat-stroked-button type="button" (click)="editarUsuario(u)">
+                        <mat-icon aria-hidden="true">edit</mat-icon> Editar
+                      </button>
+                      <button mat-button type="button" (click)="alternarEstado(u)"
+                        [class.btn-active]="u.activo" [class.btn-inactive]="!u.activo"
+                        [attr.aria-label]="(u.activo ? 'Desactivar cuenta de ' : 'Activar cuenta de ') + u.nombre">
+                        <mat-icon aria-hidden="true">{{ u.activo ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+                        {{ u.activo ? 'Activa' : 'Inactiva' }}
+                      </button>
+                    </div>
+                  </article>
+                } @empty {
+                  @if (!cargando()) {
+                    <div class="panel dashboard-empty"><p>No hay cuentas para mostrar.</p></div>
+                  }
+                }
+              </div>
+            </section>
           </div>
         </mat-tab>
 
         <!-- TAB 2: Perfil Global del Rol DOCENTE -->
         <mat-tab label="Permisos Globales Docentes">
-          <mat-card class="panel panel-green-left panel-card">
+          <mat-card class="panel panel-card dashboard-enter">
             <mat-card-header>
               <mat-card-title>Perfil Base del Rol DOCENTE</mat-card-title>
               <mat-card-subtitle>
@@ -265,7 +260,7 @@ import { avatarUsuario } from '../../core/user-avatar';
         <!-- TAB 3: Espacios Académicos -->
         <mat-tab label="Espacios Académicos">
           <div class="tab-grid">
-            <mat-card class="panel panel-amber-left panel-card">
+            <mat-card class="panel panel-card dashboard-enter">
               <mat-card-header>
                 <mat-card-title>Crear Espacio Académico</mat-card-title>
                 <mat-card-subtitle>Registra asignaturas o módulos y autoriza docentes titulares</mat-card-subtitle>
@@ -292,17 +287,19 @@ import { avatarUsuario } from '../../core/user-avatar';
               </mat-card-content>
             </mat-card>
 
-            <mat-card class="panel table-card">
-              <mat-card-header>
-                <mat-card-title>Espacios Registrados ({{ espacios().length }})</mat-card-title>
-              </mat-card-header>
-              <mat-card-content>
+            <section class="directory" aria-labelledby="spaces-title">
+              <div class="dashboard-heading">
+                <h2 id="spaces-title">Espacios registrados</h2>
+                <span>{{ espacios().length }} {{ espacios().length === 1 ? 'espacio' : 'espacios' }}</span>
+              </div>
+              <div class="dashboard-grid">
                 @for (e of espacios(); track e.id) {
-                  <div class="space-row">
-                    <div>
-                      <div class="cell-main">{{ e.nombre }}</div>
-                      <div class="cell-sub mono">ID: {{ e.id }}</div>
-                      <div class="chips-inline" style="margin-top: 6px;">
+                  <article class="panel dashboard-card dashboard-tone-amber" [attr.aria-labelledby]="'admin-space-' + e.id">
+                    <div class="dashboard-card-content">
+                      <span class="dashboard-icon"><mat-icon aria-hidden="true">school</mat-icon></span>
+                      <h3 [id]="'admin-space-' + e.id">{{ e.nombre }}</h3>
+                      <p class="cell-sub mono">ID: {{ e.id }}</p>
+                      <div class="chips-inline space-docentes">
                         @for (d of e.docentes_autorizados; track d.id_usuario) {
                           <span class="mini-chip">{{ d.nombre }}</span>
                         }
@@ -311,8 +308,9 @@ import { avatarUsuario } from '../../core/user-avatar';
                         }
                       </div>
                     </div>
-                    <div class="grant-box">
-                      <select class="perm-select" [(ngModel)]="asignacionDocentePorEspacio[e.id]" [name]="'grant_' + e.id">
+                    <div class="dashboard-card-actions grant-box">
+                      <select class="perm-select" [(ngModel)]="asignacionDocentePorEspacio[e.id]" [name]="'grant_' + e.id"
+                        [attr.aria-label]="'Docente a autorizar en ' + e.nombre">
                         <option [ngValue]="null">Seleccionar docente...</option>
                         @for (d of docentesList(); track d.id_usuario) {
                           <option [ngValue]="d.id_usuario">{{ d.nombre }}</option>
@@ -323,53 +321,85 @@ import { avatarUsuario } from '../../core/user-avatar';
                         Autorizar
                       </button>
                     </div>
-                  </div>
+                  </article>
+                } @empty {
+                  @if (!cargando()) {
+                    <div class="panel dashboard-empty"><p>No hay espacios registrados.</p></div>
+                  }
                 }
-              </mat-card-content>
-            </mat-card>
+              </div>
+            </section>
           </div>
         </mat-tab>
       </mat-tab-group>
     </div>
   `,
   styles: [`
-    .admin-wrap { padding: 4px 0 36px; max-width: 1160px; margin: 0 auto; }
-    .subtitle { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
-    .tab-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; margin-top: 16px; align-items: start; }
-    @media (max-width: 1080px) { .tab-grid { grid-template-columns: 1fr; } }
-    .panel-card, .table-card { margin-top: 12px; }
-    .form-stack { display: flex; flex-direction: column; gap: 12px; padding-top: 14px; }
-    .actions-row { display: flex; gap: 10px; align-items: center; }
-    .perm-box { background: #070a10; border: 1px solid var(--line); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-    .perm-label { font-family: var(--mono); font-size: 11px; color: var(--cyan); font-weight: 600; text-transform: uppercase; }
-    .perm-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .perm-code { font-size: 12px; font-family: var(--mono); color: var(--text); }
-    .perm-select { background: #070a10; color: var(--text); border: 1px solid var(--line-strong); padding: 6px 10px; font-family: var(--mono); font-size: 12px; }
-    .table-scroll { overflow-x: auto; }
-    .full-table { width: 100%; }
-    .cell-main { font-weight: 600; color: var(--text); }
-    .cell-sub { font-size: 12px; color: var(--muted); }
-    .role-badge { padding: 3px 9px; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.7px; }
-    .role-administrador { background: rgba(255, 184, 0, 0.14); color: var(--amber); border: 1px solid rgba(255, 184, 0, 0.5); }
-    .role-docente { background: rgba(0, 232, 148, 0.12); color: var(--green); border: 1px solid rgba(0, 232, 148, 0.48); }
-    .role-estudiante { background: rgba(0, 229, 244, 0.12); color: var(--cyan); border: 1px solid rgba(0, 229, 244, 0.45); }
-    .chips-inline { display: flex; flex-wrap: wrap; gap: 4px; }
-    .mini-chip { background: #070a10; border: 1px solid var(--line); padding: 2px 7px; font-family: var(--mono); font-size: 11px; color: var(--cyan-soft); }
-    .ok-badge { color: var(--green); font-family: var(--mono); font-size: 11px; font-weight: 700; }
-    .btn-active { color: var(--green) !important; font-weight: 700; font-size: 11px; }
-    .btn-inactive { color: var(--coral) !important; font-weight: 700; font-size: 11px; }
-    .state-col { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-    .otp-pending-tag, .otp-ok-tag { font-family: var(--mono); font-size: 10px; padding: 2px 6px; letter-spacing: 0.5px; }
-    .otp-pending-tag { color: var(--amber); border: 1px solid rgba(255, 184, 0, 0.5); background: rgba(255, 184, 0, 0.1); }
-    .otp-ok-tag { color: var(--cyan); border: 1px solid rgba(0, 229, 244, 0.35); background: rgba(0, 229, 244, 0.08); }
-    .role-hint { font-size: 12px; color: var(--cyan-soft); background: rgba(0, 229, 244, 0.08); border-left: 3px solid var(--cyan); padding: 8px 10px; line-height: 1.45; }
-    .perm-list { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; }
-    .space-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-    .grant-box { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    @media (max-width: 640px) {
-      .actions-row, .grant-box { flex-wrap: wrap; width: 100%; }
-      .grant-box .perm-select, .grant-box button { width: 100%; }
+    mat-tab-group { min-width: 0; }
+    .tab-grid {
+      display: grid;
+      grid-template-columns: minmax(250px, 0.9fr) minmax(0, 2fr);
+      align-items: start;
+      gap: 16px;
+      padding-top: 16px;
     }
+    .directory { min-width: 0; }
+    .panel-card { margin-top: 16px; border-top: 2px solid #507e9f !important; }
+    .tab-grid .panel-card { margin-top: 0; }
+    #admin-user-editor { scroll-margin-top: 87px; }
+    .form-stack { display: flex; flex-direction: column; gap: 10px; padding-top: 16px; }
+    .actions-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .perm-box {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #0a1422;
+    }
+    .perm-label { font-family: var(--mono); font-size: 11px; color: var(--cyan-soft); font-weight: 600; }
+    .perm-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .perm-code { color: var(--text); font: 12px var(--mono); overflow-wrap: anywhere; }
+    .perm-select {
+      min-width: 0;
+      max-width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #547e9e;
+      border-radius: 8px;
+      background: #0a1422;
+      color: var(--text);
+      font: 13px var(--mono);
+    }
+    .directory-avatar {
+      width: 46px;
+      height: 46px;
+      object-fit: cover;
+      border: 1px solid var(--dashboard-tone, var(--cyan-soft));
+      border-radius: 10px;
+      background: #0a1422;
+    }
+    .directory-card h3 { margin-bottom: 5px; }
+    .directory-email, .cell-sub { margin: 0; color: #acbfd4; font-size: 13px; }
+    .directory-details { display: grid; justify-items: start; gap: 12px; margin-top: 15px; }
+    .directory-details h4 { margin: 0 0 6px; color: #c5d6e9; font: 13px var(--mono); }
+    .directory-details .dashboard-badge { display: inline-block; }
+    .chips-inline { display: flex; flex-wrap: wrap; gap: 4px; }
+    .mini-chip {
+      padding: 3px 7px;
+      border: 1px solid #385470;
+      border-radius: 5px;
+      background: #101b2f;
+      color: var(--cyan-soft);
+      font: 11px var(--mono);
+    }
+    .btn-active { color: var(--green) !important; }
+    .btn-inactive { color: var(--coral) !important; }
+    .role-hint { font-size: 12px; color: var(--cyan-soft); background: #123647; border-radius: 7px; padding: 8px 10px; line-height: 1.45; }
+    .perm-list { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; }
+    .space-docentes { margin-top: 9px; }
+    .grant-box .perm-select { flex: 1 1 140px; margin: 2px 5px 2px 0; }
+    @media (max-width: 960px) { .tab-grid { grid-template-columns: minmax(0, 1fr); } }
+    @media (max-width: 540px) { .grant-box button { flex: 1 1 auto; } }
   `],
 })
 export class DocentesComponent implements OnInit {
@@ -381,6 +411,7 @@ export class DocentesComponent implements OnInit {
   readonly cargando = signal(false);
   readonly guardando = signal(false);
   readonly usuarios = signal<UsuarioGestionItem[]>([]);
+  readonly cuentasActivas = computed(() => this.usuarios().filter((usuario) => usuario.activo).length);
   readonly permisosDisponibles = signal<string[]>([]);
   readonly perfilDocentes = signal<PerfilPermisosDocentesRespuesta | null>(null);
   readonly espacios = signal<EspacioConAutorizaciones[]>([]);
@@ -452,7 +483,7 @@ export class DocentesComponent implements OnInit {
       exigirPrimerIngreso: u.primer_ingreso_verificado === false,
       permisosIndividuales: { ...u.permisos_individuales },
     };
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('admin-user-editor')?.scrollIntoView({ block: 'start' });
   }
 
   cancelarEdicion(): void {

@@ -2,17 +2,14 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   EventEmitter,
   Input,
-  NgZone,
   OnChanges,
   OnDestroy,
   OnInit,
   Output,
   PLATFORM_ID,
   SimpleChanges,
-  ViewChild,
   computed,
   inject,
   signal,
@@ -22,10 +19,10 @@ import {
   ResultadoDireccionEscena,
   resolverDireccionEscena,
 } from './cinema-director';
+import { asignarReparto } from './cinema-heroes';
 import { ModoCamara, PerfilHeroe, PlanoCamara, TemaEscena } from './cinema.types';
 import { EscenarioDecoradosComponent } from './escenario-decorados.component';
 import { HeroeCineComponent } from './heroe-cine.component';
-import { PersonajeActorComponent } from './personaje-actor.component';
 
 @Component({
   selector: 'app-escena-cinematografica',
@@ -35,15 +32,14 @@ import { PersonajeActorComponent } from './personaje-actor.component';
     MatIconModule,
     EscenarioDecoradosComponent,
     HeroeCineComponent,
-    PersonajeActorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @let subEscena = direccion().subEscena;
     <section
       class="panel cinema-frame"
       [class.is-armed]="opcionArmadaSig()"
       [class.is-decision]="opcionLanzadaSig()"
-      [class.is-transitioning]="transicionando"
       [class.plano-primer-plano]="planoActivo() === 'primer_plano' || planoActivo() === 'decision'"
     >
       <!-- Cabecera técnica de dirección visual -->
@@ -55,9 +51,9 @@ import { PersonajeActorComponent } from './personaje-actor.component';
           </span>
           <span class="theme-chip">{{ etiquetaTema }}</span>
           @if (heroeSig(); as h) {
-            <span class="hero-chip" [class.hero-dc]="h.universo === 'DC'" [title]="h.valorPsicosocial">
+            <span class="hero-chip" [style.--hero-accent]="h.colorEnergia" [title]="h.valorPsicosocial">
               <mat-icon class="chip-ico" aria-hidden="true">bolt</mat-icon>
-              {{ h.universo }} · {{ h.nombre }}
+              {{ h.nombre }}
             </span>
             <button
               type="button"
@@ -131,15 +127,16 @@ import { PersonajeActorComponent } from './personaje-actor.component';
 
       <!-- Escenario cinematográfico 2.5D con capas de profundidad y cámara reactiva -->
       <div
-        #viewportRef
         class="cinema-viewport"
         role="region"
-        [attr.aria-label]="'Escena interactiva: ' + etiquetaTema + '. ' + direccion().subtituloNarrativo"
+        [attr.data-set]="subEscena"
+        [attr.data-cast-size]="reparto().length"
+        [attr.aria-label]="'Escena interactiva: ' + subEscenaEtiqueta()"
       >
         <!-- Capa 1: Fondo arquitectónico / atmósfera -->
         <div class="depth-layer layer-bg" [style.transform]="bgTransform()">
           <app-escenario-decorados
-            [tema]="temaSig()"
+            [subEscena]="subEscena"
             capa="fondo"
             [opcionArmada]="opcionArmadaSig()"
             [opcionLanzada]="opcionLanzadaSig()"
@@ -150,7 +147,7 @@ import { PersonajeActorComponent } from './personaje-actor.component';
         <!-- Capa 2: Mobiliario intermedio (respaldos de sillas / planos medios) -->
         <div class="depth-layer layer-mid-back" [style.transform]="midTransform()">
           <app-escenario-decorados
-            [tema]="temaSig()"
+            [subEscena]="subEscena"
             capa="mobiliario_medio"
             [opcionArmada]="opcionArmadaSig()"
             [opcionLanzada]="opcionLanzadaSig()"
@@ -160,56 +157,22 @@ import { PersonajeActorComponent } from './personaje-actor.component';
 
         <!-- Capa 3: Elenco actoral articulado en plano principal -->
         <div class="depth-layer layer-cast" [style.transform]="castTransform()">
-          @for (actor of direccion().actores; track actor.id) {
+          @for (actor of reparto(); track actor.id) {
             <div
               class="cast-slot"
-              [class.cast-slot-protagonist]="actor.esProtagonista"
               [style.left.%]="actor.posicion.xPct"
-              [style.bottom.px]="actor.posicion.bottomPx"
               [style.z-index]="actor.posicion.zIndex"
-              [style.--actor-scale]="actor.posicion.escala"
             >
-              @if (actor.esProtagonista && actor.heroe; as hCine) {
-                <app-heroe-cine
-                  [heroe]="hCine"
-                  [postura]="actor.postura"
-                  [mirada]="actor.mirada"
-                  [hablando]="!!actor.hablando"
-                  [poderActivo]="opcionArmadaSig() || opcionLanzadaSig() || jokerActivo"
-                  [retrasoRespiracionMs]="actor.retrasoRespiracionMs ?? 120"
-                />
-              } @else {
-                <app-personaje-actor
-                  [nombre]="actor.nombre"
-                  [rol]="actor.rol"
-                  [pielClara]="actor.pielClara"
-                  [pielSombra]="actor.pielSombra"
-                  [cabelloColor]="actor.cabelloColor"
-                  [cabelloBrillo]="actor.cabelloBrillo"
-                  [estiloCabello]="actor.estiloCabello"
-                  [vestuario]="actor.vestuario"
-                  [colorTraje]="actor.colorTraje"
-                  [colorTrajeSombra]="actor.colorTrajeSombra"
-                  [colorCamisa]="actor.colorCamisa"
-                  [colorCorbata]="actor.colorCorbata"
-                  [lentes]="!!actor.lentes"
-                  [maduro]="!!actor.maduro"
-                  [esProtagonista]="!!actor.esProtagonista"
-                  [heroe]="actor.heroe"
-                  [poderActivo]="!!actor.esProtagonista && (opcionArmadaSig() || opcionLanzadaSig() || jokerActivo)"
-                  [expresion]="actor.expresion"
-                  [postura]="actor.postura"
-                  [mirada]="actor.mirada"
-                  [hablando]="!!actor.hablando"
-                  [destacado]="!!actor.destacado"
-                  [atenuado]="!!actor.atenuado"
-                  [invertido]="!!actor.posicion.invertido"
-                  [mostrarEtiqueta]="false"
-                  [retrasoRespiracionMs]="actor.retrasoRespiracionMs ?? 0"
-                  [retrasoParpadeoMs]="actor.retrasoParpadeoMs ?? 450"
-                  [retrasoGestoMs]="actor.retrasoGestoMs ?? 0"
-                />
-              }
+              <app-heroe-cine
+                [heroe]="actor.heroe"
+                [etiqueta]="actor.esProtagonista ? 'Tú' : actor.nombre + ', ' + actor.rol"
+                [postura]="actor.postura"
+                [mirada]="actor.mirada"
+                [hablando]="!!actor.hablando"
+                [poderActivo]="!!actor.esProtagonista && (opcionArmadaSig() || opcionLanzadaSig() || jokerActivo)"
+                [retrasoRespiracionMs]="actor.retrasoRespiracionMs ?? 120"
+                [retrasoGestoMs]="actor.retrasoGestoMs ?? 0"
+              />
             </div>
           }
         </div>
@@ -217,7 +180,7 @@ import { PersonajeActorComponent } from './personaje-actor.component';
         <!-- Capa 4: Primer plano de mobiliario (mesa directiva, pupitre, consola) -->
         <div class="depth-layer layer-fg" [style.transform]="fgTransform()">
           <app-escenario-decorados
-            [tema]="temaSig()"
+            [subEscena]="subEscena"
             capa="primer_plano"
             [opcionArmada]="opcionArmadaSig()"
             [opcionLanzada]="opcionLanzadaSig()"
@@ -227,20 +190,22 @@ import { PersonajeActorComponent } from './personaje-actor.component';
 
         <!-- Capa 4B: Etiquetas de elenco sobre el borde del mobiliario (sobre tabla, bajo subtítulo) -->
         <div class="depth-layer layer-badges" [style.transform]="castTransform()" aria-hidden="true">
-          @for (actor of direccion().actores; track actor.id) {
+          @for (actor of reparto(); track actor.id) {
             <div
               class="cast-nameplate"
               [class.is-protag]="actor.esProtagonista"
               [class.is-talking]="actor.hablando"
-              [class.is-secondary]="!actor.esProtagonista && !actor.hablando && !actor.destacado"
               [style.left.%]="actor.posicion.xPct"
-              [style.bottom.px]="actor.posicion.bottomPx + 38"
+              [style.--cast-accent]="actor.heroe.colorEnergia"
               [style.z-index]="actor.posicion.zIndex + 20"
             >
               @if (actor.hablando) {
                 <span class="plate-bars"><i></i><i></i><i></i></span>
               }
-              <span class="plate-text">{{ actor.nombre }}</span>
+              <span class="plate-text">
+                <strong>{{ actor.heroe.nombre }}</strong>
+                <small>{{ actor.esProtagonista ? 'Tú' : actor.nombre }}</small>
+              </span>
             </div>
           }
         </div>
@@ -251,7 +216,9 @@ import { PersonajeActorComponent } from './personaje-actor.component';
           <div class="tension-tint" [class.tint-decision]="opcionLanzadaSig()"></div>
           <div class="letterbox-bar top"></div>
           <div class="letterbox-bar bottom"></div>
-          <div class="cut-dissolve" [class.active]="transicionando"></div>
+          @for (paso of [pasoIndice]; track paso) {
+            <div class="cut-dissolve"></div>
+          }
         </div>
 
         <!-- Indicador de plano actual e impacto de decisión -->
@@ -290,12 +257,13 @@ import { PersonajeActorComponent } from './personaje-actor.component';
       position: relative;
       overflow: hidden;
       padding: 14px 16px 16px;
-      border: 1px solid rgba(0, 229, 244, 0.22);
+      border: 1px solid #64dafa63;
       background:
         radial-gradient(circle at 12% 0%, rgba(0, 229, 244, 0.08), transparent 44%),
         radial-gradient(circle at 88% 8%, rgba(255, 184, 0, 0.07), transparent 42%),
         linear-gradient(180deg, rgba(11, 17, 30, 0.96), rgba(7, 11, 20, 0.98));
-      transition: border-color 0.35s ease, box-shadow 0.35s ease;
+      box-shadow: inset 0 1px #b2efff25, 0 16px 32px #03071288;
+      transition: border-color var(--motion-enter) ease, box-shadow var(--motion-enter) ease;
     }
 
     .cinema-frame.is-armed {
@@ -379,16 +347,10 @@ import { PersonajeActorComponent } from './personaje-actor.component';
     }
 
     .hero-chip {
-      background: linear-gradient(90deg, rgba(220, 38, 38, 0.24), rgba(0, 229, 255, 0.18));
-      border: 1px solid rgba(248, 113, 113, 0.48);
-      color: #fecaca;
+      background: color-mix(in srgb, var(--hero-accent) 18%, #0c1625);
+      border: 1px solid color-mix(in srgb, var(--hero-accent) 52%, #22344a);
+      color: color-mix(in srgb, var(--hero-accent) 62%, #fff);
       font-weight: 700;
-    }
-
-    .hero-chip.hero-dc {
-      background: linear-gradient(90deg, rgba(37, 99, 235, 0.26), rgba(192, 38, 211, 0.2));
-      border-color: rgba(96, 165, 250, 0.5);
-      color: #bfdbfe;
     }
 
     .hero-reroll-btn {
@@ -480,9 +442,8 @@ import { PersonajeActorComponent } from './personaje-actor.component';
 
     /* Viewport cinematográfico multi-capa */
     .cinema-viewport {
-      --cam-drift-x: 0px;
-      --cam-drift-y: 0px;
-      --stage-actor-mult: 1;
+      --cast-portrait-size: min(20%, 208px);
+      --cast-base: 66px;
       position: relative;
       height: 415px;
       border-radius: 14px;
@@ -492,13 +453,26 @@ import { PersonajeActorComponent } from './personaje-actor.component';
       box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.65);
     }
 
+    .cinema-viewport::after {
+      position: absolute;
+      z-index: 28;
+      inset: 14px;
+      background:
+        linear-gradient(#90eafb99, #90eafb99) left top / 21px 1px,
+        linear-gradient(#90eafb99, #90eafb99) left top / 1px 13px,
+        linear-gradient(#90eafb99, #90eafb99) right top / 21px 1px,
+        linear-gradient(#90eafb99, #90eafb99) right top / 1px 13px;
+      background-repeat: no-repeat;
+      pointer-events: none;
+      content: '';
+    }
+
     .depth-layer {
       position: absolute;
       inset: -14px;
       pointer-events: none;
       transform-origin: 50% 56%;
-      transition: transform 0.92s cubic-bezier(0.22, 1, 0.36, 1), filter 0.65s ease;
-      will-change: transform;
+      transition: transform 680ms var(--motion-decelerate), filter 400ms ease;
     }
 
     .layer-bg {
@@ -525,29 +499,48 @@ import { PersonajeActorComponent } from './personaje-actor.component';
 
     .cast-nameplate {
       position: absolute;
+      bottom: var(--cast-base);
       transform: translateX(-50%);
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      max-width: 138px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.34);
-      background: rgba(7, 11, 20, 0.88);
-      color: #cbd5e1;
+      width: max-content;
+      max-width: min(146px, 18%);
+      padding: 5px 9px;
+      border-radius: 5px;
+      border: 1px solid color-mix(in srgb, var(--cast-accent) 42%, #263044);
+      border-top: 2px solid var(--cast-accent);
+      background: linear-gradient(180deg, #111c2c, #080e19);
+      color: #f1f5f9;
       font-family: var(--mono, monospace);
-      font-size: 9.5px;
+      font-size: 11px;
       font-weight: 600;
-      letter-spacing: 0.4px;
-      text-transform: uppercase;
+      letter-spacing: 0.25px;
       white-space: nowrap;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
       pointer-events: none;
     }
 
     .cast-nameplate .plate-text {
+      display: grid;
+      gap: 1px;
+      min-width: 0;
+    }
+
+    .plate-text strong,
+    .plate-text small {
       overflow: hidden;
       text-overflow: ellipsis;
+      line-height: 1.15;
+    }
+
+    .plate-text strong {
+      color: color-mix(in srgb, var(--cast-accent) 55%, #fff);
+    }
+
+    .plate-text small {
+      font-size: 0.84em;
+      color: #cbd5e1;
     }
 
     .cast-nameplate.is-protag {
@@ -571,8 +564,10 @@ import { PersonajeActorComponent } from './personaje-actor.component';
 
     .plate-bars i {
       width: 2px;
+      height: 8px;
       background: #ffb800;
       border-radius: 1px;
+      transform-origin: bottom;
       animation: plateEq 0.45s ease-in-out infinite alternate;
     }
 
@@ -580,8 +575,8 @@ import { PersonajeActorComponent } from './personaje-actor.component';
     .plate-bars i:nth-child(3) { animation-delay: 0.28s; }
 
     @keyframes plateEq {
-      from { height: 2px; }
-      to { height: 8px; }
+      from { transform: scaleY(0.25); }
+      to { transform: scaleY(1); }
     }
 
     /* Desenfoque selectivo muy sutil del fondo solo en primer plano */
@@ -591,17 +586,11 @@ import { PersonajeActorComponent } from './personaje-actor.component';
 
     .cast-slot {
       position: absolute;
-      width: 152px;
-      height: 198px;
-      transform-origin: 50% 100%;
-      transform: translateX(-50%) scale(calc(var(--actor-scale, 1) * var(--stage-actor-mult, 1)));
-      transition: left 0.7s ease, bottom 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+      bottom: var(--cast-base);
+      width: var(--cast-portrait-size);
+      aspect-ratio: 1;
+      transform: translateX(-50%);
       pointer-events: none;
-    }
-
-    .cast-slot.cast-slot-protagonist {
-      width: 184px;
-      height: 232px;
     }
 
     .cinema-atmosphere {
@@ -620,35 +609,50 @@ import { PersonajeActorComponent } from './personaje-actor.component';
     .tension-tint {
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at 50% 35%, rgba(0, 229, 244, 0.05), transparent 60%);
-      opacity: 0.8;
-      transition: background 0.5s ease, opacity 0.5s ease;
+      background: radial-gradient(circle at 50% 45%, rgba(0, 232, 148, 0.16), transparent 64%);
+      opacity: 0;
+      transition: opacity 380ms ease;
     }
 
     .tension-tint.tint-decision {
-      background: radial-gradient(circle at 50% 45%, rgba(0, 232, 148, 0.16), transparent 64%);
       opacity: 1;
+    }
+    .tension-tint.tint-decision::after {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(115deg, transparent 25%, #78ffd23d, transparent 72%);
+      opacity: 0;
+      content: '';
+      animation: decision-light 620ms var(--motion-decelerate);
+    }
+    @keyframes decision-light {
+      0% { opacity: 0; transform: translateX(-45%); }
+      28% { opacity: 0.85; }
+      100% { opacity: 0; transform: translateX(45%); }
     }
 
     .letterbox-bar {
       position: absolute;
       left: 0;
       right: 0;
-      height: 10px;
+      height: 16px;
       background: rgba(4, 7, 13, 0.92);
-      transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+      transform: scaleY(0.625);
+      transition: transform 520ms var(--motion-decelerate);
     }
 
     .letterbox-bar.top {
       top: 0;
+      transform-origin: top;
     }
 
     .letterbox-bar.bottom {
       bottom: 0;
+      transform-origin: bottom;
     }
 
     .cinema-frame.plano-primer-plano .letterbox-bar {
-      height: 16px;
+      transform: scaleY(1);
     }
 
     .cut-dissolve {
@@ -656,11 +660,44 @@ import { PersonajeActorComponent } from './personaje-actor.component';
       inset: 0;
       background: #050810;
       opacity: 0;
-      transition: opacity 0.24s ease;
+      animation: revealScene 440ms var(--motion-decelerate);
     }
 
-    .cut-dissolve.active {
-      opacity: 0.78;
+    @keyframes revealScene {
+      from { opacity: 0.58; }
+      to { opacity: 0; }
+    }
+
+    [data-set='INSISTENCIA_DECANO'] .cut-dissolve {
+      background: linear-gradient(90deg, #25151e 18%, #5b3627 55%, transparent 100%);
+      animation: officeCut 740ms var(--motion-decelerate);
+    }
+
+    [data-set='ORDEN_LABORATORIO'] .cut-dissolve,
+    [data-set='RESGUARDO_RIESGO'] .cut-dissolve {
+      background: linear-gradient(180deg, transparent 36%, #2ceec34d 49%, #0c252e 53%, transparent 68%);
+      animation: scanCut 680ms ease-out;
+    }
+
+    [data-set='CRISIS_URGENCIAS'] .cut-dissolve {
+      background: linear-gradient(90deg, #0d4f76, transparent 38% 62%, #123954);
+      animation: emergencyCut 620ms ease-out;
+    }
+
+    @keyframes officeCut {
+      from { opacity: 0.88; transform: translateX(0); }
+      to { opacity: 0; transform: translateX(-65%); }
+    }
+
+    @keyframes scanCut {
+      0% { opacity: 0; transform: translateY(-54%); }
+      20% { opacity: 0.85; }
+      100% { opacity: 0; transform: translateY(54%); }
+    }
+
+    @keyframes emergencyCut {
+      from { opacity: 0.8; transform: scaleX(0.85); }
+      to { opacity: 0; transform: scaleX(1.18); }
     }
 
     .viewport-badges {
@@ -785,11 +822,9 @@ import { PersonajeActorComponent } from './personaje-actor.component';
     /* Responsividad para tablets y móviles */
     @media (max-width: 960px) {
       .cinema-viewport {
-        --stage-actor-mult: 0.86;
+        --cast-portrait-size: min(21%, 176px);
+        --cast-base: 59px;
         height: 330px;
-      }
-      .cast-slot {
-        margin-bottom: -8px;
       }
     }
 
@@ -798,17 +833,26 @@ import { PersonajeActorComponent } from './personaje-actor.component';
         padding: 10px 10px 12px;
       }
       .cinema-viewport {
-        --stage-actor-mult: 0.72;
-        height: 276px;
-      }
-      .cast-slot {
-        margin-bottom: -16px;
-      }
-      .cast-nameplate.is-secondary {
-        display: none;
+        --cast-portrait-size: min(24%, 148px);
+        --cast-base: 64px;
+        height: clamp(220px, 62vw, 306px);
       }
       .cast-nameplate {
-        transform: translateX(-50%) translateY(14px) scale(0.9);
+        bottom: calc(var(--cast-base) + 9px);
+        padding: 3px 4px;
+        font-size: 9px;
+        text-align: center;
+        white-space: normal;
+      }
+      [data-cast-size='5'] .cast-nameplate {
+        max-width: 15.5%;
+      }
+      .cast-nameplate .plate-text small,
+      .cast-nameplate .plate-bars {
+        display: none;
+      }
+      .cast-nameplate .plate-text strong {
+        overflow-wrap: anywhere;
       }
       .narrative-subtitle {
         left: 10px;
@@ -827,11 +871,13 @@ import { PersonajeActorComponent } from './personaje-actor.component';
 
     @media (prefers-reduced-motion: reduce) {
       .depth-layer,
-      .cast-slot,
       .letterbox-bar,
-      .cut-dissolve {
-        transition: none !important;
+      .tension-tint {
+        transition: none;
       }
+      .cinema-viewport .cut-dissolve,
+      .plate-bars i,
+      .tension-tint.tint-decision::after,
       .impact-banner {
         animation: none !important;
       }
@@ -839,11 +885,7 @@ import { PersonajeActorComponent } from './personaje-actor.component';
   `],
 })
 export class EscenaCinematograficaComponent implements OnInit, OnChanges, OnDestroy {
-  private readonly ngZone = inject(NgZone);
   private readonly platformId = inject(PLATFORM_ID);
-
-  @ViewChild('viewportRef', { static: false })
-  private viewportRef?: ElementRef<HTMLDivElement>;
 
   @Input() tema: TemaEscena = 'tribunal_comite';
   @Input() escenaOrden = 1;
@@ -856,7 +898,6 @@ export class EscenaCinematograficaComponent implements OnInit, OnChanges, OnDest
   @Input() opcionArmada = false;
   @Input() opcionLanzada = false;
   @Input() etiquetaImpacto = '';
-  @Input() transicionando = false;
   @Input() heroe?: PerfilHeroe;
   @Input() jokerActivo = false;
 
@@ -876,8 +917,8 @@ export class EscenaCinematograficaComponent implements OnInit, OnChanges, OnDest
 
   private timerFaseInicial: ReturnType<typeof setTimeout> | null = null;
   private timerFaseCiclo: ReturnType<typeof setInterval> | null = null;
-  private rafCamId: number | null = null;
-  private reducedMotion = false;
+  private motionPreference?: MediaQueryList;
+  private readonly onMotionPreferenceChange = () => this.reiniciarRitmoNarrativo();
 
   readonly direccion = computed<ResultadoDireccionEscena>(() =>
     resolverDireccionEscena({
@@ -905,12 +946,16 @@ export class EscenaCinematograficaComponent implements OnInit, OnChanges, OnDest
     this.direccion().actores.some((a) => !!a.hablando),
   );
 
+  readonly reparto = computed(() =>
+    asignarReparto(this.direccion().actores, this.temaSig(), this.escenaOrdenSig(), this.heroeSig()),
+  );
+
   readonly subEscenaEtiqueta = computed<string>(() => {
     switch (this.direccion().subEscena) {
       case 'VOTACION_MAYORIA_4_1':
         return 'Votación en pleno · 4:1';
       case 'INSISTENCIA_DECANO':
-        return 'Presión de Decanatura';
+        return 'Despacho de Decanatura';
       case 'ORDEN_LABORATORIO':
         return 'Protocolo Experimental';
       case 'CRISIS_URGENCIAS':
@@ -928,7 +973,7 @@ export class EscenaCinematograficaComponent implements OnInit, OnChanges, OnDest
     const dir = this.direccion();
     const plano = this.planoActivo();
     if (plano === 'general') {
-      return { scale: 1.02, panX: 0, panY: 0 };
+      return { scale: 1, panX: 0, panY: 0 };
     }
     if (plano === 'medio') {
       return {
@@ -957,7 +1002,7 @@ export class EscenaCinematograficaComponent implements OnInit, OnChanges, OnDest
     const bgScale = 1 + (scale - 1) * 0.48;
     const x = panX * 0.42;
     const y = panY * 0.42;
-    return `translate3d(calc(${x}% + var(--cam-drift-x) * 0.45), calc(${y}% + var(--cam-drift-y) * 0.45), 0) scale(${bgScale})`;
+    return `translate3d(${x}%, ${y}%, 0) scale(${bgScale})`;
   });
 
   readonly midTransform = computed(() => {
@@ -965,12 +1010,12 @@ export class EscenaCinematograficaComponent implements OnInit, OnChanges, OnDest
     const midScale = 1 + (scale - 1) * 0.76;
     const x = panX * 0.78;
     const y = panY * 0.78;
-    return `translate3d(calc(${x}% + var(--cam-drift-x) * 0.75), calc(${y}% + var(--cam-drift-y) * 0.75), 0) scale(${midScale})`;
+    return `translate3d(${x}%, ${y}%, 0) scale(${midScale})`;
   });
 
   readonly castTransform = computed(() => {
     const { scale, panX, panY } = this.encuadre();
-    return `translate3d(calc(${panX}% + var(--cam-drift-x)), calc(${panY}% + var(--cam-drift-y)), 0) scale(${scale})`;
+    return `translate3d(${panX}%, ${panY}%, 0) scale(${scale})`;
   });
 
   readonly fgTransform = computed(() => {
@@ -978,14 +1023,14 @@ export class EscenaCinematograficaComponent implements OnInit, OnChanges, OnDest
     const fgScale = 1 + (scale - 1) * 1.12;
     const x = panX * 1.15;
     const y = panY * 1.15;
-    return `translate3d(calc(${x}% + var(--cam-drift-x) * 1.2), calc(${y}% + var(--cam-drift-y) * 1.2), 0) scale(${fgScale})`;
+    return `translate3d(${x}%, ${y}%, 0) scale(${fgScale})`;
   });
 
   ngOnInit(): void {
     this.sincronizarInputsASignals();
     if (isPlatformBrowser(this.platformId)) {
-      this.reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-      this.iniciarMotorCamaraOrganica();
+      this.motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+      this.motionPreference.addEventListener('change', this.onMotionPreferenceChange);
     }
     this.reiniciarRitmoNarrativo();
   }
@@ -994,6 +1039,7 @@ export class EscenaCinematograficaComponent implements OnInit, OnChanges, OnDest
     this.sincronizarInputsASignals();
     if (
       changes['tema'] ||
+      changes['pasoIndice'] ||
       changes['escenaOrden'] ||
       changes['preguntaEnunciado'] ||
       changes['contextoSituacional']
@@ -1004,10 +1050,7 @@ export class EscenaCinematograficaComponent implements OnInit, OnChanges, OnDest
 
   ngOnDestroy(): void {
     this.limpiarTimersNarrativos();
-    if (this.rafCamId !== null && isPlatformBrowser(this.platformId)) {
-      cancelAnimationFrame(this.rafCamId);
-      this.rafCamId = null;
-    }
+    this.motionPreference?.removeEventListener('change', this.onMotionPreferenceChange);
   }
 
   setModoCamara(modo: ModoCamara): void {
@@ -1051,12 +1094,11 @@ export class EscenaCinematograficaComponent implements OnInit, OnChanges, OnDest
 
   private reiniciarRitmoNarrativo(): void {
     this.limpiarTimersNarrativos();
-    this.faseNarrativa.set(0);
-
-    if (this.reducedMotion || !isPlatformBrowser(this.platformId)) {
+    if (this.motionPreference?.matches || !isPlatformBrowser(this.platformId)) {
       this.faseNarrativa.set(1);
       return;
     }
+    this.faseNarrativa.set(0);
 
     // Plano general inicial para situar el espacio antes de acercar al conflicto
     this.timerFaseInicial = setTimeout(() => {
@@ -1069,26 +1111,5 @@ export class EscenaCinematograficaComponent implements OnInit, OnChanges, OnDest
         this.faseNarrativa.update((prev) => (prev === 1 ? 2 : 1));
       }
     }, 4400);
-  }
-
-  private iniciarMotorCamaraOrganica(): void {
-    if (this.reducedMotion || this.rafCamId !== null) {
-      return;
-    }
-    this.ngZone.runOutsideAngular(() => {
-      const inicio = performance.now();
-      const tick = (ahora: number) => {
-        const el = this.viewportRef?.nativeElement;
-        if (el) {
-          const dt = ahora - inicio;
-          const dx = Math.sin(dt * 0.00058) * 2.1;
-          const dy = Math.cos(dt * 0.00043) * 1.1;
-          el.style.setProperty('--cam-drift-x', `${dx.toFixed(2)}px`);
-          el.style.setProperty('--cam-drift-y', `${dy.toFixed(2)}px`);
-        }
-        this.rafCamId = requestAnimationFrame(tick);
-      };
-      this.rafCamId = requestAnimationFrame(tick);
-    });
   }
 }

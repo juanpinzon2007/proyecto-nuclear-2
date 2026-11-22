@@ -10,6 +10,15 @@ export type PlanoCamara = 'general' | 'medio' | 'primer_plano' | 'decision';
 
 export type ModoCamara = 'auto' | 'general' | 'medio' | 'primer_plano';
 
+export type SubEscena =
+  | 'VOTACION_MAYORIA_4_1'
+  | 'INSISTENCIA_DECANO'
+  | 'ORDEN_LABORATORIO'
+  | 'CRISIS_URGENCIAS'
+  | 'ENTREVISTA_CLINICA'
+  | 'RESGUARDO_RIESGO'
+  | 'MESA_INTERINSTITUCIONAL';
+
 export type ExpresionFacial =
   | 'neutro'
   | 'preocupacion'
@@ -48,62 +57,24 @@ export type EstiloCabello =
 
 export type DireccionMirada = 'izquierda' | 'centro' | 'derecha' | 'abajo';
 
-export type UniversoHeroe = 'MARVEL' | 'DC';
-
 export type HeroeId =
-  | 'captain_america'
-  | 'iron_man'
-  | 'doctor_strange'
-  | 'spider_man'
-  | 'black_panther'
-  | 'daredevil'
-  | 'batman'
-  | 'superman'
-  | 'wonder_woman'
-  | 'flash'
-  | 'green_lantern'
-  | 'cyborg';
+  | 'cobalto'
+  | 'dinamo'
+  | 'astral'
+  | 'prisma'
+  | 'bastion'
+  | 'eco'
+  | 'vigia'
+  | 'solar'
+  | 'aurora'
+  | 'pulso'
+  | 'jade'
+  | 'vector';
 
-export type TipoEmblemaHeroe =
-  | 'escudo_estrella'
-  | 'reactor_arc'
-  | 'mandala'
-  | 'aracnido'
-  | 'pantera'
-  | 'radar'
-  | 'murcielago'
-  | 'diamante_s'
-  | 'lazo_estrella'
-  | 'relampago'
-  | 'anillo_linterna'
-  | 'bionico';
-
-export type TipoMascaraHeroe =
-  | 'ninguna'
-  | 'capucha_aletas'
-  | 'visor_tech'
-  | 'antifaz_tactico'
-  | 'capucha_murcielago'
-  | 'diadema_dorada'
-  | 'capucha_aracnida';
-
-export type EfectoPoderHeroe =
-  | 'escudo_vibranium'
-  | 'hud_repulsor'
-  | 'runas_arcanas'
-  | 'sentido_aracnido'
-  | 'ondas_vibranium'
-  | 'sonar_justicia'
-  | 'batarang_tactico'
-  | 'emblema_solar'
-  | 'lazo_verdad'
-  | 'estela_speedforce'
-  | 'constructo_esmeralda'
-  | 'escaneo_cibernetico';
+export type EfectoPoderHeroe = 'escudo' | 'pulso' | 'destello';
 
 export interface PerfilHeroe {
   id: HeroeId;
-  universo: UniversoHeroe;
   nombre: string;
   arquetipo: string;
   valorPsicosocial: string;
@@ -111,10 +82,6 @@ export interface PerfilHeroe {
   colorTrajeSombra: string;
   colorAcento: string;
   colorEnergia: string;
-  llevaCapa: boolean;
-  colorCapa?: string;
-  tipoEmblema: TipoEmblemaHeroe;
-  tipoMascara: TipoMascaraHeroe;
   efectoPoder: EfectoPoderHeroe;
 }
 
@@ -147,9 +114,6 @@ export interface ConfiguracionActor {
   retrasoGestoMs?: number;
   posicion: {
     xPct: number;
-    bottomPx: number;
-    escala: number;
     zIndex: number;
-    invertido?: boolean;
   };
 }

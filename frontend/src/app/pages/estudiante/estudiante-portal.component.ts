@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -9,7 +9,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 import { mensajeError } from '../../core/api-error';
 import { ConsentimientoEstado, MiConvocatoriaItem } from '../../core/api.models';
-import { AuthService } from '../../core/auth.service';
 import { ParticipationService } from '../../core/participation.service';
 import { SchedulingService } from '../../core/scheduling.service';
 
@@ -25,37 +24,37 @@ import { SchedulingService } from '../../core/scheduling.service';
     MatSnackBarModule,
   ],
   template: `
-    <div class="portal-wrap content">
-      <!-- HERO TELEMETRY PANEL -->
-      <section class="panel panel-pad hero stagger">
-        <div class="spread">
-          <div>
-            <p class="eyebrow">Estación Estudiantil // Misiones Asignadas</p>
-            <h1>Portal del Estudiante</h1>
-            <p class="hero-sub">
-              Operador: <strong class="cyan">{{ auth.usuario()?.correo }}</strong>. Revisa el briefing de tus convocatorias, firma el consentimiento informado e inicia tu simulación.
-            </p>
-          </div>
-          <div class="hero-right">
-            <div class="level-box">
-              <small>ACTIVOS</small>
-              <b>{{ convocatorias().length }}</b>
-            </div>
-            <button mat-stroked-button (click)="cargarPortal()" [disabled]="cargando()">
-              <mat-icon>refresh</mat-icon> Actualizar
+    <div class="page role-dashboard">
+      <header class="panel dashboard-hero dashboard-cover-estudiante">
+        <div class="dashboard-copy">
+          <p class="eyebrow">Misiones asignadas</p>
+          <h1>Portal del Estudiante</h1>
+          <p class="dashboard-description">Revisa tu convocatoria, entra a la simulación y consulta tus resultados.</p>
+          <div class="dashboard-actions">
+            <button mat-stroked-button type="button" (click)="cargarPortal()" [disabled]="cargando()">
+              <mat-icon aria-hidden="true">refresh</mat-icon> Actualizar convocatorias
             </button>
           </div>
         </div>
+      </header>
 
-        <div class="meter segmented" aria-hidden="true">
-          @for (seg of [1,2,3,4,5,6,7,8,9,10]; track seg) {
-            <i [class.on]="seg <= convocatorias().length * 3 || seg <= 4"></i>
-          }
+      <dl class="dashboard-summary" aria-label="Resumen de convocatorias">
+        <div class="dashboard-stat">
+          <dt><span class="dashboard-stat-icon"><mat-icon aria-hidden="true">assignment</mat-icon></span> Convocatorias</dt>
+          <dd>{{ convocatorias().length }}</dd>
         </div>
-      </section>
+        <div class="dashboard-stat dashboard-tone-green">
+          <dt><span class="dashboard-stat-icon"><mat-icon aria-hidden="true">play_circle_outline</mat-icon></span> En curso</dt>
+          <dd>{{ resumen().enCurso }}</dd>
+        </div>
+        <div class="dashboard-stat dashboard-tone-slate">
+          <dt><span class="dashboard-stat-icon"><mat-icon aria-hidden="true">assessment</mat-icon></span> Con resultados</dt>
+          <dd>{{ resumen().conResultados }}</dd>
+        </div>
+      </dl>
 
       @if (consentimientoActivo(); as cons) {
-        <mat-card class="panel consent-card">
+        <mat-card class="panel consent-card dashboard-enter">
           <mat-card-header>
             <mat-card-title>Consentimiento Informado Institucional (v{{ cons.doc.version }})</mat-card-title>
             <mat-card-subtitle>{{ cons.doc.autoridad_aprobadora }} · Lectura obligatoria previa al intento</mat-card-subtitle>
@@ -75,50 +74,46 @@ import { SchedulingService } from '../../core/scheduling.service';
         </mat-card>
       }
 
-      <div class="spread section-head-row">
-        <h2 class="section-title">Convocatorias & Casos</h2>
-        <span class="mono">BRIEFING DE MISIÓN</span>
-      </div>
+      <section aria-labelledby="mission-library-title" [attr.aria-busy]="cargando()">
+        <div class="dashboard-heading">
+          <h2 id="mission-library-title">Convocatorias y casos</h2>
+        </div>
 
       @if (cargando()) {
-        <div class="center-spin"><mat-spinner diameter="42"></mat-spinner></div>
+        <div class="panel dashboard-empty" role="status"><mat-spinner diameter="32" aria-hidden="true" /><p>Cargando convocatorias…</p></div>
       } @else if (!convocatorias().length) {
-        <mat-card class="panel empty-panel">
-          <mat-icon class="empty-ico">event_busy</mat-icon>
+        <div class="panel dashboard-empty">
+          <mat-icon aria-hidden="true">event_busy</mat-icon>
           <h3>Sin convocatorias registradas</h3>
-          <p class="muted">No se encontraron sesiones asociadas a tu cuenta actualmente.</p>
-        </mat-card>
+        </div>
       } @else {
-        <div class="stack stagger">
-          @for (c of convocatorias(); track c.convocatoria_id; let ci = $index) {
-            <mat-card class="panel conv-card" [class.conv-live]="c.estado_sesion === 'EN_CURSO'">
-              <!-- Header Visual Tactico del Caso -->
-              <div class="case-banner">
-                <div class="case-art" [class.alt]="ci % 2 === 1">
-                  <span>CASO 0{{ ci + 1 }}</span>
-                </div>
-                <div class="case-head-meta">
-                  <div class="spread">
-                    <span class="state-pill" [class]="'st-' + c.estado_sesion.toLowerCase()">
-                      SESIÓN {{ c.estado_sesion }}
-                    </span>
+        <div class="dashboard-grid mission-grid">
+          @for (c of convocatorias(); track c.convocatoria_id) {
+            <article class="panel dashboard-card" [class.dashboard-tone-green]="c.estado_sesion === 'EN_CURSO'"
+              [class.dashboard-tone-amber]="c.estado_sesion === 'SIN_INICIAR'"
+              [class.dashboard-tone-slate]="c.estado_sesion === 'FINALIZADO'"
+              [attr.aria-labelledby]="'mision-' + c.convocatoria_id">
+              <div class="dashboard-card-content">
+                <div class="dashboard-card-top">
+                  <span class="dashboard-icon"><mat-icon aria-hidden="true">alt_route</mat-icon></span>
+                  <div class="mission-badges">
+                    <span class="dashboard-badge">{{ c.estado_sesion.replaceAll('_', ' ') }}</span>
                     @if (c.nota_visible !== null && c.nota_visible !== undefined) {
-                      <span class="score-pill">NOTA: {{ c.nota_visible | number:'1.1-2' }} / 100</span>
+                      <span class="dashboard-badge dashboard-tone-amber">Nota {{ c.nota_visible | number:'1.1-2' }} / 100</span>
                     }
                   </div>
-                  <h2 class="case-title">{{ c.caso_nombre }}</h2>
-                  <p class="case-sub">
-                    {{ c.espacio_nombre }} · Docente: {{ c.docente_nombre }} · {{ c.lugar || 'Modalidad virtual' }}
-                  </p>
-                  <div class="complexity-row mono">
-                    <span>ESCENARIOS:</span>
-                    <span class="blocks" aria-hidden="true">■ ■ ■ · {{ c.escenarios_count }}</span>
-                    <span>· TIEMPO MÁX: {{ c.tiempo_maximo_minutos }} MIN</span>
-                  </div>
                 </div>
-              </div>
+                <h3 [id]="'mision-' + c.convocatoria_id">{{ c.caso_nombre }}</h3>
+                <p class="case-sub">
+                  {{ c.espacio_nombre }} · Docente: {{ c.docente_nombre }} · {{ c.lugar || 'Modalidad virtual' }}
+                </p>
+                <div class="mission-meta">
+                  @if (c.escenarios_count) {
+                    <span><mat-icon aria-hidden="true">account_tree</mat-icon> {{ c.escenarios_count }} {{ c.escenarios_count === 1 ? 'escenario' : 'escenarios' }}</span>
+                  }
+                  <span><mat-icon aria-hidden="true">schedule</mat-icon> {{ c.tiempo_maximo_minutos }} min</span>
+                </div>
 
-              <mat-card-content style="padding-top:16px;">
                 <!-- Fact Grid Telemetrico -->
                 <div class="fact-grid">
                   <div class="fact-tile">
@@ -146,17 +141,16 @@ import { SchedulingService } from '../../core/scheduling.service';
                   </div>
                 </div>
 
-                <!-- Objetivos Numerados Estilo Briefing -->
                 <div class="briefing-grid">
                   <div class="objective-card">
-                    <span class="obj-num">01</span>
+                    <span class="objective-icon"><mat-icon aria-hidden="true">history_edu</mat-icon></span>
                     <div>
                       <div class="story-lbl">Contexto del caso</div>
                       <p>{{ c.contexto_historia }}</p>
                     </div>
                   </div>
                   <div class="objective-card">
-                    <span class="obj-num">02</span>
+                    <span class="objective-icon"><mat-icon aria-hidden="true">psychology</mat-icon></span>
                     <div>
                       <div class="story-lbl">Desarrollo situacional / Rol</div>
                       <p>{{ c.desarrollo_situacional }}</p>
@@ -207,7 +201,8 @@ import { SchedulingService } from '../../core/scheduling.service';
                   </div>
                 }
 
-                <div class="card-actions">
+              </div>
+              <div class="dashboard-card-actions mission-actions">
                   @if (!c.consentimiento_aceptado) {
                     <button mat-flat-button color="accent" type="button" (click)="abrirConsentimiento(c.convocatoria_id)" [disabled]="operando()">
                       <mat-icon>assignment</mat-icon> Leer y Aceptar Consentimiento
@@ -229,82 +224,15 @@ import { SchedulingService } from '../../core/scheduling.service';
                       <mat-icon>grading</mat-icon> Ver Resultado, Rúbrica y Justificaciones
                     </button>
                   }
-                </div>
-              </mat-card-content>
-            </mat-card>
+              </div>
+            </article>
           }
         </div>
       }
+      </section>
     </div>
   `,
   styles: [`
-    .portal-wrap {
-      padding: 4px 0 36px;
-      max-width: 900px;
-    }
-    .hero {
-      display: grid;
-      gap: 16px;
-      margin-bottom: 20px;
-      border-left: 4px solid var(--cyan);
-      background:
-        radial-gradient(circle at top right, rgba(0, 229, 244, 0.12), transparent 48%),
-        rgba(16, 20, 27, 0.95);
-    }
-    h1 {
-      margin: 4px 0 6px;
-      font-family: var(--display);
-      font-size: clamp(32px, 5vw, 44px);
-      line-height: 0.98;
-      text-transform: uppercase;
-      color: var(--text);
-    }
-    .hero-sub {
-      margin: 0;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.5;
-    }
-    .hero-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .level-box {
-      min-width: 98px;
-      padding: 10px 16px;
-      border: 1px solid rgba(184, 211, 214, 0.35);
-      background: #232932;
-      font-family: var(--mono);
-      text-align: left;
-    }
-    .level-box small {
-      display: block;
-      font-size: 10px;
-      letter-spacing: 1.2px;
-      color: var(--cyan);
-    }
-    .level-box b {
-      display: block;
-      font-size: 24px;
-      line-height: 1.1;
-      color: var(--text);
-    }
-    .section-head-row {
-      margin-bottom: 12px;
-    }
-    .empty-panel {
-      text-align: center;
-      padding: 42px 24px !important;
-    }
-    .empty-ico {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-      color: var(--dim);
-      margin-bottom: 8px;
-    }
     .consent-card {
       border: 1px solid rgba(255, 184, 0, 0.55) !important;
       border-left: 4px solid var(--amber) !important;
@@ -335,102 +263,15 @@ import { SchedulingService } from '../../core/scheduling.service';
       margin-top: 14px;
       flex-wrap: wrap;
     }
-    .conv-card {
-      margin-bottom: 0 !important;
-    }
-    .conv-card.conv-live {
-      border-left: 4px solid var(--green) !important;
-      box-shadow: inset 0 0 28px rgba(0, 232, 148, 0.04), 0 12px 28px rgba(0, 0, 0, 0.45) !important;
-    }
-    .case-banner {
-      display: grid;
-      grid-template-columns: 120px 1fr;
-      gap: 18px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--line);
-      align-items: center;
-    }
-    .case-art {
-      height: 112px;
-      display: grid;
-      place-items: center;
-      border: 1px solid var(--line-strong);
-      background: radial-gradient(circle, #036875, #041a24 38%, #060c12 75%);
-      color: var(--cyan);
-      font-family: var(--display);
-      font-size: 26px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-    .case-art.alt {
-      border-color: rgba(255, 184, 0, 0.45);
-      background: radial-gradient(circle, #673f20, #10202b 32%, #060c12 75%);
-      color: var(--amber);
-    }
-    .case-head-meta {
-      display: grid;
-      gap: 6px;
-      min-width: 0;
-    }
-    .case-title {
-      margin: 0;
-      font-family: var(--display);
-      font-size: 28px;
-      line-height: 1.05;
-      text-transform: uppercase;
-      color: var(--text);
-    }
-    .case-sub {
-      margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-    }
-    .complexity-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      font-size: 11px;
-      color: var(--dim);
-      flex-wrap: wrap;
-    }
-    .blocks {
-      color: var(--green);
-      letter-spacing: 1.5px;
-    }
-    .state-pill {
-      padding: 3px 9px;
-      border: 1px solid rgba(184, 211, 214, 0.25);
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-    }
-    .st-sin_iniciar {
-      border-color: rgba(255, 184, 0, 0.55);
-      background: rgba(255, 184, 0, 0.12);
-      color: var(--amber);
-    }
-    .st-en_curso {
-      border-color: rgba(0, 232, 148, 0.55);
-      background: rgba(0, 232, 148, 0.12);
-      color: var(--green);
-    }
-    .st-finalizado {
-      border-color: rgba(169, 181, 184, 0.35);
-      background: rgba(169, 181, 184, 0.1);
-      color: var(--muted);
-    }
-    .score-pill {
-      background: rgba(255, 184, 0, 0.14);
-      border: 1px solid rgba(255, 184, 0, 0.55);
-      color: var(--amber);
-      padding: 4px 10px;
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 700;
-    }
+    .mission-grid { grid-template-columns: minmax(0, 1fr); }
+    .mission-badges, .mission-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .mission-badges { justify-content: flex-end; }
+    .mission-meta { gap: 8px 16px; margin-bottom: 15px; color: #c6d7e9; font-size: 13px; }
+    .mission-meta span { display: inline-flex; align-items: center; gap: 5px; }
+    .mission-meta mat-icon { width: 18px; height: 18px; font-size: 18px; color: #8bbbd8; }
+    .case-sub { margin: -3px 0 11px; color: var(--muted); font-size: 13px; }
+    .mission-actions:empty { display: none; }
+    .mission-actions button { white-space: normal; max-width: 100%; }
     .fact-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -440,6 +281,7 @@ import { SchedulingService } from '../../core/scheduling.service';
     .fact-tile {
       padding: 10px 12px;
       border: 1px solid rgba(0, 229, 244, 0.18);
+      border-radius: 8px;
       background: #0b1017;
       display: grid;
       gap: 4px;
@@ -448,7 +290,7 @@ import { SchedulingService } from '../../core/scheduling.service';
       font-family: var(--mono);
       font-size: 10px;
       letter-spacing: 0.8px;
-      color: var(--dim);
+      color: #a3b7cb;
     }
     .fact-tile b {
       font-size: 13px;
@@ -465,20 +307,20 @@ import { SchedulingService } from '../../core/scheduling.service';
       gap: 12px;
       padding: 12px 14px;
       border: 1px solid rgba(184, 211, 214, 0.16);
+      border-radius: 9px;
       background: rgba(8, 12, 18, 0.88);
     }
-    .obj-num {
+    .objective-icon {
       width: 36px;
       height: 36px;
       display: grid;
       place-items: center;
       border: 1px solid var(--line-strong);
+      border-radius: 7px;
       background: rgba(0, 229, 244, 0.08);
       color: var(--cyan);
-      font-family: var(--mono);
-      font-size: 14px;
-      font-weight: 700;
     }
+    .objective-icon mat-icon { width: 20px; height: 20px; font-size: 20px; }
     .story-lbl {
       font-family: var(--mono);
       font-size: 11px;
@@ -524,24 +366,14 @@ import { SchedulingService } from '../../core/scheduling.service';
       font-family: var(--mono);
       font-size: 12px;
     }
-    .card-actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 16px;
-      flex-wrap: wrap;
-    }
     .ok-txt { color: var(--green); font-weight: 700; }
     .bad-txt { color: var(--coral); font-weight: 700; }
     .gold-tag { color: var(--amber); font-weight: 700; }
-    @media (max-width: 780px) {
-      .fact-grid, .briefing-grid { grid-template-columns: 1fr; }
-      .case-banner { grid-template-columns: 1fr; }
-      .case-art { height: 74px; }
-    }
+    @media (max-width: 780px) { .fact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 540px) { .briefing-grid { grid-template-columns: minmax(0, 1fr); } }
   `],
 })
 export class EstudiantePortalComponent implements OnInit, OnDestroy {
-  readonly auth = inject(AuthService);
   private readonly scheduling = inject(SchedulingService);
   private readonly participation = inject(ParticipationService);
   private readonly router = inject(Router);
@@ -550,6 +382,13 @@ export class EstudiantePortalComponent implements OnInit, OnDestroy {
   readonly cargando = signal(false);
   readonly operando = signal(false);
   readonly convocatorias = signal<MiConvocatoriaItem[]>([]);
+  readonly resumen = computed(() => {
+    const convocatorias = this.convocatorias();
+    return {
+      enCurso: convocatorias.filter((c) => c.estado_sesion === 'EN_CURSO').length,
+      conResultados: convocatorias.filter((c) => c.intento_id && c.intento_estado !== 'EN_CURSO').length,
+    };
+  });
   readonly consentimientoActivo = signal<{ convocatoriaId: string; doc: ConsentimientoEstado } | null>(null);
 
   private refreshHandle: ReturnType<typeof setInterval> | null = null;

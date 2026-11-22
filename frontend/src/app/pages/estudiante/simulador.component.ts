@@ -120,14 +120,13 @@ interface PasoPlano {
             [opcionArmada]="!!opcionElegida && !opcionLanzada()"
             [opcionLanzada]="!!opcionLanzada()"
             [etiquetaImpacto]="etiquetaImpactoCarta()"
-            [transicionando]="transicionandoEscena()"
             [heroe]="heroeActual()"
             [jokerActivo]="!!ayudaJokerActual()"
             (cambiarHeroe)="rotarHeroeAleatorio()"
           />
 
           <!-- Coach Neuro reactivo -->
-          <section class="coach panel" [class.coach-pulse]="!!opcionElegida || !!respuestaAnimada()">
+          <section class="coach panel" [class.coach-active]="!!opcionElegida || !!respuestaAnimada()">
             <div class="coach-orb"><mat-icon aria-hidden="true">psychology</mat-icon></div>
             <div class="grow">
               <span class="eyebrow">Asistente SPS · Guía Táctica</span>
@@ -138,107 +137,42 @@ interface PasoPlano {
             </span>
           </section>
 
-          <!-- Visor de Baraja Completa Aleatoria (52 cartas) + Ayuda Comodín JOKER -->
-          <section class="panel deck-52-panel">
-            <div class="deck-52-head">
-              <div>
-                <span class="eyebrow">Baraja Cyber Completa · 52 Cartas Aleatorias</span>
-                <p class="deck-52-sub">
-                  En mano ahora: <strong>{{ manoActualResumen() }}</strong>
-                </p>
-              </div>
-              <button
-                type="button"
-                class="shuffle-52-btn"
-                (click)="rebarajarBaraja()"
-                [disabled]="!!opcionLanzada() || guardando()"
-              >
-                <mat-icon aria-hidden="true">shuffle</mat-icon>
-                <span>Rebarajar 52 cartas</span>
-              </button>
-            </div>
-
-            <div class="deck-52-strip" aria-label="Baraja inglesa completa de 52 cartas mezclada aleatoriamente">
-              @for (card of barajaCompleta(); track card.id) {
-                <span
-                  class="mini-cyber-card"
-                  [class.is-red]="card.esRojo"
-                  [class.is-dealt]="cartasEnManoIds().has(card.id)"
-                  [title]="card.rango + card.simbolo + ' · ' + card.arquetipo"
-                >
-                  <b>{{ card.rango }}</b>
-                  <i>{{ card.simbolo }}</i>
-                </span>
-              }
-            </div>
-          </section>
-
           <!-- Enunciado de Decisión -->
-          <div class="prompt-banner panel" [class.stage-enter]="transicionandoEscena()">
-            <p class="eyebrow amber">Dilema a resolver</p>
-            <h2 class="q-enunciado">{{ actual.pregunta.enunciado }}</h2>
-          </div>
+          @for (pregunta of [actual.pregunta]; track pregunta.id) {
+            <div class="prompt-banner panel stage-enter">
+              <p class="eyebrow amber">Dilema a resolver</p>
+              <h2 class="q-enunciado">{{ pregunta.enunciado }}</h2>
+            </div>
+          }
 
-          <!-- Estación del Comodín JOKER para el estudiante -->
-          <section class="panel joker-station" [class.joker-active]="!!ayudaJokerActual()">
-            <div class="joker-card-slot">
+          @let joker = ayudaJokerActual();
+          @let saldoJoker = 'Disponibles: ' + jokersRestantes() + ' / ' + maxJokers();
+          @let estadoJoker = joker ? 'Ayuda activada' : jokersRestantes() > 0 ? 'Activar ayuda' : 'Agotado';
+
+          <div
+            class="card-rail"
+            role="group"
+            aria-label="Cartas de decisión y comodín Joker"
+            [class.has-selection]="!!opcionElegida"
+            [class.locked]="!!opcionLanzada()"
+          >
+            <button
+              type="button"
+              class="cyber-card-slot joker-card"
+              [class.joker-spent]="jokersRestantes() <= 0 && !joker"
+              [attr.aria-label]="'Comodín Joker. ' + estadoJoker + '. ' + saldoJoker"
+              [disabled]="!!joker || jokersRestantes() <= 0 || !!opcionLanzada() || guardando()"
+              (click)="activarJoker()"
+            >
               <app-cyber-carta
                 [esJoker]="true"
-                rango="JK"
-                [arquetipo]="ayudaJokerActual() ? 'COMODÍN ACTIVO' : 'AYUDA JOKER (' + jokersRestantes() + '/' + maxJokers() + ')'"
-                [texto]="ayudaJokerActual() ? 'Lectura táctica habilitada para este dilema.' : 'Activa tu comodín para recibir orientación ética y contraste estratégico.'"
-                [selloPie]="ayudaJokerActual() ? 'JOKER USADO EN PASO' : (jokersRestantes() > 0 ? 'USAR COMODÍN' : 'SIN COMODINES')"
+                arquetipo="Comodín Joker"
+                [texto]="saldoJoker"
+                [selloPie]="estadoJoker"
+                aria-hidden="true"
               />
-            </div>
+            </button>
 
-            <div class="joker-body">
-              <div class="joker-top">
-                <div>
-                  <span class="eyebrow amber">Asistencia Táctica Estudiantil</span>
-                  <h3 class="joker-title">Carta Comodín JOKER</h3>
-                </div>
-                <span class="joker-quota mono">
-                  DISPONIBLES: {{ jokersRestantes() }} / {{ maxJokers() }}
-                </span>
-              </div>
-
-              @if (ayudaJokerActual(); as jHelp) {
-                <div class="joker-insight">
-                  <div class="joker-hero-line">
-                    <mat-icon aria-hidden="true">bolt</mat-icon>
-                    <span>Asesor activo: <strong>{{ jHelp.heroeAsesor }}</strong></span>
-                  </div>
-                  <p><strong>Marco psicosocial:</strong> {{ jHelp.principioPsicosocial }}</p>
-                  <p><strong>Contraste de opciones:</strong> {{ jHelp.contrasteEstrategico }}</p>
-                  @if (jHelp.etiquetaCartaRiesgo) {
-                    <div class="joker-flag-note">
-                      <mat-icon aria-hidden="true">warning_amber</mat-icon>
-                      <span>{{ jHelp.etiquetaCartaRiesgo }}</span>
-                    </div>
-                  }
-                </div>
-              } @else {
-                <p class="joker-desc">
-                  Cada estudiante cuenta con apoyo de <strong>Comodín JOKER</strong> durante el caso para desglosar el dilema psicológico y contrastar las cartas de decisión sin alterar las reglas de evaluación.
-                </p>
-                <div class="joker-actions">
-                  <button
-                    type="button"
-                    mat-flat-button
-                    color="accent"
-                    (click)="activarJoker()"
-                    [disabled]="jokersRestantes() <= 0 || !!opcionLanzada() || guardando()"
-                  >
-                    <mat-icon>auto_awesome</mat-icon>
-                    {{ jokersRestantes() > 0 ? 'Activar Ayuda JOKER' : 'Comodines agotados en este intento' }}
-                  </button>
-                </div>
-              }
-            </div>
-          </section>
-
-          <!-- Mazo de Cartas Cyber-Neón (Baraja aleatoria completa A..K × ♠ ♥ ♦ ♣) -->
-          <div class="card-rail" [class.has-selection]="!!opcionElegida" [class.locked]="!!opcionLanzada()">
             @for (op of actual.pregunta.opciones; track op.id; let oi = $index) {
               @let carta = cartaDeOpcion(oi);
               <label
@@ -246,7 +180,7 @@ interface PasoPlano {
                 [class.selected]="opcionElegida === op.id"
                 [class.launched]="opcionLanzada() === op.id"
                 [style.--tilt]="cardTilt(oi)"
-                [style.--deal-delay]="(oi * 75) + 'ms'"
+                [style.--deal-delay]="(Math.min(oi, 5) * 45) + 'ms'"
               >
                 <input
                   type="radio"
@@ -265,11 +199,28 @@ interface PasoPlano {
                   [etiquetaSuperior]="'OPC0' + (oi + 1)"
                   [seleccionada]="opcionElegida === op.id"
                   [lanzada]="opcionLanzada() === op.id"
-                  [riesgoJoker]="ayudaJokerActual()?.cartaRiesgoId === op.id"
+                  [riesgoJoker]="joker?.cartaRiesgoId === op.id"
                 />
               </label>
             }
           </div>
+
+          @if (joker) {
+            <section class="joker-insight" aria-label="Ayuda del Joker">
+              <div class="joker-hero-line">
+                <mat-icon aria-hidden="true">bolt</mat-icon>
+                <span>Asesor activo: <strong>{{ joker.heroeAsesor }}</strong></span>
+              </div>
+              <p><strong>Marco psicosocial:</strong> {{ joker.principioPsicosocial }}</p>
+              <p><strong>Contraste de opciones:</strong> {{ joker.contrasteEstrategico }}</p>
+              @if (joker.etiquetaCartaRiesgo) {
+                <div class="joker-flag-note">
+                  <mat-icon aria-hidden="true">warning_amber</mat-icon>
+                  <span>{{ joker.etiquetaCartaRiesgo }}</span>
+                </div>
+              }
+            </section>
+          }
 
           @if (respuestaAnimada(); as rAnim) {
             <section class="panel panel-pad feedback">
@@ -300,7 +251,7 @@ interface PasoPlano {
             <div class="selected-brief">
               <div class="launch-ico" [class.rocket-launch]="!!opcionLanzada()"><mat-icon aria-hidden="true">rocket_launch</mat-icon></div>
               <div>
-                <small>{{ opcionLanzada() ? 'LANZAMIENTO CONFIRMADO' : (opcionElegida ? 'CARTA PREPARADA PARA LANZAMIENTO' : 'SELECCIONA UNA CARTA DEL MAZO SUPERIOR') }}</small>
+                <small>{{ opcionLanzada() ? 'LANZAMIENTO CONFIRMADO' : (opcionElegida ? 'CARTA LISTA PARA LANZAR' : 'ELIGE UNA CARTA DE DECISIÓN') }}</small>
                 <b>{{ opcionLanzada() ? 'Guardando decisión...' : (opcionElegida ? 'Decisión #' + (indiceActual() + 1) + ' lista para registrar' : 'Esperando selección...') }}</b>
               </div>
             </div>
@@ -318,6 +269,41 @@ interface PasoPlano {
               </button>
             </div>
           </section>
+
+          <!-- Baraja completa -->
+          <section class="panel deck-52-panel">
+            <div class="deck-52-head">
+              <div>
+                <span class="eyebrow">Baraja de 52 cartas</span>
+                <p class="deck-52-sub">
+                  En mano ahora: <strong>{{ manoActualResumen() }}</strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                class="shuffle-52-btn"
+                (click)="rebarajarBaraja()"
+                [disabled]="!!opcionLanzada() || guardando()"
+              >
+                <mat-icon aria-hidden="true">shuffle</mat-icon>
+                <span>Rebarajar</span>
+              </button>
+            </div>
+
+            <div class="deck-52-strip" aria-label="Baraja inglesa completa de 52 cartas mezclada aleatoriamente">
+              @for (card of barajaCompleta(); track card.id) {
+                <span
+                  class="mini-cyber-card"
+                  [class.is-red]="card.esRojo"
+                  [class.is-dealt]="cartasEnManoIds().has(card.id)"
+                  [title]="card.rango + card.simbolo + ' · ' + card.arquetipo"
+                >
+                  <b>{{ card.rango }}</b>
+                  <i>{{ card.simbolo }}</i>
+                </span>
+              }
+            </div>
+          </section>
         }
       }
     </div>
@@ -325,7 +311,7 @@ interface PasoPlano {
   styles: [`
     .sim-wrap {
       padding: 4px 0 40px;
-      max-width: 980px;
+      width: min(100%, 980px);
       display: grid;
       gap: 16px;
     }
@@ -334,10 +320,10 @@ interface PasoPlano {
     .mission-strip {
       display: grid;
       gap: 12px;
-      border-left: 4px solid var(--cyan);
+      border-color: #77daf963;
       background:
-        radial-gradient(circle at right top, rgba(0, 229, 244, 0.1), transparent 45%),
-        rgba(16, 20, 27, 0.96);
+        radial-gradient(ellipse at top right, #5863ac45, transparent 64%),
+        var(--surface-raised);
     }
     .hud-title {
       display: flex;
@@ -361,6 +347,7 @@ interface PasoPlano {
       gap: 10px;
       padding: 10px 16px;
       border: 1px solid rgba(0, 232, 148, 0.5);
+      border-radius: 8px;
       background: rgba(5, 12, 14, 0.9);
       color: var(--green);
     }
@@ -390,6 +377,7 @@ interface PasoPlano {
       height: 8px;
       border-radius: 99px;
     }
+    .hud-progress > span { background: var(--primary-gradient); }
     .progress-steps {
       display: flex;
       gap: 8px;
@@ -401,12 +389,13 @@ interface PasoPlano {
       align-items: center;
       gap: 6px;
       padding: 7px 11px;
-      border: 1px solid rgba(184, 211, 214, 0.2);
+      border: 1px solid #7199b64d;
+      border-radius: 7px;
       background: #0b1017;
       color: var(--muted);
       font-family: var(--mono);
       font-size: 11px;
-      transition: all 0.2s ease;
+      transition: background-color var(--motion-quick) ease, border-color var(--motion-quick) ease, box-shadow var(--motion-quick) ease;
     }
     .step-btn mat-icon {
       font-size: 16px;
@@ -425,7 +414,7 @@ interface PasoPlano {
       box-shadow: 0 0 14px rgba(0, 229, 244, 0.22);
     }
 
-    .prompt-banner.stage-enter { animation: stageEnter .4s cubic-bezier(.22,1,.36,1); }
+    .stage-enter { animation: stageEnter var(--motion-enter) var(--motion-decelerate) backwards; }
 
     /* Coach Neuro */
     .coach {
@@ -436,10 +425,9 @@ interface PasoPlano {
       padding: 14px 18px;
       transition: border-color 0.25s ease, box-shadow 0.25s ease;
     }
-    .coach.coach-pulse {
+    .coach.coach-active {
       border-color: rgba(0, 232, 148, 0.55);
       box-shadow: 0 0 22px rgba(0, 232, 148, 0.14);
-      animation: coachPulse 0.45s ease;
     }
     .coach-orb {
       width: 44px;
@@ -450,7 +438,6 @@ interface PasoPlano {
       border: 1px solid rgba(0, 229, 244, 0.42);
       background: rgba(0, 229, 244, 0.1);
       box-shadow: 0 0 16px rgba(0, 229, 244, 0.16);
-      animation: moonFloat 3.2s ease-in-out infinite;
     }
     .coach-orb mat-icon {
       color: var(--cyan);
@@ -469,6 +456,7 @@ interface PasoPlano {
     .prompt-banner {
       padding: 16px 20px;
       border-left: 4px solid var(--amber);
+      background: linear-gradient(110deg, #343048, #141f33 64%);
     }
     .q-enunciado {
       margin: 6px 0 0;
@@ -576,62 +564,6 @@ interface PasoPlano {
       color: #ffffff;
     }
 
-    .joker-station {
-      display: grid;
-      grid-template-columns: 186px 1fr;
-      gap: 18px;
-      padding: 16px 18px;
-      align-items: center;
-      border-color: rgba(250, 204, 21, 0.36);
-      background:
-        radial-gradient(circle at 12% 20%, rgba(250, 204, 21, 0.1), transparent 46%),
-        radial-gradient(circle at 90% 80%, rgba(255, 46, 209, 0.1), transparent 48%),
-        rgba(8, 11, 20, 0.96);
-    }
-    .joker-station.joker-active {
-      border-color: rgba(0, 229, 255, 0.56);
-      box-shadow: 0 0 28px rgba(250, 204, 21, 0.16);
-    }
-    .joker-card-slot {
-      width: 186px;
-      min-height: 245px;
-      transform: scale(0.92);
-      transform-origin: center center;
-    }
-    .joker-body {
-      display: grid;
-      gap: 10px;
-      min-width: 0;
-    }
-    .joker-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .joker-title {
-      margin: 3px 0 0;
-      font-family: var(--display);
-      font-size: 20px;
-      text-transform: uppercase;
-      color: #fef08a;
-    }
-    .joker-quota {
-      padding: 4px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(250, 204, 21, 0.45);
-      background: rgba(113, 63, 18, 0.25);
-      color: #fde047;
-      font-size: 11px;
-      font-weight: 700;
-    }
-    .joker-desc {
-      margin: 0;
-      color: var(--text);
-      font-size: 13.5px;
-      line-height: 1.5;
-    }
     .joker-insight {
       display: grid;
       gap: 7px;
@@ -639,6 +571,7 @@ interface PasoPlano {
       border-radius: 12px;
       background: rgba(6, 10, 22, 0.85);
       border: 1px solid rgba(0, 229, 255, 0.34);
+      animation: stageEnter var(--motion-enter) var(--motion-decelerate) backwards;
     }
     .joker-insight p {
       margin: 0;
@@ -680,18 +613,21 @@ interface PasoPlano {
       gap: 20px;
       overflow-x: auto;
       overflow-y: visible;
-      padding: 20px 12px 28px;
+      padding: 28px 20px 26px;
+      border: 1px solid #77d2fa66;
+      border-radius: 12px;
+      background:
+        repeating-linear-gradient(135deg, #93d6ff08 0 1px, transparent 1px 12px),
+        radial-gradient(ellipse at 50% 38%, #233356, #10192d 67%, #0b1120);
+      box-shadow: inset 0 3px 21px #0408178f, 0 10px 24px #02050c6b;
       scroll-snap-type: x mandatory;
       scrollbar-color: #ff2ed1 transparent;
     }
-    .card-rail.has-selection .cyber-card-slot:not(.selected) {
-      opacity: 0.68;
-      filter: saturate(0.8);
-      transform: scale(0.97) rotate(var(--tilt, 0deg));
+    .card-rail.has-selection label.cyber-card-slot:not(.selected) {
+      opacity: 0.84;
     }
     .card-rail.locked .cyber-card-slot:not(.launched) {
-      opacity: 0.36;
-      transform: scale(0.94);
+      opacity: 0.64;
       pointer-events: none;
     }
     .cyber-card-slot {
@@ -702,22 +638,53 @@ interface PasoPlano {
       cursor: pointer;
       scroll-snap-align: center;
       transform: rotate(var(--tilt, 0deg));
-      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s ease;
-      animation: pokerDeal 0.42s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-      animation-delay: var(--deal-delay, 0ms);
+      transition: transform 240ms var(--motion-decelerate), opacity var(--motion-quick) ease;
     }
-    .cyber-card-slot:nth-child(2) { margin-top: 8px; }
-    .cyber-card-slot:nth-child(3) { margin-top: 4px; }
-    .cyber-card-slot:hover,
+    .cyber-card-slot > app-cyber-carta {
+      animation: pokerDeal var(--motion-enter) var(--motion-decelerate) var(--deal-delay, 0ms) backwards;
+    }
+    label.cyber-card-slot:nth-of-type(2) { margin-top: 8px; }
+    label.cyber-card-slot:nth-of-type(3) { margin-top: 4px; }
+    .joker-card {
+      --tilt: -1deg;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+    }
+    .joker-card:disabled {
+      cursor: default;
+    }
+    .joker-card:disabled app-cyber-carta {
+      pointer-events: none;
+    }
+    .joker-card.joker-spent {
+      filter: saturate(0.45);
+    }
+    .cyber-card-slot:focus-within,
     .cyber-card-slot.selected {
-      opacity: 1 !important;
-      filter: none !important;
-      transform: translateY(-12px) rotate(0deg) scale(1.02);
+      z-index: 1;
+      transform: translateY(-8px) rotate(0deg);
+    }
+    .cyber-card-slot:has(.sr-only-radio:focus-visible) > app-cyber-carta,
+    .joker-card:focus-visible > app-cyber-carta {
+      outline: 2px solid var(--cyan-soft);
+      outline-offset: 4px;
+      border-radius: 18px;
+    }
+    @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+      .card-rail:not(.locked) .cyber-card-slot:not(.selected):not(:disabled):hover {
+        transform: translateY(-5px) rotate(0deg);
+      }
+    }
+    @media (min-width: 1000px) {
+      .card-rail:has(> :nth-child(4)) > .cyber-card-slot {
+        flex-basis: clamp(208px, calc((100% - 60px) / 4), 256px);
+      }
     }
     .cyber-card-slot.launched {
-      opacity: 1 !important;
-      filter: none !important;
-      animation: cardLaunch 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      animation: cardLaunch 560ms var(--motion-decelerate);
     }
     .sr-only-radio { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
 
@@ -747,9 +714,9 @@ interface PasoPlano {
       align-items: center;
       gap: 16px;
       padding: 16px 18px;
-      border-style: dashed;
-      border-color: var(--line-strong);
-      border-radius: 18px;
+      border-color: #6ca8ca80;
+      border-radius: 12px;
+      background: radial-gradient(ellipse at right center, #1a44604f, transparent 64%), var(--surface-raised);
     }
     .selected-brief {
       display: flex;
@@ -761,7 +728,6 @@ interface PasoPlano {
       place-items: center;
       color: var(--cyan);
       line-height: 1;
-      transition: transform 0.3s ease;
     }
     .launch-ico mat-icon {
       width: 28px;
@@ -769,13 +735,13 @@ interface PasoPlano {
       font-size: 28px;
     }
     .launch-ico.rocket-launch {
-      animation: rocketTakeoff 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+      animation: rocketTakeoff 560ms var(--motion-decelerate);
     }
     .feedback {
       padding: 16px 18px !important;
       border: 1px solid rgba(0, 232, 148, 0.45);
       background: linear-gradient(135deg, rgba(0, 232, 148, 0.1), rgba(10, 16, 24, 0.96));
-      animation: feedbackPop 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      animation: stageEnter var(--motion-enter) var(--motion-decelerate) backwards;
     }
     .feedback p {
       margin: 8px 0 12px;
@@ -799,35 +765,34 @@ interface PasoPlano {
     }
 
     @keyframes stageEnter {
-      from { opacity: 0; transform: translateY(10px) scale(0.985); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
+      from { opacity: 0.45; translate: 0 7px; }
+      to { opacity: 1; translate: 0 0; }
     }
     @keyframes pokerDeal {
-      from { opacity: 0; transform: translateY(24px) scale(0.92) rotate(0deg); }
-      to { opacity: 1; transform: translateY(0) scale(1) rotate(var(--tilt, 0deg)); }
+      from { opacity: 0.35; translate: 0 16px; }
+      to { opacity: 1; translate: 0 0; }
     }
     @keyframes cardLaunch {
-      0% { transform: translateY(-12px) scale(1.02) rotate(0deg); }
-      45% { transform: translateY(-28px) scale(1.06) rotate(-2deg); }
-      100% { transform: translateY(-16px) scale(1.02) rotate(0deg); }
+      0%, 100% { transform: translateY(-8px) rotate(0deg); }
+      18% { transform: translateY(-4px) scale(0.99); }
+      55% { transform: translateY(-18px) scale(1.025); }
     }
     @keyframes rocketTakeoff {
       0% { transform: translateY(0) scale(1); }
-      55% { transform: translate(6px, -14px) scale(1.25) rotate(-10deg); }
+      55% { transform: translate(5px, -10px) scale(1.1); }
       100% { transform: translateY(0) scale(1); }
     }
-    @keyframes feedbackPop {
-      from { opacity: 0; transform: translateY(12px) scale(0.98); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    @keyframes coachPulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.01); }
-      100% { transform: scale(1); }
-    }
-    @keyframes moonFloat {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-5px); }
+    @media (prefers-reduced-motion: reduce) {
+      .timer-box.timer-crit,
+      .stage-enter,
+      .joker-insight,
+      .cyber-card-slot > app-cyber-carta,
+      .cyber-card-slot.launched,
+      .launch-ico.rocket-launch,
+      .feedback { animation: none; }
+
+      .card-rail .cyber-card-slot { transform: none; transition: none; }
+      .meter.stress > span { transition: none; }
     }
     .selected-brief small,
     .selected-brief b {
@@ -852,7 +817,6 @@ interface PasoPlano {
     }
 
     @media (max-width: 780px) {
-      .joker-station { grid-template-columns: 1fr; justify-items: center; }
       .launch-pad { grid-template-columns: 1fr; }
       .coach { grid-template-columns: auto 1fr; }
       .coach .tag { grid-column: 1 / -1; justify-self: start; }
@@ -881,7 +845,6 @@ export class SimuladorComponent implements OnInit, OnDestroy {
   readonly segundosRestantes = signal(0);
   readonly opcionLanzada = signal<string | null>(null);
   readonly respuestaAnimada = signal<{ texto: string; paso: number } | null>(null);
-  readonly transicionandoEscena = signal(false);
 
   readonly barajaCompleta = signal<CartaBaraja[]>(barajarBaraja52());
   readonly shuffleSeed = signal(0);
@@ -920,8 +883,8 @@ export class SimuladorComponent implements OnInit, OnDestroy {
 
   readonly heroeActual = computed<PerfilHeroe>(() => {
     const actual = this.pasoActual();
-    if (!actual) return CATALOGO_HEROES.captain_america;
-    return this.heroesPorEscenario()[actual.escenario.id] ?? CATALOGO_HEROES.captain_america;
+    if (!actual) return CATALOGO_HEROES.cobalto;
+    return this.heroesPorEscenario()[actual.escenario.id] ?? CATALOGO_HEROES.cobalto;
   });
 
   readonly maxJokers = computed<number>(() => (this.pasosPlanos().length >= 3 ? 2 : 1));
@@ -935,7 +898,6 @@ export class SimuladorComponent implements OnInit, OnDestroy {
   });
 
   private timerHandle: ReturnType<typeof setInterval> | null = null;
-  private transitionHandle: ReturnType<typeof setTimeout> | null = null;
   private vencimientoAutoEjecutado = false;
 
   ngOnInit(): void {
@@ -949,7 +911,6 @@ export class SimuladorComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.timerHandle) clearInterval(this.timerHandle);
-    if (this.transitionHandle) clearTimeout(this.transitionHandle);
   }
 
   cardTilt(index: number): string {
@@ -1184,10 +1145,6 @@ export class SimuladorComponent implements OnInit, OnDestroy {
     if (idx < 0 || idx >= pasos.length) return;
     this.opcionLanzada.set(null);
     this.respuestaAnimada.set(null);
-    this.transicionandoEscena.set(true);
-    if (this.transitionHandle) clearTimeout(this.transitionHandle);
-    this.transitionHandle = setTimeout(() => this.transicionandoEscena.set(false), 320);
-
     this.indiceActual.set(idx);
     const pregId = pasos[idx].pregunta.id;
     const draft = this.workspace()?.borradores?.[pregId];
