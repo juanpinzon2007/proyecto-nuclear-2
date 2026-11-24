@@ -14,6 +14,8 @@ import { CasoDetalleResponse } from '../../core/api.models';
 import { mensajeError } from '../../core/api-error';
 import { UiDialogService } from '../../core/ui-dialog.service';
 
+import { etiquetaEstado } from '../../core/lista-paginada';
+
 @Component({
   selector: 'app-caso-detalle',
   standalone: true,
@@ -30,20 +32,20 @@ import { UiDialogService } from '../../core/ui-dialog.service';
   template: `
     <div class="page">
       <div class="page-header">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <a mat-icon-button routerLink="/casos" title="Volver a casos">
+        <div class="page-heading">
+          <a mat-icon-button routerLink="/casos" aria-label="Volver a casos" title="Volver a casos">
             <mat-icon>arrow_back</mat-icon>
           </a>
           <div>
-            <p class="eyebrow">Briefing Estructural // Caso</p>
-            <h1>{{ caso()?.nombre || 'Detalle del Caso' }}</h1>
+            <p class="eyebrow">Ficha del caso</p>
+            <h1>{{ caso()?.nombre || 'Detalle del caso' }}</h1>
             <p class="muted">Versión: <span class="mono">{{ versionId }}</span></p>
           </div>
         </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <div class="action-group">
           @if (caso()?.estado === 'BORRADOR' && auth.tienePermiso('CREAR_CASOS')) {
             <a mat-flat-button color="primary" [routerLink]="['/casos', versionId, 'editar']">
-              <mat-icon>edit</mat-icon> Editar Borrador
+              <mat-icon>edit</mat-icon> Editar borrador
             </a>
             <button mat-flat-button color="accent" type="button" (click)="publicar()">
               <mat-icon>publish</mat-icon> Publicar
@@ -51,7 +53,7 @@ import { UiDialogService } from '../../core/ui-dialog.service';
           }
           @if (caso()?.estado === 'PUBLICADO' && auth.tienePermiso('CREAR_CASOS')) {
             <button mat-stroked-button color="accent" type="button" (click)="clonar()">
-              <mat-icon>content_copy</mat-icon> Nueva Versión
+              <mat-icon>content_copy</mat-icon> Nueva versión
             </button>
             <button mat-stroked-button color="warn" type="button" (click)="archivar()">
               <mat-icon>archive</mat-icon> Archivar
@@ -59,14 +61,14 @@ import { UiDialogService } from '../../core/ui-dialog.service';
           }
           @if (caso()?.estado === 'ARCHIVADO' && auth.tienePermiso('CREAR_CASOS')) {
             <button mat-flat-button color="accent" type="button" (click)="republicar()">
-              <mat-icon>replay</mat-icon> Republicar como Nueva Versión
+              <mat-icon>replay</mat-icon> Republicar como nueva versión
             </button>
             <button mat-stroked-button type="button" (click)="clonar()">
-              <mat-icon>content_copy</mat-icon> Crear Borrador Editable
+              <mat-icon>content_copy</mat-icon> Crear borrador editable
             </button>
           }
           <a mat-stroked-button [routerLink]="['/casos', versionId, 'grafo']">
-            <mat-icon>account_tree</mat-icon> Ver / Configurar Grafo
+            <mat-icon>account_tree</mat-icon> Ver o configurar grafo
           </a>
         </div>
       </div>
@@ -86,9 +88,9 @@ import { UiDialogService } from '../../core/ui-dialog.service';
         <!-- Ficha técnica del caso -->
         <mat-card class="panel panel-cyan-left">
           <mat-card-header>
-            <mat-card-title>01 // Ficha Descriptiva</mat-card-title>
+            <mat-card-title>Ficha descriptiva</mat-card-title>
             <mat-card-subtitle>
-              Estado: <span class="chip" [class.ok]="c.estado === 'PUBLICADO'" [class.warn]="c.estado === 'BORRADOR'" [class.bad]="c.estado === 'ARCHIVADO'">{{ c.estado }}</span>
+              Estado: <span class="chip" [class.ok]="c.estado === 'PUBLICADO'" [class.warn]="c.estado === 'BORRADOR'" [class.bad]="c.estado === 'ARCHIVADO'">{{ etiquetaEstado(c.estado) }}</span>
               · Tiempo estimado: <strong class="cyan">{{ c.tiempo_estimado_min }} MIN</strong>
             </mat-card-subtitle>
           </mat-card-header>
@@ -113,7 +115,7 @@ import { UiDialogService } from '../../core/ui-dialog.service';
         <!-- Escenarios y preguntas -->
         <mat-card class="panel">
           <mat-card-header>
-            <mat-card-title>02 // Escenarios y Decisiones ({{ c.escenarios.length }})</mat-card-title>
+            <mat-card-title>Escenarios y decisiones ({{ c.escenarios.length }})</mat-card-title>
           </mat-card-header>
           <mat-card-content style="padding-top: 16px;">
             @if (c.escenarios.length === 0) {
@@ -174,7 +176,7 @@ import { UiDialogService } from '../../core/ui-dialog.service';
         <!-- Rúbrica de evaluación -->
         <mat-card class="panel panel-green-left">
           <mat-card-header>
-            <mat-card-title>03 // Rúbrica de Evaluación</mat-card-title>
+            <mat-card-title>Rúbrica de evaluación</mat-card-title>
             <mat-card-subtitle *ngIf="c.rubrica">
               {{ c.rubrica.nombre }} · Regla: {{ c.rubrica.version_regla }}
             </mat-card-subtitle>
@@ -236,7 +238,6 @@ import { UiDialogService } from '../../core/ui-dialog.service';
       font-family: var(--mono);
       font-size: 11px;
       letter-spacing: 1px;
-      text-transform: uppercase;
       color: var(--cyan);
       margin-bottom: 4px;
     }
@@ -312,6 +313,7 @@ import { UiDialogService } from '../../core/ui-dialog.service';
   `],
 })
 export class CasoDetalleComponent implements OnInit {
+  readonly etiquetaEstado = etiquetaEstado;
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly casesService = inject(CasesService);
@@ -394,7 +396,7 @@ export class CasoDetalleComponent implements OnInit {
   async republicar(): Promise<void> {
     const ok = await this.uiDialog.confirmar({
       eyebrow: 'Reactivación de Caso',
-      titulo: 'Republicar como Nueva Versión Activa',
+      titulo: 'Republicar como nueva versión Activa',
       mensaje: 'Se generará y publicará una nueva versión (v+1) con esta misma estructura, manteniendo intacta la versión archivada.',
       botonConfirmar: 'Republicar Ahora',
       botonCancelar: 'Cancelar',

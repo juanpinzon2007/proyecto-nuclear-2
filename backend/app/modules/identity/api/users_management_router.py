@@ -5,9 +5,9 @@ from typing import Annotated, Literal
 from uuid import UUID, uuid4
 import secrets
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -62,6 +62,13 @@ class CatalogoUsuariosRespuesta(BaseModel):
     usuarios: list[UsuarioGestionItem]
     permisos_disponibles: list[str]
     roles_disponibles: list[str]
+
+
+class PaginaUsuariosRespuesta(CatalogoUsuariosRespuesta):
+    total: int
+    activos: int
+    filtrados: int
+    pagina: int
 
 
 class CrearUsuarioAdminSolicitud(BaseModel):
@@ -154,10 +161,7 @@ def _aplicar_permisos_individuales(db: Session, id_usuario: int, mapa_permisos: 
         db.add(UsuarioPermisoORM(id_usuario=id_usuario, id_permiso=por_codigo[codigo], concedido=concedido))
 
 
-@router.get("/usuarios", response_model=CatalogoUsuariosRespuesta)
-def listar_usuarios_admin(usuario: UsuarioActual, db: BaseDatos) -> CatalogoUsuariosRespuesta:
-    _exigir_admin(usuario)
-    usuarios_orm = db.scalars(select(UsuarioORM).order_by(UsuarioORM.id_usuario)).all()
+def _catalogo_usuarios(db: Session, usuarios_orm) -> CatalogoUsuariosRespuesta:
     permisos_disp = list(db.scalars(select(PermisoORM.codigo).order_by(PermisoORM.codigo)).all())
     roles_disp = sorted(
         {
@@ -170,6 +174,45 @@ def listar_usuarios_admin(usuario: UsuarioActual, db: BaseDatos) -> CatalogoUsua
         usuarios=[_serializar_usuario(db, u) for u in usuarios_orm],
         permisos_disponibles=permisos_disp,
         roles_disponibles=roles_disp or ["ADMINISTRADOR", "DOCENTE", "ESTUDIANTE"],
+    )
+
+
+@router.get("/usuarios", response_model=CatalogoUsuariosRespuesta)
+def listar_usuarios_admin(usuario: UsuarioActual, db: BaseDatos) -> CatalogoUsuariosRespuesta:
+    _exigir_admin(usuario)
+    return _catalogo_usuarios(db, db.scalars(select(UsuarioORM).order_by(UsuarioORM.id_usuario)).all())
+
+
+@router.get("/usuarios/pagina", response_model=PaginaUsuariosRespuesta)
+def paginar_usuarios_admin(
+    usuario: UsuarioActual,
+    db: BaseDatos,
+    pagina: Annotated[int, Query(ge=0)] = 0,
+    tamano: Annotated[int, Query(ge=1, le=50)] = 12,
+    buscar: Annotated[str, Query(max_length=254)] = "",
+) -> PaginaUsuariosRespuesta:
+    _exigir_admin(usuario)
+    total, activos = db.execute(select(
+        func.count(UsuarioORM.id_usuario),
+        func.count(UsuarioORM.id_usuario).filter(UsuarioORM.activo.is_(True)),
+    )).one()
+    termino = buscar.strip()
+    consulta = select(UsuarioORM)
+    filtrados = total
+    if termino:
+        filtro = or_(
+            UsuarioORM.nombre.icontains(termino, autoescape=True),
+            UsuarioORM.correo.icontains(termino, autoescape=True),
+        )
+        consulta = consulta.where(filtro)
+        filtrados = db.scalar(select(func.count(UsuarioORM.id_usuario)).where(filtro)) or 0
+    pagina = min(pagina, max(0, (filtrados - 1) // tamano))
+    filas = db.scalars(consulta.order_by(
+        func.lower(UsuarioORM.nombre), UsuarioORM.id_usuario,
+    ).offset(pagina * tamano).limit(tamano)).all()
+    return PaginaUsuariosRespuesta(
+        **_catalogo_usuarios(db, filas).model_dump(),
+        total=total, activos=activos, filtrados=filtrados, pagina=pagina,
     )
 
 

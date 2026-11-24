@@ -6,7 +6,7 @@ from dataclasses import asdict
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, contains_eager, selectinload
 
@@ -21,6 +21,7 @@ from app.modules.cases.domain.entities.caso import (
     VersionCaso,
 )
 from app.modules.cases.domain.exceptions import (
+    CasoNoEliminableError,
     CasoNoEncontradoError,
     ErrorConstruccionCaso,
     ErrorPersistenciaCaso,
@@ -51,6 +52,33 @@ class CasoRepository(ICasoRepository):
         self._validar_precision_puntajes(version)
         with self._transaccion():
             self._session.add(self._mapear(version))
+
+    def eliminar_borrador(self, version_id: uuid.UUID, docente_creador_id: uuid.UUID) -> None:
+        with self._transaccion():
+            # Mantiene el mismo orden de bloqueo que el clonado: familia, luego versión.
+            # NO KEY UPDATE permite que otra versión valide su referencia a la familia.
+            caso_id = self._session.scalar(
+                select(CasoModel.id)
+                .join(VersionCasoModel, VersionCasoModel.caso_id == CasoModel.id)
+                .where(VersionCasoModel.id == version_id, CasoModel.docente_creador_id == docente_creador_id)
+                .with_for_update(of=CasoModel, key_share=True)
+            )
+            if caso_id is None:
+                raise CasoNoEncontradoError("Versión no encontrada.")
+            version = self._session.scalar(
+                select(VersionCasoModel).where(VersionCasoModel.id == version_id)
+                .with_for_update().execution_options(populate_existing=True)
+            )
+            if version is None:
+                raise CasoNoEncontradoError("Versión no encontrada.")
+            if version.estado != EstadoCaso.BORRADOR:
+                raise CasoNoEliminableError(
+                    "Solo se pueden eliminar borradores. Conserva el historial archivando la versión publicada."
+                )
+            self._session.delete(version)
+            self._session.flush()
+            quedan_versiones = select(VersionCasoModel.id).where(VersionCasoModel.caso_id == caso_id).exists()
+            self._session.execute(delete(CasoModel).where(CasoModel.id == caso_id, ~quedan_versiones))
 
     def obtener_version(
         self, version_id: uuid.UUID, docente_creador_id: uuid.UUID
@@ -242,9 +270,13 @@ class CasoRepository(ICasoRepository):
                 raise CasoNoEncontradoError(f"Versión {version_id} no encontrada.")
 
             # Serializar asignación de número de versión bajo la raíz del caso.
-            self._session.scalar(
+            familia = self._session.scalar(
                 select(CasoModel.id).where(CasoModel.id == origen.caso_id).with_for_update()
             )
+            if familia is None or self._session.scalar(
+                select(VersionCasoModel.id).where(VersionCasoModel.id == version_id)
+            ) is None:
+                raise CasoNoEncontradoError("Versión no encontrada.")
             max_num = self._session.scalar(
                 select(func.max(VersionCasoModel.numero)).where(VersionCasoModel.caso_id == origen.caso_id)
             ) or origen.numero

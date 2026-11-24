@@ -138,7 +138,6 @@ export interface NeuroDialogData {
       font-family: var(--mono);
       font-size: 11px;
       letter-spacing: 1.5px;
-      text-transform: uppercase;
       color: var(--cyan);
     }
     .tone-green .nd-eyebrow { color: var(--green); }
@@ -150,7 +149,6 @@ export interface NeuroDialogData {
       font-family: var(--display);
       font-size: 26px;
       line-height: 1.05;
-      text-transform: uppercase;
       color: var(--text);
     }
     .nd-msg {
@@ -243,10 +241,11 @@ export class UiDialogService {
       panelClass: 'neuro-dialog-panel',
       backdropClass: 'neuro-backdrop',
       maxWidth: '520px',
+      ariaLabel: opts.titulo,
       data: {
         modo: 'confirm',
         tono: opts.tono ?? 'cyan',
-        eyebrow: opts.eyebrow ?? 'Protocolo de Confirmación',
+        eyebrow: opts.eyebrow ?? 'Confirmación',
         titulo: opts.titulo,
         mensaje: opts.mensaje,
         botonConfirmar: opts.botonConfirmar ?? 'Confirmar',

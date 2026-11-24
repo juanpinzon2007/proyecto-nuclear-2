@@ -1,0 +1,37 @@
+:root {
+  --bg: #0a101b;
+  --panel: #101b2a;
+  --panel-soft: #1a293d;
+  --surface-raised: linear-gradient(155deg, #192a40, #121e2e 54%, #101b2a);
+  --surface-shadow: 0 8px 24px #03081355;
+  --line: #8eabc637;
+  --line-strong: #80a6c580;
+  --control-line: #64819c;
+  --text: #edf4fb;
+  --muted: #b7c6d7;
+  --dim: #9daec2;
+  --cyan: #64e2f3;
+  --cyan-soft: #b7f5fc;
+  --focus-ring: #a0f2ff;
+  --green: #7ce5b4;
+  --amber: #ffd17c;
+  --coral: #ffadb4;
+  --red: #a8374b;
+  --primary-gradient: linear-gradient(110deg, #8aebf7, #a9c9ff);
+  --action-ink: #0b2030;
+
+  --body: 'Inter', system-ui, sans-serif;
+  --display: 'Barlow Condensed', 'Inter', system-ui, sans-serif;
+  --mono: 'Share Tech Mono', Consolas, monospace;
+  --type-body: 1rem;
+  --type-control: 0.875rem;
+  --type-small: 0.8125rem;
+  --type-meta: 0.75rem;
+  --button-min-height: 44px;
+  --control-radius: 9px;
+
+  --motion-quick: 160ms;
+  --motion-enter: 320ms;
+  --motion-decelerate: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-status-animation: pulse 1.7s ease-in-out infinite;
+}

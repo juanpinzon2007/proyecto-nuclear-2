@@ -1,17 +1,19 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
+import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 import { mensajeError } from '../../core/api-error';
 import {
   ConsolidacionSesion,
+  ConvocatoriaPreparacionRespuesta,
   EstudianteDisponibleItem,
   PreparacionSesionRespuesta,
   ResultadoTecnicoRespuesta,
@@ -20,6 +22,17 @@ import { IdentityService } from '../../core/identity.service';
 import { SchedulingService } from '../../core/scheduling.service';
 import { UiDialogService } from '../../core/ui-dialog.service';
 import { avatarUsuario } from '../../core/user-avatar';
+import { ListaPaginada, etiquetaEstado } from '../../core/lista-paginada';
+
+interface FilaCalificacion {
+  convocatoria_id: string;
+  id_estudiante: number;
+  nombre_estudiante?: string;
+  grupo_nombre?: string;
+  situacion?: string;
+  nota?: string | number | null;
+  id_ausencia?: string | null;
+}
 
 @Component({
   selector: 'app-evaluacion-sesion',
@@ -31,6 +44,7 @@ import { avatarUsuario } from '../../core/user-avatar';
     MatCardModule,
     MatButtonModule,
     MatIconModule,
+    MatPaginatorModule,
     MatProgressSpinnerModule,
     MatDividerModule,
     MatSnackBarModule,
@@ -38,22 +52,19 @@ import { avatarUsuario } from '../../core/user-avatar';
   template: `
     <div class="page">
       <div class="page-header">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <a mat-icon-button routerLink="/programacion" title="Volver a programación">
+        <div class="page-heading">
+          <a mat-icon-button routerLink="/programacion" aria-label="Volver a programación" title="Volver a programación">
             <mat-icon>arrow_back</mat-icon>
           </a>
           <div>
-            <p class="eyebrow">Cierre de Cohorte</p>
-            <h1>Evaluación, Ausencias y Publicación</h1>
-            <p class="muted">Sesión ID: <span class="mono">{{ sesionId }}</span></p>
+            <p class="eyebrow">Cierre de cohorte</p>
+            <h1>Evaluación, ausencias y publicación</h1>
+            <p class="muted">Sesión: <span class="mono">{{ sesionId }}</span></p>
           </div>
         </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <div class="action-group">
           <button mat-stroked-button (click)="cargarPreparacion()" [disabled]="accionEnProgreso()">
             <mat-icon>refresh</mat-icon> Actualizar
-          </button>
-          <button mat-flat-button color="primary" (click)="consolidar()" [disabled]="accionEnProgreso()">
-            <mat-icon>calculate</mat-icon> Consolidar Notas
           </button>
         </div>
       </div>
@@ -69,19 +80,19 @@ import { avatarUsuario } from '../../core/user-avatar';
         <!-- Estado general -->
         <mat-card class="panel panel-cyan-left">
           <mat-card-header>
-            <mat-card-title>Estado de la Sesión y Visibilidad Estudiantil</mat-card-title>
+            <mat-card-title>Estado de la sesión y visibilidad de resultados</mat-card-title>
             <mat-card-subtitle>
-              Estado Sesión: <span class="chip">{{ p.estado_sesion }}</span>
+              Estado: <span class="chip">{{ etiquetaEstado(p.estado_sesion) }}</span>
               · Publicable:
               <span class="chip" [class.ok]="p.publicable" [class.bad]="!p.publicable">
-                {{ p.publicable ? 'SÍ, LISTA PARA PUBLICAR' : 'CON PENDIENTES' }}
+                {{ p.publicable ? 'Lista para publicar' : 'Con pendientes' }}
               </span>
             </mat-card-subtitle>
           </mat-card-header>
           <mat-card-content style="padding-top: 16px;">
             @if (p.pendientes.length > 0) {
               <div class="warn-box" style="margin-bottom: 12px;">
-                <strong class="mono amber">PENDIENTES PARA PUBLICACIÓN OFICIAL:</strong>
+                <strong class="mono amber">Pendientes para la publicación oficial</strong>
                 <ul style="margin: 6px 0 0 18px;">
                   @for (pend of p.pendientes; track pend) {
                     <li>{{ pend }}</li>
@@ -90,76 +101,96 @@ import { avatarUsuario } from '../../core/user-avatar';
               </div>
             }
 
-            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <div class="action-group">
               <button mat-stroked-button (click)="cambiarVisibilidad(true)" [disabled]="accionEnProgreso()">
-                <mat-icon>visibility</mat-icon> Habilitar Resultados Provisionales
+                <mat-icon>visibility</mat-icon> Mostrar resultados provisionales
               </button>
               <button mat-stroked-button (click)="cambiarVisibilidad(false)" [disabled]="accionEnProgreso()">
-                <mat-icon>visibility_off</mat-icon> Ocultar Provisionales
+                <mat-icon>visibility_off</mat-icon> Ocultar resultados provisionales
               </button>
             </div>
           </mat-card-content>
         </mat-card>
 
-        <!-- Consolidación y Publicación Oficial -->
-        @if (consolidacion(); as c) {
-          <mat-card class="panel panel-green-left">
-            <mat-card-header>
-              <mat-card-title>Revisión Consolidada de Cohorte</mat-card-title>
-              <mat-card-subtitle>
-                SHA256: <span class="mono">{{ c.revision_sha256 }}</span>
-              </mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content style="padding-top: 14px;">
-              @if (filasConsolidacion().length) {
-                <div class="stack stagger" style="margin-bottom: 14px;">
-                  @for (f of filasConsolidacion(); track f['convocatoria_id']) {
-                    <div class="cons-row">
-                      <div>
-                        <strong>{{ f['nombre_estudiante'] || nombreEstudianteId(f['id_estudiante']) }}</strong>
-                        <span class="muted"> · {{ f['grupo_nombre'] }}</span>
-                      </div>
-                      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                        <span class="chip" [class.ok]="f['situacion'] === 'COMPLETA'" [class.bad]="f['situacion'] === 'AUSENTE'">
-                          {{ f['situacion'] || 'PENDIENTE' }}
-                        </span>
-                        <strong class="nota-val mono">{{ f['nota'] ?? '--' }} / 100</strong>
-                        @if (f['id_ausencia']) {
-                          <button mat-stroked-button color="accent" type="button"
-                                  (click)="rectificarAusencia(f['convocatoria_id'], f['id_ausencia'])">
-                            <mat-icon>undo</mat-icon> Rectificar Ausencia
-                          </button>
-                        }
-                        @if (publicacionActiva()) {
-                          <button mat-stroked-button color="primary" type="button"
-                                  (click)="notificarCalificacion(f['convocatoria_id'], f['id_estudiante'])">
-                            <mat-icon>mail</mat-icon> Notificar Nota
-                          </button>
-                        }
-                      </div>
-                    </div>
-                  }
-                </div>
-              }
-
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-                <span class="muted">Publicar congela las notas definitivas y notifica a toda la cohorte por plataforma y correo.</span>
-                <button mat-flat-button color="primary" (click)="publicarOficial(c.revision_sha256)"
-                        [disabled]="!c.publicable || accionEnProgreso()">
-                  <mat-icon>publish</mat-icon> Publicar Calificaciones Oficiales
+        @let revision = consolidacion();
+        <mat-card class="panel panel-green-left">
+          <mat-card-content class="grade-panel">
+            <div class="section-toolbar">
+              <h2>Calificaciones</h2>
+              <div class="action-group">
+                <button mat-stroked-button type="button" (click)="consolidar()" [disabled]="accionEnProgreso()">
+                  <mat-icon>calculate</mat-icon> Consolidar notas
                 </button>
+                @if (revision) {
+                  <button mat-flat-button type="button" color="primary" (click)="publicarOficial(revision.revision_sha256)"
+                    [disabled]="!revision.publicable || accionEnProgreso()">
+                    <mat-icon>publish</mat-icon> Publicar calificaciones
+                  </button>
+                }
               </div>
-            </mat-card-content>
-          </mat-card>
-        }
+            </div>
+            @if (revision && revision.filas?.length) {
+              <div class="list-tools">
+                <label class="list-search">
+                  <span>Buscar calificaciones</span>
+                  <input #buscarNota type="search" placeholder="Estudiante, grupo o estado"
+                    [value]="notas.busqueda()" (input)="notas.buscar(buscarNota.value)" />
+                </label>
+              </div>
+              <div class="grades-scroll" tabindex="0" role="region" aria-label="Tabla de calificaciones">
+                <table class="grades-table" aria-label="Calificaciones de la sesión">
+                  <thead>
+                    <tr><th scope="col">Estudiante</th><th scope="col">Estado</th><th scope="col">Nota</th><th scope="col">Acciones</th></tr>
+                  </thead>
+                  <tbody>
+                    @for (f of notas.visibles(); track f.convocatoria_id) {
+                      <tr>
+                        <th scope="row">
+                          {{ f.nombre_estudiante || nombreEstudianteId(f.id_estudiante) }}
+                          @if (f.grupo_nombre) { <small>{{ f.grupo_nombre }}</small> }
+                        </th>
+                        <td><span class="chip" [class.ok]="f.situacion === 'COMPLETA'" [class.bad]="f.situacion === 'AUSENTE'">
+                          {{ etiquetaEstado(f.situacion || 'PENDIENTE') }}
+                        </span></td>
+                        <td class="nota-val mono">{{ f.nota == null ? '—' : f.nota + ' / 100' }}</td>
+                        <td><div class="action-group">
+                          @if (f.id_ausencia) {
+                            <button mat-stroked-button type="button" [disabled]="accionEnProgreso()"
+                              (click)="rectificarAusencia(f.convocatoria_id, f.id_ausencia)">
+                              <mat-icon>undo</mat-icon> Rectificar ausencia
+                            </button>
+                          }
+                          @if (publicacionActiva()) {
+                            <button mat-stroked-button type="button" [disabled]="accionEnProgreso()"
+                              (click)="notificarCalificacion(f.convocatoria_id, f.id_estudiante)">
+                              <mat-icon>mail</mat-icon> Notificar nota
+                            </button>
+                          }
+                          @if (!f.id_ausencia && !publicacionActiva()) { <span class="muted">—</span> }
+                        </div></td>
+                      </tr>
+                    } @empty {
+                      <tr><td colspan="4">No hay calificaciones que coincidan con la búsqueda.</td></tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <mat-paginator class="list-pager" aria-label="Paginación de calificaciones" showFirstLastButtons
+                [length]="notas.filtrados().length" [pageSize]="notas.tamano()" [pageIndex]="notas.pagina()"
+                [pageSizeOptions]="[10, 25, 50]" (page)="notas.cambiar($event)" />
+            } @else {
+              <p class="muted">{{ revision ? 'La sesión aún no tiene calificaciones para mostrar.' : 'Consolida las notas para revisar la cohorte.' }}</p>
+            }
+          </mat-card-content>
+        </mat-card>
 
         <!-- Detalle Técnico de Intento -->
         @if (resultadoSeleccionado(); as res) {
           <mat-card class="panel panel-amber-left">
             <mat-card-header>
-              <mat-card-title>Resultado Técnico — Intento #{{ res.id_intento }}</mat-card-title>
+              <mat-card-title>Resultado técnico · Intento {{ res.id_intento }}</mat-card-title>
               <mat-card-subtitle>
-                Nota: <strong class="nota-val">{{ res.nota_final }} / 100</strong> · Modalidad: {{ res.modalidad }} · Ámbito: {{ res.ambito }}
+                Nota: <strong class="nota-val">{{ res.nota_final }} / 100</strong> · Modalidad: {{ etiquetaEstado(res.modalidad) }} · Ámbito: {{ etiquetaEstado(res.ambito) }}
               </mat-card-subtitle>
             </mat-card-header>
             <mat-card-content style="padding-top: 12px;">
@@ -177,11 +208,18 @@ import { avatarUsuario } from '../../core/user-avatar';
         <!-- Participantes Convocados -->
         <mat-card class="panel">
           <mat-card-header>
-            <mat-card-title>Estudiantes Convocados ({{ p.convocatorias.length }})</mat-card-title>
+            <mat-card-title>Estudiantes convocados ({{ p.convocatorias.length }})</mat-card-title>
           </mat-card-header>
           <mat-card-content style="padding-top: 16px;">
-            <div class="stack stagger">
-              @for (conv of p.convocatorias; track conv.id_convocatoria) {
+            <div class="list-tools">
+              <label class="list-search">
+                <span>Buscar estudiantes convocados</span>
+                <input #buscarConvocado type="search" placeholder="Nombre, correo o estado"
+                  [value]="convocados.busqueda()" (input)="convocados.buscar(buscarConvocado.value)" />
+              </label>
+            </div>
+            <div class="stack">
+              @for (conv of convocados.visibles(); track conv.id_convocatoria) {
                 <div class="convocatoria-row">
                   <div class="user-inline">
                     <img class="game-avatar" [src]="avatarEstudianteId(conv.id_estudiante)" [alt]="nombreEstudianteId(conv.id_estudiante)" />
@@ -190,7 +228,7 @@ import { avatarUsuario } from '../../core/user-avatar';
                       <div class="mono muted" style="font-size: 11px;">Convocatoria: {{ conv.id_convocatoria }}</div>
                       <div style="margin-top:6px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                         <span class="chip" [class.ok]="conv.estado === 'ACTIVA'" [class.bad]="conv.estado === 'RETIRADA'">
-                          {{ conv.estado }}
+                          {{ etiquetaEstado(conv.estado) }}
                         </span>
                         @if (conv.id_participacion) {
                           <span class="chip">Participación #{{ conv.id_participacion }}</span>
@@ -199,24 +237,24 @@ import { avatarUsuario } from '../../core/user-avatar';
                     </div>
                   </div>
 
-                  <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                  <div class="action-group participant-actions">
                     @for (intento of conv.intentos; track intento.id_intento) {
                       <button mat-stroked-button color="primary" (click)="verResultadoTecnico(intento.id_intento)" [disabled]="accionEnProgreso()">
-                        <mat-icon>analytics</mat-icon> Intento #{{ intento.numero }} ({{ intento.estado }})
+                        <mat-icon>analytics</mat-icon> Intento {{ intento.numero }} ({{ etiquetaEstado(intento.estado) }})
                       </button>
                     }
 
                     @if (conv.id_participacion && p.estado_sesion !== 'FINALIZADO') {
                       <button mat-stroked-button color="accent" (click)="autorizarRepeticion(conv.id_estudiante)"
                               [disabled]="accionEnProgreso()" title="Autorizar un intento adicional excepcional">
-                        <mat-icon>replay</mat-icon> Autorizar Repetición
+                        <mat-icon>replay</mat-icon> Autorizar repetición
                       </button>
                     }
 
                     @if (conv.intentos.length === 0) {
                       @if (p.estado_sesion === 'FINALIZADO') {
                         <button mat-button color="warn" (click)="marcarAusencia(conv.id_convocatoria)" [disabled]="accionEnProgreso()">
-                          <mat-icon>person_off</mat-icon> Marcar Ausencia
+                          <mat-icon>person_off</mat-icon> Marcar ausencia
                         </button>
                       } @else {
                         <span class="chip" title="Las ausencias solo pueden confirmarse cuando la sesión finalice">
@@ -226,23 +264,48 @@ import { avatarUsuario } from '../../core/user-avatar';
                     }
                   </div>
                 </div>
+              } @empty {
+                <p class="muted">No hay estudiantes convocados que coincidan con la búsqueda.</p>
               }
             </div>
+            <mat-paginator class="list-pager" aria-label="Paginación de estudiantes convocados" showFirstLastButtons
+              [length]="convocados.filtrados().length" [pageSize]="convocados.tamano()" [pageIndex]="convocados.pagina()"
+              [pageSizeOptions]="[10, 25, 50]" (page)="convocados.cambiar($event)" />
           </mat-card-content>
         </mat-card>
       }
     </div>
   `,
   styles: [`
-    .convocatoria-row, .cons-row {
-      display: flex;
-      justify-content: space-between;
+    .convocatoria-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       align-items: center;
       padding: 12px 16px;
       border: 1px solid var(--line);
       background: #0b1017;
       gap: 14px;
-      flex-wrap: wrap;
+    }
+    .convocatoria-row .user-inline { min-width: 0; overflow-wrap: anywhere; }
+    .participant-actions { justify-content: flex-end; }
+    .grade-panel { padding-top: 16px; }
+    .grade-panel h2 { margin: 0; }
+    .grades-scroll {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      scrollbar-color: var(--line-strong) transparent;
+    }
+    .grades-table { width: 100%; min-width: 570px; border-collapse: collapse; text-align: start; }
+    .grades-table :is(th, td) { text-align: start; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+    .grades-table thead { background: var(--surface-raised); color: var(--text); }
+    .grades-table tbody tr:nth-child(even) { background: #1020305e; }
+    .grades-table tbody tr:last-child :is(th, td) { border-bottom: 0; }
+    .grades-table small { display: block; margin-top: 3px; color: var(--muted); }
+    .grades-table .nota-val { white-space: nowrap; }
+    @media (max-width: 730px) {
+      .convocatoria-row { grid-template-columns: minmax(0, 1fr); }
+      .participant-actions { justify-content: flex-start; }
     }
     .est-title { font-weight: 700; color: var(--text); font-size: 15px; }
     .nota-val { color: var(--green); font-size: 15px; font-weight: 700; }
@@ -268,6 +331,18 @@ export class EvaluacionSesionComponent implements OnInit {
   readonly publicacionActiva = signal<boolean>(false);
   readonly resultadoSeleccionado = signal<ResultadoTecnicoRespuesta | null>(null);
   readonly estudiantes = signal<EstudianteDisponibleItem[]>([]);
+  private readonly estudiantesPorId = computed(() =>
+    new Map(this.estudiantes().map((estudiante) => [String(estudiante.id_usuario), estudiante])),
+  );
+  readonly etiquetaEstado = etiquetaEstado;
+  readonly notas = new ListaPaginada(
+    () => (this.consolidacion()?.filas ?? []) as FilaCalificacion[],
+    (fila) => `${fila.nombre_estudiante ?? ''} ${this.nombreEstudianteId(fila.id_estudiante)} ${fila.grupo_nombre ?? ''} ${fila.situacion ?? 'Pendiente'}`,
+  );
+  readonly convocados = new ListaPaginada(
+    () => this.preparacion()?.convocatorias ?? [] as ConvocatoriaPreparacionRespuesta[],
+    (fila) => `${this.nombreEstudianteId(fila.id_estudiante)} ${fila.estado}`,
+  );
 
   readonly cargando = signal<boolean>(true);
   readonly accionEnProgreso = signal<boolean>(false);
@@ -310,18 +385,13 @@ export class EvaluacionSesionComponent implements OnInit {
     }
   }
 
-  filasConsolidacion(): Record<string, any>[] {
-    const c = this.consolidacion();
-    return (c?.filas as Record<string, any>[]) ?? [];
-  }
-
   nombreEstudianteId(idEst: number | string): string {
-    const e = this.estudiantes().find((x) => String(x.id_usuario) === String(idEst));
+    const e = this.estudiantesPorId().get(String(idEst));
     return e ? `${e.nombre} (${e.correo})` : `Estudiante #${idEst}`;
   }
 
   avatarEstudianteId(idEst: number | string): string {
-    const e = this.estudiantes().find((x) => String(x.id_usuario) === String(idEst));
+    const e = this.estudiantesPorId().get(String(idEst));
     return avatarUsuario({
       id_usuario: e?.id_usuario ?? idEst,
       nombre: e?.nombre,
@@ -367,7 +437,7 @@ export class EvaluacionSesionComponent implements OnInit {
   async publicarOficial(revisionSha256: string): Promise<void> {
     const ok = await this.uiDialog.confirmar({
       eyebrow: 'Acta Oficial',
-      titulo: 'Publicar Calificaciones Oficiales',
+      titulo: 'Publicar calificaciones oficiales',
       mensaje: 'Publicar congela las notas definitivas de la sesión, habilita el reporte oficial y notifica automáticamente a toda la cohorte.',
       botonConfirmar: 'Publicar Acta Oficial',
       botonCancelar: 'Cancelar',
@@ -426,11 +496,11 @@ export class EvaluacionSesionComponent implements OnInit {
   async rectificarAusencia(convocatoriaId: string, idConfirmacion: string): Promise<void> {
     const motivo = await this.uiDialog.solicitarTexto({
       eyebrow: 'Rectificación Académica',
-      titulo: 'Anular o Rectificar Ausencia',
+      titulo: 'Anular o Rectificar ausencia',
       mensaje: 'Indica el motivo académico por el cual se rectifica o anula la ausencia registrada.',
       etiquetaCampo: 'Motivo de rectificación',
       placeholder: 'Ej: Excusa médica o reprogramación autorizada.',
-      botonConfirmar: 'Rectificar Ausencia',
+      botonConfirmar: 'Rectificar ausencia',
       tono: 'amber',
     });
     if (!motivo) return;
@@ -466,7 +536,7 @@ export class EvaluacionSesionComponent implements OnInit {
   }
 
   async notificarCalificacion(convocatoriaId: string, idEstudianteInt: number): Promise<void> {
-    const est = this.estudiantes().find((x) => x.id_usuario === idEstudianteInt);
+    const est = this.estudiantesPorId().get(String(idEstudianteInt));
     if (!est?.uuid_scheduling) {
       this.snack.open('El estudiante ya recibió la notificación automática al publicar.', 'OK', { duration: 3000 });
       return;

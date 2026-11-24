@@ -8,12 +8,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatPaginatorModule } from '@angular/material/paginator';
 import { firstValueFrom } from 'rxjs';
 import { CasesService } from '../../core/cases.service';
 import { AuthService } from '../../core/auth.service';
 import { CasoPayload, CasoResumenResponse } from '../../core/api.models';
 import { mensajeError } from '../../core/api-error';
 import { UiDialogService } from '../../core/ui-dialog.service';
+import { ListaPaginada } from '../../core/lista-paginada';
 
 @Component({
   selector: 'app-casos-lista',
@@ -28,6 +30,7 @@ import { UiDialogService } from '../../core/ui-dialog.service';
     MatFormFieldModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    MatPaginatorModule,
   ],
   templateUrl: './casos-lista.component.html',
   styleUrl: './casos-lista.component.scss',
@@ -39,6 +42,10 @@ export class CasosListaComponent implements OnInit {
   readonly auth = inject(AuthService);
 
   readonly casos = signal<CasoResumenResponse[]>([]);
+  readonly listaCasos = new ListaPaginada(
+    () => this.casos(), (caso) => `${caso.nombre} ${caso.estado} ${caso.numero}`,
+  );
+  readonly eliminando = signal(false);
   readonly resumen = computed(() => {
     const cantidades = { PUBLICADO: 0, BORRADOR: 0, ARCHIVADO: 0 };
     for (const { estado } of this.casos()) {
@@ -98,7 +105,7 @@ export class CasosListaComponent implements OnInit {
         this.nuevoNombre = '';
         this.nuevoDesarrollo = '';
         this.nuevoContexto = '';
-        this.mensajeExito.set('Caso creado en BORRADOR. Redirigiendo al editor para configurar escenarios y rúbrica...');
+        this.mensajeExito.set('Caso creado como borrador. Abriendo el editor…');
         void this.router.navigate(['/casos', res.version_id, 'editar']);
       },
       error: (err) => {
@@ -108,12 +115,34 @@ export class CasosListaComponent implements OnInit {
     });
   }
 
+  async eliminarBorrador(caso: CasoResumenResponse): Promise<void> {
+    if (this.eliminando()) return;
+    this.eliminando.set(true);
+    try {
+      if (!await this.uiDialog.confirmar({
+        titulo: '¿Eliminar este borrador?',
+        mensaje: `Se eliminará la versión ${caso.numero} de «${caso.nombre}». Esta acción es permanente.`,
+        botonConfirmar: 'Eliminar borrador',
+        tono: 'warn',
+      })) return;
+      this.error.set(null);
+      this.mensajeExito.set(null);
+      await firstValueFrom(this.casesService.eliminarBorrador(caso.version_id));
+      this.casos.update((filas) => filas.filter((fila) => fila.version_id !== caso.version_id));
+      this.mensajeExito.set('Borrador eliminado.');
+    } catch (err) {
+      this.error.set(mensajeError(err));
+    } finally {
+      this.eliminando.set(false);
+    }
+  }
+
   async publicar(versionId: string): Promise<void> {
     const ok = await this.uiDialog.confirmar({
-      eyebrow: 'Validación y Publicación',
-      titulo: 'Publicar Versión del Caso',
+      eyebrow: 'Validación y publicación',
+      titulo: 'Publicar versión del caso',
       mensaje: '¿Deseas validar el caso, completar su recorrido si falta y publicarlo? Una vez publicada la versión quedará inmutable y lista para programar sesiones.',
-      botonConfirmar: 'Publicar Caso',
+      botonConfirmar: 'Publicar caso',
       botonCancelar: 'Cancelar',
       tono: 'green',
     });
@@ -128,10 +157,10 @@ export class CasosListaComponent implements OnInit {
       const msg = mensajeError(err);
       this.error.set(msg);
       const irEditar = await this.uiDialog.confirmar({
-        eyebrow: 'Publicación Incompleta',
-        titulo: 'Faltan Datos Obligatorios',
+        eyebrow: 'Publicación incompleta',
+        titulo: 'Faltan datos obligatorios',
         mensaje: `${msg}\n\n¿Deseas abrir el editor para completar la rúbrica, justificaciones o escenarios?`,
-        botonConfirmar: 'Ir al Editor',
+        botonConfirmar: 'Ir al editor',
         botonCancelar: 'Cerrar',
         tono: 'amber',
       });
@@ -143,10 +172,10 @@ export class CasosListaComponent implements OnInit {
 
   async archivar(versionId: string): Promise<void> {
     const ok = await this.uiDialog.confirmar({
-      eyebrow: 'Gestión de Versiones // Casos',
-      titulo: 'Archivar Caso',
+      eyebrow: 'Gestión de casos',
+      titulo: 'Archivar caso',
       mensaje: '¿Deseas archivar esta versión del caso? Dejará de mostrarse como versión activa para nuevas sesiones, y podrás republicarla como nueva versión cuando quieras.',
-      botonConfirmar: 'Archivar Versión',
+      botonConfirmar: 'Archivar versión',
       botonCancelar: 'Cancelar',
       tono: 'warn',
     });
@@ -155,7 +184,7 @@ export class CasosListaComponent implements OnInit {
     this.mensajeExito.set(null);
     this.casesService.archivar(versionId).subscribe({
       next: () => {
-        this.mensajeExito.set('Caso archivado. Puedes volver a publicarlo usando "Republicar" o "Nueva Versión".');
+        this.mensajeExito.set('Caso archivado. Puedes usar «Republicar» o «Nueva versión».');
         this.cargarCasos();
       },
       error: (err) => this.error.set(mensajeError(err)),
@@ -164,10 +193,10 @@ export class CasosListaComponent implements OnInit {
 
   async republicar(versionId: string): Promise<void> {
     const ok = await this.uiDialog.confirmar({
-      eyebrow: 'Reactivación de Caso',
-      titulo: 'Republicar como Nueva Versión Activa',
+      eyebrow: 'Reactivación del caso',
+      titulo: 'Republicar como nueva versión',
       mensaje: 'Se creará y publicará una nueva versión (v+1) con los mismos escenarios, rúbrica y grafo, conservando intacto el histórico de la versión archivada.',
-      botonConfirmar: 'Republicar Ahora',
+      botonConfirmar: 'Republicar',
       botonCancelar: 'Cancelar',
       tono: 'green',
     });
@@ -185,10 +214,10 @@ export class CasosListaComponent implements OnInit {
 
   async clonarComoBorrador(versionId: string): Promise<void> {
     const ok = await this.uiDialog.confirmar({
-      eyebrow: 'Versionado de Casos',
-      titulo: 'Crear Nueva Versión en Borrador',
+      eyebrow: 'Versiones del caso',
+      titulo: 'Crear una versión en borrador',
       mensaje: 'Se creará un borrador editable (v+1) copiando escenarios, opciones y rúbrica de esta versión para modificarlo y volver a publicar.',
-      botonConfirmar: 'Crear Borrador y Editar',
+      botonConfirmar: 'Crear borrador y editar',
       botonCancelar: 'Cancelar',
       tono: 'cyan',
     });

@@ -72,6 +72,9 @@ class CasoService:
         self._repositorio.actualizar_estado(version)
         return version
 
+    def eliminar_borrador(self, docente_creador_id: uuid.UUID, version_id: uuid.UUID) -> None:
+        self._repositorio.eliminar_borrador(version_id, docente_creador_id)
+
     def publicar(self, docente_creador_id: uuid.UUID, version_id: uuid.UUID) -> VersionCaso:
         """Valida un borrador existente con el CoR y lo pasa a PUBLICADO.
 

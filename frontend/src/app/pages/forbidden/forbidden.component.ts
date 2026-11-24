@@ -66,7 +66,6 @@ import { AuthService } from '../../core/auth.service';
       margin: 0;
       font-family: var(--display);
       font-size: 38px;
-      text-transform: uppercase;
       color: var(--text);
     }
     .warn-copy {

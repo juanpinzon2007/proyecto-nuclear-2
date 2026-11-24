@@ -1,4 +1,5 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -6,14 +7,16 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
-import { firstValueFrom } from 'rxjs';
+import { EMPTY, catchError, firstValueFrom, switchMap, tap, timer } from 'rxjs';
 import { mensajeError } from '../../core/api-error';
 import {
   DocenteBreve,
   EspacioConAutorizaciones,
+  PaginaUsuariosRespuesta,
   PerfilPermisosDocentesRespuesta,
   Rol,
   UsuarioGestionItem,
@@ -21,6 +24,7 @@ import {
 import { IdentityService } from '../../core/identity.service';
 import { SchedulingService } from '../../core/scheduling.service';
 import { avatarUsuario } from '../../core/user-avatar';
+import { etiquetaEstado } from '../../core/lista-paginada';
 
 @Component({
   selector: 'app-docentes',
@@ -31,6 +35,7 @@ import { avatarUsuario } from '../../core/user-avatar';
     MatTabsModule,
     MatFormFieldModule,
     MatInputModule,
+    MatPaginatorModule,
     MatSelectModule,
     MatCheckboxModule,
     MatButtonModule,
@@ -41,40 +46,40 @@ import { avatarUsuario } from '../../core/user-avatar';
     <div class="page role-dashboard" [attr.aria-busy]="cargando()">
       <header class="panel dashboard-hero dashboard-cover-administracion">
         <div class="dashboard-copy">
-          <p class="eyebrow">Consola de administración</p>
           <h1>Administración</h1>
-          <p class="dashboard-description">Gestiona las cuentas, sus permisos y las autorizaciones de los espacios académicos.</p>
+          <p class="dashboard-description">Gestiona las cuentas, los permisos y el acceso de los docentes a los espacios académicos.</p>
           <div class="dashboard-actions">
             <button mat-stroked-button type="button" (click)="cargarTodo()" [disabled]="cargando()">
-              <mat-icon aria-hidden="true">refresh</mat-icon> Actualizar datos
+              <mat-icon aria-hidden="true">refresh</mat-icon> {{ cargando() ? 'Actualizando…' : 'Actualizar datos' }}
             </button>
           </div>
         </div>
       </header>
 
-      <dl class="dashboard-summary" aria-label="Resumen de administración">
+      @let resumenCargando = cargando() && !directorio();
+      <dl class="dashboard-summary" aria-label="Resumen de administración" [attr.aria-busy]="resumenCargando">
         <div class="dashboard-stat">
           <dt><span class="dashboard-stat-icon"><mat-icon aria-hidden="true">groups</mat-icon></span> Usuarios</dt>
-          <dd>{{ usuarios().length }}</dd>
+          <dd>{{ resumenCargando ? '—' : (directorio()?.total ?? 0) }}</dd>
         </div>
         <div class="dashboard-stat dashboard-tone-green">
           <dt><span class="dashboard-stat-icon"><mat-icon aria-hidden="true">how_to_reg</mat-icon></span> Cuentas activas</dt>
-          <dd>{{ cuentasActivas() }}</dd>
+          <dd>{{ resumenCargando ? '—' : cuentasActivas() }}</dd>
         </div>
         <div class="dashboard-stat dashboard-tone-amber">
           <dt><span class="dashboard-stat-icon"><mat-icon aria-hidden="true">school</mat-icon></span> Espacios</dt>
-          <dd>{{ espacios().length }}</dd>
+          <dd>{{ resumenCargando ? '—' : espacios().length }}</dd>
         </div>
       </dl>
 
-      <mat-tab-group animationDuration="0ms">
-        <!-- TAB 1: Usuarios, Roles y Permisos Individuales -->
-        <mat-tab label="Usuarios & Permisos">
+      <mat-tab-group animationDuration="0ms" [disablePagination]="true">
+        <!-- TAB 1: Usuarios, Roles y Permisos individuales -->
+        <mat-tab label="Usuarios y permisos">
           <div class="tab-grid">
             <mat-card class="panel panel-card dashboard-enter" id="admin-user-editor">
               <mat-card-header>
-                <mat-card-title>{{ usuarioEditando() ? 'Editar Usuario #' + usuarioEditando()!.id_usuario : 'Registrar Nueva Cuenta' }}</mat-card-title>
-                <mat-card-subtitle>Docentes, Estudiantes y Administradores con vínculo CASES/SCHEDULING</mat-card-subtitle>
+                <mat-card-title>{{ usuarioEditando() ? 'Editar usuario #' + usuarioEditando()!.id_usuario : 'Registrar cuenta' }}</mat-card-title>
+                <mat-card-subtitle>Cuentas de docentes, estudiantes y administradores</mat-card-subtitle>
               </mat-card-header>
               <mat-card-content>
                 <form class="form-stack" (ngSubmit)="guardarUsuario()">
@@ -91,9 +96,9 @@ import { avatarUsuario } from '../../core/user-avatar';
                   <mat-form-field appearance="outline">
                     <mat-label>Rol asignado</mat-label>
                     <mat-select [(ngModel)]="formUser.rol" name="rol" required>
-                      <mat-option value="DOCENTE">DOCENTE</mat-option>
-                      <mat-option value="ESTUDIANTE">ESTUDIANTE</mat-option>
-                      <mat-option value="ADMINISTRADOR">ADMINISTRADOR</mat-option>
+                      <mat-option value="DOCENTE">Docente</mat-option>
+                      <mat-option value="ESTUDIANTE">Estudiante</mat-option>
+                      <mat-option value="ADMINISTRADOR">Administrador</mat-option>
                     </mat-select>
                   </mat-form-field>
 
@@ -118,12 +123,14 @@ import { avatarUsuario } from '../../core/user-avatar';
                   <mat-checkbox [(ngModel)]="formUser.activo" name="activo">Cuenta activa</mat-checkbox>
 
                   @if (permisosDisponibles().length) {
-                    <div class="perm-box">
-                      <span class="perm-label">Excepciones de permisos individuales (sobreescriben el rol):</span>
+                    <div class="perm-box" role="group" aria-labelledby="permisos-individuales">
+                      <span class="perm-label" id="permisos-individuales">Permisos individuales</span>
+                      <p class="perm-help">Conceder o revocar un permiso tiene prioridad sobre el rol.</p>
                       @for (p of permisosDisponibles(); track p) {
                         <div class="perm-row">
-                          <span class="perm-code">{{ p }}</span>
+                          <label class="perm-name" [for]="'perm_' + p">{{ etiquetaEstado(p) }}</label>
                           <select class="perm-select"
+                                  [id]="'perm_' + p"
                                   [ngModel]="estadoPermisoIndividual(p)"
                                   (ngModelChange)="cambiarPermisoIndividual(p, $event)"
                                   [name]="'perm_' + p">
@@ -136,7 +143,7 @@ import { avatarUsuario } from '../../core/user-avatar';
                     </div>
                   }
 
-                  <div class="actions-row">
+                  <div class="action-group form-actions">
                     <button mat-flat-button color="primary" type="submit" [disabled]="guardando()">
                       <mat-icon>{{ usuarioEditando() ? 'save' : 'person_add' }}</mat-icon>
                       {{ usuarioEditando() ? 'Guardar cambios' : 'Crear usuario' }}
@@ -150,13 +157,22 @@ import { avatarUsuario } from '../../core/user-avatar';
             </mat-card>
 
             <section class="directory" aria-labelledby="directory-title">
+              @let totalFiltrado = directorio()?.filtrados ?? 0;
               <div class="dashboard-heading">
                 <h2 id="directory-title">Directorio de usuarios</h2>
-                <span>{{ usuarios().length }} {{ usuarios().length === 1 ? 'cuenta' : 'cuentas' }}</span>
+                <span>{{ totalFiltrado }} {{ totalFiltrado === 1 ? 'resultado' : 'resultados' }}</span>
               </div>
 
-              <div class="dashboard-grid">
+              <div class="list-tools">
+                <label class="list-search">
+                  <span>Buscar usuarios</span>
+                  <input #buscarUsuario type="search" maxlength="254" placeholder="Nombre o correo"
+                    [value]="solicitudDirectorio().buscar" (input)="buscarUsuarios(buscarUsuario.value)" />
+                </label>
+              </div>
+              <div class="dashboard-grid" [attr.aria-busy]="cargandoDirectorio()">
                 @for (u of usuarios(); track u.id_usuario) {
+                  @let necesitaVinculo = u.rol !== 'ADMINISTRADOR' && (!u.identidad_cases || !u.identidad_scheduling);
                   <article class="panel dashboard-card directory-card"
                     [class.dashboard-tone-green]="u.rol === 'DOCENTE'"
                     [class.dashboard-tone-amber]="u.rol === 'ADMINISTRADOR'"
@@ -164,7 +180,12 @@ import { avatarUsuario } from '../../core/user-avatar';
                     <div class="dashboard-card-content">
                       <div class="dashboard-card-top">
                         <img class="directory-avatar" [src]="avatarUsuario({ id_usuario: u.id_usuario, nombre: u.nombre, correo: u.correo, rol: u.rol })" alt="" width="46" height="46" />
-                        <span class="dashboard-badge">{{ u.rol }}</span>
+                        <div class="directory-badges">
+                          <span class="dashboard-badge">{{ etiquetaEstado(u.rol) }}</span>
+                          <span class="dashboard-badge" [class.dashboard-tone-amber]="!u.activo">
+                            {{ u.activo ? 'Activa' : 'Inactiva' }}
+                          </span>
+                        </div>
                       </div>
 
                       <h3 [id]="'admin-user-' + u.id_usuario">{{ u.nombre }}</h3>
@@ -176,7 +197,7 @@ import { avatarUsuario } from '../../core/user-avatar';
                           @if (u.permisos_efectivos.length) {
                             <div class="chips-inline">
                               @for (p of u.permisos_efectivos; track p) {
-                                <span class="mini-chip">{{ p }}</span>
+                                <span class="mini-chip">{{ etiquetaEstado(p) }}</span>
                               }
                             </div>
                           } @else {
@@ -187,13 +208,11 @@ import { avatarUsuario } from '../../core/user-avatar';
                         <div>
                           <h4>Vínculos académicos</h4>
                           @if (u.identidad_cases && u.identidad_scheduling) {
-                            <span class="dashboard-badge dashboard-tone-green">CASES + SCHEDULING</span>
+                            <span class="dashboard-badge dashboard-tone-green">Cuenta vinculada</span>
                           } @else if (u.rol === 'ADMINISTRADOR') {
                             <p class="cell-sub">No aplica</p>
                           } @else {
-                            <button mat-stroked-button type="button" (click)="generarIdentidades(u)">
-                              <mat-icon aria-hidden="true">link</mat-icon> Generar UUID
-                            </button>
+                            <p class="cell-sub">Pendiente de vincular</p>
                           }
                         </div>
 
@@ -209,29 +228,38 @@ import { avatarUsuario } from '../../core/user-avatar';
                       <button mat-stroked-button type="button" (click)="editarUsuario(u)">
                         <mat-icon aria-hidden="true">edit</mat-icon> Editar
                       </button>
+                      @if (necesitaVinculo) {
+                        <button mat-button type="button" (click)="generarIdentidades(u)">
+                          <mat-icon aria-hidden="true">link</mat-icon> Vincular
+                        </button>
+                      }
                       <button mat-button type="button" (click)="alternarEstado(u)"
                         [class.btn-active]="u.activo" [class.btn-inactive]="!u.activo"
                         [attr.aria-label]="(u.activo ? 'Desactivar cuenta de ' : 'Activar cuenta de ') + u.nombre">
                         <mat-icon aria-hidden="true">{{ u.activo ? 'toggle_on' : 'toggle_off' }}</mat-icon>
-                        {{ u.activo ? 'Activa' : 'Inactiva' }}
+                        {{ u.activo ? 'Desactivar' : 'Activar' }}
                       </button>
                     </div>
                   </article>
                 } @empty {
-                  @if (!cargando()) {
-                    <div class="panel dashboard-empty"><p>No hay cuentas para mostrar.</p></div>
-                  }
+                  <div class="panel dashboard-empty" role="status">
+                    {{ cargandoDirectorio() ? 'Cargando usuarios…' : 'No hay cuentas que coincidan con la búsqueda.' }}
+                  </div>
                 }
               </div>
+              <mat-paginator class="list-pager" aria-label="Paginación de usuarios" showFirstLastButtons
+                [length]="directorio()?.filtrados ?? 0" [pageIndex]="directorio()?.pagina ?? 0"
+                [pageSize]="solicitudDirectorio().tamano" [pageSizeOptions]="[12, 24, 48]"
+                [disabled]="cargandoDirectorio()" (page)="cambiarPaginaUsuarios($event)" />
             </section>
           </div>
         </mat-tab>
 
         <!-- TAB 2: Perfil Global del Rol DOCENTE -->
-        <mat-tab label="Permisos Globales Docentes">
+        <mat-tab label="Permisos del rol docente">
           <mat-card class="panel panel-card dashboard-enter">
             <mat-card-header>
-              <mat-card-title>Perfil Base del Rol DOCENTE</mat-card-title>
+              <mat-card-title>Perfil del rol docente</mat-card-title>
               <mat-card-subtitle>
                 Aplica por defecto a todos los docentes ({{ perfilDocentes()?.docentes_afectados ?? 0 }} cuentas),
                 salvo excepciones individuales asignadas en la pestaña anterior.
@@ -247,7 +275,7 @@ import { avatarUsuario } from '../../core/user-avatar';
                     </mat-checkbox>
                   }
                 </div>
-                <div class="actions-row" style="margin-top: 16px;">
+                <div class="action-group form-actions profile-actions">
                   <button mat-flat-button color="primary" (click)="guardarPerfilGlobal()" [disabled]="guardando()">
                     <mat-icon>verified_user</mat-icon> Guardar permisos globales docentes
                   </button>
@@ -257,12 +285,12 @@ import { avatarUsuario } from '../../core/user-avatar';
           </mat-card>
         </mat-tab>
 
-        <!-- TAB 3: Espacios Académicos -->
-        <mat-tab label="Espacios Académicos">
+        <!-- TAB 3: Espacios académicos -->
+        <mat-tab label="Espacios académicos">
           <div class="tab-grid">
             <mat-card class="panel panel-card dashboard-enter">
               <mat-card-header>
-                <mat-card-title>Crear Espacio Académico</mat-card-title>
+                <mat-card-title>Crear espacio académico</mat-card-title>
                 <mat-card-subtitle>Registra asignaturas o módulos y autoriza docentes titulares</mat-card-subtitle>
               </mat-card-header>
               <mat-card-content>
@@ -348,27 +376,34 @@ import { avatarUsuario } from '../../core/user-avatar';
     .tab-grid .panel-card { margin-top: 0; }
     #admin-user-editor { scroll-margin-top: 87px; }
     .form-stack { display: flex; flex-direction: column; gap: 10px; padding-top: 16px; }
-    .actions-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .profile-actions { margin-top: 16px; }
     .perm-box {
       display: grid;
-      gap: 8px;
+      container-type: inline-size;
+      gap: 9px;
       padding: 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #0a1422;
     }
-    .perm-label { font-family: var(--mono); font-size: 11px; color: var(--cyan-soft); font-weight: 600; }
-    .perm-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .perm-code { color: var(--text); font: 12px var(--mono); overflow-wrap: anywhere; }
+    .perm-label { color: var(--cyan-soft); font-size: var(--type-control); font-weight: 650; }
+    .perm-help { margin: -5px 0 3px; color: var(--muted); font-size: var(--type-small); }
+    .perm-row { display: grid; grid-template-columns: minmax(0, 1fr) 8.75rem; align-items: center; gap: 6px 10px; }
+    .perm-name { font-size: var(--type-small); line-height: 1.35; overflow-wrap: anywhere; }
+    .perm-row .perm-select { width: 100%; }
+    @container (max-width: 240px) {
+      .perm-row { grid-template-columns: minmax(0, 1fr); }
+    }
     .perm-select {
       min-width: 0;
       max-width: 100%;
+      min-height: var(--button-min-height);
       padding: 8px 10px;
-      border: 1px solid #547e9e;
-      border-radius: 8px;
+      border: 1px solid var(--control-line);
+      border-radius: var(--control-radius);
       background: #0a1422;
       color: var(--text);
-      font: 13px var(--mono);
+      font: 500 var(--type-small) var(--body);
     }
     .directory-avatar {
       width: 46px;
@@ -379,6 +414,8 @@ import { avatarUsuario } from '../../core/user-avatar';
       background: #0a1422;
     }
     .directory-card h3 { margin-bottom: 5px; }
+    .directory-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+    .directory-card .dashboard-card-actions > button { flex: 1 1 auto; }
     .directory-email, .cell-sub { margin: 0; color: #acbfd4; font-size: 13px; }
     .directory-details { display: grid; justify-items: start; gap: 12px; margin-top: 15px; }
     .directory-details h4 { margin: 0 0 6px; color: #c5d6e9; font: 13px var(--mono); }
@@ -397,7 +434,7 @@ import { avatarUsuario } from '../../core/user-avatar';
     .role-hint { font-size: 12px; color: var(--cyan-soft); background: #123647; border-radius: 7px; padding: 8px 10px; line-height: 1.45; }
     .perm-list { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; }
     .space-docentes { margin-top: 9px; }
-    .grant-box .perm-select { flex: 1 1 140px; margin: 2px 5px 2px 0; }
+    .grant-box .perm-select { flex: 1 1 140px; }
     @media (max-width: 960px) { .tab-grid { grid-template-columns: minmax(0, 1fr); } }
     @media (max-width: 540px) { .grant-box button { flex: 1 1 auto; } }
   `],
@@ -406,12 +443,18 @@ export class DocentesComponent implements OnInit {
   private readonly identity = inject(IdentityService);
   private readonly scheduling = inject(SchedulingService);
   private readonly snack = inject(MatSnackBar);
+  private readonly destroyRef = inject(DestroyRef);
   readonly avatarUsuario = avatarUsuario;
+  readonly etiquetaEstado = etiquetaEstado;
 
   readonly cargando = signal(false);
   readonly guardando = signal(false);
-  readonly usuarios = signal<UsuarioGestionItem[]>([]);
-  readonly cuentasActivas = computed(() => this.usuarios().filter((usuario) => usuario.activo).length);
+  readonly directorio = signal<PaginaUsuariosRespuesta | null>(null);
+  readonly usuarios = computed(() => this.directorio()?.usuarios ?? []);
+  readonly cuentasActivas = computed(() => this.directorio()?.activos ?? 0);
+  readonly cargandoDirectorio = signal(true);
+  readonly solicitudDirectorio = signal({ pagina: 0, tamano: 12, buscar: '' });
+  private readonly cambiosDirectorio = toObservable(this.solicitudDirectorio);
   readonly permisosDisponibles = signal<string[]>([]);
   readonly perfilDocentes = signal<PerfilPermisosDocentesRespuesta | null>(null);
   readonly espacios = signal<EspacioConAutorizaciones[]>([]);
@@ -434,20 +477,44 @@ export class DocentesComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    this.cambiosDirectorio.pipe(
+      tap(() => this.cargandoDirectorio.set(true)),
+      switchMap(({ pagina, tamano, buscar }) => timer(buscar ? 200 : 0).pipe(
+        switchMap(() => this.identity.paginarUsuarios(pagina, tamano, buscar)),
+        catchError((error) => {
+          this.cargandoDirectorio.set(false);
+          this.snack.open(mensajeError(error), 'Cerrar', { duration: 4500 });
+          return EMPTY;
+        }),
+      )),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe((pagina) => {
+      this.directorio.set(pagina);
+      this.permisosDisponibles.set(pagina.permisos_disponibles);
+      this.cargandoDirectorio.set(false);
+    });
     void this.cargarTodo();
+  }
+
+  buscarUsuarios(buscar: string): void {
+    this.solicitudDirectorio.update((solicitud) => ({ ...solicitud, buscar, pagina: 0 }));
+  }
+
+  cambiarPaginaUsuarios(evento: PageEvent): void {
+    this.solicitudDirectorio.update((solicitud) => ({
+      ...solicitud, pagina: evento.pageIndex, tamano: evento.pageSize,
+    }));
   }
 
   async cargarTodo(): Promise<void> {
     this.cargando.set(true);
+    this.solicitudDirectorio.update((solicitud) => ({ ...solicitud }));
     try {
-      const [cat, perfil, esp, docs] = await Promise.all([
-        firstValueFrom(this.identity.listarUsuarios()),
+      const [perfil, esp, docs] = await Promise.all([
         firstValueFrom(this.identity.permisosRolDocente()),
         firstValueFrom(this.scheduling.todosEspacios()),
         firstValueFrom(this.scheduling.docentes()),
       ]);
-      this.usuarios.set(cat.usuarios);
-      this.permisosDisponibles.set(cat.permisos_disponibles);
       this.perfilDocentes.set(perfil);
       this.permisosGlobalesSeleccionados = new Set(perfil.permisos);
       this.espacios.set(esp);

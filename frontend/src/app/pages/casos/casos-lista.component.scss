@@ -78,3 +78,7 @@
   font: inherit;
   font-family: var(--mono);
 }
+
+.dashboard-card-actions > :is(a, button) {
+  flex: 1 1 auto;
+}

@@ -5,7 +5,8 @@ import {
   AceptacionRespuesta, AceptarConsentimiento, ActualizarUsuarioAdminSolicitud, AutorizacionRepeticion,
   AutorizacionesDocente, CatalogoUsuariosRespuesta, CrearDocente, CrearUsuarioAdminSolicitud,
   DetalleParticipacion, DocumentoRespuesta, FeedbackDocente, PaginaDocentesRespuesta, PerfilPermisosDocentesRespuesta,
-  ReporteFiltros, ResumenCaso, ResumenParticipacion, SolicitudRepeticion, UsuarioGestionItem, UsuarioPublico,
+  PaginaUsuariosRespuesta, ReporteFiltros, ResumenCaso, ResumenParticipacion, SolicitudRepeticion,
+  UsuarioGestionItem, UsuarioPublico,
 } from './api.models';
 
 const BASE = '/api/v1/identity';
@@ -34,6 +35,10 @@ export class IdentityService {
   }
   listarUsuarios(): Observable<CatalogoUsuariosRespuesta> {
     return this.http.get<CatalogoUsuariosRespuesta>(`${BASE}/usuarios`);
+  }
+  paginarUsuarios(pagina: number, tamano: number, buscar: string): Observable<PaginaUsuariosRespuesta> {
+    const params = new HttpParams().set('pagina', pagina).set('tamano', tamano).set('buscar', buscar);
+    return this.http.get<PaginaUsuariosRespuesta>(`${BASE}/usuarios/pagina`, { params });
   }
   crearUsuario(body: CrearUsuarioAdminSolicitud): Observable<UsuarioGestionItem> {
     return this.http.post<UsuarioGestionItem>(`${BASE}/usuarios`, body);

@@ -241,7 +241,7 @@
           <header class="auth-header">
             <span class="auth-icon"><mat-icon aria-hidden="true">lock_outline</mat-icon></span>
             <h1 id="auth-title">Inicia sesión</h1>
-            <p>Usa tu correo institucional y tu contraseña o código de convocatoria.</p>
+            <p>Usa tu correo institucional. Si recibiste un código de convocatoria, puedes usarlo para entrar.</p>
           </header>
 
           <form (ngSubmit)="iniciarSesion()" class="login-form" [attr.aria-busy]="cargando()">
@@ -297,7 +297,7 @@
               type="submit"
               [disabled]="cargando() || !correo.trim() || !credencial.trim()"
             >
-              Iniciar sesión
+              {{ cargando() ? 'Iniciando sesión…' : 'Iniciar sesión' }}
               <ng-container [ngTemplateOutlet]="indicador" />
             </button>
             <div class="form-actions recovery-action">

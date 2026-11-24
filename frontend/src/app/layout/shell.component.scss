@@ -2,22 +2,32 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-bottom: 0;
   color: var(--text);
 }
 
-/* ==================== HUD SUPERIOR STICKY ==================== */
+.skip-link {
+  position: fixed;
+  inset: 8px auto auto 8px;
+  z-index: 60;
+  transform: translateY(-150%);
+  padding: 10px 14px;
+  border-radius: var(--control-radius);
+  background: var(--cyan-soft);
+  color: var(--action-ink);
+  font-weight: 700;
+
+  &:focus { transform: translateY(0); }
+}
+
 .neuro-header {
   min-height: 72px;
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 0 22px;
-  border-bottom: 1px solid #7ccbff42;
-  background: linear-gradient(110deg, #121e31f5, #0b1421f5 60%, #141a2df5);
-  box-shadow: 0 8px 25px #03071066;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: var(--surface-shadow);
   position: sticky;
   top: 0;
   z-index: 40;
@@ -39,10 +49,9 @@
   display: grid;
   place-items: center;
   padding: 4px;
-  border: 1.5px solid var(--cyan);
+  border: 1px solid var(--control-line);
   border-radius: 12px;
   background: #ffffff;
-  box-shadow: 0 0 16px rgba(0, 229, 244, 0.22);
 }
 
 .brand-logo {
@@ -60,90 +69,39 @@
 }
 
 .brand-title {
-  font-family: var(--mono);
-  font-size: 15px;
+  font-size: var(--type-body);
   font-weight: 700;
-  letter-spacing: 1.5px;
   color: var(--cyan);
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.brand-slogan {
-  font-family: var(--body);
-  font-style: italic;
-  font-weight: 400;
-  font-size: 12px;
-  letter-spacing: 0.2px;
-  color: var(--muted);
-}
-
-@media (max-width: 900px) {
-  .brand-slogan {
-    display: none;
-  }
 }
 
 .brand-view {
   font-family: var(--body);
-  font-size: 12px;
+  font-size: var(--type-small);
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.header-spacer {
-  flex: 1;
-}
-
-.hud-telemetry {
+.header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  margin-inline-start: auto;
+  gap: 10px;
 }
 
-.hud-node {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 11px;
-  border: 1px solid rgba(0, 232, 148, 0.38);
-  background: rgba(0, 232, 148, 0.07);
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 1px;
-  color: var(--green);
-  white-space: nowrap;
-}
-
-.hud-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 10px var(--green);
-  animation: var(--motion-status-animation);
-}
-
-.hud-cta {
+.hud-cta,
+.logout-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
+  min-height: var(--button-min-height);
   padding: 0 14px;
-  border: 1px solid rgba(0, 229, 244, 0.55);
-  border-radius: 8px;
-  background: var(--primary-gradient);
-  color: #00171c;
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+  border: 1px solid var(--control-line);
+  border-radius: var(--control-radius);
+  font-size: var(--type-small);
+  font-weight: 650;
+  transition: filter var(--motion-quick) ease;
   white-space: nowrap;
 
   mat-icon {
@@ -153,10 +111,19 @@
   }
 
   &:hover {
-    transform: translateY(-2px);
-    filter: brightness(1.08);
-    box-shadow: 0 0 20px rgba(0, 229, 244, 0.28);
+    filter: brightness(1.14);
   }
+}
+
+.hud-cta {
+  background: var(--primary-gradient);
+  color: var(--action-ink);
+  border-color: var(--cyan-soft);
+}
+
+.logout-btn {
+  color: var(--text);
+  background: var(--panel-soft);
 }
 
 .user-hud {
@@ -207,8 +174,7 @@
 }
 
 .user-mail {
-  font-size: 11px;
-  font-family: var(--mono);
+  font-size: var(--type-meta);
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
@@ -222,12 +188,10 @@
 }
 
 .role-tag {
-  font-family: var(--mono);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.6px;
+  font-size: var(--type-meta);
+  font-weight: 600;
   padding: 1px 5px;
-  text-transform: uppercase;
+  border-radius: 5px;
   border: 1px solid rgba(184, 211, 214, 0.3);
   color: var(--muted);
 
@@ -250,42 +214,13 @@
   }
 }
 
-.logout-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid #ffd47772;
-  border-radius: 8px;
-  color: #ffe3a6;
-  background: #382a23;
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  transition: transform 0.18s ease, filter 0.18s ease;
-  white-space: nowrap;
-
-  mat-icon {
-    font-size: 17px;
-    width: 17px;
-    height: 17px;
-  }
-
-  &:hover {
-    filter: brightness(1.08);
-    transform: translateY(-1px);
-  }
-}
-
-/* ==================== LIENZO CENTRAL ==================== */
 .neuro-canvas {
   flex: 1;
   position: relative;
   z-index: 4;
-  padding: 24px 20px 104px;
+  padding: 24px 20px 40px;
+
+  &:focus { outline: none; }
 }
 
 .canvas-inner {
@@ -293,76 +228,46 @@
   margin: 0 auto;
 }
 
-/* ==================== DOCK TÁCTICO INFERIOR FIJO ==================== */
-.bottom-nav {
-  position: fixed;
-  bottom: max(12px, env(safe-area-inset-bottom));
-  left: 50%;
-  z-index: 50;
-  width: max-content;
-  max-width: calc(100% - 24px);
-  min-height: 64px;
-  transform: translateX(-50%);
+.main-nav {
   display: flex;
-  justify-content: safe center;
-  background: #111d2ff5;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid #69a6c96b;
-  border-radius: 14px;
-  box-shadow: 0 12px 40px #030712b3, inset 0 1px #baefff18;
-  overflow-x: auto;
+  gap: 4px;
+  flex: none;
+  margin-inline: auto;
 }
 
 .dock-item {
-  flex: 0 0 clamp(84px, 24vw, 132px);
-  min-width: 0;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 2px;
-  color: #a4b8cc;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: var(--button-min-height);
+  padding: 0 12px;
+  border-radius: var(--control-radius);
+  color: var(--muted);
+  font-size: var(--type-control);
+  font-weight: 600;
+  white-space: nowrap;
   text-decoration: none;
-  transition: color var(--motion-quick) ease, background-color var(--motion-quick) ease, box-shadow var(--motion-quick) ease;
+  transition: color var(--motion-quick) ease, background-color var(--motion-quick) ease;
 
   mat-icon {
     font-size: 18px;
     width: 18px;
     height: 18px;
-    margin-bottom: 1px;
   }
 
-  b {
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1.05;
-  }
+  &:hover { background: var(--panel-soft); }
 
-  span {
-    font-size: 9px;
-    opacity: 0.85;
-  }
-
-  &:hover,
   &.active {
     color: var(--cyan-soft);
-    background: #173a51;
-    box-shadow: inset 0 2px var(--cyan-soft);
+    background: #203d51;
+    box-shadow: inset 0 -2px var(--cyan);
   }
 
   &:focus-visible { outline-offset: -4px; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .hud-cta:hover,
-  .logout-btn:hover { transform: none; }
-}
-
-@media (max-width: 920px) {
+@media (max-width: 1250px) {
   .user-meta {
     display: none;
   }
@@ -374,30 +279,53 @@
   }
 }
 
+@media (max-width: 1024px) {
+  .main-nav {
+    position: fixed;
+    inset: auto auto max(10px, env(safe-area-inset-bottom)) 50%;
+    width: max-content;
+    max-width: calc(100% - 24px);
+    min-height: 60px;
+    padding: 4px;
+    transform: translateX(-50%);
+    justify-content: safe center;
+    overflow-x: auto;
+    background: var(--panel);
+    border: 1px solid var(--control-line);
+    border-radius: 14px;
+    box-shadow: 0 7px 24px #030712b3;
+  }
+
+  .dock-item {
+    flex-direction: column;
+    justify-content: center;
+    min-width: 88px;
+    padding: 5px 9px;
+    gap: 3px;
+    font-size: var(--type-small);
+  }
+
+  .neuro-canvas { padding-bottom: 96px; }
+}
+
 @media (max-width: 620px) {
   .neuro-header {
     padding: 0 12px;
     gap: 8px;
   }
 
-  .brand-view {
-    display: none;
-  }
-
   .logout-txt {
     display: none;
   }
 
-  .logout-btn {
-    padding: 0 10px;
+  .logout-btn, .hud-cta {
+    width: var(--button-min-height);
+    justify-content: center;
+    padding: 0;
   }
 
   .hud-cta span {
     display: none;
-  }
-
-  .dock-item {
-    min-width: 78px;
   }
 
   .neuro-canvas {

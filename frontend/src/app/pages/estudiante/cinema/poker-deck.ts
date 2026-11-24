@@ -37,28 +37,28 @@ const METADATA_PALOS: Array<{
     nombre: 'Picas',
     tono: 'cian',
     esRojo: false,
-    arquetipos: ['JUICIO CRÍTICO', 'RECTITUD', 'CRITERIO ÉTICO', 'FIRMEZA'],
+    arquetipos: ['Juicio crítico', 'Rectitud', 'Criterio ético', 'Firmeza'],
   },
   {
     simbolo: '♥',
     nombre: 'Corazones',
     tono: 'magenta',
     esRojo: true,
-    arquetipos: ['EMPATÍA', 'BIENESTAR', 'VÍNCULO', 'CUIDADO'],
+    arquetipos: ['Empatía', 'Bienestar', 'Vínculo', 'Cuidado'],
   },
   {
     simbolo: '♦',
     nombre: 'Diamantes',
     tono: 'oro',
     esRojo: true,
-    arquetipos: ['CLARIDAD', 'ESTRATEGIA', 'EVIDENCIA', 'RIGOR'],
+    arquetipos: ['Claridad', 'Estrategia', 'Evidencia', 'Rigor'],
   },
   {
     simbolo: '♣',
     nombre: 'Tréboles',
     tono: 'esmeralda',
     esRojo: false,
-    arquetipos: ['ACCIÓN JUSTA', 'PROTOCOLO', 'RESGUARDO', 'RESPUESTA'],
+    arquetipos: ['Acción justa', 'Protocolo', 'Resguardo', 'Respuesta'],
   },
 ];
 

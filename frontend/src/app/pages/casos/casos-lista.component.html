@@ -1,16 +1,16 @@
 <div class="page role-dashboard">
   <header class="panel dashboard-hero dashboard-cover-docente">
     <div class="dashboard-copy">
-      <p class="eyebrow">Consola de autoría</p>
-      <h1>Casos de Estudio</h1>
+      <p class="eyebrow">Docencia</p>
+      <h1>Casos de estudio</h1>
       <p class="dashboard-description">
-        Diseña escenarios, conecta decisiones y prepara sus rúbricas de evaluación.
+        Crea situaciones de práctica y define cómo evaluar las decisiones de tus estudiantes.
       </p>
 
       @if (auth.tienePermiso('CREAR_CASOS')) {
         <div class="dashboard-actions">
           <a mat-flat-button color="primary" routerLink="/casos/nuevo">
-            <mat-icon aria-hidden="true">add_circle_outline</mat-icon> Nuevo caso completo
+            <mat-icon aria-hidden="true">add_circle_outline</mat-icon> Crear caso
           </a>
           <button
             mat-stroked-button
@@ -20,7 +20,7 @@
             [attr.aria-controls]="mostrarFormularioCrear ? 'borrador-rapido' : null"
           >
             <mat-icon aria-hidden="true">{{ mostrarFormularioCrear ? 'close' : 'bolt' }}</mat-icon>
-            {{ mostrarFormularioCrear ? 'Cerrar borrador' : 'Borrador rápido' }}
+            {{ mostrarFormularioCrear ? 'Cerrar formulario' : 'Crear borrador rápido' }}
           </button>
         </div>
       } @else {
@@ -29,27 +29,28 @@
     </div>
   </header>
 
-  <dl class="dashboard-summary" aria-label="Resumen por estado">
+  @let resumenCargando = cargando() && !casos().length;
+  <dl class="dashboard-summary" aria-label="Resumen por estado" [attr.aria-busy]="resumenCargando">
     <div class="dashboard-stat dashboard-tone-green">
       <dt>
         <span class="dashboard-stat-icon"><mat-icon aria-hidden="true">task_alt</mat-icon></span>
         Publicados
       </dt>
-      <dd>{{ resumen().PUBLICADO }}</dd>
+      <dd>{{ resumenCargando ? '—' : resumen().PUBLICADO }}</dd>
     </div>
     <div class="dashboard-stat dashboard-tone-amber">
       <dt>
         <span class="dashboard-stat-icon"><mat-icon aria-hidden="true">edit_note</mat-icon></span>
         Borradores
       </dt>
-      <dd>{{ resumen().BORRADOR }}</dd>
+      <dd>{{ resumenCargando ? '—' : resumen().BORRADOR }}</dd>
     </div>
     <div class="dashboard-stat dashboard-tone-slate">
       <dt>
         <span class="dashboard-stat-icon"><mat-icon aria-hidden="true">inventory_2</mat-icon></span>
         Archivados
       </dt>
-      <dd>{{ resumen().ARCHIVADO }}</dd>
+      <dd>{{ resumenCargando ? '—' : resumen().ARCHIVADO }}</dd>
     </div>
   </dl>
 
@@ -141,7 +142,7 @@
 
   <section class="case-library" aria-labelledby="case-library-title" [attr.aria-busy]="cargando()">
     <div class="dashboard-heading">
-      <h2 id="case-library-title">Repositorio de Casos</h2>
+      <h2 id="case-library-title">Casos disponibles</h2>
       @if (casos().length) {
         <span>{{ casos().length }} {{ casos().length === 1 ? 'versión' : 'versiones' }}</span>
       }
@@ -153,8 +154,15 @@
         <p>Cargando casos…</p>
       </div>
     } @else if (casos().length) {
+      <div class="list-tools">
+        <label class="list-search">
+          <span>Buscar casos</span>
+          <input #buscarCaso type="search" placeholder="Nombre, estado o versión"
+            [value]="listaCasos.busqueda()" (input)="listaCasos.buscar(buscarCaso.value)" />
+        </label>
+      </div>
       <div class="dashboard-grid">
-        @for (caso of casos(); track caso.version_id) {
+        @for (caso of listaCasos.visibles(); track caso.version_id) {
           <article
             class="panel dashboard-card"
             [class.dashboard-tone-green]="caso.estado === 'PUBLICADO'"
@@ -167,13 +175,13 @@
                 <span class="dashboard-icon"
                   ><mat-icon aria-hidden="true">auto_stories</mat-icon></span
                 >
-                <span class="dashboard-badge">{{ caso.estado }}</span>
+                <span class="dashboard-badge">{{ caso.estado === 'BORRADOR' ? 'Borrador' : caso.estado === 'PUBLICADO' ? 'Publicado' : 'Archivado' }}</span>
               </div>
 
               <h3 [id]="'titulo-caso-' + caso.version_id">{{ caso.nombre }}</h3>
 
               <div class="case-meta">
-                <span>Caso {{ caso.numero }}</span>
+                <span>Versión {{ caso.numero }}</span>
                 <span
                   ><mat-icon aria-hidden="true">schedule</mat-icon>
                   {{ caso.tiempo_estimado_min }} min</span
@@ -226,6 +234,10 @@
                     >
                       <mat-icon aria-hidden="true">publish</mat-icon> Publicar
                     </button>
+                    <button mat-button color="warn" type="button" [disabled]="eliminando()"
+                      (click)="eliminarBorrador(caso)">
+                      <mat-icon aria-hidden="true">delete_outline</mat-icon> Eliminar borrador
+                    </button>
                   }
                   @case ('PUBLICADO') {
                     <button
@@ -262,8 +274,13 @@
               }
             </div>
           </article>
+        } @empty {
+          <div class="panel dashboard-empty">No hay casos que coincidan con la búsqueda.</div>
         }
       </div>
+      <mat-paginator class="list-pager" aria-label="Paginación de casos" showFirstLastButtons
+        [length]="listaCasos.filtrados().length" [pageSize]="listaCasos.tamano()" [pageIndex]="listaCasos.pagina()"
+        [pageSizeOptions]="[10, 25, 50]" (page)="listaCasos.cambiar($event)" />
     } @else if (!error()) {
       <div class="panel dashboard-empty">
         <mat-icon aria-hidden="true">folder_open</mat-icon>

@@ -3,6 +3,7 @@ import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -11,6 +12,9 @@ import { mensajeError } from '../../core/api-error';
 import { ConsentimientoEstado, MiConvocatoriaItem } from '../../core/api.models';
 import { ParticipationService } from '../../core/participation.service';
 import { SchedulingService } from '../../core/scheduling.service';
+
+import { etiquetaEstado } from '../../core/lista-paginada';
+import { GuiaSimulacionDialogComponent } from './guia-simulacion-dialog.component';
 
 @Component({
   selector: 'app-estudiante-portal',
@@ -27,44 +31,44 @@ import { SchedulingService } from '../../core/scheduling.service';
     <div class="page role-dashboard">
       <header class="panel dashboard-hero dashboard-cover-estudiante">
         <div class="dashboard-copy">
-          <p class="eyebrow">Misiones asignadas</p>
-          <h1>Portal del Estudiante</h1>
-          <p class="dashboard-description">Revisa tu convocatoria, entra a la simulación y consulta tus resultados.</p>
+          <h1>Portal del estudiante</h1>
+          <p class="dashboard-description">Aquí puedes acceder a tus simulaciones y consultar tus resultados.</p>
           <div class="dashboard-actions">
             <button mat-stroked-button type="button" (click)="cargarPortal()" [disabled]="cargando()">
-              <mat-icon aria-hidden="true">refresh</mat-icon> Actualizar convocatorias
+              <mat-icon aria-hidden="true">refresh</mat-icon> {{ cargando() ? 'Actualizando…' : 'Actualizar convocatorias' }}
             </button>
           </div>
         </div>
       </header>
 
-      <dl class="dashboard-summary" aria-label="Resumen de convocatorias">
+      @let resumenCargando = cargando() && !convocatorias().length;
+      <dl class="dashboard-summary" aria-label="Resumen de convocatorias" [attr.aria-busy]="resumenCargando">
         <div class="dashboard-stat">
           <dt><span class="dashboard-stat-icon"><mat-icon aria-hidden="true">assignment</mat-icon></span> Convocatorias</dt>
-          <dd>{{ convocatorias().length }}</dd>
+          <dd>{{ resumenCargando ? '—' : convocatorias().length }}</dd>
         </div>
         <div class="dashboard-stat dashboard-tone-green">
           <dt><span class="dashboard-stat-icon"><mat-icon aria-hidden="true">play_circle_outline</mat-icon></span> En curso</dt>
-          <dd>{{ resumen().enCurso }}</dd>
+          <dd>{{ resumenCargando ? '—' : resumen().enCurso }}</dd>
         </div>
         <div class="dashboard-stat dashboard-tone-slate">
           <dt><span class="dashboard-stat-icon"><mat-icon aria-hidden="true">assessment</mat-icon></span> Con resultados</dt>
-          <dd>{{ resumen().conResultados }}</dd>
+          <dd>{{ resumenCargando ? '—' : resumen().conResultados }}</dd>
         </div>
       </dl>
 
       @if (consentimientoActivo(); as cons) {
         <mat-card class="panel consent-card dashboard-enter">
           <mat-card-header>
-            <mat-card-title>Consentimiento Informado Institucional (v{{ cons.doc.version }})</mat-card-title>
+            <mat-card-title>Consentimiento informado institucional (v{{ cons.doc.version }})</mat-card-title>
             <mat-card-subtitle>{{ cons.doc.autoridad_aprobadora }} · Lectura obligatoria previa al intento</mat-card-subtitle>
           </mat-card-header>
           <mat-card-content style="padding-top:16px;">
             <div class="ethical-note">
-              <span class="tag amber">PROTOCOLO OBLIGATORIO</span>
+              <span class="tag amber">Protocolo obligatorio</span>
               <pre class="consent-text">{{ cons.doc.texto }}</pre>
             </div>
-            <div class="consent-actions">
+            <div class="action-group form-actions consent-actions">
               <button mat-button type="button" (click)="consentimientoActivo.set(null)">Cerrar</button>
               <button mat-flat-button color="primary" type="button" (click)="aceptarConsentimiento(cons.convocatoriaId)" [disabled]="operando()">
                 <mat-icon>verified</mat-icon> Acepto los términos y deseo continuar
@@ -76,7 +80,7 @@ import { SchedulingService } from '../../core/scheduling.service';
 
       <section aria-labelledby="mission-library-title" [attr.aria-busy]="cargando()">
         <div class="dashboard-heading">
-          <h2 id="mission-library-title">Convocatorias y casos</h2>
+          <h2 id="mission-library-title">Mis convocatorias</h2>
         </div>
 
       @if (cargando()) {
@@ -97,7 +101,7 @@ import { SchedulingService } from '../../core/scheduling.service';
                 <div class="dashboard-card-top">
                   <span class="dashboard-icon"><mat-icon aria-hidden="true">alt_route</mat-icon></span>
                   <div class="mission-badges">
-                    <span class="dashboard-badge">{{ c.estado_sesion.replaceAll('_', ' ') }}</span>
+                    <span class="dashboard-badge">{{ etiquetaEstado(c.estado_sesion) }}</span>
                     @if (c.nota_visible !== null && c.nota_visible !== undefined) {
                       <span class="dashboard-badge dashboard-tone-amber">Nota {{ c.nota_visible | number:'1.1-2' }} / 100</span>
                     }
@@ -117,15 +121,15 @@ import { SchedulingService } from '../../core/scheduling.service';
                 <!-- Fact Grid Telemetrico -->
                 <div class="fact-grid">
                   <div class="fact-tile">
-                    <small>INICIO DE VENTANA</small>
+                    <small>Inicio del acceso</small>
                     <b>{{ c.fecha_inicio | date:'short' }}</b>
                   </div>
                   <div class="fact-tile">
-                    <small>CIERRE DE VENTANA</small>
+                    <small>Cierre del acceso</small>
                     <b>{{ c.fecha_fin | date:'short' }}</b>
                   </div>
                   <div class="fact-tile">
-                    <small>LÍMITE DE INGRESO</small>
+                    <small>Límite de ingreso</small>
                     <b [class.ok-txt]="!ingresoExpirado(c)" [class.bad-txt]="ingresoExpirado(c)">
                       {{ c.fecha_limite_mitad_tiempo | date:'short' }}
                     </b>
@@ -205,23 +209,24 @@ import { SchedulingService } from '../../core/scheduling.service';
               <div class="dashboard-card-actions mission-actions">
                   @if (!c.consentimiento_aceptado) {
                     <button mat-flat-button color="accent" type="button" (click)="abrirConsentimiento(c.convocatoria_id)" [disabled]="operando()">
-                      <mat-icon>assignment</mat-icon> Leer y Aceptar Consentimiento
+                      <mat-icon>assignment</mat-icon> Leer el consentimiento
                     </button>
                   }
 
                   @if (c.intento_id && c.intento_estado === 'EN_CURSO') {
                     <button mat-flat-button color="primary" type="button" (click)="irAlSimulador(c.intento_id!)" [disabled]="operando()">
-                      <mat-icon>play_arrow</mat-icon> Retomar Simulación en Curso
+                      <mat-icon>play_arrow</mat-icon> Retomar simulación
                     </button>
                   } @else if (c.consentimiento_aceptado && c.estado_sesion === 'EN_CURSO' && puedeIniciarNuevoIntento(c)) {
-                    <button mat-flat-button color="primary" type="button" (click)="iniciarSimulacion(c.convocatoria_id)" [disabled]="operando()">
-                      <mat-icon>rocket_launch</mat-icon> Iniciar Simulación Ahora
+                    <button mat-flat-button color="primary" type="button" aria-haspopup="dialog"
+                            (click)="iniciarSimulacion(c)" [disabled]="operando()">
+                      <mat-icon>rocket_launch</mat-icon> Iniciar simulación
                     </button>
                   }
 
                   @if (c.intento_id && c.intento_estado !== 'EN_CURSO') {
                     <button mat-stroked-button color="primary" type="button" (click)="irAlSimulador(c.intento_id!)">
-                      <mat-icon>grading</mat-icon> Ver Resultado, Rúbrica y Justificaciones
+                      <mat-icon>grading</mat-icon> Ver resultado y rúbrica
                     </button>
                   }
               </div>
@@ -256,13 +261,7 @@ import { SchedulingService } from '../../core/scheduling.service';
       line-height: 1.55;
       font-size: 13px;
     }
-    .consent-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      margin-top: 14px;
-      flex-wrap: wrap;
-    }
+    .consent-actions { margin-top: 14px; }
     .mission-grid { grid-template-columns: minmax(0, 1fr); }
     .mission-badges, .mission-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
     .mission-badges { justify-content: flex-end; }
@@ -271,7 +270,7 @@ import { SchedulingService } from '../../core/scheduling.service';
     .mission-meta mat-icon { width: 18px; height: 18px; font-size: 18px; color: #8bbbd8; }
     .case-sub { margin: -3px 0 11px; color: var(--muted); font-size: 13px; }
     .mission-actions:empty { display: none; }
-    .mission-actions button { white-space: normal; max-width: 100%; }
+    @media (max-width: 480px) { .mission-actions > button { flex: 1 1 auto; } }
     .fact-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -324,7 +323,6 @@ import { SchedulingService } from '../../core/scheduling.service';
     .story-lbl {
       font-family: var(--mono);
       font-size: 11px;
-      text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--cyan);
       margin-bottom: 4px;
@@ -374,10 +372,12 @@ import { SchedulingService } from '../../core/scheduling.service';
   `],
 })
 export class EstudiantePortalComponent implements OnInit, OnDestroy {
+  readonly etiquetaEstado = etiquetaEstado;
   private readonly scheduling = inject(SchedulingService);
   private readonly participation = inject(ParticipationService);
   private readonly router = inject(Router);
   private readonly snack = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
 
   readonly cargando = signal(false);
   readonly operando = signal(false);
@@ -449,10 +449,24 @@ export class EstudiantePortalComponent implements OnInit, OnDestroy {
     }
   }
 
-  async iniciarSimulacion(convocatoriaId: string): Promise<void> {
+  async iniciarSimulacion(convocatoria: MiConvocatoriaItem): Promise<void> {
+    if (this.operando()) return;
+    const guia = this.dialog.open<GuiaSimulacionDialogComponent, MiConvocatoriaItem, boolean>(
+      GuiaSimulacionDialogComponent,
+      {
+        data: convocatoria,
+        width: '640px',
+        maxWidth: 'calc(100vw - 24px)',
+        maxHeight: 'calc(100dvh - 24px)',
+        autoFocus: 'first-heading',
+        ariaDescribedBy: 'guia-tiempo',
+      },
+    );
+    if (!(await firstValueFrom(guia.afterClosed())) || this.operando()) return;
+
     this.operando.set(true);
     try {
-      const res = await firstValueFrom(this.participation.iniciarSimulacion(convocatoriaId));
+      const res = await firstValueFrom(this.participation.iniciarSimulacion(convocatoria.convocatoria_id));
       await this.router.navigate(['/estudiante/simulador', res.id_intento]);
     } catch (e) {
       this.snack.open(mensajeError(e), 'Cerrar', { duration: 5000 });

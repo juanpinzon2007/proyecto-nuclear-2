@@ -46,3 +46,7 @@ class ICasoRepository(ABC):
     ) -> VersionCaso:
         """Clona una versión existente como nueva versión BORRADOR o la publica en una sola transacción."""
         raise NotImplementedError
+
+    def eliminar_borrador(self, version_id: uuid.UUID, docente_creador_id: uuid.UUID) -> None:
+        """Elimina un borrador propio sin afectar otras versiones."""
+        raise NotImplementedError

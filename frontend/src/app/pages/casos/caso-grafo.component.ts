@@ -27,23 +27,23 @@ import { mensajeError } from '../../core/api-error';
   template: `
     <div class="page">
       <div class="page-header">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <a mat-icon-button [routerLink]="['/casos', versionId]" title="Volver al caso">
+        <div class="page-heading">
+          <a mat-icon-button [routerLink]="['/casos', versionId]" aria-label="Volver al caso" title="Volver al caso">
             <mat-icon>arrow_back</mat-icon>
           </a>
           <div>
-            <p class="eyebrow">Matriz de Flujo // Escenas & Transiciones</p>
-            <h1>Grafo de Navegación del Caso</h1>
+            <p class="eyebrow">Escenas y transiciones</p>
+            <h1>Grafo de navegación del caso</h1>
             <p class="muted">Configuración de escena inicial y transiciones ramificadas entre escenas</p>
           </div>
         </div>
         @if (editable()) {
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <div class="action-group">
             <button mat-stroked-button type="button" (click)="autoconfigurarLineal()" [disabled]="guardando()">
-              <mat-icon>auto_fix_high</mat-icon> Autoconfigurar Lineal
+              <mat-icon>auto_fix_high</mat-icon> Configurar recorrido lineal
             </button>
             <button mat-flat-button color="primary" type="button" (click)="guardarGrafo()" [disabled]="guardando()">
-              <mat-icon>save</mat-icon> Guardar Recorrido
+              <mat-icon>save</mat-icon> Guardar recorrido
             </button>
           </div>
         }

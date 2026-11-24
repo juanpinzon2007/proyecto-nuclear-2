@@ -70,20 +70,20 @@ interface CriterioDraft {
   template: `
     <div class="editor-wrap">
       <div class="page-header">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <a mat-icon-button routerLink="/casos" title="Volver"><mat-icon>arrow_back</mat-icon></a>
+        <div class="page-heading">
+          <a mat-icon-button routerLink="/casos" aria-label="Volver a casos" title="Volver a casos"><mat-icon>arrow_back</mat-icon></a>
           <div>
             <p class="eyebrow">Autoría Clínica</p>
-            <h2>{{ versionId ? 'Editar Caso de Simulación (Borrador)' : 'Nuevo Caso de Simulación & Rúbrica' }}</h2>
+            <h2>{{ versionId ? 'Editar borrador del caso' : 'Nuevo caso de simulación' }}</h2>
             <p class="subtitle">Estructura clínica, escenarios, justificaciones teóricas y matriz de evaluación</p>
           </div>
         </div>
-        <div class="top-actions">
+        <div class="action-group">
           <button mat-stroked-button type="button" (click)="guardar(false)" [disabled]="guardando()">
-            <mat-icon>save</mat-icon> Guardar Borrador
+            <mat-icon>save</mat-icon> Guardar borrador
           </button>
           <button mat-flat-button color="primary" type="button" (click)="guardarYPublicar()" [disabled]="guardando()">
-            <mat-icon>publish</mat-icon> Validar y Publicar
+            <mat-icon>publish</mat-icon> Validar y publicar
           </button>
         </div>
       </div>
@@ -98,7 +98,7 @@ interface CriterioDraft {
         <!-- 01. Ficha Académica (RF-05) -->
         <mat-card class="panel panel-cyan-left">
           <mat-card-header>
-            <mat-card-title>01 // Ficha Académica del Caso</mat-card-title>
+            <mat-card-title>Ficha académica del caso</mat-card-title>
             <mat-card-subtitle>Nombre, contexto narrativo, desarrollo situacional y tiempo estimado máximo</mat-card-subtitle>
           </mat-card-header>
           <mat-card-content class="form-grid" style="padding-top:16px;">
@@ -124,7 +124,7 @@ interface CriterioDraft {
         <!-- 02. Rúbrica de Evaluación (RF-17) -->
         <mat-card class="panel panel-amber-left">
           <mat-card-header>
-            <mat-card-title>02 // Rúbrica de Evaluación</mat-card-title>
+            <mat-card-title>Rúbrica de evaluación</mat-card-title>
             <mat-card-subtitle>
               Los pesos de los criterios deben sumar exactamente <strong>100%</strong>
               (Suma actual: <strong [class.ok-txt]="sumaPesos() === 100" [class.bad-txt]="sumaPesos() !== 100">{{ sumaPesos() }}%</strong>)
@@ -183,7 +183,7 @@ interface CriterioDraft {
                         <input matInput [(ngModel)]="niv.nombre" />
                       </mat-form-field>
                       <mat-form-field appearance="outline">
-                        <mat-label>Puntaje min (0-100)</mat-label>
+                        <mat-label>Puntaje mínimo (0–100)</mat-label>
                         <input matInput type="number" min="0" max="100" [(ngModel)]="niv.puntaje" />
                       </mat-form-field>
                       <mat-form-field appearance="outline" style="flex:2;">
@@ -210,7 +210,7 @@ interface CriterioDraft {
         <!-- 03. Escenarios, Preguntas, Opciones y Justificaciones (RF-06, RF-07, RF-08) -->
         <mat-card class="panel panel-green-left">
           <mat-card-header>
-            <mat-card-title>03 // Escenarios, Preguntas y Opciones con Justificación</mat-card-title>
+            <mat-card-title>Escenarios, preguntas y opciones</mat-card-title>
             <mat-card-subtitle>
               Define al menos 1 pregunta clave con mínimo 2 opciones (1+ correcta) por cada escenario.
             </mat-card-subtitle>
@@ -260,7 +260,7 @@ interface CriterioDraft {
                             Opción correcta
                           </mat-checkbox>
                           <mat-form-field appearance="outline" style="flex:1;">
-                            <mat-label>Texto opción {{ oi + 1 }}</mat-label>
+                            <mat-label>Texto de la opción {{ oi + 1 }}</mat-label>
                             <input matInput [(ngModel)]="op.texto" required />
                           </mat-form-field>
                           <button mat-icon-button color="warn" type="button" (click)="eliminarOpcion(ei, pi, oi)"
@@ -313,7 +313,6 @@ interface CriterioDraft {
   styles: [`
     .editor-wrap { padding: 4px 0 40px; max-width: 1160px; margin: 0 auto; }
     .subtitle { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
-    .top-actions { display: flex; gap: 10px; flex-wrap: wrap; }
     .error-banner {
       background: rgba(232, 67, 81, 0.14);
       border: 1px solid rgba(232, 67, 81, 0.55);

@@ -47,7 +47,7 @@ import { HeroeCineComponent } from './heroe-cine.component';
         <div class="cinema-meta">
           <span class="scene-chip">
             <mat-icon class="chip-ico" aria-hidden="true">movie</mat-icon>
-            ESCENA {{ escenaOrdenSig() }}
+            Escena {{ escenaOrdenSig() }}
           </span>
           <span class="theme-chip">{{ etiquetaTema }}</span>
           @if (heroeSig(); as h) {
@@ -801,7 +801,6 @@ import { HeroeCineComponent } from './heroe-cine.component';
     .ctx-lbl {
       font-family: var(--mono, monospace);
       font-size: 0.68rem;
-      text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--cyan, #00e5f4);
       font-weight: 700;
@@ -1060,13 +1059,13 @@ export class EscenaCinematograficaComponent implements OnInit, OnChanges, OnDest
   etiquetaPlano(plano: PlanoCamara): string {
     switch (plano) {
       case 'general':
-        return 'PLANO GENERAL';
+        return 'Plano general';
       case 'medio':
-        return 'PLANO MEDIO';
+        return 'Plano medio';
       case 'primer_plano':
-        return 'PRIMER PLANO';
+        return 'Primer plano';
       case 'decision':
-        return 'REACCIÓN · DECISIÓN';
+        return 'Reacción · decisión';
     }
   }
 

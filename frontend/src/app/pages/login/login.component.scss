@@ -123,7 +123,6 @@
   margin: 0;
   font: 800 clamp(66px, 8.2vw, 125px) / 0.84 var(--display);
   letter-spacing: -0.015em;
-  text-transform: uppercase;
   text-shadow: 0 8px 30px #050712bf;
 }
 
@@ -211,13 +210,12 @@
   margin: 0;
   font: 800 clamp(38px, 4vw, 54px) / 0.95 var(--display);
   letter-spacing: 0.015em;
-  text-transform: uppercase;
 }
 
 .auth-header p {
   margin: 11px 0 0;
   color: var(--auth-muted);
-  font-size: 14px;
+  font-size: var(--type-body);
   line-height: 1.65;
 }
 
@@ -236,7 +234,7 @@
 }
 
 .form-field label {
-  font-size: 13px;
+  font-size: var(--type-control);
   font-weight: 700;
   line-height: 1.4;
   color: #d6e5f4;
@@ -338,15 +336,13 @@
   min-height: 54px;
   padding: 12px 40px;
   border: 1px solid #aff6ff;
-  border-radius: 8px;
-  background: linear-gradient(110deg, #70f2f5, #a4c5ff);
+  border-radius: var(--control-radius);
+  background: var(--primary-gradient);
   box-shadow:
     0 5px 26px #62dffa4f,
     inset 0 -3px #253c6640;
-  color: #081a29;
-  font: 800 16px/1.4 var(--display);
-  letter-spacing: 0.055em;
-  text-transform: uppercase;
+  color: var(--action-ink);
+  font: 700 var(--type-body)/1.4 var(--body);
   transition:
     box-shadow var(--motion-quick) ease,
     transform var(--motion-quick) var(--motion-decelerate);
@@ -427,7 +423,7 @@
   border-radius: 8px;
   background: transparent;
   color: var(--auth-accent);
-  font-size: 13px;
+  font-size: var(--type-control);
   line-height: 1.4;
 }
 

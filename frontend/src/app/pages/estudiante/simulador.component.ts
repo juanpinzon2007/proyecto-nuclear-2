@@ -55,7 +55,7 @@ interface PasoPlano {
   template: `
     <div class="sim-wrap content">
       @if (cargando()) {
-        <div class="center-spin"><mat-spinner diameter="44"></mat-spinner></div>
+        <div class="center-spin" role="status"><mat-spinner diameter="36" aria-hidden="true"></mat-spinner> Cargando simulación…</div>
       } @else if (resultado(); as res) {
         <app-simulador-resultado [res]="res" />
       } @else if (workspace(); as ws) {
@@ -63,33 +63,37 @@ interface PasoPlano {
         <section class="panel panel-pad mission-strip">
           <div class="spread mission-top">
             <div>
-              <p class="eyebrow">Misión Activa // {{ ws.modo_recorrido }}</p>
+              <p class="eyebrow">Simulación en curso</p>
               <div class="hud-title">
-                {{ ws.caso_nombre }}
-                <span class="tag green">INTENTO #{{ ws.numero_intento }}</span>
+                <h1>{{ ws.caso_nombre || 'Simulación' }}</h1>
+                <span class="tag green">Intento {{ ws.numero_intento }}</span>
               </div>
-              <div class="hud-sub mono">
-                PROGRESO: {{ ws.respondidas ?? 0 }}/{{ ws.total_preguntas ?? 0 }} · CAMBIOS DE DECISIÓN: {{ ws.cambios_realizados ?? 0 }}
+              <div class="hud-sub">
+                {{ ws.respondidas ?? 0 }} de {{ ws.total_preguntas ?? 0 }} preguntas respondidas · Cambios: {{ ws.cambios_realizados ?? 0 }}
               </div>
+              @if (ws.modo_recorrido === 'RAMIFICADO') {
+                <div class="hud-sub">Tus decisiones pueden cambiar las escenas que verás.</div>
+              }
             </div>
 
-            <div class="timer-box" [class.timer-warn]="segundosRestantes() <= 300" [class.timer-crit]="segundosRestantes() <= 60">
-              <mat-icon>timer</mat-icon>
+            <div class="timer-box" role="timer" aria-labelledby="time-label" [class.timer-warn]="segundosRestantes() <= 300" [class.timer-crit]="segundosRestantes() <= 60">
+              <mat-icon aria-hidden="true">timer</mat-icon>
               <div>
-                <small class="timer-lbl">TIEMPO RESTANTE</small>
+                <small class="timer-lbl" id="time-label">Tiempo restante</small>
                 <span class="mono timer-txt">{{ formatearTiempo(segundosRestantes()) }}</span>
               </div>
             </div>
           </div>
 
           <mat-progress-bar
+            aria-label="Preguntas respondidas"
             mode="determinate"
             [value]="((ws.respondidas ?? 0) / Math.max(1, ws.total_preguntas ?? 1)) * 100"
             class="hud-progress"
           ></mat-progress-bar>
 
           <!-- Progress Steps Discretos Navegables RF-10 -->
-          <div class="progress-steps" aria-label="Navegador de preguntas">
+          <div class="progress-steps" role="group" aria-label="Ir a una pregunta">
             @for (item of pasosPlanos(); track item.pregunta.id; let idx = $index) {
               <button
                 type="button"
@@ -98,10 +102,11 @@ interface PasoPlano {
                 [class.step-done]="estaRespondida(item.pregunta.id)"
                 (click)="irAPregunta(idx)"
                 [disabled]="guardando() || !!opcionLanzada()"
-                [title]="'Ir a Escenario ' + item.escenario.orden + ' Pregunta ' + (idx + 1)"
+                [attr.aria-current]="idx === indiceActual() ? 'step' : null"
+                [attr.aria-label]="'Pregunta ' + (idx + 1) + (estaRespondida(item.pregunta.id) ? ', respondida' : ', sin responder')"
               >
-                <span class="step-code">E{{ item.escenario.orden }}·P{{ idx + 1 }}</span>
-                <mat-icon>{{ estaRespondida(item.pregunta.id) ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                <span class="step-code">Pregunta {{ idx + 1 }}</span>
+                <mat-icon aria-hidden="true">{{ estaRespondida(item.pregunta.id) ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
               </button>
             }
           </div>
@@ -125,108 +130,115 @@ interface PasoPlano {
             (cambiarHeroe)="rotarHeroeAleatorio()"
           />
 
-          <!-- Coach Neuro reactivo -->
+          @for (pregunta of [actual.pregunta]; track pregunta.id) {
+            <div class="prompt-banner panel stage-enter">
+              <p class="eyebrow amber">Pregunta {{ indiceActual() + 1 }}</p>
+              <h2 class="q-enunciado" id="pregunta-actual">{{ pregunta.enunciado }}</h2>
+            </div>
+          }
+
           <section class="coach panel" [class.coach-active]="!!opcionElegida || !!respuestaAnimada()">
             <div class="coach-orb"><mat-icon aria-hidden="true">psychology</mat-icon></div>
             <div class="grow">
-              <span class="eyebrow">Asistente SPS · Guía Táctica</span>
-              <p class="coach-msg">{{ coachMensaje() }}</p>
+              <span class="eyebrow">Guía de la simulación</span>
+              <p class="coach-msg" role="status">{{ coachMensaje() }}</p>
             </div>
-            <span class="tag" [class.green]="!!opcionElegida || !!opcionLanzada()">
-              {{ opcionLanzada() ? 'REGISTRADO ✓' : (opcionElegida ? 'CARTA ARMADA' : 'ELIGE UNA CARTA') }}
-            </span>
           </section>
-
-          <!-- Enunciado de Decisión -->
-          @for (pregunta of [actual.pregunta]; track pregunta.id) {
-            <div class="prompt-banner panel stage-enter">
-              <p class="eyebrow amber">Dilema a resolver</p>
-              <h2 class="q-enunciado">{{ pregunta.enunciado }}</h2>
-            </div>
-          }
 
           @let joker = ayudaJokerActual();
           @let saldoJoker = 'Disponibles: ' + jokersRestantes() + ' / ' + maxJokers();
-          @let estadoJoker = joker ? 'Ayuda activada' : jokersRestantes() > 0 ? 'Activar ayuda' : 'Agotado';
+          @let estadoJoker = joker ? 'Ayuda activada' : jokersRestantes() > 0 ? 'Comparar opciones' : 'Agotado';
 
-          <div
-            class="card-rail"
-            role="group"
-            aria-label="Cartas de decisión y comodín Joker"
-            [class.has-selection]="!!opcionElegida"
-            [class.locked]="!!opcionLanzada()"
-          >
-            <button
-              type="button"
-              class="cyber-card-slot joker-card"
-              [class.joker-spent]="jokersRestantes() <= 0 && !joker"
-              [attr.aria-label]="'Comodín Joker. ' + estadoJoker + '. ' + saldoJoker"
-              [disabled]="!!joker || jokersRestantes() <= 0 || !!opcionLanzada() || guardando()"
-              (click)="activarJoker()"
-            >
-              <app-cyber-carta
-                [esJoker]="true"
-                arquetipo="Comodín Joker"
-                [texto]="saldoJoker"
-                [selloPie]="estadoJoker"
-                aria-hidden="true"
-              />
-            </button>
-
-            @for (op of actual.pregunta.opciones; track op.id; let oi = $index) {
-              @let carta = cartaDeOpcion(oi);
-              <label
-                class="cyber-card-slot"
-                [class.selected]="opcionElegida === op.id"
-                [class.launched]="opcionLanzada() === op.id"
-                [style.--tilt]="cardTilt(oi)"
-                [style.--deal-delay]="(Math.min(oi, 5) * 45) + 'ms'"
-              >
-                <input
-                  type="radio"
-                  class="sr-only-radio"
-                  [name]="'q_' + actual.pregunta.id"
-                  [value]="op.id"
-                  [(ngModel)]="opcionElegida"
-                  [disabled]="!!opcionLanzada() || guardando()"
-                />
-                <app-cyber-carta
-                  [rango]="carta.rango"
-                  [simbolo]="carta.simbolo"
-                  [esRojo]="carta.esRojo"
-                  [arquetipo]="carta.arquetipo"
-                  [texto]="op.texto"
-                  [etiquetaSuperior]="'OPC0' + (oi + 1)"
-                  [seleccionada]="opcionElegida === op.id"
-                  [lanzada]="opcionLanzada() === op.id"
-                  [riesgoJoker]="joker?.cartaRiesgoId === op.id"
-                />
-              </label>
-            }
-          </div>
-
-          @if (joker) {
-            <section class="joker-insight" aria-label="Ayuda del Joker">
-              <div class="joker-hero-line">
-                <mat-icon aria-hidden="true">bolt</mat-icon>
-                <span>Asesor activo: <strong>{{ joker.heroeAsesor }}</strong></span>
-              </div>
-              <p><strong>Marco psicosocial:</strong> {{ joker.principioPsicosocial }}</p>
-              <p><strong>Contraste de opciones:</strong> {{ joker.contrasteEstrategico }}</p>
-              @if (joker.etiquetaCartaRiesgo) {
-                <div class="joker-flag-note">
-                  <mat-icon aria-hidden="true">warning_amber</mat-icon>
-                  <span>{{ joker.etiquetaCartaRiesgo }}</span>
-                </div>
+          <section class="panel card-board" aria-labelledby="pregunta-actual">
+            <div class="card-rail" role="group" aria-label="Cartas de respuesta y comodín"
+                 [class.has-selection]="!!opcionElegida" [class.locked]="!!opcionLanzada()">
+              @for (op of actual.pregunta.opciones; track op.id; let oi = $index) {
+                @let carta = cartaDeOpcion(oi);
+                <label
+                  class="cyber-card-slot"
+                  [class.selected]="opcionElegida === op.id"
+                  [class.launched]="opcionLanzada() === op.id"
+                  [style.--tilt]="cardTilt(oi)"
+                  [style.--deal-delay]="(Math.min(oi, 5) * 45) + 'ms'"
+                >
+                  <input
+                    type="radio"
+                    class="sr-only-radio"
+                    [name]="'q_' + actual.pregunta.id"
+                    [value]="op.id"
+                    [attr.aria-label]="op.texto"
+                    [(ngModel)]="opcionElegida"
+                    [disabled]="!!opcionLanzada() || guardando()"
+                  />
+                  <app-cyber-carta
+                    [rango]="carta.rango"
+                    [simbolo]="carta.simbolo"
+                    [esRojo]="carta.esRojo"
+                    [arquetipo]="carta.arquetipo"
+                    [texto]="op.texto"
+                    [etiquetaSuperior]="'OPC0' + (oi + 1)"
+                    [seleccionada]="opcionElegida === op.id"
+                    [lanzada]="opcionLanzada() === op.id"
+                    [riesgoJoker]="joker?.cartaRiesgoId === op.id"
+                  />
+                </label>
               }
-            </section>
-          }
+
+              <button
+                type="button"
+                class="cyber-card-slot joker-card"
+                [class.joker-spent]="jokersRestantes() <= 0 && !joker"
+                [attr.aria-label]="'Comodín Joker. ' + estadoJoker + '. ' + saldoJoker"
+                [disabled]="!!joker || jokersRestantes() <= 0 || !!opcionLanzada() || guardando()"
+                (click)="activarJoker()"
+              >
+                <app-cyber-carta
+                  [esJoker]="true"
+                  arquetipo="Comodín Joker"
+                  [texto]="saldoJoker"
+                  [selloPie]="estadoJoker"
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
+
+            @if (joker) {
+              <section class="joker-insight" aria-label="Ayuda del Joker">
+                <div class="joker-hero-line">
+                  <mat-icon aria-hidden="true">bolt</mat-icon>
+                  <span>Asesor activo: <strong>{{ joker.heroeAsesor }}</strong></span>
+                </div>
+                <p><strong>Marco psicosocial:</strong> {{ joker.principioPsicosocial }}</p>
+                <p><strong>Contraste de opciones:</strong> {{ joker.contrasteEstrategico }}</p>
+                @if (joker.etiquetaCartaRiesgo) {
+                  <div class="joker-flag-note">
+                    <mat-icon aria-hidden="true">warning_amber</mat-icon>
+                    <span>{{ joker.etiquetaCartaRiesgo }}</span>
+                  </div>
+                }
+              </section>
+            }
+
+            <div class="card-controls">
+              <div class="refl-panel">
+                <label class="ctx-lbl" for="reflInput">Explica tu decisión (opcional)</label>
+                <textarea id="reflInput" class="refl-textarea" rows="2" [(ngModel)]="reflexionInput"
+                          placeholder="¿Por qué elegiste esa respuesta?"></textarea>
+              </div>
+              <button mat-flat-button color="primary" class="launch-card" type="button"
+                      [class.launching]="!!opcionLanzada()" (click)="guardarYAvanzar()"
+                      [disabled]="!opcionElegida || guardando() || !!opcionLanzada()">
+                <mat-icon aria-hidden="true">rocket_launch</mat-icon>
+                {{ opcionLanzada() ? 'Lanzando…' : 'Lanzar carta' }}
+              </button>
+            </div>
+          </section>
 
           @if (respuestaAnimada(); as rAnim) {
             <section class="panel panel-pad feedback">
               <div class="spread">
                 <span class="eyebrow green">🎉 Decisión registrada en Escenario {{ rAnim.paso }}</span>
-                <span class="tag green">PASO GUARDADO ✓</span>
+                <span class="tag green">Paso guardado ✓</span>
               </div>
               <p>{{ rAnim.texto }}</p>
               <div class="meter stress">
@@ -235,39 +247,13 @@ interface PasoPlano {
             </section>
           }
 
-          <!-- Reflexión Terminal + Launch Pad -->
-          <mat-card class="panel refl-panel">
-            <label class="ctx-lbl" for="reflInput">Bitácora de sustento personal (opcional, editable antes de entregar)</label>
-            <textarea
-              id="reflInput"
-              class="refl-textarea"
-              rows="3"
-              [(ngModel)]="reflexionInput"
-              placeholder="Argumenta brevemente el criterio psicológico y ético de tu elección..."
-            ></textarea>
-          </mat-card>
-
-          <section class="panel launch-pad">
-            <div class="selected-brief">
-              <div class="launch-ico" [class.rocket-launch]="!!opcionLanzada()"><mat-icon aria-hidden="true">rocket_launch</mat-icon></div>
-              <div>
-                <small>{{ opcionLanzada() ? 'LANZAMIENTO CONFIRMADO' : (opcionElegida ? 'CARTA LISTA PARA LANZAR' : 'ELIGE UNA CARTA DE DECISIÓN') }}</small>
-                <b>{{ opcionLanzada() ? 'Guardando decisión...' : (opcionElegida ? 'Decisión #' + (indiceActual() + 1) + ' lista para registrar' : 'Esperando selección...') }}</b>
-              </div>
-            </div>
-
-            <div class="play-actions">
-              <button mat-stroked-button type="button" (click)="anterior()" [disabled]="indiceActual() === 0 || guardando() || !!opcionLanzada()">
-                <mat-icon>arrow_back</mat-icon> Anterior
-              </button>
-              <button mat-flat-button color="primary" type="button" (click)="guardarYAvanzar()" [disabled]="!opcionElegida || guardando() || !!opcionLanzada()">
-                <mat-icon>{{ opcionLanzada() ? 'hourglass_top' : 'rocket_launch' }}</mat-icon>
-                {{ opcionLanzada() ? 'Registrando...' : (indiceActual() < pasosPlanos().length - 1 ? 'Lanzar y Siguiente' : 'Lanzar Respuesta') }}
-              </button>
-              <button mat-flat-button color="accent" type="button" (click)="entregarSimulacion()" [disabled]="guardando() || !!opcionLanzada()">
-                <mat-icon>done_all</mat-icon> Entregar Simulación
-              </button>
-            </div>
+          <section class="panel play-actions" aria-label="Navegación y entrega de la simulación">
+            <button mat-stroked-button type="button" (click)="anterior()" [disabled]="indiceActual() === 0 || guardando() || !!opcionLanzada()">
+              <mat-icon aria-hidden="true">arrow_back</mat-icon> Anterior
+            </button>
+            <button mat-flat-button color="accent" type="button" (click)="entregarSimulacion()" [disabled]="guardando() || !!opcionLanzada()">
+              <mat-icon aria-hidden="true">done_all</mat-icon> Entregar simulación
+            </button>
           </section>
 
           <!-- Baraja completa -->
@@ -330,16 +316,13 @@ interface PasoPlano {
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
-      font-family: var(--display);
-      font-size: clamp(24px, 4vw, 32px);
-      font-weight: 700;
-      text-transform: uppercase;
-      color: var(--text);
       margin-top: 4px;
     }
+    .hud-title h1 { margin: 0; font: 700 clamp(26px, 4vw, 38px)/1.1 var(--display); }
     .hud-sub {
       color: var(--muted);
-      margin-top: 2px;
+      margin-top: 5px;
+      font-size: var(--type-small);
     }
     .timer-box {
       display: flex;
@@ -362,10 +345,7 @@ interface PasoPlano {
     }
     .timer-lbl {
       display: block;
-      font-family: var(--mono);
-      font-size: 9px;
-      letter-spacing: 1px;
-      opacity: 0.85;
+      font-size: var(--type-meta);
     }
     .timer-txt {
       font-size: 22px;
@@ -388,13 +368,13 @@ interface PasoPlano {
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      min-height: var(--button-min-height);
       padding: 7px 11px;
       border: 1px solid #7199b64d;
       border-radius: 7px;
       background: #0b1017;
       color: var(--muted);
-      font-family: var(--mono);
-      font-size: 11px;
+      font-size: var(--type-small);
       transition: background-color var(--motion-quick) ease, border-color var(--motion-quick) ease, box-shadow var(--motion-quick) ease;
     }
     .step-btn mat-icon {
@@ -416,10 +396,9 @@ interface PasoPlano {
 
     .stage-enter { animation: stageEnter var(--motion-enter) var(--motion-decelerate) backwards; }
 
-    /* Coach Neuro */
     .coach {
       display: grid;
-      grid-template-columns: auto 1fr auto;
+      grid-template-columns: auto minmax(0, 1fr);
       align-items: center;
       gap: 14px;
       padding: 14px 18px;
@@ -448,8 +427,7 @@ interface PasoPlano {
     .grow { min-width: 0; }
     .coach-msg {
       margin: 4px 0 0;
-      font-size: 14px;
-      line-height: 1.45;
+      font-size: var(--type-control);
       color: var(--text);
     }
 
@@ -460,10 +438,10 @@ interface PasoPlano {
     }
     .q-enunciado {
       margin: 6px 0 0;
-      font-family: var(--display);
-      font-size: clamp(22px, 3vw, 28px);
-      line-height: 1.12;
-      text-transform: uppercase;
+      font-family: var(--body);
+      font-size: clamp(1.125rem, 2.4vw, 1.5rem);
+      font-weight: 650;
+      line-height: 1.3;
       color: var(--text);
     }
 
@@ -608,19 +586,21 @@ interface PasoPlano {
       font-size: 11px;
     }
 
+    .card-board {
+      min-width: 0;
+      border-color: #77d2fa66;
+      background:
+        repeating-linear-gradient(135deg, #93d6ff08 0 1px, transparent 1px 12px),
+        radial-gradient(ellipse at 50% 38%, #233356, #10192d 67%, #0b1120);
+    }
+    .card-board > .joker-insight { margin: 0 16px 16px; }
     .card-rail {
       display: flex;
       gap: 20px;
       overflow-x: auto;
-      overflow-y: visible;
       padding: 28px 20px 26px;
-      border: 1px solid #77d2fa66;
-      border-radius: 12px;
-      background:
-        repeating-linear-gradient(135deg, #93d6ff08 0 1px, transparent 1px 12px),
-        radial-gradient(ellipse at 50% 38%, #233356, #10192d 67%, #0b1120);
-      box-shadow: inset 0 3px 21px #0408178f, 0 10px 24px #02050c6b;
       scroll-snap-type: x mandatory;
+      scroll-padding-inline: 20px;
       scrollbar-color: #ff2ed1 transparent;
     }
     .card-rail.has-selection label.cyber-card-slot:not(.selected) {
@@ -636,7 +616,7 @@ interface PasoPlano {
       min-height: 356px;
       display: block;
       cursor: pointer;
-      scroll-snap-align: center;
+      scroll-snap-align: start;
       transform: rotate(var(--tilt, 0deg));
       transition: transform 240ms var(--motion-decelerate), opacity var(--motion-quick) ease;
     }
@@ -688,55 +668,36 @@ interface PasoPlano {
     }
     .sr-only-radio { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
 
-    /* ==================== REFLEXIÓN & LAUNCH PAD ==================== */
+    .card-controls {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 12rem);
+      align-items: end;
+      gap: 12px;
+      padding: 14px 16px;
+      border-top: 1px solid var(--line);
+      border-radius: 0 0 11px 11px;
+      background: #0d1929df;
+    }
     .refl-panel {
-      padding: 16px 18px !important;
-      margin-bottom: 0 !important;
+      display: grid;
+      gap: 6px;
+      font-size: var(--type-control);
     }
     .refl-textarea {
       width: 100%;
-      box-sizing: border-box;
-      margin-top: 8px;
       background: rgba(5, 8, 13, 0.78);
       color: var(--text);
-      border: 1px solid rgba(184, 211, 214, 0.22);
-      border-radius: 0;
-      padding: 12px;
-      font-family: var(--body);
+      border: 1px solid var(--control-line);
+      border-radius: var(--control-radius);
+      padding: 9px 10px;
+      resize: vertical;
     }
     .refl-textarea:focus {
-      outline: none;
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 2px;
       border-color: var(--cyan);
     }
-    .launch-pad {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      align-items: center;
-      gap: 16px;
-      padding: 16px 18px;
-      border-color: #6ca8ca80;
-      border-radius: 12px;
-      background: radial-gradient(ellipse at right center, #1a44604f, transparent 64%), var(--surface-raised);
-    }
-    .selected-brief {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .launch-ico {
-      display: grid;
-      place-items: center;
-      color: var(--cyan);
-      line-height: 1;
-    }
-    .launch-ico mat-icon {
-      width: 28px;
-      height: 28px;
-      font-size: 28px;
-    }
-    .launch-ico.rocket-launch {
-      animation: rocketTakeoff 560ms var(--motion-decelerate);
-    }
+    .launch-card.launching mat-icon { animation: rocketTakeoff 560ms var(--motion-decelerate); }
     .feedback {
       padding: 16px 18px !important;
       border: 1px solid rgba(0, 232, 148, 0.45);
@@ -788,43 +749,26 @@ interface PasoPlano {
       .joker-insight,
       .cyber-card-slot > app-cyber-carta,
       .cyber-card-slot.launched,
-      .launch-ico.rocket-launch,
+      .launch-card.launching mat-icon,
       .feedback { animation: none; }
 
       .card-rail .cyber-card-slot { transform: none; transition: none; }
       .meter.stress > span { transition: none; }
     }
-    .selected-brief small,
-    .selected-brief b {
-      display: block;
-    }
-    .selected-brief small {
-      color: var(--cyan);
-      font: 11px var(--mono);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .selected-brief b {
-      color: #fff;
-      font: 700 20px var(--display);
-      text-transform: uppercase;
-    }
     .play-actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 12rem));
+      justify-content: end;
+      gap: 8px;
+      padding: 12px 16px;
     }
+    .play-actions button { padding-inline: 10px; min-width: 0; }
 
-    @media (max-width: 780px) {
-      .launch-pad { grid-template-columns: 1fr; }
-      .coach { grid-template-columns: auto 1fr; }
-      .coach .tag { grid-column: 1 / -1; justify-self: start; }
-      .play-actions { width: 100%; justify-content: stretch; }
-      .play-actions button { flex: 1 1 140px; }
-    }
     @media (max-width: 520px) {
       .cyber-card-slot { flex: 0 0 min(84vw, 238px); min-height: 325px; }
+      .card-controls { grid-template-columns: minmax(0, 1fr); }
+      .play-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .play-actions button { padding-inline: 6px; }
     }
   `],
 })
@@ -1042,20 +986,20 @@ export class SimuladorComponent implements OnInit, OnDestroy {
 
   etiquetaTemaEscenario(): string {
     const etiquetas: Record<string, string> = {
-      tribunal_comite: 'SALA DIRECTIVA · PRESIÓN GRUPAL',
-      laboratorio_autoridad: 'LAB CONDUCTUAL · AUTORIDAD',
+      tribunal_comite: 'Sala directiva · presión grupal',
+      laboratorio_autoridad: 'Laboratorio conductual · autoridad',
       hospital_urgencias: 'URGENCIAS 24H · CRISIS',
-      entrevista_clinica: 'SALA CLÍNICA · VÍNCULO',
+      entrevista_clinica: 'Sala clínica · vínculo',
       proteccion_riesgo: 'PERÍMETRO · PROTECCIÓN',
-      red_ciudad: 'DISTRITO · RED DE CUIDADO',
+      red_ciudad: 'Distrito · red de cuidado',
     };
-    return etiquetas[this.escenarioTema()] ?? 'SIMULACIÓN ACTIVA';
+    return etiquetas[this.escenarioTema()] ?? 'Simulación activa';
   }
 
   etiquetaImpactoCarta(): string {
     const id = this.opcionLanzada();
     const actual = this.pasoActual();
-    if (!id || !actual) return 'CARTA JUGADA';
+    if (!id || !actual) return 'Carta jugada';
     const idx = actual.pregunta.opciones.findIndex((o) => o.id === id);
     const carta = this.cartaDeOpcion(Math.max(0, idx));
     return `${carta.rango}${carta.simbolo} // ${carta.arquetipo}`;
@@ -1064,22 +1008,22 @@ export class SimuladorComponent implements OnInit, OnDestroy {
   coachMensaje(): string {
     const actual = this.pasoActual();
     const ws = this.workspace();
-    if (!actual || !ws) return 'Analiza el escenario clínico antes de lanzar tu carta de decisión.';
+    if (!actual || !ws) return 'Lee la situación antes de elegir una respuesta.';
     if (this.opcionLanzada()) {
-      return '¡Carta lanzada! Registrando tu criterio ético y preparando el siguiente movimiento...';
+      return 'Estamos guardando tu respuesta.';
     }
     if (this.respuestaAnimada()) {
       return (ws.respondidas ?? 0) >= this.pasosPlanos().length
-        ? '¡Completaste todas las decisiones! Ya puedes pulsar "Entregar Simulación" para recibir tu calificación y retroalimentación.'
-        : 'Decisión guardada correctamente. Puedes revisarla o continuar con el escenario.';
+        ? 'Ya respondiste todas las preguntas. Pulsa «Entregar simulación» cuando estés listo.'
+        : 'Respuesta guardada. Puedes revisarla o seguir con la próxima pregunta.';
     }
     if (this.opcionElegida) {
-      return `Carta preparada para el Escenario ${actual.escenario.orden}. Puedes añadir tu sustento en la bitácora y pulsar "Lanzar".`;
+      return 'Si quieres, explica tu elección. Después pulsa «Lanzar carta» para registrar la respuesta.';
     }
     if (this.estaRespondida(actual.pregunta.id)) {
-      return 'Este dilema ya tiene una respuesta guardada. Puedes cambiar tu carta antes de entregar definitivamente.';
+      return 'Ya guardaste una respuesta a esta pregunta. Puedes cambiarla antes de entregar.';
     }
-    return `Lee el contexto del Escenario ${actual.escenario.orden} y toca la carta de intervención que mejor responda al dilema.`;
+    return 'Elige la carta que mejor represente lo que harías. Desliza las cartas si quieres ver más opciones.';
   }
 
   async cargarEstado(): Promise<void> {
@@ -1196,7 +1140,7 @@ export class SimuladorComponent implements OnInit, OnDestroy {
         this.irAPregunta(prevIdx + 1);
         this.snack.open('Respuesta guardada (editable hasta entregar).', 'OK', { duration: 1800 });
       } else {
-        this.snack.open('Última decisión guardada. Ya puedes pulsar "Entregar Simulación".', 'OK', { duration: 2800 });
+        this.snack.open('Última decisión guardada. Ya puedes pulsar "Entregar simulación".', 'OK', { duration: 2800 });
       }
     } catch (e) {
       this.opcionLanzada.set(null);

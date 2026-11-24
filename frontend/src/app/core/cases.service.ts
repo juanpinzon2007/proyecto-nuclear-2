@@ -21,6 +21,9 @@ export class CasesService {
   listar(): Observable<CasoResumenResponse[]> { return this.http.get<CasoResumenResponse[]>(BASE); }
   obtener(versionId: string): Observable<CasoDetalleResponse> { return this.http.get<CasoDetalleResponse>(`${BASE}/${versionId}`); }
   crear(body: CasoPayload): Observable<VersionResponse> { return this.http.post<VersionResponse>(BASE, body); }
+  eliminarBorrador(versionId: string): Observable<void> {
+    return this.http.delete<void>(`${BASE}/${versionId}`);
+  }
   actualizar(versionId: string, body: CasoPayload): Observable<VersionResponse> {
     return this.http.put<VersionResponse>(`${BASE}/${versionId}`, body);
   }

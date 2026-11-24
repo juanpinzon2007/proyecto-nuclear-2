@@ -1,8 +1,8 @@
 import { Component, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../core/auth.service';
 import { avatarUsuario } from '../core/user-avatar';
@@ -16,7 +16,6 @@ import { avatarUsuario } from '../core/user-avatar';
     RouterLink,
     RouterLinkActive,
     MatIconModule,
-    MatButtonModule,
   ],
   templateUrl: './shell.component.html',
   styleUrls: ['./shell.component.scss'],
@@ -29,7 +28,7 @@ export class ShellComponent {
 
   constructor() {
     this.router.events
-      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd), takeUntilDestroyed())
       .subscribe((event) => {
         this.rutaActual = event.urlAfterRedirects;
       });
@@ -37,12 +36,12 @@ export class ShellComponent {
   }
 
   obtenerTituloVista(): string {
-    if (this.rutaActual.startsWith('/casos')) return 'Gestión de Casos & Escenarios';
-    if (this.rutaActual.startsWith('/programacion')) return 'Programación de Sesiones & Espacios';
-    if (this.rutaActual.startsWith('/seguimiento')) return 'Auditoría & Seguimiento Académico';
-    if (this.rutaActual.startsWith('/administracion')) return 'Gobernanza & Directorio Docente';
-    if (this.rutaActual.startsWith('/estudiante')) return 'Portal de Simulación Estudiantil';
-    return 'Consola Principal SPS';
+    if (this.rutaActual.startsWith('/casos')) return 'Casos de estudio';
+    if (this.rutaActual.startsWith('/programacion')) return 'Sesiones y grupos';
+    if (this.rutaActual.startsWith('/seguimiento')) return 'Seguimiento académico';
+    if (this.rutaActual.startsWith('/administracion')) return 'Administración';
+    if (this.rutaActual.startsWith('/estudiante')) return 'Portal del estudiante';
+    return 'Simulador de Psicología Social';
   }
 
   obtenerAvatar(): string {

@@ -229,15 +229,15 @@ let siguienteIdCarta = 0;
 
         <div class="card-seal-row">
           @if (lanzada) {
-            <span class="cyber-seal launched">JUGADA LANZADA</span>
+            <span class="cyber-seal launched">Carta jugada</span>
           } @else if (seleccionada) {
-            <span class="cyber-seal selected">CARTA ELEGIDA</span>
+            <span class="cyber-seal selected">Carta elegida</span>
           } @else if (riesgoJoker) {
-            <span class="cyber-seal risk">JOKER · RIESGO DE SESGO</span>
+            <span class="cyber-seal risk">Joker · riesgo de sesgo</span>
           } @else if (esJoker) {
-            <span class="cyber-seal joker">{{ selloPie || 'ACTIVAR COMODÍN' }}</span>
+            <span class="cyber-seal joker">{{ selloPie || 'Activar comodín' }}</span>
           } @else {
-            <span class="cyber-seal idle">{{ selloPie || ('JUGAR ' + rango + simbolo) }}</span>
+            <span class="cyber-seal idle">{{ selloPie || ('Jugar ' + rango + simbolo) }}</span>
           }
         </div>
       </div>
@@ -438,7 +438,6 @@ let siguienteIdCarta = 0;
       font-family: var(--mono, monospace);
       font-size: 9px;
       letter-spacing: 1.2px;
-      text-transform: uppercase;
       color: #a5f3fc;
       backdrop-filter: blur(4px);
     }
@@ -461,7 +460,7 @@ let siguienteIdCarta = 0;
     .decision-copy {
       margin: 0;
       font-family: var(--body, sans-serif);
-      font-size: 13px;
+      font-size: var(--type-control, 0.875rem);
       font-weight: 600;
       line-height: 1.38;
       color: #f1f5f9;
@@ -479,7 +478,6 @@ let siguienteIdCarta = 0;
       font-size: 9.5px;
       font-weight: 700;
       letter-spacing: 0.8px;
-      text-transform: uppercase;
     }
 
     .cyber-seal.idle {

@@ -4,7 +4,7 @@ import uuid
 from collections.abc import Callable
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -31,6 +31,7 @@ from app.modules.cases.application.services.caso_service import CasoService
 from app.modules.cases.domain.entities.caso import VersionCaso
 from app.modules.cases.domain.exceptions import (
     CasoInvalidoError,
+    CasoNoEliminableError,
     CasoNoEncontradoError,
     ErrorConstruccionCaso,
     ErrorDominioCaso,
@@ -52,6 +53,8 @@ def _traducir(exc: ErrorDominioCaso | GrafoNoDisponible) -> HTTPException:
         return HTTPException(422, detail={"errores": [str(exc)]})
     if isinstance(exc, CasoNoEncontradoError):
         return HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, CasoNoEliminableError):
+        return HTTPException(status.HTTP_409_CONFLICT, detail=str(exc))
     if isinstance(exc, CasoInvalidoError):
         return HTTPException(status.HTTP_400_BAD_REQUEST, detail={"errores": exc.errores})
     if isinstance(exc, ErrorConstruccionCaso):
@@ -132,6 +135,17 @@ def obtener_caso(
         return CasoDetalleResponse.model_validate(service.obtener(docente_id, version_id))
     except ErrorDominioCaso as exc:
         raise _traducir(exc) from exc
+
+
+@router.delete("/{version_id}", status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[Depends(exigir_permiso_creacion_configurado)])
+def eliminar_borrador(version_id: uuid.UUID, docente_id: DocenteDep, service: ServicioDep) -> Response:
+    """Elimina una versión propia que aún es borrador."""
+    try:
+        service.eliminar_borrador(docente_id, version_id)
+    except ErrorDominioCaso as exc:
+        raise _traducir(exc) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.put("/{version_id}", response_model=VersionResponse,

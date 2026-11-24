@@ -19,6 +19,10 @@ class CasoNoEncontradoError(ErrorDominioCaso):
     """La versión no existe o no pertenece al docente solicitante."""
 
 
+class CasoNoEliminableError(ErrorDominioCaso):
+    """La versión forma parte del historial académico."""
+
+
 class CasoInvalidoError(ErrorDominioCaso):
     """La versión no supera la validación de publicación (RF-09)."""
 

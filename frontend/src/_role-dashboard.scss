@@ -67,16 +67,16 @@
 .dashboard-copy h1 {
   margin: 0;
   color: #edf6ff;
-  font: 800 clamp(46px, 6.1vw, 76px) / 0.88 var(--display);
-  text-transform: uppercase;
+  font: 750 clamp(38px, 5.2vw, 64px) / 1.02 var(--display);
+  text-wrap: balance;
   text-shadow: 0 4px 23px #020813b8;
 }
 
 .dashboard-description {
-  max-width: 43ch;
+  max-width: 46ch;
   margin: 14px 0 0;
   color: #ceddec;
-  font-size: clamp(14px, 1.4vw, 16px);
+  font-size: var(--type-body);
   line-height: 1.55;
 }
 
@@ -150,7 +150,7 @@
   align-items: center;
   gap: 11px;
   color: #c5d6e9;
-  font-size: 13px;
+  font-size: var(--type-control);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -175,12 +175,11 @@
   margin: 0;
   color: var(--text);
   font: 700 clamp(25px, 3vw, 32px) / 1.1 var(--display);
-  text-transform: uppercase;
 }
 
 .dashboard-heading > span {
-  color: #b3c5db;
-  font: 13px var(--mono);
+  color: var(--muted);
+  font-size: var(--type-small);
 }
 
 .dashboard-grid {
@@ -259,15 +258,20 @@
 }
 
 .dashboard-card-actions {
-  gap: 3px;
+  margin-top: auto;
+  align-items: stretch;
+  gap: 8px;
   padding: 10px 12px;
   border-top: 1px solid #8fbed632;
   border-radius: 0 0 11px 11px;
   background: #08121e63;
 }
 
-.dashboard-card-actions :is(a, button) {
-  min-height: 42px;
+.dashboard-card-actions > :is(a, button) {
+  height: auto;
+  min-width: 0;
+  padding: 6px 12px;
+  white-space: normal;
 }
 
 .dashboard-empty {
@@ -358,7 +362,7 @@
   }
   .dashboard-stat dt {
     justify-content: center;
-    font-size: 11px;
+    font-size: var(--type-meta);
   }
   .dashboard-stat-icon {
     display: none;

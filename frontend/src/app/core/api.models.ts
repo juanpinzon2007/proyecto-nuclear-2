@@ -81,6 +81,9 @@ export interface UsuarioGestionItem {
 export interface CatalogoUsuariosRespuesta {
   usuarios: UsuarioGestionItem[]; permisos_disponibles: string[]; roles_disponibles: string[];
 }
+export interface PaginaUsuariosRespuesta extends CatalogoUsuariosRespuesta {
+  total: number; activos: number; filtrados: number; pagina: number;
+}
 export interface CrearUsuarioAdminSolicitud {
   nombre: string; correo: string; rol: Rol; clave?: string | null; activo?: boolean;
   permisos_individuales?: Record<string, boolean>; crear_identidades_academicas?: boolean;

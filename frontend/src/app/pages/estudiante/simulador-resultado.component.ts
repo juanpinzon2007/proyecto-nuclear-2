@@ -6,6 +6,8 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { ResultadoIntentoDetalle } from '../../core/api.models';
 
+import { etiquetaEstado } from '../../core/lista-paginada';
+
 @Component({
   selector: 'app-simulador-resultado',
   standalone: true,
@@ -13,16 +15,16 @@ import { ResultadoIntentoDetalle } from '../../core/api.models';
   template: `
     <div class="res-header">
       <a mat-stroked-button routerLink="/estudiante">
-        <mat-icon>arrow_back</mat-icon> Volver al Portal
+        <mat-icon>arrow_back</mat-icon> Volver al portal
       </a>
-      <span class="tag green">{{ res.estado_intento }} · {{ res.modalidad }}</span>
+      <span class="tag green">{{ etiquetaEstado(res.estado_intento) }} · {{ etiquetaEstado(res.modalidad) }}</span>
     </div>
 
     <mat-card class="panel result-head stagger">
       <mat-card-content>
         <div class="spread head-top">
           <div>
-            <p class="eyebrow green">Estado: Simulación Finalizada</p>
+            <p class="eyebrow green">Simulación finalizada</p>
             <h1>{{ res.caso_nombre }}</h1>
           </div>
           <span class="ref mono">{{ res.rubrica_nombre }}</span>
@@ -150,7 +152,7 @@ import { ResultadoIntentoDetalle } from '../../core/api.models';
   `,
   styles: [`
     :host { display: grid; gap: 16px; }
-    .res-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .res-header { display: flex; justify-content: space-between; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
     .result-head {
       padding: clamp(22px, 4vw, 34px) !important;
       margin-bottom: 0 !important;
@@ -158,7 +160,7 @@ import { ResultadoIntentoDetalle } from '../../core/api.models';
       border-color: #76e9d46e !important;
     }
     .head-top { margin-bottom: 16px; }
-    .head-top h1 { margin: 4px 0 0; font-family: var(--display); font-size: clamp(28px, 4.5vw, 38px); text-transform: uppercase; color: var(--text); }
+    .head-top h1 { margin: 4px 0 0; font-family: var(--display); font-size: clamp(28px, 4.5vw, 38px); color: var(--text); }
     .ref { padding: 8px 12px; border: 1px solid rgba(184, 211, 214, 0.3); background: #232a34; color: var(--text) !important; }
     .score-layout { display: grid; grid-template-columns: 150px 1fr; gap: 20px; align-items: center; }
     .score-ring { --score: 76%; width: 142px; height: 142px; display: grid; place-items: center; position: relative; border-radius: 50%; background: conic-gradient(var(--green) var(--score), rgba(184, 211, 214, 0.14) 0); box-shadow: 0 0 30px #56e6d44a; }
@@ -171,10 +173,10 @@ import { ResultadoIntentoDetalle } from '../../core/api.models';
     .summary { margin: 0; padding-top: 10px; border-top: 1px solid rgba(184, 211, 214, 0.14); color: var(--text); font-size: 14px; line-height: 1.55; }
     .fb-card { border-left: 4px solid var(--amber) !important; margin-bottom: 0 !important; }
     .chart-card { display: grid; gap: 16px; background: linear-gradient(145deg, rgba(0, 229, 244, 0.06), rgba(0, 232, 148, 0.04)), rgba(16, 20, 27, 0.94); }
-    .section-heading { margin: 4px 0 0; font-family: var(--display); font-size: 26px; text-transform: uppercase; }
+    .section-heading { margin: 4px 0 0; font-family: var(--display); font-size: 26px; }
     .chart-bars { display: grid; gap: 12px; }
     .chart-row { display: grid; grid-template-columns: 1.1fr 1.6fr 56px; gap: 10px; align-items: center; }
-    .chart-row span { font: 12px var(--mono); text-transform: uppercase; color: #cbd6d8; }
+    .chart-row span { font: 12px var(--mono); color: #cbd6d8; }
     .chart-row i { height: 14px; border: 1px solid rgba(184, 211, 214, 0.2); background: #05080d; overflow: hidden; }
     .chart-row b { display: block; height: 100%; background: var(--primary-gradient); box-shadow: 0 0 14px var(--cyan); transform-origin: left; }
     .chart-row strong { color: var(--cyan); font: 15px var(--mono); text-align: right; }
@@ -185,7 +187,7 @@ import { ResultadoIntentoDetalle } from '../../core/api.models';
     .crit-score small { font-size: 12px; color: var(--muted); }
     .crit-desc { margin: 0; font-size: 12px; }
     .events-head { padding: 18px 20px; border-bottom: 1px solid var(--line); }
-    .events-head h3 { margin: 4px 0 0; font-family: var(--display); font-size: 24px; text-transform: uppercase; }
+    .events-head h3 { margin: 4px 0 0; font-family: var(--display); font-size: 24px; }
     .q-review-list { display: grid; }
     .event-row { padding: 16px 20px; border-top: 1px solid rgba(184, 211, 214, 0.12); display: grid; gap: 8px; }
     .event-row.q-ok { border-left: 4px solid var(--green); }
@@ -213,6 +215,7 @@ import { ResultadoIntentoDetalle } from '../../core/api.models';
   `],
 })
 export class SimuladorResultadoComponent {
+  readonly etiquetaEstado = etiquetaEstado;
   @Input({ required: true }) res!: ResultadoIntentoDetalle;
 }
 

@@ -15,6 +15,8 @@ import { ConvocatoriaDetalleResponse, EstudianteDisponibleItem } from '../../cor
 import { SchedulingService } from '../../core/scheduling.service';
 import { avatarUsuario } from '../../core/user-avatar';
 
+import { etiquetaEstado } from '../../core/lista-paginada';
+
 @Component({
   selector: 'app-convocatorias',
   standalone: true,
@@ -33,11 +35,11 @@ import { avatarUsuario } from '../../core/user-avatar';
   template: `
     <div class="conv-wrap">
       <div class="page-header">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <a mat-icon-button routerLink="/programacion"><mat-icon>arrow_back</mat-icon></a>
+        <div class="page-heading">
+          <a mat-icon-button routerLink="/programacion" aria-label="Volver a programación" title="Volver a programación"><mat-icon>arrow_back</mat-icon></a>
           <div>
-            <p class="eyebrow">Control de Acceso</p>
-            <h2>Convocatorias & Códigos de Autorización</h2>
+            <p class="eyebrow">Control de acceso</p>
+            <h2>Convocatorias y códigos de autorización</h2>
             <p class="subtitle">Sesión <span class="mono">{{ sesionId }}</span></p>
           </div>
         </div>
@@ -46,7 +48,7 @@ import { avatarUsuario } from '../../core/user-avatar';
       @if (ultimoCodigo(); as code) {
         <div class="code-box">
           <div>
-            <div class="mono green" style="font-weight:700;">CÓDIGO DE AUTORIZACIÓN INDIVIDUAL EMITIDO</div>
+            <div class="mono green" style="font-weight:700;">Código de autorización emitido</div>
             <div class="subtitle">Entrégalo únicamente a {{ code.nombre }}. Con este código inicia sesión en el Portal Estudiantil.</div>
           </div>
           <div class="mono code-val">{{ code.codigo }}</div>
@@ -56,7 +58,7 @@ import { avatarUsuario } from '../../core/user-avatar';
       <div class="grid-2">
         <mat-card class="panel panel-cyan-left">
           <mat-card-header>
-            <mat-card-title>Emitir / Renovar Convocatoria</mat-card-title>
+            <mat-card-title>Emitir o renovar convocatoria</mat-card-title>
             <mat-card-subtitle>Selecciona el estudiante por nombre y correo</mat-card-subtitle>
           </mat-card-header>
           <mat-card-content style="padding-top:16px;">
@@ -69,19 +71,21 @@ import { avatarUsuario } from '../../core/user-avatar';
                   }
                 </mat-select>
               </mat-form-field>
-              <button mat-flat-button color="primary" type="submit" [disabled]="!estudianteSeleccionadoUuid || cargando()">
-                <mat-icon>vpn_key</mat-icon> Generar código y convocar
-              </button>
+              <div class="action-group form-actions">
+                <button mat-flat-button color="primary" type="submit" [disabled]="!estudianteSeleccionadoUuid || cargando()">
+                  <mat-icon>vpn_key</mat-icon> Generar código y convocar
+                </button>
+              </div>
             </form>
           </mat-card-content>
         </mat-card>
 
         <mat-card class="panel">
           <mat-card-header>
-            <mat-card-title>Estudiantes Convocados ({{ convocatorias().length }})</mat-card-title>
+            <mat-card-title>Estudiantes convocados ({{ convocatorias().length }})</mat-card-title>
           </mat-card-header>
           <mat-card-content style="padding-top:12px;">
-            <table mat-table [dataSource]="convocatorias()" style="width:100%;">
+            <table mat-table [dataSource]="convocatorias()" class="invitation-table">
               <ng-container matColumnDef="estudiante">
                 <th mat-header-cell *matHeaderCellDef>Estudiante</th>
                 <td mat-cell *matCellDef="let c">
@@ -89,7 +93,7 @@ import { avatarUsuario } from '../../core/user-avatar';
                     <img class="game-avatar" [src]="avatarEstudiante(c.estudiante_id)" [alt]="nombreEstudiante(c.estudiante_id)" />
                     <div>
                       <div style="font-weight:600;">{{ nombreEstudiante(c.estudiante_id) }}</div>
-                      <div class="mono muted">{{ c.id }}</div>
+                      <div class="mono muted invitation-id">{{ c.id }}</div>
                     </div>
                   </div>
                 </td>
@@ -97,7 +101,7 @@ import { avatarUsuario } from '../../core/user-avatar';
               <ng-container matColumnDef="estado">
                 <th mat-header-cell *matHeaderCellDef>Estado</th>
                 <td mat-cell *matCellDef="let c">
-                  <span class="chip" [class.ok]="c.estado === 'ACTIVA'" [class.bad]="c.estado !== 'ACTIVA'">{{ c.estado }}</span>
+                  <span class="chip" [class.ok]="c.estado === 'ACTIVA'" [class.bad]="c.estado !== 'ACTIVA'">{{ etiquetaEstado(c.estado) }}</span>
                 </td>
               </ng-container>
               <ng-container matColumnDef="acciones">
@@ -119,9 +123,17 @@ import { avatarUsuario } from '../../core/user-avatar';
   styles: [`
     .conv-wrap { padding: 4px 0 36px; max-width: 1160px; margin: 0 auto; }
     .subtitle { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
-    .grid-2 { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
-    @media (max-width: 950px) { .grid-2 { grid-template-columns: 1fr; } }
+    .grid-2 { display: grid; grid-template-columns: minmax(0, 21rem) minmax(0, 1fr); gap: 20px; align-items: start; }
+    @media (max-width: 950px) { .grid-2 { grid-template-columns: minmax(0, 1fr); gap: 0; } }
     .stack-form { display: flex; flex-direction: column; gap: 12px; }
+    .invitation-table { width: 100%; table-layout: auto; }
+    .invitation-table :is(th, td) { padding: 8px; }
+    .invitation-table .mat-column-acciones { text-align: end; }
+    .invitation-id { font-size: 11px; overflow-wrap: anywhere; }
+    @media (max-width: 500px) {
+      .invitation-table .game-avatar { display: none; }
+      .invitation-table button { min-width: 0; padding-inline: 6px; }
+    }
     .code-box {
       display: flex;
       justify-content: space-between;
@@ -146,6 +158,7 @@ import { avatarUsuario } from '../../core/user-avatar';
   `],
 })
 export class ConvocatoriasComponent implements OnInit {
+  readonly etiquetaEstado = etiquetaEstado;
   private readonly route = inject(ActivatedRoute);
   private readonly scheduling = inject(SchedulingService);
   private readonly snack = inject(MatSnackBar);

@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.cases.domain.enums import EstadoCaso
 from app.modules.cases.infrastructure.models import (
+    CasoModel,
     EscenarioModel,
     OpcionRespuestaModel,
     VersionCasoModel,
@@ -104,6 +105,39 @@ def test_detalle_de_otro_docente_o_inexistente_devuelve_404(
 
     assert client.get(f"{URL}/{version_id}", headers=otro).status_code == 404
     assert client.get(f"{URL}/{uuid.uuid4()}", headers=headers).status_code == 404
+
+
+def test_eliminar_borrador_propio_borra_su_estructura_y_familia_vacia(
+    client: TestClient, db_session: Session, payload_valido: dict[str, Any],
+    headers: dict[str, str], otro_docente_headers: dict[str, str],
+) -> None:
+    version_id = _crear(client, payload_valido, headers)
+    ruta = f"{URL}/{version_id}"
+    assert client.delete(ruta, headers=otro_docente_headers).status_code == 404
+    assert client.get(ruta, headers=headers).status_code == 200
+    respuesta = client.delete(ruta, headers=headers)
+    assert respuesta.status_code == 204
+    assert respuesta.content == b""
+    assert client.delete(ruta, headers=headers).status_code == 404
+    assert _contar(db_session, CasoModel) == 0
+    assert _contar(db_session, EscenarioModel) == 0
+    assert _contar(db_session, OpcionRespuestaModel) == 0
+
+
+def test_eliminar_un_borrador_no_altera_las_versiones_historicas(
+    client: TestClient, db_session: Session, payload_valido: dict[str, Any], headers: dict[str, str],
+) -> None:
+    version_id = _crear(client, payload_valido, headers)
+    _publicar(client, version_id, headers)
+    ruta = f"{URL}/{version_id}"
+    assert client.delete(ruta, headers=headers).status_code == 409
+    clonado = client.post(f"{ruta}/clone", headers=headers)
+    assert clonado.status_code == 201
+    assert client.delete(f"{URL}/{clonado.json()['version_id']}", headers=headers).status_code == 204
+    assert client.post(f"{ruta}/archive", headers=headers).status_code == 200
+    assert client.delete(ruta, headers=headers).status_code == 409
+    assert _estado(db_session, version_id) == EstadoCaso.ARCHIVADO
+    assert _contar(db_session, CasoModel) == 1
 
 
 # --- PUT ---------------------------------------------------------------------

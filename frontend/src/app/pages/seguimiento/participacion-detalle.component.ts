@@ -33,20 +33,20 @@ import { avatarUsuario } from '../../core/user-avatar';
   template: `
     <div class="page">
       <div class="page-header">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <a mat-icon-button routerLink="/seguimiento" title="Volver a seguimiento">
+        <div class="page-heading">
+          <a mat-icon-button routerLink="/seguimiento" aria-label="Volver a seguimiento" title="Volver a seguimiento">
             <mat-icon>arrow_back</mat-icon>
           </a>
           <div>
-            <p class="eyebrow">Revisión Individual</p>
-            <h1>Auditoría de Participación y Feedback</h1>
+            <p class="eyebrow">Revisión individual</p>
+            <h1>Auditoría de participación y retroalimentación</h1>
             <p class="muted">Participación <span class="mono">#{{ participacionId }}</span></p>
           </div>
         </div>
         @if (detalle(); as d) {
           @if (d.id_sesion) {
             <button mat-stroked-button color="accent" type="button" (click)="autorizarRepeticion(d)" [disabled]="autorizandoRep()">
-              <mat-icon>replay</mat-icon> Autorizar Repetición Excepcional
+              <mat-icon>replay</mat-icon> Autorizar repetición
             </button>
           }
         }
