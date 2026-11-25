@@ -1,9 +1,9 @@
 """Despacho recuperable del aviso existente con material secreto cifrado."""
 import argparse
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
-from email.utils import parseaddr
+from email.utils import formataddr, formatdate, make_msgid, parseaddr
 import ipaddress
 import json
 import logging
@@ -12,17 +12,22 @@ import ssl
 from urllib.parse import urlsplit
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import case, or_, select
 
 from app.core.config import get_settings
 from app.modules.identity.domain.errors import IntegracionPendiente
 from app.modules.identity.infrastructure.academic_identity_models import IdentidadAcademicaORM
 from app.modules.identity.infrastructure.models import UsuarioORM
 from app.modules.scheduling.infrastructure.mail_models import DespachoCorreoModel
+from app.modules.scheduling.infrastructure.mail_templates import renderizar_correo
 from app.modules.scheduling.infrastructure.models import ConvocatoriaModel, EventoAuditoriaModel, NotificacionModel
-from app.modules.scheduling.domain.access_codes import coincide_codigo
+from app.modules.scheduling.application.codigos_convocatoria import (
+    CorreoConvocatoriaNoDisponible,
+    coincide_codigo_convocatoria,
+)
 
 logger = logging.getLogger(__name__)
+PAUSA_REINTENTO = timedelta(minutes=1)
 
 
 @dataclass(frozen=True)
@@ -54,13 +59,13 @@ def configuracion_correo():
         return None
     try:
         from cryptography.fernet import Fernet
-        host = settings.scheduling_mail_host
+        host = (settings.scheduling_mail_host or '').strip().casefold()
         puerto = settings.scheduling_mail_port
         tls = settings.scheduling_mail_tls
         remitente = settings.scheduling_mail_from
         url = settings.scheduling_mail_public_url
         clave = settings.scheduling_mail_encryption_key
-        if not host or puerto is None or not remitente or not url or clave is None:
+        if not host or puerto is None or not 1 <= puerto <= 65535 or not remitente or not url or clave is None:
             raise ValueError()
         if tls not in {'STARTTLS', 'SSL', 'LAB_LOOPBACK'}:
             raise ValueError()
@@ -81,8 +86,14 @@ def configuracion_correo():
         key = clave.get_secret_value().encode('ascii')
         Fernet(key)
         raw_pass = password.get_secret_value() if password else None
-        if raw_pass and host.strip().casefold() == 'smtp.gmail.com':
-            raw_pass = ''.join(raw_pass.split())
+        if host == 'smtp.gmail.com':
+            raw_pass = ''.join((raw_pass or '').split())
+            if (tls, puerto) not in {('STARTTLS', 587), ('SSL', 465)}:
+                raise ValueError()
+            if not usuario or usuario.casefold() != remitente.casefold() or len(raw_pass) != 16:
+                raise ValueError()
+        if usuario and tls == 'LAB_LOOPBACK':
+            raise ValueError()
         return ConfiguracionCorreo(host, puerto, tls, remitente, url, key, usuario, raw_pass)
     except (ValueError, TypeError, UnicodeError, ImportError):
         raise IntegracionPendiente() from None
@@ -90,8 +101,15 @@ def configuracion_correo():
 
 def encolar_correo(db, *, notificacion, caso, sesion, codigo=None):
     """Usa la misma transacción de convocatoria/aviso. No abre conexión SMTP."""
-    config = configuracion_correo()
+    try:
+        config = configuracion_correo()
+    except IntegracionPendiente:
+        if notificacion.tipo == 'CONVOCATORIA':
+            raise CorreoConvocatoriaNoDisponible() from None
+        raise
     if config is None:
+        if notificacion.tipo == 'CONVOCATORIA':
+            raise CorreoConvocatoriaNoDisponible()
         return
     from cryptography.fernet import Fernet
     correo = db.scalar(select(UsuarioORM.correo).join(IdentidadAcademicaORM,
@@ -105,6 +123,7 @@ def encolar_correo(db, *, notificacion, caso, sesion, codigo=None):
     payload = dict(notificacion_id=str(notificacion.id), convocatoria_id=str(notificacion.convocatoria_id),
                    destinatario_id=str(notificacion.destinatario_id), correo=correo,
                    tipo=notificacion.tipo, caso=caso, inicio=sesion.fecha_inicio.isoformat(),
+                   fin=sesion.fecha_fin.isoformat(), lugar=sesion.lugar,
                    mensaje=sesion.mensaje_personalizado or '', codigo=codigo, url=config.url_publica)
     cifrado = Fernet(config.clave).encrypt(json.dumps(payload, ensure_ascii=False, sort_keys=True).encode('utf-8'))
     db.add(DespachoCorreoModel(id_notificacion=notificacion.id, payload_cifrado=cifrado))
@@ -113,11 +132,65 @@ def encolar_correo(db, *, notificacion, caso, sesion, codigo=None):
 
 _ASUNTOS_POR_TIPO = {
     'CONVOCATORIA': 'Convocatoria académica SPS',
-    'RETIRO_CONVOCATORIA': 'Retiro de convocatoria académica SPS',
+    'CONVOCATORIA_RETIRADA': 'Retiro de convocatoria académica SPS',
     'CAMBIO_SESION': 'Actualización en sesión académica SPS',
     'CALIFICACION': 'Resultados oficiales publicados SPS',
     'RETROALIMENTACION': 'Nueva retroalimentación docente SPS',
 }
+
+
+class _TransporteSMTP:
+    """Reutiliza una conexión autenticada dentro de un único lote."""
+
+    def __init__(self, config: ConfiguracionCorreo):
+        self.config = config
+        self.cliente: smtplib.SMTP | None = None
+
+    def _conectar(self) -> smtplib.SMTP:
+        if self.cliente is not None:
+            return self.cliente
+        config = self.config
+        contexto = ssl.create_default_context()
+        if config.tls == 'SSL':
+            cliente = smtplib.SMTP_SSL(config.host, config.puerto, timeout=15, context=contexto)
+        else:
+            cliente = smtplib.SMTP(config.host, config.puerto, timeout=15)
+        try:
+            if config.tls == 'STARTTLS':
+                cliente.ehlo()
+                cliente.starttls(context=contexto)
+                cliente.ehlo()
+            if config.usuario:
+                cliente.login(config.usuario, config.password)
+        except (OSError, smtplib.SMTPException):
+            cliente.close()
+            raise
+        self.cliente = cliente
+        return cliente
+
+    def enviar(self, mensaje: EmailMessage, destinatario: str) -> None:
+        cliente = self._conectar()
+        try:
+            rechazados = cliente.send_message(mensaje, from_addr=self.config.remitente, to_addrs=[destinatario])
+            if rechazados:
+                raise smtplib.SMTPRecipientsRefused(rechazados)
+        except (OSError, smtplib.SMTPException):
+            # El estado de la conexión tras un fallo es incierto. El siguiente aviso abre otra.
+            self.cliente = None
+            cliente.close()
+            raise
+
+    def cerrar(self) -> None:
+        cliente, self.cliente = self.cliente, None
+        if cliente is None:
+            return
+        try:
+            cliente.quit()
+        except (OSError, smtplib.SMTPException):
+            # El resultado de DATA ya determina si el proveedor aceptó el mensaje.
+            pass
+        finally:
+            cliente.close()
 
 
 def enviar_mensaje_smtp(
@@ -127,39 +200,42 @@ def enviar_mensaje_smtp(
     asunto: str,
     cuerpo: str,
     message_id: str | None = None,
+    codigo: str | None = None,
+    transporte: _TransporteSMTP | None = None,
 ) -> None:
     """Envía un correo electrónico usando el transporte SMTP configurado (STARTTLS, SSL o LAB_LOOPBACK)."""
     mensaje = EmailMessage()
-    mensaje['From'] = config.remitente
+    mensaje['From'] = formataddr(('Simulador de Psicología Social', config.remitente))
     mensaje['To'] = destinatario
-    if message_id:
-        mensaje['Message-ID'] = message_id
+    mensaje['Date'] = formatdate(usegmt=True)
+    mensaje['Message-ID'] = message_id or make_msgid(domain=config.remitente.rsplit('@', 1)[1])
     mensaje['Subject'] = asunto
     mensaje.set_content(cuerpo)
-    context = ssl.create_default_context()
-    client = smtplib.SMTP_SSL(config.host, config.puerto, timeout=15, context=context) if config.tls == 'SSL' else smtplib.SMTP(config.host, config.puerto, timeout=15)
-    with client:
-        if config.tls == 'STARTTLS':
-            client.ehlo()
-            client.starttls(context=context)
-            client.ehlo()
-        if config.usuario:
-            client.login(config.usuario, config.password)
-        rechazados = client.send_message(mensaje, from_addr=config.remitente, to_addrs=[destinatario])
-        if rechazados:
-            raise smtplib.SMTPRecipientsRefused(rechazados)
+    mensaje.add_alternative(renderizar_correo(asunto, cuerpo, config.url_publica, codigo), subtype='html')
+    smtp = transporte if transporte is not None else _TransporteSMTP(config)
+    try:
+        smtp.enviar(mensaje, destinatario)
+    finally:
+        if transporte is None:
+            smtp.cerrar()
 
 
-def enviar_smtp(config, *, id_notificacion, payload):
+def enviar_smtp(config, *, id_notificacion, payload, transporte=None):
     tipo = payload['tipo']
     asunto = _ASUNTOS_POR_TIPO.get(tipo, 'Notificación académica SPS')
-    texto = [f"Caso: {payload['caso']}", f"Inicio programado: {payload['inicio']}", payload['mensaje'],
-             f"URL: {config.url_publica}"]
+    texto = [f"Caso: {payload['caso']}", f"Inicio programado: {payload['inicio']}"]
+    if tipo in {'CONVOCATORIA', 'CAMBIO_SESION'}:
+        if payload.get('fin'):
+            texto.append(f"Fin programado: {payload['fin']}")
+        if payload.get('lugar'):
+            texto.append(f"Lugar o enlace: {payload['lugar']}")
+    texto.extend([payload['mensaje'], f"URL: {config.url_publica}"])
     if tipo == 'CONVOCATORIA':
         texto.insert(0, 'Has sido convocado por tu docente a un caso de simulación en SPS.')
         texto.append(f"Código individual: {payload['codigo']}")
         texto.append('Ingresa a la plataforma en el horario indicado e introduce tu código individual para iniciar la sesión.')
-    elif tipo == 'RETIRO_CONVOCATORIA':
+        texto.append('Este código es personal. No lo compartas con otras personas.')
+    elif tipo == 'CONVOCATORIA_RETIRADA':
         texto.append('El docente retiró tu autorización para esta sesión.')
     elif tipo == 'CAMBIO_SESION':
         texto.append('Se registraron cambios relevantes en la programación de tu sesión.')
@@ -167,12 +243,16 @@ def enviar_smtp(config, *, id_notificacion, payload):
         texto.append('Tus resultados oficiales están disponibles en la plataforma.')
     elif tipo == 'RETROALIMENTACION':
         texto.append('Tu docente registró retroalimentación sobre tu participación.')
+    if payload.get('nombre'):
+        texto.insert(0, f"Hola {payload['nombre']},")
     enviar_mensaje_smtp(
         config,
         destinatario=payload['correo'],
         asunto=asunto,
         cuerpo='\n'.join(texto),
         message_id=f'<{id_notificacion}@{config.remitente.rsplit("@", 1)[1]}>',
+        codigo=payload['codigo'] if tipo == 'CONVOCATORIA' else None,
+        transporte=transporte,
     )
 
 
@@ -182,12 +262,12 @@ def _auditar(db, notificacion, convocatoria, despacho, resultado):
             intento=despacho.intentos, resultado=resultado), sort_keys=True), creado_en=datetime.now(timezone.utc)))
 
 
-def _despachar_uno(crear_sesion, config, identificador):
+def _despachar_uno(crear_sesion, config, identificador, *, ahora_reintentos=None, transporte=None):
     from cryptography.fernet import Fernet, InvalidToken
     with crear_sesion.begin() as db:
         despacho = db.scalar(select(DespachoCorreoModel).where(
             DespachoCorreoModel.id_notificacion == identificador,
-            DespachoCorreoModel.estado.in_(('PENDIENTE', 'REINTENTAR'))).with_for_update(skip_locked=True))
+            _filtro_pendientes(ahora_reintentos)).with_for_update(skip_locked=True))
         if despacho is None:
             return 'OMITIDO'
         aviso = db.get(NotificacionModel, identificador)
@@ -209,7 +289,9 @@ def _despachar_uno(crear_sesion, config, identificador):
                 or payload['destinatario_id'] != str(aviso.destinatario_id)
                 or payload['tipo'] != aviso.tipo):
                 raise ValueError()
-            if aviso.tipo == 'CONVOCATORIA' and not coincide_codigo(payload['codigo'], convocatoria.codigo_hash):
+            if aviso.tipo == 'CONVOCATORIA' and not coincide_codigo_convocatoria(
+                payload['codigo'], convocatoria.codigo_hash, convocatoria.estudiante_id,
+            ):
                 despacho.estado = 'CANCELADO'
                 despacho.ultimo_error = 'CREDENCIAL_CAMBIO'
                 _auditar(db, aviso, convocatoria, despacho, 'CANCELADO')
@@ -223,10 +305,17 @@ def _despachar_uno(crear_sesion, config, identificador):
                 despacho.ultimo_error = 'DESTINATARIO_CAMBIO'
                 _auditar(db, aviso, convocatoria, despacho, 'CANCELADO')
                 return 'CANCELADO'
-            enviar_smtp(config, id_notificacion=aviso.id, payload=payload)
+            enviar_smtp(config, id_notificacion=aviso.id, payload={**payload, 'nombre': persona.nombre},
+                        transporte=transporte)
         except (InvalidToken, ValueError, KeyError, TypeError, UnicodeError):
             despacho.estado = 'REINTENTAR'
             despacho.ultimo_error = 'PAYLOAD_NO_VERIFICABLE'
+        except smtplib.SMTPAuthenticationError:
+            despacho.estado = 'REINTENTAR'
+            despacho.ultimo_error = 'SMTP_AUTENTICACION_RECHAZADA'
+        except ssl.SSLCertVerificationError:
+            despacho.estado = 'REINTENTAR'
+            despacho.ultimo_error = 'SMTP_CERTIFICADO_NO_VALIDADO'
         except (OSError, smtplib.SMTPException):
             despacho.estado = 'REINTENTAR'
             despacho.ultimo_error = 'SMTP_NO_CONFIRMADO'
@@ -238,30 +327,66 @@ def _despachar_uno(crear_sesion, config, identificador):
         return despacho.estado
 
 
-def despachar_pendientes(crear_sesion, *, limite=20):
+def _filtro_pendientes(ahora_reintentos):
+    pendiente = DespachoCorreoModel.estado == 'PENDIENTE'
+    reintento = DespachoCorreoModel.estado == 'REINTENTAR'
+    if ahora_reintentos is not None:
+        intentos = DespachoCorreoModel.intentos
+        minutos = case((intentos <= 1, 1), (intentos == 2, 2), (intentos == 3, 4),
+                        (intentos == 4, 8), (intentos == 5, 16), (intentos == 6, 32), else_=60)
+        reintento = reintento & (
+            DespachoCorreoModel.ultimo_intento_en + PAUSA_REINTENTO * minutos <= ahora_reintentos
+        )
+    return or_(pendiente, reintento)
+
+
+def despachar_pendientes(crear_sesion, *, limite=20, esperar_reintentos=False):
     """Un lote operativo; cada pendiente se intenta una vez por invocación."""
     if type(limite) is not int or limite <= 0:
         raise ValueError('El tamaño del lote debe ser positivo.')
     config = configuracion_correo()
     if config is None:
         raise IntegracionPendiente()
+    ahora_reintentos = datetime.now(timezone.utc) if esperar_reintentos else None
     with crear_sesion() as db:
         if db.get_bind().dialect.name != 'postgresql':
             raise IntegracionPendiente()
         ids = db.scalars(select(DespachoCorreoModel.id_notificacion).where(
-            DespachoCorreoModel.estado.in_(('PENDIENTE', 'REINTENTAR')))
-            .order_by(DespachoCorreoModel.id_notificacion).limit(limite)).all()
+            _filtro_pendientes(ahora_reintentos))
+            .order_by(DespachoCorreoModel.ultimo_intento_en.asc().nulls_first(),
+                      DespachoCorreoModel.id_notificacion).limit(limite)).all()
     resultados = []
-    for identificador in ids:
-        resultados.append(_despachar_uno(crear_sesion, config, identificador))
+    transporte = _TransporteSMTP(config)
+    try:
+        for identificador in ids:
+            resultado = _despachar_uno(crear_sesion, config, identificador,
+                                       ahora_reintentos=ahora_reintentos, transporte=transporte)
+            resultados.append(resultado)
+    finally:
+        transporte.cerrar()
     return resultados
 
 
 def main():
     parser = argparse.ArgumentParser(description='Despacha un lote de correos durables pendientes.')
     parser.add_argument('--limit', type=int, default=20)
+    parser.add_argument('--test-to-sender', action='store_true',
+                        help='Envía un único mensaje de prueba al remitente configurado, sin procesar la cola.')
     args = parser.parse_args()
     try:
+        if args.test_to_sender:
+            config = configuracion_correo()
+            if config is None:
+                raise IntegracionPendiente()
+            enviar_mensaje_smtp(
+                config,
+                destinatario=config.remitente,
+                asunto='Prueba de correo de SPS',
+                cuerpo=f'El servicio de notificaciones de SPS envió este mensaje de prueba.\n'
+                       f'Plataforma: {config.url_publica}',
+            )
+            print('SMTP aceptó el mensaje dirigido al remitente. Confirme que llegó al buzón.')
+            return 0
         from app.db.models import registrar_modelos_integrados
         from app.db.session import get_session_factory
         registrar_modelos_integrados()

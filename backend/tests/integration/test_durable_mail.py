@@ -1,13 +1,14 @@
 """RF20/21 main/JWT/PG17 y capturador SMTP local real, datos exclusivamente LAB."""
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 from email import message_from_bytes
+from email.policy import default
 import secrets
 import socket
 from uuid import UUID
 
 from aiosmtpd.controller import Controller
-from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 import pytest
 import sqlalchemy as sa
@@ -21,16 +22,19 @@ from app.modules.scheduling.infrastructure.models import ConvocatoriaModel as C,
 from tests.integration.test_convocation_management_http import (
     gestion, integracion, autor, pg_autoria, payload_valido, alta,
 )  # noqa: F401
+from tests.scheduling_mail_support import codigo_de_prueba
 
 
 class Capturador:
     def __init__(self):
         self.mensajes = []
+        self.sesiones = []
         self.rechazar = False
 
     async def handle_DATA(self, server, session, envelope):
         if self.rechazar:
             return '451 Fallo temporal explícito LAB'
+        self.sesiones.append(session)
         self.mensajes.append((tuple(envelope.rcpt_tos), envelope.content))
         return '250 Mensaje capturado en laboratorio'
 
@@ -60,6 +64,10 @@ def correo_main(gestion, monkeypatch):
         usuario = db.get(UsuarioORM, h.a.propio)
         usuario.clave_hash = obtener_hasheador().hash(clave)
         correo = usuario.correo
+        # La convocatoria inicial proviene de la preparación de los datos.
+        db.execute(sa.delete(Mail).where(Mail.id_notificacion.in_(
+            sa.select(N.id).where(N.convocatoria_id == h.convocatoria),
+        )))
     with TestClient(app, raise_server_exceptions=False) as client, smtp_local() as (capture, port):
         login = client.post('/api/v1/identity/auth/personal', json={'correo': correo, 'clave': clave})
         assert login.status_code == 200, login.text
@@ -69,12 +77,7 @@ def correo_main(gestion, monkeypatch):
         values = dict(scheduling_mail_enabled=True, scheduling_mail_host='127.0.0.1',
             scheduling_mail_port=port, scheduling_mail_tls='LAB_LOOPBACK',
             scheduling_mail_from='nuclear@universidad.test', scheduling_mail_public_url='http://127.0.0.1/simulador',
-            scheduling_mail_encryption_key=Fernet.generate_key().decode(),
             scheduling_mail_username=None, scheduling_mail_password=None)
-        # Pydantic convierte SecretStr al construir Settings. La configuración
-        # explícita de esta fixture conserva sus tipos al inyectar valores.
-        from pydantic import SecretStr
-        values['scheduling_mail_encryption_key'] = SecretStr(values['scheduling_mail_encryption_key'])
         for name, value in values.items():
             monkeypatch.setattr(settings, name, value)
         h.capture = capture
@@ -92,8 +95,9 @@ def test_main_crea_cifrado_durable_y_worker_smtp_recupera_otra_session(correo_ma
     h = correo_main
     r = alta(h)
     assert r.status_code == 201, r.text
-    code = r.json()['codigo_acceso']
     cid = UUID(r.json()['convocatoria_id'])
+    assert r.json() == {'convocatoria_id': str(cid)}
+    code = codigo_de_prueba(h.sesiones, cid)
     pendiente = filas(h)
     assert len(pendiente) == 1 and pendiente[0].estado == 'PENDIENTE'
     assert code.encode() not in pendiente[0].payload_cifrado and h.capture.mensajes == []
@@ -114,9 +118,15 @@ def test_main_crea_cifrado_durable_y_worker_smtp_recupera_otra_session(correo_ma
     with h.sesiones() as db:
         expected = db.get(UsuarioORM, h.estudiante).correo
     assert recipients == (expected,)
-    message = message_from_bytes(raw)
-    body = message.get_payload(decode=True).decode('utf-8')
-    assert code in body and 'Mensaje docente de laboratorio' in body and 'http://127.0.0.1/simulador' in body
+    message = message_from_bytes(raw, policy=default)
+    assert message['From'].addresses[0].addr_spec == 'nuclear@universidad.test'
+    assert message.get_content_type() == 'multipart/alternative'
+    body = message.get_body(preferencelist=('plain',)).get_content()
+    assert len(code) == 6 and code.isascii() and code.isdecimal()
+    assert f'Código individual: {code}' in body.splitlines()
+    assert 'Mensaje docente de laboratorio' in body and 'http://127.0.0.1/simulador' in body
+    html = message.get_body(preferencelist=('html',)).get_content()
+    assert code in html and 'Abrir la plataforma SPS' in html and 'Hola ' in html
     actual = filas(h)[0]
     assert actual.intentos == 1 and actual.aceptado_en is not None
     assert despachar_pendientes(h.sesiones) == [] and len(h.capture.mensajes) == 1
@@ -134,6 +144,7 @@ def test_fallo_smtp_despues_commit_reintenta_sin_recrear_convocatoria(correo_mai
     h.capture.rechazar = True
     assert despachar_pendientes(h.sesiones) == ['REINTENTAR']
     assert not h.capture.mensajes and filas(h)[0].ultimo_error == 'SMTP_NO_CONFIRMADO'
+    assert despachar_pendientes(h.sesiones, esperar_reintentos=True) == []
     with h.sesiones() as db:
         assert db.get(C, cid).estado == 'ACTIVA'
     h.capture.rechazar = False
@@ -153,19 +164,60 @@ def test_reintentos_concurrentes_un_solo_envio_aceptado(correo_main):
     assert len(h.capture.mensajes) == 1 and filas(h)[0].intentos == 1
 
 
+def test_reintento_automatico_usa_espera_progresiva(correo_main):
+    h = correo_main
+    assert alta(h).status_code == 201
+    h.capture.rechazar = True
+    assert despachar_pendientes(h.sesiones) == ['REINTENTAR']
+    assert despachar_pendientes(h.sesiones) == ['REINTENTAR']
+    h.capture.rechazar = False
+    despacho = filas(h)[0]
+    assert despacho.intentos == 2
+
+    for antiguedad, esperado in [(90, []), (125, ['ACEPTADO_PROVEEDOR'])]:
+        with h.sesiones.begin() as db:
+            db.get(Mail, despacho.id_notificacion).ultimo_intento_en = (
+                datetime.now(timezone.utc) - timedelta(seconds=antiguedad)
+            )
+        assert despachar_pendientes(h.sesiones, esperar_reintentos=True) == esperado
+    assert len(h.capture.mensajes) == 1 and filas(h)[0].intentos == 3
+
+
+def test_mensajes_del_mismo_lote_reusan_una_conexion_smtp_real(correo_main):
+    from app.modules.scheduling.infrastructure.mail_delivery import configuracion_correo, enviar_mensaje_smtp, _TransporteSMTP
+
+    config = configuracion_correo()
+    transporte = _TransporteSMTP(config)
+    try:
+        for numero in (1, 2):
+            enviar_mensaje_smtp(config, destinatario=f'prueba{numero}@universidad.test', asunto='Prueba de lote',
+                                cuerpo='Notificación sintética', transporte=transporte)
+    finally:
+        transporte.cerrar()
+
+    assert len(correo_main.capture.mensajes) == 2
+    primera, segunda = correo_main.capture.sesiones
+    assert primera is segunda
+    assert transporte.cliente is None
+
+
 def test_retiro_cancela_credencial_pendiente_y_envia_aviso_de_retiro(correo_main):
     h = correo_main
     alta_response = alta(h)
     cid = alta_response.json()['convocatoria_id']
-    code = alta_response.json()['codigo_acceso']
+    code = codigo_de_prueba(h.sesiones, cid)
     retiro = h.client.delete(h.nuevo_base + '/' + cid, headers=h.a.headers)
     assert retiro.status_code == 200
     assert h.client.delete(h.nuevo_base + '/' + cid, headers=h.a.headers).status_code == 200
     states = despachar_pendientes(h.sesiones)
     assert sorted(states) == ['ACEPTADO_PROVEEDOR', 'CANCELADO']
     assert len(h.capture.mensajes) == 1
-    body = h.capture.mensajes[0][1].decode('utf-8')
-    assert code not in body
+    aviso = message_from_bytes(h.capture.mensajes[0][1], policy=default)
+    assert 'Retiro de convocatoria' in str(aviso['Subject'])
+    for formato in ('plain', 'html'):
+        body = aviso.get_body(preferencelist=(formato,)).get_content()
+        assert 'El docente retiró tu autorización' in body
+        assert code not in body
     with h.sesiones() as db:
         assert db.get(C, UUID(cid)).estado == 'RETIRADA'
     assert len(filas(h)) == 2
@@ -256,7 +308,7 @@ def test_migracion_upgrade_downgrade_y_fk_sin_reescribir_historia():
         with engine.begin() as db:
             command.upgrade(config_alembic(db), '20261108_voluntary_partial')
             anteriores = set(sa.inspect(db).get_table_names())
-            command.upgrade(config_alembic(db), 'head')
+            command.upgrade(config_alembic(db), '20261110_durable_mail')
             assert set(sa.inspect(db).get_table_names()) == anteriores | {'despacho_correo'}
             assert db.scalar(sa.text('SELECT count(*) FROM despacho_correo')) == 0
         with pytest.raises(sa.exc.IntegrityError):

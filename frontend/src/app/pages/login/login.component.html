@@ -25,7 +25,7 @@
         @if (verificacionPendiente(); as verif) {
           <header class="auth-header">
             <span class="auth-icon"><mat-icon aria-hidden="true">mark_email_read</mat-icon></span>
-            <h1 id="auth-title">Verifica tu correo</h1>
+            <h1 id="auth-title" #tituloAcceso tabindex="-1">Verifica tu correo</h1>
             <p>{{ verif.mensaje }}</p>
             <p>
               Código enviado a <strong>{{ verif.correo }}</strong>.
@@ -87,10 +87,10 @@
           <header class="auth-header">
             <span class="auth-icon"><mat-icon aria-hidden="true">lock_reset</mat-icon></span>
             @if (paso === 'SOLICITAR') {
-              <h1 id="auth-title">Recupera tu contraseña</h1>
+              <h1 id="auth-title" #tituloAcceso tabindex="-1">Recupera tu contraseña</h1>
               <p>Ingresa tu correo registrado para solicitar un código de recuperación.</p>
             } @else {
-              <h1 id="auth-title">Crea una contraseña</h1>
+              <h1 id="auth-title" #tituloAcceso tabindex="-1">Crea una contraseña</h1>
               <p>
                 Ingresa el código enviado a <strong>{{ correoRecuperacion }}</strong> y elige una
                 nueva contraseña.
@@ -229,7 +229,7 @@
                 <button
                   class="text-btn"
                   type="button"
-                  (click)="enviarCodigoRecuperacion(true)"
+                  (click)="enviarCodigoRecuperacion()"
                   [disabled]="cargando()"
                 >
                   Reenviar código
@@ -240,8 +240,12 @@
         } @else {
           <header class="auth-header">
             <span class="auth-icon"><mat-icon aria-hidden="true">lock_outline</mat-icon></span>
-            <h1 id="auth-title">Inicia sesión</h1>
-            <p>Usa tu correo institucional. Si recibiste un código de convocatoria, puedes usarlo para entrar.</p>
+            <h1 id="auth-title" #tituloAcceso tabindex="-1">Inicia sesión</h1>
+            <p>
+              {{ usandoConvocatoria()
+                ? 'Ingresa tu correo institucional y el código de convocatoria que ya recibiste.'
+                : 'Usa tu correo institucional. Si recibiste un código de convocatoria, puedes usarlo para entrar.' }}
+            </p>
           </header>
 
           <form (ngSubmit)="iniciarSesion()" class="login-form" [attr.aria-busy]="cargando()">
@@ -263,17 +267,20 @@
               </div>
             </div>
             <div class="form-field">
-              <label for="login-credential">Contraseña o código de convocatoria</label>
+              <label for="login-credential">
+                {{ usandoConvocatoria() ? 'Código de convocatoria' : 'Contraseña o código de convocatoria' }}
+              </label>
               <div class="input-shell">
                 <mat-icon aria-hidden="true">lock_outline</mat-icon>
                 <input
                   id="login-credential"
+                  #campoCredencial
                   [type]="mostrarCredencial ? 'text' : 'password'"
                   name="credencial"
                   [(ngModel)]="credencial"
                   required
-                  autocomplete="current-password"
-                  placeholder="Contraseña o código"
+                  [attr.autocomplete]="usandoConvocatoria() ? 'off' : 'current-password'"
+                  [placeholder]="usandoConvocatoria() ? 'Código de convocatoria' : 'Contraseña o código'"
                 />
                 <button
                   class="visibility-btn"
@@ -301,6 +308,9 @@
               <ng-container [ngTemplateOutlet]="indicador" />
             </button>
             <div class="form-actions recovery-action">
+              <button class="text-btn" type="button" (click)="cambiarModoAcceso()" [disabled]="cargando()">
+                {{ usandoConvocatoria() ? 'Volver al acceso con contraseña' : 'Usar código de convocatoria' }}
+              </button>
               <button
                 class="text-btn"
                 type="button"

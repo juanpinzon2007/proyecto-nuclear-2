@@ -1,5 +1,8 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatDialog } from '@angular/material/dialog';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -8,5 +11,15 @@ import { RouterOutlet } from '@angular/router';
   styleUrl: './app.scss'
 })
 export class App {
-  protected readonly title = signal('sps-frontend');
+  constructor() {
+    const dialogos = inject(MatDialog);
+    inject(Router).events.pipe(
+      filter((evento): evento is NavigationEnd => evento instanceof NavigationEnd),
+      takeUntilDestroyed(),
+    ).subscribe((evento) => {
+      if (evento.urlAfterRedirects.split(/[?#]/, 1)[0] === '/login') {
+        dialogos.closeAll();
+      }
+    });
+  }
 }

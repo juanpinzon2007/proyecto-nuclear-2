@@ -101,7 +101,7 @@ def autenticar_estudiante_por_clave(
             if actual is None or not actual.activo or Rol.ESTUDIANTE not in actual.roles:
                 raise NoAutenticado()
             uid = id_entero(actual.id_usuario)
-            if estado_primer_ingreso(db, id_usuario=uid):
+            if estado_primer_ingreso(db, id_usuario=uid, exigir_consulta=True):
                 return RespuestaAccesoEstudiante(
                     requiere_verificacion=False,
                     access_token=emisor.emitir(actual.id_usuario),
@@ -123,10 +123,15 @@ def autenticar_estudiante_por_clave(
             except SQLAlchemyError:
                 db.rollback()
                 raise IntegracionPendiente() from None
+            if ttl is None:
+                return RespuestaAccesoEstudiante(
+                    requiere_verificacion=False,
+                    access_token=emisor.emitir(actual.id_usuario),
+                )
             return RespuestaAccesoEstudiante(
                 requiere_verificacion=True,
                 correo=actual.correo,
-                mensaje="Primer inicio de sesión detectado. Revisa tu correo e ingresa el código de verificación.",
+                mensaje="Revisa tu correo e ingresa el código. Para solicitar uno nuevo, espera un minuto.",
                 expira_en_segundos=ttl,
             )
     except (ValueError, SQLAlchemyError):
@@ -187,8 +192,8 @@ def solicitar_recuperacion_clave(
         raise HTTPException(422, detail="Correo institucional inválido.") from None
 
     mensaje_ok = (
-        "Si el correo está registrado y activo, enviamos un código de 6 dígitos "
-        "para restablecer tu contraseña."
+        "Si el correo está registrado y activo, revisa tu bandeja de entrada y el correo no deseado. "
+        "Espera un minuto antes de solicitar otro código."
     )
     try:
         with sesiones() as db:
@@ -208,7 +213,6 @@ def solicitar_recuperacion_clave(
                     db.commit()
                 except IntegracionPendiente:
                     db.rollback()
-                    raise
                 except SQLAlchemyError:
                     db.rollback()
                     raise IntegracionPendiente() from None

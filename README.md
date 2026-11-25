@@ -3,12 +3,10 @@
 Plataforma académica del Proyecto Nuclear 2 para crear casos, programar actividades,
 registrar participaciones y evaluar estudiantes mediante rúbricas.
 
-**Estado: base arquitectónica e incremento de Identity.** Están disponibles
-`GET /health` y las rutas protegidas de Identity. La lógica JWT, los proxies y
-los servicios se conservan y Identity incorpora persistencia basada en el DBML.
-Hay modelos de acceso, repositorios reales y una migración de las cuatro tablas
-de acceso; las integraciones académicas incompletas permanecen cerradas. Consultar el
-[alcance, bloqueos y resultados de Identity](backend/app/modules/identity/README.md).
+La aplicación incluye portales de administración, docencia y estudiantes, el
+simulador, las calificaciones, la gestión de convocatorias y la trazabilidad
+académica. El informe de auditoría documenta la validación local y el procedimiento
+de prueba para Gmail. [Informe de auditoría](backend/docs/AUDITORIA_INTEGRAL_20261124.md)
 
 ## Arquitectura y tecnologías
 
@@ -29,7 +27,8 @@ exista una necesidad real. No hay microservicios por desarrollador.
 
 Python 3.12 o superior (Docker usa 3.13), FastAPI, Uvicorn, SQLAlchemy 2.x,
 Psycopg 3 síncrono, PostgreSQL 17, Pydantic Settings, Alembic, PyJWT y pwdlib/Argon2.
-Pytest y HTTPX se instalan con el extra `dev`. Angular está previsto, sin inicializar.
+El frontend usa Angular y Angular Material y se sirve por Nginx en Docker.
+Pytest y HTTPX se instalan con el extra `dev`.
 Los rangos de versiones están en `backend/pyproject.toml`; aún no hay lockfile.
 
 ## Estructura
@@ -152,10 +151,11 @@ indicó y ejecutar desde la raíz:
 
 ```powershell
 docker compose config --quiet
-docker compose up --build -d
+docker compose up -d --wait db
+docker compose build api frontend worker
+docker compose run --rm --no-deps api alembic upgrade head
+docker compose up -d --wait frontend worker
 docker compose ps
-docker compose logs api
-docker compose down
 ```
 
 La API se publica en `127.0.0.1:8000` por defecto; `API_PORT` y `API_BIND_HOST`
@@ -166,10 +166,10 @@ una base ya inicializada en el volumen. La API espera a que PostgreSQL esté
 saludable, aunque `/health` solo comprueba que el proceso HTTP funciona.
 No se crean tablas académicas durante el arranque.
 
-El despliegue objetivo contempla frontend, API, Worker y PostgreSQL. Actualmente
-solo están definidos API y PostgreSQL. Frontend y Worker se agregarán con sus
-aplicaciones, Dockerfiles y comandos reales cuando se implementen. El Worker
-reutilizará el paquete backend y su configuración si requiere persistencia.
+El frontend se abre en [SPS local](http://127.0.0.1:4200/login). En un entorno
+aislado con datos sintéticos, configura `ACADEMIC_RUNTIME_SCOPE=LABORATORIO`
+y deja el correo desactivado. El entorno académico real requiere un documento
+de consentimiento con aprobación institucional y seleccionado para la asignación.
 
 ## Git y convenciones
 

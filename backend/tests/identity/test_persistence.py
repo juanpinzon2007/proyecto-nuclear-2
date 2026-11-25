@@ -160,7 +160,6 @@ def test_mapeos_coinciden_con_columnas_tipos_nulabilidad_y_fk_del_dbml(modelo):
             assert columna.type.timezone is False
         fk = re.search(r"ref: > ([\w.]+)", flags)
         assert {r.target_fullname for r in columna.foreign_keys} == ({fk.group(1)} if fk else set())
-    assert "usuario_permiso" not in tabla.metadata.tables
     assert "autorizacion_repeticion" not in tabla.metadata.tables
 
 

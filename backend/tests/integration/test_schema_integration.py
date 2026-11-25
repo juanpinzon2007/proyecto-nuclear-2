@@ -89,6 +89,8 @@ INTEGRATED_TABLES = (
     | {"resultado_calculo_preguntas", "resultado_pregunta", "resultado_criterio_exacto"}
     | {"ausencia_academica", "publicacion_evaluacion", "resultado_participacion"}
     | {"despacho_correo"}
+    | {"usuario_permiso", "verificacion_primer_ingreso", "recuperacion_contrasena"}
+    | {"borrador_decision_intento", "historial_cambio_decision"}
 )
 
 
@@ -99,7 +101,6 @@ def test_registro_compartido_es_cerrado_y_no_crea_tablas_academicas_ficticias():
 
     # El esquema integrado contiene los tres modulos migrados.
     assert set(metadata.tables) == INTEGRATED_TABLES
-    assert len(metadata.tables) == 40
 
     # Todas las tablas deben poder ordenarse resolviendo sus FK.
     assert {tabla.name for tabla in metadata.sorted_tables} == set(metadata.tables)
@@ -178,7 +179,7 @@ tablas = dict(metadata.tables)
 {despues}
 
 assert dict(registrar_modelos_integrados().tables) == tablas
-assert len(tablas) == 40
+assert set(tablas) == {tablas_esperadas!r}
 
 assert {{'grupo_academico', 'grupo_estudiante', 'consentimiento'}} <= set(tablas)
 
@@ -193,6 +194,7 @@ assert 'retroalimentacion_docente' in tablas
 assert 'participacion' in tablas
 assert 'asignacion_caso' in tablas
 """.format(
+        tablas_esperadas=INTEGRATED_TABLES,
         primero=(
             "import app.modules.identity.infrastructure.academic_models"
             if academicos_primero
@@ -231,7 +233,7 @@ def test_merge_desde_base_cada_rama_y_dos_ramas_preserva_datos(iniciales):
             script = ScriptDirectory.from_config(config)
 
             # Debe existir una sola cabeza final.
-            assert script.get_heads() == ["20261110_durable_mail"]
+            assert script.get_heads() == ["20261124_attempt_deadline"]
             assert script.get_revision("20261102_academic_policy").down_revision == "20261102_evaluation_results"
             assert script.get_revision("20261102_evaluation_results").down_revision == HEAD_BRIDGE
             assert script.get_revision(HEAD_BRIDGE).down_revision == "20261102_participation_history"

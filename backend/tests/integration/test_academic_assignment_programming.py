@@ -29,6 +29,7 @@ from tests.integration.test_admin_teacher_directory import personal, lab, inicia
 from tests.integration.test_admin_bootstrap import payload_valido  # noqa: F401
 from tests.integration.cases.conftest import configurar_final_unica_escena
 from tests.integration.test_main_teacher_followup import observar_lectura
+from tests.scheduling_mail_support import codigo_encolado
 
 
 def solicitud_base():
@@ -66,7 +67,7 @@ def test_limite_explicito_admite_fronteras_del_horario_sin_inventar_tolerancias(
 
 
 @pytest.fixture
-def asignable(personal, payload_valido, monkeypatch):
+def asignable(personal, payload_valido, monkeypatch, cola_convocatorias):
     h = personal
     monkeypatch.setenv('PARTICIPATION_TIMESTAMP_ZONE', 'UTC')
     monkeypatch.setenv('IDENTITY_INSTITUTIONAL_DOMAINS', '["universidad.test"]')
@@ -139,10 +140,11 @@ def test_crea_sesion_asignacion_y_convocatorias_misma_transaccion_sin_admision(a
     sid = UUID(datos['id'])
     assert datos['estado'] == 'SIN_INICIAR' and datos['version_caso_id'] == str(h.version)
     assert len(datos['convocatorias']) == 1
-    codigo = datos['convocatorias'][0]['codigo_acceso']
     cid = UUID(datos['convocatorias'][0]['convocatoria_id'])
+    assert datos['convocatorias'] == [{'convocatoria_id': str(cid), 'estudiante_id': str(h.estudiante)}]
     assert len(transacciones) == 4 and len(set(transacciones)) == len(commits) == 1
     with h.h.sesiones() as sesion:
+        codigo = codigo_encolado(sesion, cid)
         asignacion = sesion.get(A, datos['id_asignacion'])
         version = sesion.get(VersionCasoModel, h.version)
         assert asignacion.id_caso == sesion.get(CasoModel, version.caso_id).id_caso
@@ -247,7 +249,7 @@ def test_seleccion_multiple_convoca_solo_estudiantes_del_grupo_elegido(asignable
     assert respuesta.status_code == 201
     assert cantidades(h.h) == (1, 1, 2, 2)
     assert {c['estudiante_id'] for c in respuesta.json()['convocatorias']} == {str(h.estudiante), str(otro_uuid)}
-    assert len({c['codigo_acceso'] for c in respuesta.json()['convocatorias']}) == 2
+    assert all(set(c) == {'convocatoria_id', 'estudiante_id'} for c in respuesta.json()['convocatorias'])
 
 
 def test_revocacion_de_matricula_concurrente_impide_insertar(asignable):

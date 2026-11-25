@@ -14,7 +14,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     : req;
   return next(peticion).pipe(
     catchError((err: unknown) => {
-      if (err instanceof HttpErrorResponse && err.status === 401 && esApi && !esLogin && token) {
+      if (err instanceof HttpErrorResponse && err.status === 401 && esApi && !esLogin && token && token === auth.token()) {
         auth.logout();
       }
       return throwError(() => err);

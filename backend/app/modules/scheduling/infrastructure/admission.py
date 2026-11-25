@@ -10,7 +10,7 @@ from app.modules.identity.domain.errors import AccesoDenegado, IntegracionPendie
 from app.modules.scheduling.domain.ingress_policy import fecha_utc
 from app.modules.scheduling.infrastructure.ingress_access import exigir_matricula_ingreso
 from app.modules.scheduling.infrastructure.models import ConvocatoriaModel as C, SesionProgramadaModel as S, EventoAuditoriaModel as E
-from app.modules.scheduling.domain.access_codes import coincide_codigo
+from app.modules.scheduling.application.codigos_convocatoria import coincide_codigo_convocatoria
 
 
 def contexto_admision(db, usuario, convocatoria_id):
@@ -35,7 +35,7 @@ def registrar_espera(db, *, usuario, convocatoria_id, codigo, reloj):
     s=db.get(S,s.id,with_for_update={'nowait':True},populate_existing=True)
     c=db.get(C,c.id,with_for_update={'nowait':True},populate_existing=True)
     c,s=contexto_admision(db,usuario,c.id)
-    if not coincide_codigo(codigo,c.codigo_hash):raise AccesoDenegado()
+    if not coincide_codigo_convocatoria(codigo, c.codigo_hash, c.estudiante_id):raise AccesoDenegado()
     if s.estado=='FINALIZADO':raise AccesoDenegado()
     if c.admision_evento_id is not None:
         verificar_concesion(db,c,s)

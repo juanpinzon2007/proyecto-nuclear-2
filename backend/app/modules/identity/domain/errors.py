@@ -17,6 +17,10 @@ class IntegracionPendiente(ErrorIdentidad):
     pass
 
 
+class CorreoTransaccionalNoDisponible(IntegracionPendiente):
+    pass
+
+
 class ReglaIdentidadInvalida(ErrorIdentidad):
     pass
 

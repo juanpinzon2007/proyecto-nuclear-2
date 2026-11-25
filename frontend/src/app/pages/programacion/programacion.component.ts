@@ -15,11 +15,9 @@ import { firstValueFrom } from 'rxjs';
 import { mensajeError } from '../../core/api-error';
 import {
   CasoResumenResponse,
-  ConvocatoriaAsignadaResponse,
   EspacioAcademicoResponse,
   EstudianteDisponibleItem,
   GrupoResponse,
-  SesionConAsignacionResponse,
   SesionResponse,
 } from '../../core/api.models';
 import { CasesService } from '../../core/cases.service';
@@ -57,23 +55,6 @@ import { etiquetaEstado } from '../../core/lista-paginada';
           <mat-icon>refresh</mat-icon> {{ cargando() ? 'Actualizando…' : 'Actualizar' }}
         </button>
       </div>
-
-      @if (codigosGenerados().length) {
-        <div class="codes-banner">
-          <div class="section-toolbar">
-            <strong class="mono green">Códigos de acceso para compartir con cada estudiante</strong>
-            <button mat-button type="button" (click)="codigosGenerados.set([])">Ocultar</button>
-          </div>
-          <div class="codes-list">
-            @for (c of codigosGenerados(); track c.convocatoria_id) {
-              <div class="code-chip">
-                <span>{{ nombreEstudiantePorUuid(c.estudiante_id) }}</span>
-                <span class="mono gold-code">{{ c.codigo_acceso }}</span>
-              </div>
-            }
-          </div>
-        </div>
-      }
 
       <mat-tab-group animationDuration="200ms" [disablePagination]="true">
         <!-- TAB 1: Sesiones programadas y Nueva Programación -->
@@ -403,10 +384,6 @@ import { etiquetaEstado } from '../../core/lista-paginada';
       .session-row > .state-pill { grid-area: 1 / 2; align-self: start; }
       .session-actions { grid-column: 1 / -1; margin-top: 4px; }
     }
-    .codes-banner { background: rgba(0, 232, 148, 0.08); border: 1px solid rgba(0, 232, 148, 0.5); border-left: 4px solid var(--green); padding: 14px 16px; margin-bottom: 16px; }
-    .codes-list { display: flex; flex-wrap: wrap; gap: 10px; }
-    .code-chip { background: #070a10; border: 1px solid var(--line-strong); padding: 8px 12px; display: flex; gap: 12px; align-items: center; }
-    .gold-code { color: var(--amber) !important; font-weight: 700; font-size: 14px; letter-spacing: 1px; }
     .group-card { background: #0b1017; border: 1px solid var(--line); border-left: 4px solid var(--cyan); padding: 14px; }
     .group-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 10px; flex-wrap: wrap; }
     .period-tag { margin-left: 8px; border: 1px solid rgba(255, 184, 0, 0.5); background: rgba(255, 184, 0, 0.1); color: var(--amber); padding: 2px 8px; font-family: var(--mono); font-size: 11px; font-weight: 700; }
@@ -433,7 +410,6 @@ export class ProgramacionComponent implements OnInit {
   readonly sesiones = signal<SesionResponse[]>([]);
   readonly grupos = signal<GrupoResponse[]>([]);
   readonly estudiantesDisponibles = signal<EstudianteDisponibleItem[]>([]);
-  readonly codigosGenerados = signal<ConvocatoriaAsignadaResponse[]>([]);
   readonly sesionEditando = signal<SesionResponse | null>(null);
 
   mostrarCrearEspacio = false;
@@ -575,10 +551,10 @@ export class ProgramacionComponent implements OnInit {
         payload.fecha_limite_ingreso = this.aIsoUtc(this.formSes.limiteIngresoLocal);
       }
       const res = await firstValueFrom(this.scheduling.programar(payload));
-      if ('convocatorias' in res && res.convocatorias.length) {
-        this.codigosGenerados.set((res as SesionConAsignacionResponse).convocatorias);
-      }
-      this.snack.open('Sesión programada con éxito.', 'OK', { duration: 3000 });
+      const mensaje = 'convocatorias' in res && res.convocatorias.length
+        ? 'Sesión programada. Los códigos quedaron en cola para enviarse por correo.'
+        : 'Sesión programada con éxito.';
+      this.snack.open(mensaje, 'Cerrar', { duration: 4000 });
       await this.cargarTodo();
     } catch (e) {
       this.snack.open(mensajeError(e), 'Cerrar', { duration: 4500 });
@@ -695,8 +671,4 @@ export class ProgramacionComponent implements OnInit {
     return this.espacios().find((e) => e.id === espId)?.nombre ?? espId.slice(0, 8);
   }
 
-  nombreEstudiantePorUuid(uuid: string): string {
-    const est = this.estudiantesDisponibles().find((e) => e.uuid_scheduling === uuid);
-    return est ? `${est.nombre} (${est.correo})` : uuid.slice(0, 8);
-  }
 }

@@ -153,6 +153,12 @@ def test_recuperacion_contrasena_completa_y_anti_enumeracion(entorno_recovery):
     assert len(correos) == 1
     codigo = correos[0]["codigo"]
     assert len(codigo) == 6 and codigo.isdigit()
+    repetida = client.post(
+        "/api/v1/identity/auth/recuperar-contrasena/solicitar",
+        json={"correo": "docente@sps.edu.co"},
+    )
+    assert repetida.json() == r_sol.json() == r_no.json()
+    assert len(correos) == 1
 
     # Código incorrecto falla con 401 y no cambia la contraseña
     r_bad = client.post(
@@ -228,11 +234,15 @@ def test_recuperacion_bloquea_tras_max_intentos_y_expiracion(entorno_recovery):
         == 401
     )
 
-    # Reenvío y expiración
+    # Reenvío después de la pausa y expiración.
+    with fabrica.begin() as s:
+        fila = s.scalar(select(RecuperacionContrasenaORM).where(RecuperacionContrasenaORM.id_usuario == 10))
+        fila.solicitado_en = datetime.now(UTC) - timedelta(minutes=2)
     client.post(
         "/api/v1/identity/auth/recuperar-contrasena/solicitar",
         json={"correo": "docente@sps.edu.co"},
     )
+    assert len(correos) == 2
     codigo2 = correos[-1]["codigo"]
     with fabrica.begin() as s:
         fila = s.scalar(select(RecuperacionContrasenaORM).where(RecuperacionContrasenaORM.id_usuario == 10))

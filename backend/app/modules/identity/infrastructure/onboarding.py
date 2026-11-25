@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.modules.identity.domain.errors import IntegracionPendiente
+from app.modules.identity.domain.errors import CorreoTransaccionalNoDisponible, IntegracionPendiente
 from app.modules.identity.infrastructure.credentials import obtener_hasheador
 from app.modules.identity.infrastructure.onboarding_models import VerificacionPrimerIngresoORM
 from app.modules.scheduling.infrastructure.mail_delivery import (
@@ -22,6 +22,7 @@ from app.modules.scheduling.infrastructure.mail_delivery import (
 logger = logging.getLogger(__name__)
 TTL_CODIGO_PRIMER_INGRESO_SEGUNDOS = 900
 MAX_INTENTOS_CODIGO_PRIMER_INGRESO = 5
+PAUSA_REENVIO_CODIGO = timedelta(minutes=1)
 
 
 def _como_utc(valor: datetime) -> datetime:
@@ -30,24 +31,29 @@ def _como_utc(valor: datetime) -> datetime:
     return valor.astimezone(UTC)
 
 
-def enviar_correo_directo(*, destinatario: str, asunto: str, generar_cuerpo: Callable[[str], str]) -> None:
+def enviar_correo_directo(*, destinatario: str, asunto: str, generar_cuerpo: Callable[[str], str],
+                          codigo: str | None = None) -> None:
     """Envía un correo transaccional inmediato usando la configuración SMTP activa."""
-    config = configuracion_correo()
+    try:
+        config = configuracion_correo()
+    except IntegracionPendiente:
+        raise CorreoTransaccionalNoDisponible() from None
     if config is None:
-        raise IntegracionPendiente()
+        raise CorreoTransaccionalNoDisponible()
     try:
         enviar_mensaje_smtp(
             config,
             destinatario=destinatario,
             asunto=asunto,
             cuerpo=generar_cuerpo(config.url_publica),
+            codigo=codigo,
         )
     except (OSError, smtplib.SMTPException) as error:
-        logger.warning("Fallo al enviar correo transaccional SMTP (%s): %s", type(error).__name__, error)
-        raise IntegracionPendiente() from None
+        logger.warning("Fallo al enviar correo transaccional SMTP (%s)", type(error).__name__)
+        raise CorreoTransaccionalNoDisponible() from None
 
 
-def estado_primer_ingreso(db: Session, *, id_usuario: int) -> bool:
+def estado_primer_ingreso(db: Session, *, id_usuario: int, exigir_consulta: bool = False) -> bool:
     """Devuelve True si el usuario ya completó o no requiere verificación de primer ingreso."""
     try:
         with db.begin_nested():
@@ -56,7 +62,9 @@ def estado_primer_ingreso(db: Session, *, id_usuario: int) -> bool:
             )
             return True if fila is None else bool(fila.verificado)
     except SQLAlchemyError:
-        # Compatibilidad con esquemas históricos previos a la migración 20261119.
+        if exigir_consulta:
+            raise IntegracionPendiente() from None
+        # Las consultas administrativas conservan compatibilidad con esquemas históricos.
         return True
 
 
@@ -96,6 +104,7 @@ def enviar_codigo_primer_ingreso_smtp(*, correo: str, nombre: str, codigo: str) 
     enviar_correo_directo(
         destinatario=correo,
         asunto="Código de verificación de primer ingreso - SPS",
+        codigo=codigo,
         generar_cuerpo=lambda url_publica: "\n".join(
             [
                 f"Hola {nombre},",
@@ -105,6 +114,7 @@ def enviar_codigo_primer_ingreso_smtp(*, correo: str, nombre: str, codigo: str) 
                 "",
                 "Ingresa este código en la plataforma para completar tu primer inicio de sesión.",
                 "Este código vence en 15 minutos y solo se solicitará la primera vez que ingreses.",
+                "No compartas este código. Si no intentaste ingresar, ignora este mensaje.",
                 f"Plataforma: {url_publica}",
             ]
         ),
@@ -118,14 +128,20 @@ def generar_y_enviar_codigo_primer_ingreso(
     correo: str,
     nombre: str,
     remitente_correo: Callable[..., None] = enviar_codigo_primer_ingreso_smtp,
-) -> int:
-    """Genera un OTP de 6 dígitos, lo persiste cifrado con hash y lo envía por correo."""
-    ahora = datetime.now(UTC)
+) -> int | None:
+    """Envía un OTP o devuelve None si otra solicitud ya verificó la cuenta."""
     fila = db.scalar(
         select(VerificacionPrimerIngresoORM)
         .where(VerificacionPrimerIngresoORM.id_usuario == id_usuario)
         .with_for_update()
     )
+    ahora = datetime.now(UTC)
+    if fila is not None and fila.verificado:
+        return None
+    if fila is not None and fila.expira_en is not None:
+        restante = _como_utc(fila.expira_en) - ahora
+        if restante > timedelta(seconds=TTL_CODIGO_PRIMER_INGRESO_SEGUNDOS) - PAUSA_REENVIO_CODIGO:
+            return int(restante.total_seconds())
     if fila is None:
         fila = VerificacionPrimerIngresoORM(
             id_usuario=id_usuario,
@@ -168,7 +184,6 @@ def verificar_codigo_primer_ingreso(db: Session, *, id_usuario: int, codigo: str
         fila.intentos += 1
         if fila.intentos >= MAX_INTENTOS_CODIGO_PRIMER_INGRESO:
             fila.codigo_hash = None
-            fila.expira_en = None
         db.flush()
         return False
 

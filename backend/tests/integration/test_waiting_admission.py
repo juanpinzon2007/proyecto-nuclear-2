@@ -20,7 +20,9 @@ from app.modules.identity.infrastructure.academic_base_models import GrupoEstudi
 from app.modules.scheduling.infrastructure.models import ConvocatoriaModel as C,SesionProgramadaModel as S,EventoAuditoriaModel as E,NotificacionModel as N
 from app.modules.scheduling.application.registrar_observadores import crear_gestor_eventos
 from app.modules.scheduling.application.worker_cierre import cerrar_sesiones_vencidas
+from app.modules.scheduling.infrastructure.mail_models import DespachoCorreoModel
 from tests.integration.test_main_early_ingress import ingreso_main,habilitar,pedir
+from tests.scheduling_mail_support import codigo_de_prueba
 from tests.integration.test_participation_http_composition import integracion,autor,pg_autoria,payload_valido,cantidades  # noqa: F401
 from tests.integration.test_main_teacher_followup import observar_lectura
 from tests.identity.academic_identity_support import motor_postgresql_desechable,config_alembic
@@ -245,7 +247,10 @@ def test_migracion_upgrade_downgrade_vacia_pg17():
 def test_downgrade_no_elimina_solicitudes(ingreso_main):
     h=ingreso_main;assert espera(h).status_code==201
     with pytest.raises(RuntimeError,match='No eliminar evidencia'):
-        with h.sesiones.kw['bind'].begin() as c:command.downgrade(config_alembic(c),'20261104_teacher_spaces')
+        with h.sesiones.kw['bind'].begin() as c:
+            # Retirar la cola sintética dentro del rollback para probar la guarda de admisión.
+            c.execute(DespachoCorreoModel.__table__.delete())
+            command.downgrade(config_alembic(c), '20261104_teacher_spaces')
     assert consulta(h).json()['solicitada']
 
 
@@ -262,10 +267,11 @@ def test_conjunto_varias_solicitudes_previas_con_jwt_real(ingreso_main):
     c=h.main.post(f'/scheduling/sesiones/{h.sesion}/convocatorias',headers=h.docente_headers,
         json={'estudiante_id':str(academic)})
     assert c.status_code==201,c.text
-    login=h.main.post('/api/v1/identity/auth/estudiantes',json={'correo':correo,'codigo_convocatoria':c.json()['codigo_acceso']})
+    codigo = codigo_de_prueba(h.sesiones, c.json()['convocatoria_id'])
+    login=h.main.post('/api/v1/identity/auth/estudiantes',json={'correo':correo,'codigo_convocatoria':codigo})
     assert login.status_code==200
     otro=SimpleNamespace(**(vars(h)|dict(convocatoria=UUID(c.json()['convocatoria_id']),
-        codigo=c.json()['codigo_acceso'],uuid_estudiante=academic,
+        codigo=codigo,uuid_estudiante=academic,
         main_headers={'Authorization':'Bearer '+login.json()['access_token']})))
     assert espera(h).status_code==espera(otro).status_code==201
     habilitar(h)

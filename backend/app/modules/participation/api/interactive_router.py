@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.core.config import get_settings
 from app.db.session import get_db, get_session_factory
 from app.modules.cases.infrastructure.models.caso import (
     EscenarioModel,
@@ -21,8 +22,10 @@ from app.modules.cases.infrastructure.models.caso import (
     VersionCasoModel,
 )
 from app.modules.identity.api.academic_dependencies import obtener_estudiante_scheduling
+from app.modules.identity.api.consent_dependencies import obtener_aprobacion_consentimiento
 from app.modules.identity.api.dependencies import obtener_estudiante_actual
 from app.modules.identity.domain.entities import ContextoAcceso
+from app.modules.identity.domain.errors import IntegracionPendiente
 from app.modules.identity.infrastructure.academic_base_models import (
     ConsentimientoORM,
     GrupoAcademicoORM,
@@ -34,6 +37,7 @@ from app.modules.identity.infrastructure.consent_document_models import (
     DocumentoConsentimientoVersionORM,
     SeleccionConsentimientoORM,
 )
+from app.modules.identity.infrastructure.consent_repository import FuenteConsentimientoSQLAlchemy
 from app.modules.identity.infrastructure.repositories import id_entero
 from app.modules.participation.api.dependencies import obtener_fechas_escenario
 from app.modules.participation.application.interactive_evaluator import (
@@ -93,6 +97,14 @@ def _asegurar_consentimiento_asignacion(
     asignacion: AsignacionCasoModel,
     fallback_uid: int,
 ) -> DocumentoConsentimientoVersionORM:
+    if get_settings().academic_runtime_scope != "LABORATORIO":
+        fuente = FuenteConsentimientoSQLAlchemy(db, politica_aprobacion=obtener_aprobacion_consentimiento())
+        try:
+            aprobado = fuente.vigente(id_asignacion=asignacion.id_asignacion, ahora=datetime.now(UTC))
+        except IntegracionPendiente:
+            raise HTTPException(503, detail="La asignación aún no tiene un consentimiento institucional aprobado.") from None
+        return db.get(DocumentoConsentimientoVersionORM, aprobado.id_version_documento)
+
     sel = db.get(SeleccionConsentimientoORM, asignacion.id_asignacion)
     if sel is not None:
         doc = db.get(DocumentoConsentimientoVersionORM, sel.id_version_documento)
@@ -107,7 +119,7 @@ def _asegurar_consentimiento_asignacion(
         grupo = db.get(GrupoAcademicoORM, asignacion.id_grupo)
         publicador = grupo.id_profesor if grupo is not None else fallback_uid
         orig_bytes = _TEXTO_CONSENTIMIENTO_INSTITUCIONAL.encode("utf-8")
-        evid_bytes = b"Aprobacion institucional habilitada para sesiones academicas SPS."
+        evid_bytes = b"Documento sintetico de laboratorio de SPS."
         doc = DocumentoConsentimientoVersionORM(
             referencia="CONSENTIMIENTO-INST-V1",
             documento_id="sps-consentimiento-academico",
@@ -117,7 +129,7 @@ def _asegurar_consentimiento_asignacion(
             texto=_TEXTO_CONSENTIMIENTO_INSTITUCIONAL,
             sha256_original=sha256(orig_bytes).hexdigest(),
             sha256_texto=sha256(orig_bytes).hexdigest(),
-            autoridad_aprobadora="Coordinacion Academica SPS",
+            autoridad_aprobadora="Laboratorio SPS",
             aprobado_en=ahora,
             evidencia_aprobacion=evid_bytes,
             sha256_aprobacion=sha256(evid_bytes).hexdigest(),

@@ -77,7 +77,6 @@ class SesionResponse(BaseModel):
 
 class ConvocatoriaResponse(BaseModel):
     convocatoria_id: UUID
-    codigo_acceso: str
 
 
 class ConvocatoriaAsignadaResponse(ConvocatoriaResponse):

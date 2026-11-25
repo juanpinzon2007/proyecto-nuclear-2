@@ -1197,9 +1197,9 @@ export class SimuladorComponent implements OnInit, OnDestroy {
       } else {
         const ok = await this.uiDialog.confirmar({
           eyebrow: 'Entrega Definitiva',
-          titulo: 'Finalizar Simulación',
+          titulo: 'Finalizar simulación',
           mensaje: '¿Confirmas la entrega definitiva? Una vez enviada no podrás modificar tus respuestas y se calculará tu resultado.',
-          botonConfirmar: 'Sí, Entregar Ahora',
+          botonConfirmar: 'Sí, entregar ahora',
           botonCancelar: 'Revisar Respuestas',
           tono: 'green',
         });

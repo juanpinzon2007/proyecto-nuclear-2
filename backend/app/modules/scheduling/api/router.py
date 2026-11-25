@@ -37,6 +37,7 @@ from app.modules.scheduling.api.schemas import (
 from app.modules.scheduling.application.crear_convocatoria import (
     ErrorConvocatoria,
 )
+from app.modules.scheduling.application.codigos_convocatoria import CorreoConvocatoriaNoDisponible
 from app.modules.scheduling.infrastructure.convocation_management import convocar_con_aviso, retirar_con_aviso
 from app.modules.scheduling.application.cambiar_estado_sesion import SesionNoEncontradaError
 from app.modules.identity.domain.errors import AccesoDenegado, IntegracionPendiente
@@ -81,6 +82,11 @@ router = APIRouter(
     prefix="/scheduling",
     tags=["Scheduling"],
 )
+
+DETALLE_CORREO_CONVOCATORIA = {
+    'codigo': 'CORREO_CONVOCATORIA_NO_DISPONIBLE',
+    'mensaje': 'El correo de SPS no está configurado. Habilítalo para emitir las convocatorias.',
+}
 
 
 def obtener_docente_autenticado(
@@ -238,14 +244,17 @@ def crear_sesion(
         if isinstance(sesion, ProgramacionAcademicaPersistida):
             base = SesionResponse.model_validate(sesion.sesion).model_dump()
             resultado = SesionConAsignacionResponse(**base, id_asignacion=sesion.id_asignacion,
-                convocatorias=[dict(convocatoria_id=c.convocatoria_id, estudiante_id=c.estudiante_id,
-                                    codigo_acceso=c.codigo_acceso) for c in sesion.convocatorias])
+                convocatorias=[dict(convocatoria_id=c.convocatoria_id, estudiante_id=c.estudiante_id)
+                               for c in sesion.convocatorias])
             response.headers['Cache-Control'] = 'no-store'
         else:
             resultado=SesionResponse.model_validate(sesion)
         db.commit()
         return resultado
 
+    except CorreoConvocatoriaNoDisponible:
+        db.rollback()
+        raise HTTPException(503, detail=DETALLE_CORREO_CONVOCATORIA, headers={'Cache-Control': 'no-store'}) from None
     except (AccesoDenegado, IntegracionPendiente, SQLAlchemyError, ReglaPendiente, MapeoPersistenciaPendiente) as error:
         db.rollback()
         estado=403 if isinstance(error,AccesoDenegado) else 503
@@ -453,17 +462,17 @@ def convocar_estudiante(
 ):
     """Convoca a un estudiante a una sesión académica (RF-20)."""
     try:
-        resultado = convocar_con_aviso(db,usuario=usuario,sesion_id=sesion_id,
+        convocatoria_id = convocar_con_aviso(db,usuario=usuario,sesion_id=sesion_id,
             estudiante_id=datos.estudiante_id,docente_id=docente_id)
 
         # Confirmar ambas operaciones juntas.
         db.commit()
         respuesta.headers['Cache-Control']='no-store'
-        return ConvocatoriaResponse(
-            convocatoria_id=resultado.convocatoria_id,
-            codigo_acceso=resultado.codigo_acceso,
-        )
+        return ConvocatoriaResponse(convocatoria_id=convocatoria_id)
 
+    except CorreoConvocatoriaNoDisponible:
+        db.rollback()
+        raise HTTPException(503, detail=DETALLE_CORREO_CONVOCATORIA, headers={'Cache-Control': 'no-store'}) from None
     except (AccesoDenegado, IntegracionPendiente, SesionNoEncontradaError, SQLAlchemyError) as error:
         db.rollback()
         estado=403 if isinstance(error,AccesoDenegado) else 404 if isinstance(error,SesionNoEncontradaError) else 503

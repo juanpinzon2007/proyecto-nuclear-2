@@ -1,6 +1,6 @@
 """Validación de ingreso de estudiantes a sesiones académicas."""
 
-from app.modules.scheduling.domain.access_codes import coincide_codigo
+from app.modules.scheduling.application.codigos_convocatoria import coincide_codigo_convocatoria
 
 from uuid import UUID
 
@@ -46,7 +46,7 @@ def validar_ingreso(
         raise ErrorIngreso("Acceso no autorizado.")
 
     # Verificar el código generado durante la convocatoria.
-    if not coincide_codigo(codigo_acceso, convocatoria.codigo_hash):
+    if not coincide_codigo_convocatoria(codigo_acceso, convocatoria.codigo_hash, estudiante_id):
         raise ErrorIngreso("Acceso no autorizado.")
 
     # Comprobar la sesión académica.

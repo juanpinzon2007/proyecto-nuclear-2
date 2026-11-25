@@ -123,7 +123,7 @@ def intento(c, pk, **cambios):
 
 def test_metadata_reflejado_y_PK_FK_duracion_obligatoria(datos):
     with datos.engine.connect() as s:
-        assert len(registrar_modelos_integrados().tables) == 40
+        assert len(registrar_modelos_integrados().tables) == 45
         assert compare_metadata(MigrationContext.configure(s),registrar_modelos_integrados()) == []
         assert len(sa.inspect(s).get_foreign_keys("participacion")) == 4
         assert len(sa.inspect(s).get_foreign_keys("intento")) == 3

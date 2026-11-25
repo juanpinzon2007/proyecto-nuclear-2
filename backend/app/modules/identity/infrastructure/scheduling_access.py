@@ -14,7 +14,7 @@ from app.modules.identity.application.academic_identity import ResolverIdentidad
 from app.modules.identity.application.ports import ConsultaCuentaPorCorreo
 from app.modules.identity.domain.entities import AccesoConvocatoria, Rol
 from app.modules.identity.domain.errors import AccesoDenegado, IntegracionPendiente
-from app.modules.scheduling.domain.access_codes import hash_codigo, coincide_codigo
+from app.modules.scheduling.application.codigos_convocatoria import huellas_de_consulta
 from app.modules.scheduling.infrastructure.models import ConvocatoriaModel, SesionProgramadaModel
 
 
@@ -50,15 +50,14 @@ class ValidadorConvocatoriaScheduling:
             with self.sesion.no_autoflush:
                 filas = self.sesion.execute(self._consulta().where(
                     ConvocatoriaModel.estudiante_id == estudiante,
-                    ConvocatoriaModel.codigo_hash == hash_codigo(codigo),
+                    ConvocatoriaModel.codigo_hash.in_(huellas_de_consulta(codigo, estudiante)),
                 )).all()
             if len(filas) > 1:
                 raise IntegracionPendiente()
             if not filas:
                 return None
             convocatoria, estado = filas[0]
-            if (convocatoria.estudiante_id != estudiante or not self._vigente(convocatoria, estado)
-                    or not coincide_codigo(codigo, convocatoria.codigo_hash)):
+            if convocatoria.estudiante_id != estudiante or not self._vigente(convocatoria, estado):
                 return None
             return AccesoConvocatoria(usuario.id_usuario, str(convocatoria.id))
         except SQLAlchemyError:

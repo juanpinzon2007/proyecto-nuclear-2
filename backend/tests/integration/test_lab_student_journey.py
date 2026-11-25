@@ -40,10 +40,11 @@ from tests.integration.test_consent_version_persistence import publicar, elegir
 from tests.integration.test_participation_provision import VinculacionLaboratorio
 from tests.integration.test_attempt_start import InicioLaboratorio
 from tests.integration.test_admitted_start import escrituras
+from tests.scheduling_mail_support import codigo_de_prueba
 
 
 @pytest.fixture
-def recorrido_lab(pg_autoria, payload_valido, monkeypatch, record_property):
+def recorrido_lab(pg_autoria, payload_valido, monkeypatch, record_property, cola_convocatorias):
     from app.main import app
     sesiones=pg_autoria;engine=sesiones.kw['bind'];url=engine.url
     ahora=datetime.now(timezone.utc);reloj=SimpleNamespace(ahora=lambda:ahora)
@@ -129,7 +130,8 @@ def recorrido_lab(pg_autoria, payload_valido, monkeypatch, record_property):
             for alumno in alumnos:
                 convocatoria=principal('convocatoria individual','POST',f'/scheduling/sesiones/{sesion}/convocatorias',201,
                     headers=docente_headers,json={'estudiante_id':str(alumno.uuid)}).json()
-                alumno.convocatoria=convocatoria['convocatoria_id'];alumno.codigo=convocatoria['codigo_acceso']
+                alumno.convocatoria = convocatoria['convocatoria_id']
+                alumno.codigo = codigo_de_prueba(sesiones, alumno.convocatoria)
                 login=principal('login estudiante','POST','/api/v1/identity/auth/estudiantes',200,
                     json={'correo':alumno.correo,'codigo_convocatoria':alumno.codigo})
                 alumno.headers={'Authorization':'Bearer '+login.json()['access_token']}

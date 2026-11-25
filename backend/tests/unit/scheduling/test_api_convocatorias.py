@@ -14,9 +14,6 @@ from app.modules.scheduling.api.router import (
 )
 from app.modules.identity.api.dependencies import obtener_docente_actual
 from app.modules.identity.domain.entities import ContextoAcceso, Rol
-from app.modules.scheduling.application.crear_convocatoria import (
-    ResultadoConvocatoria,
-)
 
 
 @pytest.fixture
@@ -49,10 +46,7 @@ def test_router_delega_convocatoria_y_aviso_en_una_transaccion(entorno_api):
     convocatoria_id = uuid4()
 
     with patch("app.modules.scheduling.api.router.convocar_con_aviso") as crear:
-        crear.return_value = ResultadoConvocatoria(
-            convocatoria_id=convocatoria_id,
-            codigo_acceso="CODIGO_DE_PRUEBA",
-        )
+        crear.return_value = convocatoria_id
 
         respuesta = client.post(
             f"/scheduling/sesiones/{sesion_id}/convocatorias",
@@ -60,9 +54,7 @@ def test_router_delega_convocatoria_y_aviso_en_una_transaccion(entorno_api):
         )
 
         assert respuesta.status_code == 201
-        assert respuesta.json()["convocatoria_id"] == str(
-            convocatoria_id
-        )
+        assert respuesta.json() == {"convocatoria_id": str(convocatoria_id)}
 
         crear.assert_called_once_with(db,usuario=usuario,sesion_id=sesion_id,
             estudiante_id=estudiante_id,docente_id=docente_id)

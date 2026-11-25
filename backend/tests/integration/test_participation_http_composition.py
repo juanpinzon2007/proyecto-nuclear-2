@@ -46,6 +46,7 @@ from tests.integration.cases.conftest import payload_valido  # noqa: F401
 from tests.integration.test_attempt_start import IngresoLaboratorio, InicioLaboratorio
 from tests.integration.test_participation_provision import VinculacionLaboratorio
 from tests.integration.consent_support import FuenteConsentimientoLaboratorio
+from tests.scheduling_mail_support import codigo_de_prueba
 
 
 class InicioExtraLaboratorio(InicioLaboratorio):
@@ -59,7 +60,7 @@ class InicioExtraLaboratorio(InicioLaboratorio):
 
 
 @pytest.fixture
-def integracion(autor, request):
+def integracion(autor, request, cola_convocatorias):
     a=autor
     opciones=dict(politica_ingreso=IngresoLaboratorio(),politica_inicio=InicioLaboratorio(),
                   politica_vinculacion=VinculacionLaboratorio(),fuente_consentimiento=FuenteConsentimientoLaboratorio())
@@ -123,7 +124,7 @@ def integracion(autor, request):
         conv=client.post(f'/scheduling/sesiones/{sid}/convocatorias',headers=a.headers,
             json={'estudiante_id':str(uuid_estudiante)})
         assert conv.status_code==201,conv.text
-        cid=conv.json()['convocatoria_id'];codigo=conv.json()['codigo_acceso']
+        cid=conv.json()['convocatoria_id'];codigo=codigo_de_prueba(a.sesiones, cid)
         # Preparación administrativa LAB: la concesión debe originarse en una
         # espera real anterior a la habilitación; no inferirla de EN_CURSO.
         with a.sesiones.begin() as s:

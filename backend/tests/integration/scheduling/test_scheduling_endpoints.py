@@ -1,12 +1,12 @@
 """Pruebas de integración de los endpoints y base de datos de Scheduling."""
 
-import hashlib
 import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from tests.scheduling_mail_support import codigo_encolado
 
 from app.modules.cases.domain.enums import EstadoCaso
 from app.modules.cases.infrastructure.models.caso import CasoModel, VersionCasoModel
@@ -50,6 +50,7 @@ def _crear_caso_publicado(db: Session, docente_id: uuid.UUID) -> VersionCasoMode
 def test_flujo_completo_programacion_y_ciclo_vida(
     client: TestClient,
     db_session: Session,
+    cola_convocatorias,
     docente_id: uuid.UUID,
     cabeceras_estudiante,
     ambito_convocatoria,
@@ -103,14 +104,15 @@ def test_flujo_completo_programacion_y_ciclo_vida(
     assert resp_conv.status_code == 201
     datos_conv = resp_conv.json()
     convocatoria_id = uuid.UUID(datos_conv["convocatoria_id"])
-    codigo_acceso = datos_conv["codigo_acceso"]
-    assert len(codigo_acceso) > 10
+    assert set(datos_conv) == {"convocatoria_id"}
+    codigo_acceso = codigo_encolado(db_session, convocatoria_id)
+    assert len(codigo_acceso) == 6 and codigo_acceso.isascii() and codigo_acceso.isdecimal()
 
     # Verificar convocatoria en BD con código hasheado
     conv_bd = db_session.get(ConvocatoriaModel, convocatoria_id)
     assert conv_bd is not None
     assert conv_bd.estado == "ACTIVA"
-    assert conv_bd.codigo_hash == hashlib.sha256(codigo_acceso.encode()).hexdigest()
+    assert conv_bd.codigo_hash.startswith("v2$")
 
     # Verificar que se creó la notificación inicial de convocatoria
     notifs = db_session.scalars(

@@ -1,13 +1,16 @@
 
 """Pruebas unitarias del servicio de convocatorias RF-20."""
 
-import hashlib
 from types import SimpleNamespace
 from unittest.mock import Mock
 from uuid import UUID, uuid4
 
 import pytest
 
+from app.modules.scheduling.application.codigos_convocatoria import (
+    coincide_codigo_convocatoria,
+)
+from app.modules.scheduling.domain.access_codes import hash_codigo
 from app.modules.scheduling.application.crear_convocatoria import (
     ErrorConvocatoria,
     ResultadoConvocatoria,
@@ -68,23 +71,26 @@ def test_crear_convocatoria_correctamente():
     db.flush.assert_called_once()
 
 
-def test_guardar_hash_y_no_codigo_original():
+def test_codigo_numerico_con_ceros_iniciales_y_huella_protegida(monkeypatch):
     db = preparar_db()
+    datos = datos_validos()
+    monkeypatch.setattr("app.modules.scheduling.application.crear_convocatoria.secrets.randbelow", lambda _: 7)
 
     resultado = crear_convocatoria(
         db,
-        **datos_validos(),
+        **datos,
     )
 
     convocatoria = db.add.call_args.args[0]
 
-    hash_esperado = hashlib.sha256(
-        resultado.codigo_acceso.encode("utf-8")
-    ).hexdigest()
-
     assert isinstance(convocatoria, ConvocatoriaModel)
-    assert convocatoria.codigo_hash == hash_esperado
-    assert convocatoria.codigo_hash != resultado.codigo_acceso
+    assert resultado.codigo_acceso == "000007"
+    assert convocatoria.codigo_hash.startswith("v2$")
+    assert coincide_codigo_convocatoria("000007", convocatoria.codigo_hash, datos["estudiante_id"])
+    assert not coincide_codigo_convocatoria("000008", convocatoria.codigo_hash, datos["estudiante_id"])
+    assert not coincide_codigo_convocatoria("000007", convocatoria.codigo_hash, uuid4())
+    anterior = "codigo-anterior-de-prueba"
+    assert coincide_codigo_convocatoria(anterior, hash_codigo(anterior), datos["estudiante_id"])
     assert convocatoria.estado == "ACTIVA"
 
 

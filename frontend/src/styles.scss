@@ -54,7 +54,6 @@ html:has(.neuro-shell) { scroll-padding-block-start: 84px; }
 }
 
 body {
-  min-width: 320px;
   min-height: 100vh;
   color: var(--text);
   font-family: var(--body);
@@ -598,7 +597,7 @@ button.mat-mdc-outlined-button:disabled {
   color: #a6b4c8 !important;
 }
 
-:where(button, a, select, [tabindex]):focus-visible {
+:where(button, a, select, input:not([matinput]), textarea:not([matinput]), [tabindex]):focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
 }
@@ -654,6 +653,7 @@ table.mat-mdc-table {
 /* Campos de formulario Outline tácticos */
 .mat-mdc-form-field {
   width: 100%;
+  min-width: 0;
 }
 
 .mat-mdc-text-field-wrapper.mdc-text-field--outlined {
@@ -794,6 +794,13 @@ table.mat-mdc-table {
 }
 
 .page-heading > a { flex: none; }
+.page-heading > :not(a) { min-width: 0; }
+
+html { scroll-padding-block-start: 88px; }
+
+@media (max-width: 1024px) {
+  html { scroll-padding-block-end: 90px; }
+}
 
 .page-header h1,
 .page-header h2,

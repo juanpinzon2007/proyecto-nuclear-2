@@ -11,6 +11,7 @@ from app.core.config import get_settings
 from app.main import app
 from app.modules.scheduling.infrastructure.models import SesionProgramadaModel
 from tests.integration.test_admin_bootstrap import inicializar, lab  # noqa: F401
+from tests.scheduling_mail_support import codigo_de_prueba
 
 
 def _login_personal(client: TestClient, correo: str, clave: str) -> dict[str, str]:
@@ -25,10 +26,11 @@ def _login_estudiante(client: TestClient, correo: str, codigo: str) -> dict[str,
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
-def test_flujo_completo_admin_docente_estudiante_y_rubrica_ponderada(lab, monkeypatch):
+def test_flujo_completo_admin_docente_estudiante_y_rubrica_ponderada(lab, monkeypatch, cola_convocatorias):
     inicializar(lab)
     monkeypatch.setenv("IDENTITY_INSTITUTIONAL_DOMAINS", '["universidad.test"]')
     monkeypatch.setenv("PARTICIPATION_TIMESTAMP_ZONE", "America/Bogota")
+    monkeypatch.setenv("ACADEMIC_RUNTIME_SCOPE", "LABORATORIO")
     get_settings.cache_clear()
 
     with TestClient(app) as client:
@@ -225,7 +227,7 @@ def test_flujo_completo_admin_docente_estudiante_y_rubrica_ponderada(lab, monkey
         sesion_id = ses_data["id"]
         conv_info = ses_data["convocatorias"][0]
         conv_id = conv_info["convocatoria_id"]
-        codigo_acceso = conv_info["codigo_acceso"]
+        codigo_acceso = codigo_de_prueba(lab.sesiones, conv_id)
 
         # Actualizar lugar -> notifica cambio RF-21
         assert client.patch(f"/scheduling/sesiones/{sesion_id}", headers=h_doc, json={"lugar": "Sala Clínica 2"}).status_code == 200
@@ -238,7 +240,17 @@ def test_flujo_completo_admin_docente_estudiante_y_rubrica_ponderada(lab, monkey
         assert len(mis) == 1 and mis[0]["caso_nombre"] == "Dilema Clínico Ponderado"
         assert any("Sala Clínica 2" in n for n in mis[0]["notificaciones_recientes"])
 
-        assert client.post(f"/api/v1/simulacion/convocatorias/{conv_id}/consentimiento", headers=h_est).status_code == 201
+        ruta_consentimiento = f"/api/v1/simulacion/convocatorias/{conv_id}/consentimiento"
+        with monkeypatch.context() as entorno:
+            entorno.setenv("ACADEMIC_RUNTIME_SCOPE", "PRODUCCION")
+            entorno.delenv("IDENTITY_CONSENT_APPROVAL_MANIFEST", raising=False)
+            get_settings.cache_clear()
+            assert client.get(ruta_consentimiento, headers=h_est).status_code == 503
+            assert client.post(ruta_consentimiento, headers=h_est).status_code == 503
+            with lab.sesiones() as s:
+                assert s.scalar(sa.text("SELECT count(*) FROM documento_consentimiento_version")) == 0
+        get_settings.cache_clear()
+        assert client.post(ruta_consentimiento, headers=h_est).status_code == 201
 
         # RF-22: Simular reloj fuera de mitad de tiempo (>10 min en sesión de 20 min) moviendo fecha_inicio atrás
         with lab.sesiones.begin() as s:

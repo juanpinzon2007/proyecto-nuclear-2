@@ -2,14 +2,16 @@
 """Servicio para convocar estudiantes a sesiones académicas."""
 
 import secrets
-from app.modules.scheduling.domain.access_codes import hash_codigo
-
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
+from app.modules.scheduling.application.codigos_convocatoria import (
+    hash_codigo_numerico,
+    huellas_de_consulta,
+)
 from app.modules.scheduling.infrastructure.models import (
     ConvocatoriaModel,
     SesionProgramadaModel,
@@ -24,7 +26,7 @@ class ErrorConvocatoria(ValueError):
 @dataclass(frozen=True)
 class ResultadoConvocatoria:
     convocatoria_id: UUID
-    codigo_acceso: str
+    codigo_acceso: str = field(repr=False)
 
 
 def crear_convocatoria(
@@ -49,7 +51,14 @@ def crear_convocatoria(
             "No se puede convocar a una sesión iniciada o finalizada."
         )
 
-    # 3. Comprobar que el estudiante no esté convocado.
+    # Serializar la emisión por estudiante, incluso en sesiones distintas.
+    if db.get_bind().dialect.name == "postgresql":
+        db.execute(
+            text("SELECT pg_advisory_xact_lock(hashtextextended(:clave, 0))"),
+            {"clave": f"scheduling.codigo-convocatoria:{estudiante_id}"},
+        )
+
+    # Comprobar que el estudiante no esté convocado.
     consulta = select(ConvocatoriaModel).where(
         ConvocatoriaModel.sesion_id == sesion_id,
         ConvocatoriaModel.estudiante_id == estudiante_id,
@@ -62,13 +71,18 @@ def crear_convocatoria(
             "El estudiante ya tiene una convocatoria para esta sesión."
         )
 
-    # 4. Generar un código de acceso aleatorio.
-    codigo_acceso = secrets.token_urlsafe(32)
+    for _ in range(16):
+        codigo_acceso = f"{secrets.randbelow(1_000_000):06d}"
+        codigo_hash = hash_codigo_numerico(codigo_acceso, estudiante_id)
+        repetido = db.scalar(select(ConvocatoriaModel.id).where(
+            ConvocatoriaModel.estudiante_id == estudiante_id,
+            ConvocatoriaModel.codigo_hash.in_(huellas_de_consulta(codigo_acceso, estudiante_id)),
+        ).limit(1))
+        if repetido is None:
+            break
+    else:
+        raise ErrorConvocatoria("No fue posible asignar un código. Inténtalo de nuevo.")
 
-    # 5. Guardar únicamente el hash del código.
-    codigo_hash = hash_codigo(codigo_acceso)
-
-    # 6. Crear la convocatoria.
     convocatoria = ConvocatoriaModel(
         sesion_id=sesion_id,
         estudiante_id=estudiante_id,
@@ -79,7 +93,7 @@ def crear_convocatoria(
     db.add(convocatoria)
     db.flush()
 
-    # El código original se devuelve una sola vez.
+    # El código original se entrega al servicio interno que lo encola para correo.
     return ResultadoConvocatoria(
         convocatoria_id=convocatoria.id,
         codigo_acceso=codigo_acceso,

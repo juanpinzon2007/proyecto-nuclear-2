@@ -19,6 +19,7 @@ from app.modules.scheduling.infrastructure.models import SesionProgramadaModel a
 from tests.integration.test_participation_http_composition import (
     integracion, autor, pg_autoria, payload_valido, iniciar,
 )  # noqa: F401 - fixtures reales compartidas
+from tests.scheduling_mail_support import codigo_encolado
 
 
 @pytest.fixture
@@ -61,18 +62,20 @@ def avisos(h,cid,tipo):
     with h.sesiones() as s:return s.execute(select(N.__table__).where(N.convocatoria_id==cid,N.tipo==tipo)).all()
 
 
-def test_altas_individuales_y_avisos_personalizados_sin_correo_ni_codigos_persistidos(gestion):
+def test_altas_individuales_encolan_codigo_sin_revelarlo_en_la_api(gestion):
     h=gestion
     primero=alta(h);assert primero.status_code==201
     assert primero.headers['Cache-Control']=='no-store'
-    cid=UUID(primero.json()['convocatoria_id']);codigo=primero.json()['codigo_acceso']
+    cid=UUID(primero.json()['convocatoria_id'])
+    assert primero.json() == {'convocatoria_id': str(cid)}
     n=avisos(h,cid,'CONVOCATORIA');assert len(n)==1
     assert n[0].destinatario_id==h.uuid_estudiante and n[0].canal=='INTERNA'
     assert 'Mensaje docente de laboratorio' in n[0].mensaje
-    assert not any(codigo in x.mensaje for x in n)
     with h.sesiones() as s:
-        assert s.get(C,cid).codigo_hash!=codigo
-        assert s.scalar(select(func.count()).select_from(N).where(N.convocatoria_id==cid,N.canal=='CORREO'))==0
+        codigo = codigo_encolado(s, cid)
+        assert len(codigo) == 6 and codigo.isascii() and codigo.isdecimal()
+        assert s.get(C,cid).codigo_hash.startswith('v2$')
+        assert all(codigo not in aviso.mensaje for aviso in n)
     segundo=alta(h,h.uuid_extra);assert segundo.status_code==201
     cid2=UUID(segundo.json()['convocatoria_id'])
     assert avisos(h,cid2,'CONVOCATORIA')[0].destinatario_id==h.uuid_extra

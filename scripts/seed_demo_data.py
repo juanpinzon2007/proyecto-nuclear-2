@@ -63,6 +63,7 @@ def seed():
     registrar_modelos_integrados()
     fabrica = get_session_factory()
     hasheador = obtener_hasheador()
+    fechas = obtener_fechas_escenario()
 
     print("=== INICIANDO SEEDING COMPLETO DE DATOS DE PRUEBA ===")
 
@@ -208,7 +209,7 @@ def seed():
             s.add(grupo)
             s.flush()
 
-        ahora_naive = datetime.now(timezone.utc).replace(tzinfo=None)
+        ahora_naive = fechas.hacia_db(datetime.now(timezone.utc), sin_offset=True)
         for est in [est1, est2]:
             m = s.execute(sa.select(GrupoEstudianteORM).where(
                 GrupoEstudianteORM.id_grupo == grupo.id_grupo,
@@ -393,7 +394,7 @@ def seed():
             )).scalars().first()
 
             ahora = datetime.now(timezone.utc)
-            ahora_naive = ahora.replace(tzinfo=None)
+            ahora_naive = fechas.hacia_db(ahora, sin_offset=True)
 
             if not sesion:
                 sesion = SesionProgramadaModel(
@@ -553,7 +554,7 @@ def seed():
                     s,
                     usuario=ctx_est2,
                     id_intento=intento2.id_intento,
-                    fechas=obtener_fechas_escenario(),
+                    fechas=fechas,
                     crear_sesion=fabrica,
                     modalidad="COMPLETA",
                 )

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.identity.infrastructure.credentials import obtener_hasheador
 from app.modules.identity.infrastructure.models import UsuarioORM
-from app.modules.identity.infrastructure.onboarding import _como_utc, enviar_correo_directo
+from app.modules.identity.infrastructure.onboarding import PAUSA_REENVIO_CODIGO, _como_utc, enviar_correo_directo
 from app.modules.identity.infrastructure.password_reset_models import RecuperacionContrasenaORM
 
 TTL_CODIGO_RECUPERACION_SEGUNDOS = 900
@@ -22,6 +22,7 @@ def enviar_codigo_recuperacion_smtp(*, correo: str, nombre: str, codigo: str) ->
     enviar_correo_directo(
         destinatario=correo,
         asunto="Recuperación de contraseña - SPS",
+        codigo=codigo,
         generar_cuerpo=lambda url_publica: "\n".join(
             [
                 f"Hola {nombre},",
@@ -31,6 +32,7 @@ def enviar_codigo_recuperacion_smtp(*, correo: str, nombre: str, codigo: str) ->
                 "",
                 "Ingresa este código en la pantalla de recuperación junto con tu nueva contraseña.",
                 "Este código vence en 15 minutos. Si no solicitaste el cambio, ignora este mensaje.",
+                "No compartas este código con otras personas.",
                 f"Plataforma: {url_publica}",
             ]
         ),
@@ -44,14 +46,20 @@ def generar_y_enviar_codigo_recuperacion(
     correo: str,
     nombre: str,
     remitente_correo: Callable[..., None] = enviar_codigo_recuperacion_smtp,
-) -> int:
+) -> None:
     """Genera y almacena un código temporal de 6 dígitos para recuperar contraseña y lo envía por correo."""
-    ahora = datetime.now(UTC)
+    usuario = db.get(UsuarioORM, id_usuario, with_for_update=True, populate_existing=True)
+    if usuario is None or not usuario.activo or usuario.correo != correo:
+        return
     fila = db.scalar(
         select(RecuperacionContrasenaORM)
         .where(RecuperacionContrasenaORM.id_usuario == id_usuario)
         .with_for_update()
     )
+    ahora = datetime.now(UTC)
+    if fila is not None and fila.solicitado_en is not None:
+        if ahora - _como_utc(fila.solicitado_en) < PAUSA_REENVIO_CODIGO:
+            return
     if fila is None:
         fila = RecuperacionContrasenaORM(id_usuario=id_usuario)
         db.add(fila)
@@ -64,7 +72,6 @@ def generar_y_enviar_codigo_recuperacion(
     db.flush()
 
     remitente_correo(correo=correo, nombre=nombre, codigo=codigo)
-    return TTL_CODIGO_RECUPERACION_SEGUNDOS
 
 
 def confirmar_recuperacion_contrasena(
@@ -75,6 +82,9 @@ def confirmar_recuperacion_contrasena(
     nueva_clave: str,
 ) -> bool:
     """Valida el código de recuperación y actualiza la contraseña del usuario."""
+    usuario = db.get(UsuarioORM, id_usuario, with_for_update=True, populate_existing=True)
+    if usuario is None or not usuario.activo:
+        return False
     ahora = datetime.now(UTC)
     fila = db.scalar(
         select(RecuperacionContrasenaORM)
@@ -97,10 +107,6 @@ def confirmar_recuperacion_contrasena(
             fila.codigo_hash = None
             fila.expira_en = None
         db.flush()
-        return False
-
-    usuario = db.get(UsuarioORM, id_usuario, with_for_update=True, populate_existing=True)
-    if usuario is None or not usuario.activo:
         return False
 
     usuario.clave_hash = obtener_hasheador().hash(nueva_clave)

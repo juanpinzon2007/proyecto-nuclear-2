@@ -468,8 +468,8 @@ def test_enviar_smtp_convocatoria_incluye_texto_claro_codigo_y_url(monkeypatch):
     monkeypatch.setattr(
         mail_delivery,
         "enviar_mensaje_smtp",
-        lambda config, *, destinatario, asunto, cuerpo, message_id=None: capturados.append(
-            {"destinatario": destinatario, "asunto": asunto, "cuerpo": cuerpo}
+        lambda config, *, destinatario, asunto, cuerpo, message_id=None, codigo=None, transporte=None: capturados.append(
+            {"destinatario": destinatario, "asunto": asunto, "cuerpo": cuerpo, "codigo": codigo}
         ),
     )
 
@@ -502,3 +502,25 @@ def test_enviar_smtp_convocatoria_incluye_texto_claro_codigo_y_url(monkeypatch):
     assert "Caso: Dilema de Obediencia" in msg["cuerpo"]
     assert "Código individual: SPS-9988-XY" in msg["cuerpo"]
     assert "URL: http://localhost:4200" in msg["cuerpo"]
+    assert msg["codigo"] == "SPS-9988-XY"
+
+
+def test_plantilla_html_escapa_datos_y_destaca_el_codigo_del_sistema():
+    from app.modules.scheduling.infrastructure.mail_templates import renderizar_correo
+
+    url = "https://sps.universidad.test/login"
+    html = renderizar_correo(
+        "Convocatoria <SPS>",
+        "Hola Ana & Luis,\n<b>Mensaje docente</b>\nCódigo individual: 123456",
+        url,
+        codigo="123456",
+    )
+    assert "Convocatoria &lt;SPS&gt;" in html
+    assert "Hola Ana &amp; Luis," in html
+    assert "&lt;b&gt;Mensaje docente&lt;/b&gt;" in html
+    assert "[if mso]" in html
+    assert "https://sps.universidad.test/logo-sps.png" in html
+    assert f'href="{url}"' in html
+    assert ">123456</p>" in html
+    sin_codigo = renderizar_correo("Aviso", "Código individual: 123456", url)
+    assert ">123456</p>" not in sin_codigo

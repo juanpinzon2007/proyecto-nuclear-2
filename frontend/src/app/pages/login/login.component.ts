@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { afterNextRender, Component, ElementRef, inject, Injector, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -17,8 +17,12 @@ import { AuthService } from '../../core/auth.service';
 export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly injector = inject(Injector);
+  private readonly tituloAcceso = viewChild<ElementRef<HTMLHeadingElement>>('tituloAcceso');
+  private readonly campoCredencial = viewChild<ElementRef<HTMLInputElement>>('campoCredencial');
 
   mostrarCredencial = false;
+  readonly usandoConvocatoria = signal(false);
   mostrarNuevaClave = false;
   correo = '';
   credencial = '';
@@ -38,7 +42,11 @@ export class LoginComponent {
     this.infoVerificacion.set(null);
     this.cargando.set(true);
     try {
-      const res = await this.auth.loginUnificado(this.correo.trim(), this.credencial.trim());
+      const correo = this.correo.trim();
+      const credencial = this.credencial.trim();
+      const res = this.usandoConvocatoria()
+        ? { estado: 'AUTENTICADO' as const, usuario: await this.auth.loginEstudiante(correo, credencial) }
+        : await this.auth.loginUnificado(correo, credencial);
       if (res.estado === 'VERIFICACION_REQUERIDA') {
         this.codigoVerificacion = '';
         this.verificacionPendiente.set({
@@ -46,6 +54,7 @@ export class LoginComponent {
           mensaje: res.mensaje,
           expiraEnSegundos: res.expiraEnSegundos,
         });
+        this.enfocarTitulo();
         return;
       }
       if (res.usuario) {
@@ -60,6 +69,15 @@ export class LoginComponent {
     } finally {
       this.cargando.set(false);
     }
+  }
+
+  cambiarModoAcceso(): void {
+    this.usandoConvocatoria.update((activo) => !activo);
+    this.credencial = '';
+    this.mostrarCredencial = false;
+    this.errorLogin.set(null);
+    this.infoVerificacion.set(null);
+    afterNextRender(() => this.campoCredencial()?.nativeElement.focus(), { injector: this.injector });
   }
 
   async confirmarCodigoPrimerIngreso(): Promise<void> {
@@ -94,7 +112,7 @@ export class LoginComponent {
     try {
       const r = await this.auth.loginEstudiantePorClave(verif.correo, this.credencial.trim());
       if (r.requiere_verificacion) {
-        this.infoVerificacion.set(`Se envió un nuevo código de verificación a ${r.correo ?? verif.correo}.`);
+        this.infoVerificacion.set(r.mensaje ?? 'Revisa tu correo. Espera un minuto antes de pedir otro código.');
       } else if (r.access_token) {
         this.verificacionPendiente.set(null);
         await this.iniciarSesion();
@@ -115,6 +133,7 @@ export class LoginComponent {
     this.confirmarNuevaClave = '';
     this.errorLogin.set(null);
     this.infoVerificacion.set(null);
+    this.enfocarTitulo();
   }
 
   abrirRecuperacion(): void {
@@ -126,9 +145,10 @@ export class LoginComponent {
     this.nuevaClave = '';
     this.confirmarNuevaClave = '';
     this.recuperacionPaso.set('SOLICITAR');
+    this.enfocarTitulo();
   }
 
-  async enviarCodigoRecuperacion(esReenvio = false): Promise<void> {
+  async enviarCodigoRecuperacion(): Promise<void> {
     const objetivo = this.correoRecuperacion.trim();
     if (!objetivo) return;
     this.errorLogin.set(null);
@@ -137,7 +157,8 @@ export class LoginComponent {
     try {
       const resp = await this.auth.solicitarRecuperacionContrasena(objetivo);
       this.recuperacionPaso.set('CONFIRMAR');
-      this.infoVerificacion.set(esReenvio ? `Código reenviado a ${objetivo}.` : resp.mensaje);
+      this.infoVerificacion.set(resp.mensaje);
+      this.enfocarTitulo();
     } catch (err) {
       this.errorLogin.set(mensajeError(err));
     } finally {
@@ -166,11 +187,16 @@ export class LoginComponent {
       this.nuevaClave = '';
       this.confirmarNuevaClave = '';
       this.infoVerificacion.set(resp.mensaje);
+      this.enfocarTitulo();
     } catch (err) {
       this.errorLogin.set(mensajeError(err));
     } finally {
       this.cargando.set(false);
     }
+  }
+
+  private enfocarTitulo(): void {
+    afterNextRender(() => this.tituloAcceso()?.nativeElement.focus(), { injector: this.injector });
   }
 }
 

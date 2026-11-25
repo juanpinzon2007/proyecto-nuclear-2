@@ -138,7 +138,7 @@ export interface SesionResponse {
   id: Uuid; espacio_academico_id: Uuid; version_caso_id: Uuid; docente_id: Uuid; fecha_inicio: string; fecha_fin: string;
   tiempo_maximo_minutos: number; lugar: string | null; mensaje_personalizado: string | null; estado: string; finalizado_en: string | null;
 }
-export interface ConvocatoriaAsignadaResponse { convocatoria_id: Uuid; codigo_acceso: string; estudiante_id: Uuid; }
+export interface ConvocatoriaAsignadaResponse { convocatoria_id: Uuid; estudiante_id: Uuid; }
 export interface SesionConAsignacionResponse extends SesionResponse { id_asignacion: number; convocatorias: ConvocatoriaAsignadaResponse[]; }
 export interface ProgramarSesionRequest {
   espacio_academico_id: Uuid; version_caso_id: Uuid; fecha_inicio: string; fecha_fin: string; tiempo_maximo_minutos: number;
@@ -146,7 +146,7 @@ export interface ProgramarSesionRequest {
   fecha_limite_ingreso?: string | null;
 }
 export interface ConvocatoriaDetalleResponse { id: Uuid; sesion_id: Uuid; estudiante_id: Uuid; estado: string; }
-export interface ConvocatoriaResponse { convocatoria_id: Uuid; codigo_acceso: string; }
+export interface ConvocatoriaResponse { convocatoria_id: Uuid; }
 export interface NotificacionResponse {
   id: Uuid; convocatoria_id: Uuid | null; destinatario_id: Uuid; tipo: string; canal: string; mensaje: string; estado: string; creada_en: string;
 }

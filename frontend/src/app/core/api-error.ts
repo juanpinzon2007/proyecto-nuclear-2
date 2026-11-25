@@ -4,7 +4,10 @@ import { HttpErrorResponse } from '@angular/common/http';
 export function mensajeError(err: unknown): string {
   if (err instanceof HttpErrorResponse) {
     if (err.status === 0) {
-      return 'No hay conexión con el backend. Verifica que la API esté corriendo en http://localhost:8000.';
+      return 'No pudimos conectar con SPS. Revisa tu conexión e inténtalo de nuevo.';
+    }
+    if (err.status === 429) {
+      return 'Hay demasiados intentos en este momento. Espera un momento y vuelve a intentarlo.';
     }
     const detail = (err.error && typeof err.error === 'object') ? (err.error as { detail?: unknown }).detail : undefined;
     let texto = '';
@@ -13,7 +16,7 @@ export function mensajeError(err: unknown): string {
     } else if (Array.isArray(detail)) {
       // Errores de validación de FastAPI (422)
       texto = detail
-        .map((d: { loc?: unknown[]; msg?: string }) => `${(d.loc ?? []).slice(1).join('.')}: ${d.msg ?? ''}`)
+        .map((d: { loc?: unknown[]; msg?: string }) => [(d.loc ?? []).slice(1).join('.'), d.msg].filter(Boolean).join(': '))
         .join(' · ');
     } else if (detail && typeof detail === 'object') {
       const d = detail as {
@@ -22,6 +25,10 @@ export function mensajeError(err: unknown): string {
         campos?: string[] | null;
         errores?: unknown[];
       };
+      if (err.status === 503 && typeof d.mensaje === 'string' &&
+          (d.codigo === 'CORREO_NO_DISPONIBLE' || d.codigo === 'CORREO_CONVOCATORIA_NO_DISPONIBLE')) {
+        return d.mensaje;
+      }
       if (Array.isArray(d.errores) && d.errores.length) {
         texto = d.errores.map((item) => String(item)).join(' · ');
       } else {

@@ -204,6 +204,7 @@ def test_conserva_reglas_de_convocatoria_codigo_y_horario(estudiante, problema):
 @pytest.mark.parametrize("operacion", ["notificaciones", "ingreso"])
 def test_fallo_sql_del_repositorio_identity_cierra_acceso(estudiante, operacion):
     sesion = Mock(spec=Session)
+    sesion.no_autoflush = nullcontext()
     sesion.get.side_effect = SQLAlchemyError("detalle SQL privado")
     estudiante.fabrica_usuarios.return_value = RepositorioUsuariosSQLAlchemy(sesion)
     respuesta = solicitar(estudiante, operacion, headers(estudiante))

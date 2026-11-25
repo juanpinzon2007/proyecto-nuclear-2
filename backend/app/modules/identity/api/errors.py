@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 
 from app.modules.identity.domain.errors import (
-    AccesoDenegado, ConflictoIdentidad, ErrorIdentidad, IntegracionPendiente,
+    AccesoDenegado, ConflictoIdentidad, CorreoTransaccionalNoDisponible, ErrorIdentidad, IntegracionPendiente,
     NoAutenticado, RecursoNoDisponible, ReglaIdentidadInvalida,
 )
 
@@ -19,6 +19,9 @@ ERRORES = {
     ConflictoIdentidad: (409, "CONFLICTO_IDENTIDAD", "La operación no es válida en el estado actual."),
     ReglaIdentidadInvalida: (422, "REGLA_IDENTIDAD", "La solicitud no cumple las reglas de identidad."),
     IntegracionPendiente: (503, "INTEGRACION_IDENTITY_PENDIENTE", "La configuración o integración requerida todavía no está disponible."),
+    CorreoTransaccionalNoDisponible: (
+        503, "CORREO_NO_DISPONIBLE", "No pudimos enviar el código de verificación. Inténtalo más tarde.",
+    ),
 }
 
 

@@ -18,7 +18,7 @@ from app.db.session import get_engine
 from app.modules.identity.api.dependencies import construir_tokens
 from app.modules.identity.domain.errors import AccesoDenegado, NoAutenticado
 from app.modules.identity.infrastructure.academic_identity_models import IdentidadAcademicaORM as V
-from app.modules.identity.infrastructure.models import UsuarioORM as U, RolORM
+from app.modules.identity.infrastructure.models import UsuarioORM as U, RolORM, UsuarioPermisoORM
 from app.modules.identity.infrastructure.repositories import RepositorioUsuariosSQLAlchemy
 from app.modules.identity.infrastructure.credentials import obtener_hasheador
 from app.modules.identity.infrastructure.teacher_directory import ConsultaDocentesSQLAlchemy
@@ -53,6 +53,62 @@ def headers(h, cuenta):
         'correo':cuenta[1], 'clave':h.clave_admin if cuenta == h.admin else h.clave})
     assert respuesta.status_code == 200
     return {'Authorization':'Bearer '+respuesta.json()['access_token']}
+
+
+def test_directorio_general_mantiene_consultas_acotadas_y_permisos(personal):
+    h = personal
+    admin = headers(h, h.admin)
+    identidad = uuid4()
+    with h.sesiones.begin() as s:
+        s.add(UsuarioPermisoORM(id_usuario=h.docente[0], id_permiso=1, concedido=False))
+        s.add(V(id_usuario=h.docente[0], sistema='CASES', id_academico=identidad))
+        s.execute(sa.insert(U), [
+            dict(id_rol=2, nombre=f'Usuario carga {i:02}', correo=f'carga{i}@universidad.test',
+                 clave_hash='hash-inerte-solo-para-listado', activo=True)
+            for i in range(50)
+        ])
+
+    pagina = '/api/v1/identity/usuarios/pagina'
+    sentencias = []
+
+    def registrar(_conn, _cursor, statement, *_args):
+        if statement.lstrip().startswith('SELECT'):
+            sentencias.append(statement)
+
+    motor = get_engine()
+    sa.event.listen(motor, 'before_cursor_execute', registrar)
+    try:
+        cantidades = []
+        for tamano in (1, 50):
+            sentencias.clear()
+            respuesta = h.cliente.get(pagina, params={'tamano': tamano}, headers=admin)
+            assert respuesta.status_code == 200
+            assert len(respuesta.json()['usuarios']) == tamano
+            assert respuesta.json()['total'] == 54
+            assert 'clave_hash' not in respuesta.text
+            cantidades.append(len(sentencias))
+        assert cantidades[0] == cantidades[1] <= 12
+    finally:
+        sa.event.remove(motor, 'before_cursor_execute', registrar)
+
+    docente = next(u for u in respuesta.json()['usuarios'] if u['correo'] == h.docente[1])
+    assert docente['identidad_cases'] == str(identidad)
+    assert docente['permisos_rol'] == ['CREAR_CASOS']
+    assert docente['permisos_individuales'] == {'CREAR_CASOS': False}
+    assert docente['permisos_efectivos'] == []
+
+
+def test_errores_de_validacion_y_estado_de_disponibilidad(personal):
+    h = personal
+    assert h.cliente.get('/health').json() == {'status': 'ok'}
+    listo = h.cliente.get('/ready')
+    assert listo.json() == {'status': 'ready'}
+    assert listo.headers['Cache-Control'] == 'no-store'
+    admin = headers(h, h.admin)
+    respuesta = h.cliente.get('/api/v1/identity/usuarios/pagina', params={'tamano': 'dato-privado'}, headers=admin)
+    assert respuesta.status_code == 422
+    assert 'dato-privado' not in respuesta.text
+    assert respuesta.json()['detail'][0]['loc'] == ['query', 'tamano']
 
 
 def test_listado_main_privado_paginado_sin_dml_hashes_ni_vinculos_academicos(personal):

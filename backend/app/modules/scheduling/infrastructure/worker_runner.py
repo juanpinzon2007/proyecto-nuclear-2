@@ -32,9 +32,9 @@ def registrar_error(error: Exception) -> None:
 
 async def _cerrar_intentos_vencidos(session_factory) -> int:
     """Cierra intentos activos cuyo tiempo concedido expiró, guarda borradores y calcula nota parcial (RF-23)."""
-    from datetime import UTC, datetime, timedelta
+    from datetime import UTC, datetime
     from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
-    from sqlalchemy import select
+    from sqlalchemy import literal_column, select
     from app.core.config import get_settings
     from app.modules.identity.infrastructure.academic_base_models import GrupoEstudianteORM
     from app.modules.identity.infrastructure.repositories import RepositorioUsuariosSQLAlchemy
@@ -54,16 +54,15 @@ async def _cerrar_intentos_vencidos(session_factory) -> int:
     with session_factory() as probe:
         if probe.get_bind().dialect.name != "postgresql":
             return 0
-        candidatos = probe.execute(
-            select(IntentoModel.id_intento, IntentoModel.inicio, IntentoModel.duracion_concedida_segundos)
-            .where(IntentoModel.estado == "EN_CURSO")
+        vencimiento = IntentoModel.inicio + (
+            IntentoModel.duracion_concedida_segundos * literal_column("INTERVAL '1 second'")
+        )
+        vencidos_ids = probe.scalars(
+            select(IntentoModel.id_intento)
+            .where(IntentoModel.estado == literal_column("'EN_CURSO'"), vencimiento <= ahora_db)
+            .order_by(vencimiento, IntentoModel.id_intento)
         ).all()
 
-    vencidos_ids = [
-        row.id_intento
-        for row in candidatos
-        if ahora_db >= (row.inicio + timedelta(seconds=float(row.duracion_concedida_segundos)))
-    ]
     cerrados = 0
     for id_int in vencidos_ids:
         with session_factory() as db:
@@ -112,16 +111,16 @@ async def ejecutar_revision() -> int:
         from app.modules.scheduling.infrastructure.mail_delivery import configuracion_correo, despachar_pendientes
 
         if configuracion_correo() is not None:
-            despachar_pendientes(session_factory, limite=50)
-    except Exception:
-        pass
+            await asyncio.to_thread(despachar_pendientes, session_factory, limite=50, esperar_reintentos=True)
+    except Exception as error:
+        logger.warning("REVISION_CORREO_FALLIDA tipo=%s", type(error).__name__)
 
     logger.info("Sesiones cerradas: %s", cerradas)
     return cerradas
 
 
 async def ejecutar_periodicamente() -> None:
-    """Ejecuta el Worker cada 60 segundos."""
+    """Revisa vencimientos y correos pendientes en el intervalo operativo."""
 
     logger.info("Worker académico iniciado")
 

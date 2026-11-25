@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+from shutil import which
 import subprocess
 import tempfile
 import time
@@ -21,6 +22,7 @@ from tests.integration.test_current_scenario_http import snapshot
 
 
 ROOT = Path(__file__).resolve().parents[3]
+pytestmark = pytest.mark.skipif(which("docker") is None, reason="Las pruebas de imagen requieren el CLI de Docker.")
 
 
 def docker(*args, timeout=30, env=None):

@@ -3,7 +3,7 @@
 No concede matrícula, permisos de espacio ni admisión. El llamador conserva
 commit/rollback y aporta una política explícita para los timestamps históricos.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import select
@@ -27,7 +27,6 @@ from app.modules.scheduling.infrastructure.models import SesionProgramadaModel
 class ConvocatoriaAsignada:
     convocatoria_id: UUID
     estudiante_id: UUID
-    codigo_acceso: str = field(repr=False)
 
 
 @dataclass(frozen=True)
@@ -91,9 +90,7 @@ def asignar_y_convocar(db, *, sesion, usuario, grupo_id, estudiantes_ids, fecha_
     db.flush()
     convocatorias = []
     for estudiante_id in sorted(estudiantes_ids):
-        resultado = convocar_con_aviso(db, usuario=usuario, sesion_id=sesion.id,
+        convocatoria_id = convocar_con_aviso(db, usuario=usuario, sesion_id=sesion.id,
             estudiante_id=estudiante_id, docente_id=sesion.docente_id)
-        convocatorias.append(ConvocatoriaAsignada(
-            resultado.convocatoria_id, estudiante_id, resultado.codigo_acceso,
-        ))
+        convocatorias.append(ConvocatoriaAsignada(convocatoria_id, estudiante_id))
     return ProgramacionAcademicaPersistida(sesion, asignacion.id_asignacion, tuple(convocatorias))

@@ -580,6 +580,13 @@ def test_disparadores_integridad_trazabilidad_y_vistas_globales(pg_trazabilidad)
         assert vint[0]["total_cambios_decision"] == 2
         assert vint[0]["total_borradores_actuales"] == 1
 
+        # El cambio de la vista conserva su contrato sobre datos existentes.
+        consulta_intentos = text("SELECT * FROM vw_trazabilidad_intentos_decisiones ORDER BY id_intento")
+        command.downgrade(config_alembic(conn), "20261120_global_traceability")
+        assert conn.execute(consulta_intentos).mappings().all() == vint
+        command.upgrade(config_alembic(conn), "head")
+        assert conn.execute(consulta_intentos).mappings().all() == vint
+
         vglob = conn.execute(text("SELECT * FROM vw_trazabilidad_global")).mappings().all()
         modulos_registrados = {row["modulo"] for row in vglob}
         assert {"IDENTITY", "ACADEMICO", "CASES", "SCHEDULING", "CORREOS", "PARTICIPATION", "EVALUACION"} <= modulos_registrados

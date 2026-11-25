@@ -1,6 +1,6 @@
 """Rutas administrativas para gestión integral de usuarios, roles, permisos e identidades (RF-03)."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
 import secrets
@@ -8,7 +8,7 @@ import secrets
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from sqlalchemy import delete, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 
 from app.db.session import get_db
 from app.modules.identity.api.dependencies import obtener_notificador_negocio, obtener_usuario_actual
@@ -19,11 +19,9 @@ from app.modules.identity.infrastructure.academic_identity_models import Identid
 from app.modules.identity.infrastructure.business_notifications import notificar_registro_usuario
 from app.modules.identity.infrastructure.credentials import obtener_hasheador
 from app.modules.identity.infrastructure.models import PermisoORM, RolORM, RolPermisoORM, UsuarioORM, UsuarioPermisoORM
-from app.modules.identity.infrastructure.onboarding import (
-    estado_primer_ingreso,
-    registrar_estado_primer_ingreso,
-)
+from app.modules.identity.infrastructure.onboarding import registrar_estado_primer_ingreso
 from app.modules.identity.infrastructure.repositories import RepositorioUsuariosSQLAlchemy, id_entero
+from app.modules.identity.infrastructure.user_catalog import DetallesUsuario, cargar_detalles_usuarios
 
 
 router = APIRouter(tags=["identity-admin"])
@@ -95,40 +93,27 @@ class ActualizarUsuarioAdminSolicitud(BaseModel):
     primer_ingreso_verificado: bool | None = None
 
 
-def _serializar_usuario(db: Session, usuario: UsuarioORM) -> UsuarioGestionItem:
-    rol = db.get(RolORM, usuario.id_rol)
-    nombre_rol = rol.nombre.strip().upper() if rol else "DESCONOCIDO"
-
-    repo = RepositorioUsuariosSQLAlchemy(db)
-    permisos_rol = sorted(repo._permisos_rol(usuario.id_rol))
-
-    filas_ind = db.execute(
-        select(PermisoORM.codigo, UsuarioPermisoORM.concedido)
-        .join(UsuarioPermisoORM, UsuarioPermisoORM.id_permiso == PermisoORM.id_permiso)
-        .where(UsuarioPermisoORM.id_usuario == usuario.id_usuario)
-    ).all()
-    permisos_ind = {codigo: bool(concedido) for codigo, concedido in filas_ind}
-    permisos_efectivos = sorted(repo._permisos_efectivos(usuario.id_usuario, usuario.id_rol))
-
-    vinculos = db.scalars(
-        select(IdentidadAcademicaORM).where(IdentidadAcademicaORM.id_usuario == usuario.id_usuario)
-    ).all()
-    id_cases = next((v.id_academico for v in vinculos if v.sistema == "CASES"), None)
-    id_scheduling = next((v.id_academico for v in vinculos if v.sistema == "SCHEDULING"), None)
-
+def _representar_usuario(usuario: UsuarioORM, rol: str, detalles: DetallesUsuario) -> UsuarioGestionItem:
     return UsuarioGestionItem(
         id_usuario=str(usuario.id_usuario),
         nombre=usuario.nombre,
         correo=usuario.correo,
-        rol=nombre_rol,
+        rol=rol,
         activo=bool(usuario.activo),
-        permisos_rol=permisos_rol,
-        permisos_individuales=permisos_ind,
-        permisos_efectivos=permisos_efectivos,
-        identidad_cases=id_cases,
-        identidad_scheduling=id_scheduling,
-        primer_ingreso_verificado=estado_primer_ingreso(db, id_usuario=usuario.id_usuario),
+        permisos_rol=detalles.permisos_rol,
+        permisos_individuales=detalles.permisos_individuales,
+        permisos_efectivos=detalles.permisos_efectivos,
+        identidad_cases=detalles.identidad_cases,
+        identidad_scheduling=detalles.identidad_scheduling,
+        primer_ingreso_verificado=detalles.primer_ingreso_verificado,
     )
+
+
+def _serializar_usuario(db: Session, usuario: UsuarioORM) -> UsuarioGestionItem:
+    rol = db.get(RolORM, usuario.id_rol)
+    detalles = cargar_detalles_usuarios(db, [usuario])
+    return _representar_usuario(usuario, rol.nombre.strip().upper() if rol else "DESCONOCIDO",
+                               detalles[usuario.id_usuario])
 
 
 def _asegurar_identidades(db: Session, id_usuario: int) -> tuple[UUID, UUID]:
@@ -161,26 +146,28 @@ def _aplicar_permisos_individuales(db: Session, id_usuario: int, mapa_permisos: 
         db.add(UsuarioPermisoORM(id_usuario=id_usuario, id_permiso=por_codigo[codigo], concedido=concedido))
 
 
-def _catalogo_usuarios(db: Session, usuarios_orm) -> CatalogoUsuariosRespuesta:
+def _catalogo_usuarios(db: Session, usuarios_orm: Sequence[UsuarioORM]) -> CatalogoUsuariosRespuesta:
     permisos_disp = list(db.scalars(select(PermisoORM.codigo).order_by(PermisoORM.codigo)).all())
-    roles_disp = sorted(
-        {
-            r.nombre.strip().upper()
-            for r in db.scalars(select(RolORM)).all()
-            if r.nombre and r.nombre.strip()
-        }
-    )
+    roles = {r.id_rol: r.nombre.strip().upper() for r in db.scalars(select(RolORM)) if r.nombre and r.nombre.strip()}
+    detalles = cargar_detalles_usuarios(db, usuarios_orm)
     return CatalogoUsuariosRespuesta(
-        usuarios=[_serializar_usuario(db, u) for u in usuarios_orm],
+        usuarios=[_representar_usuario(u, roles.get(u.id_rol, "DESCONOCIDO"), detalles[u.id_usuario])
+                  for u in usuarios_orm],
         permisos_disponibles=permisos_disp,
-        roles_disponibles=roles_disp or ["ADMINISTRADOR", "DOCENTE", "ESTUDIANTE"],
+        roles_disponibles=sorted(set(roles.values())) or ["ADMINISTRADOR", "DOCENTE", "ESTUDIANTE"],
     )
+
+
+def _consulta_directorio():
+    return select(UsuarioORM).options(load_only(
+        UsuarioORM.id_usuario, UsuarioORM.id_rol, UsuarioORM.nombre, UsuarioORM.correo, UsuarioORM.activo,
+    ))
 
 
 @router.get("/usuarios", response_model=CatalogoUsuariosRespuesta)
 def listar_usuarios_admin(usuario: UsuarioActual, db: BaseDatos) -> CatalogoUsuariosRespuesta:
     _exigir_admin(usuario)
-    return _catalogo_usuarios(db, db.scalars(select(UsuarioORM).order_by(UsuarioORM.id_usuario)).all())
+    return _catalogo_usuarios(db, db.scalars(_consulta_directorio().order_by(UsuarioORM.id_usuario)).all())
 
 
 @router.get("/usuarios/pagina", response_model=PaginaUsuariosRespuesta)
@@ -197,7 +184,7 @@ def paginar_usuarios_admin(
         func.count(UsuarioORM.id_usuario).filter(UsuarioORM.activo.is_(True)),
     )).one()
     termino = buscar.strip()
-    consulta = select(UsuarioORM)
+    consulta = _consulta_directorio()
     filtrados = total
     if termino:
         filtro = or_(

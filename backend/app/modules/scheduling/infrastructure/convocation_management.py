@@ -69,13 +69,12 @@ def convocar_con_aviso(db, *, usuario, sesion_id: UUID, estudiante_id: UUID, doc
     version=db.get(VersionCasoModel,sesion.version_caso_id)
     mensaje=(f"Has sido convocado al caso {version.nombre}. Inicio: {sesion.fecha_inicio.isoformat()}. "
              f"{sesion.mensaje_personalizado or ''}").strip()
-    # Nunca persistir el código en mensaje ni sustituir un envío por un registro
-    # CORREO sin proveedor. El despacho opcional conserva el secreto cifrado.
+    # El aviso interno no contiene la credencial. El despacho la conserva cifrada.
     aviso = crear_notificacion(db,destinatario_id=estudiante_id,convocatoria_id=resultado.convocatoria_id,
         tipo='CONVOCATORIA',canal='INTERNA',mensaje=mensaje)
     from app.modules.scheduling.infrastructure.mail_delivery import encolar_correo
     encolar_correo(db, notificacion=aviso, caso=version.nombre, sesion=sesion, codigo=resultado.codigo_acceso)
-    return resultado
+    return resultado.convocatoria_id
 
 
 def retirar_con_aviso(db, *, usuario, sesion_id: UUID, convocatoria_id: UUID, docente_id: UUID):

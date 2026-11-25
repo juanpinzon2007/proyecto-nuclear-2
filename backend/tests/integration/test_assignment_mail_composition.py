@@ -1,8 +1,7 @@
 """Composición nueva RF04 y despacho RF20/21 sobre main y PostgreSQL propio."""
 from email import message_from_bytes
+from email.policy import default
 
-from cryptography.fernet import Fernet
-from pydantic import SecretStr
 import pytest
 import sqlalchemy as sa
 
@@ -14,6 +13,7 @@ from tests.integration.test_academic_assignment_programming import (
     asignable, personal, lab, inicializar, payload_valido, programar, cantidades,
 )  # noqa: F401
 from tests.integration.test_durable_mail import smtp_local
+from tests.scheduling_mail_support import codigo_encolado
 
 
 @pytest.fixture
@@ -24,7 +24,6 @@ def asignacion_con_correo(asignable, monkeypatch):
             scheduling_mail_port=puerto, scheduling_mail_tls='LAB_LOOPBACK',
             scheduling_mail_from='nuclear@universidad.test',
             scheduling_mail_public_url='http://127.0.0.1/simulador',
-            scheduling_mail_encryption_key=SecretStr(Fernet.generate_key().decode()),
             scheduling_mail_username=None, scheduling_mail_password=None)
         for nombre, valor in configuracion.items():
             monkeypatch.setattr(settings, nombre, valor)
@@ -45,19 +44,34 @@ def test_programacion_asignacion_y_correo_comparten_commit_y_recuperacion(asigna
     finally:
         sa.event.remove(motor, 'after_cursor_execute', observar)
     assert respuesta.status_code == 201
-    codigo = respuesta.json()['convocatorias'][0]['codigo_acceso']
+    convocatoria, = respuesta.json()['convocatorias']
+    assert set(convocatoria) == {'convocatoria_id', 'estudiante_id'}
     assert len(transacciones) == 5 and len(set(transacciones)) == 1
     assert cantidades(h.h) == (1, 1, 1, 1) and captura.mensajes == []
     with h.h.sesiones() as sesion:
         pendiente = sesion.scalars(sa.select(Mail)).one()
+        codigo = codigo_encolado(sesion, convocatoria['convocatoria_id'])
         assert pendiente.estado == 'PENDIENTE' and codigo.encode() not in pendiente.payload_cifrado
     assert despachar_pendientes(h.h.sesiones) == ['ACEPTADO_PROVEEDOR']
     assert len(captura.mensajes) == 1
     destinatarios, contenido = captura.mensajes[0]
     assert destinatarios == (h.h.estudiante[1],)
-    mensaje = message_from_bytes(contenido)
-    assert codigo in mensaje.get_payload(decode=True).decode('utf-8')
+    mensaje = message_from_bytes(contenido, policy=default)
+    assert mensaje.get_content_type() == 'multipart/alternative'
+    assert codigo in mensaje.get_body(preferencelist=('plain',)).get_content()
+    assert codigo in mensaje.get_body(preferencelist=('html',)).get_content()
     assert despachar_pendientes(h.h.sesiones) == [] and len(captura.mensajes) == 1
+
+
+def test_sin_correo_revierte_el_alta_de_la_sesion_y_sus_convocatorias(asignable, monkeypatch):
+    h = asignable
+    monkeypatch.setattr(get_settings(), 'scheduling_mail_enabled', False)
+
+    respuesta = programar(h)
+
+    assert respuesta.status_code == 503
+    assert respuesta.json()['detail']['codigo'] == 'CORREO_CONVOCATORIA_NO_DISPONIBLE'
+    assert cantidades(h.h) == (0, 0, 0, 0)
 
 
 def test_fallo_outbox_revierte_toda_la_programacion(asignacion_con_correo):

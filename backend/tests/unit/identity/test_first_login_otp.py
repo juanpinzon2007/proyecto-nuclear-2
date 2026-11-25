@@ -2,6 +2,8 @@
 
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
+from smtplib import SMTPServerDisconnected
+from types import SimpleNamespace
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -23,6 +25,7 @@ from app.modules.identity.api.users_management_router import router as users_adm
 from app.modules.identity.infrastructure.academic_identity_models import IdentidadAcademicaORM
 from app.modules.identity.infrastructure.credentials import obtener_hasheador
 from app.modules.identity.infrastructure.models import PermisoORM, RolORM, RolPermisoORM, UsuarioORM, UsuarioPermisoORM
+from app.modules.identity.infrastructure import onboarding
 from app.modules.identity.infrastructure.onboarding import MAX_INTENTOS_CODIGO_PRIMER_INGRESO
 from app.modules.identity.infrastructure.onboarding_models import VerificacionPrimerIngresoORM
 from app.modules.identity.infrastructure.repositories import RepositorioUsuariosSQLAlchemy
@@ -219,6 +222,40 @@ def test_primer_ingreso_requiere_codigo_correo_una_sola_vez(entorno_onboarding):
     assert laura["primer_ingreso_verificado"] is True
 
 
+def test_fallo_smtp_explica_el_bloqueo_y_conserva_verificacion_pendiente(entorno_onboarding, monkeypatch):
+    client, fabrica, _, correos = entorno_onboarding
+    clave = "ClaveEstudiantePrueba"
+    correo = "primer.ingreso@unihumboldt.edu.co"
+    with fabrica.begin() as db:
+        db.add(UsuarioORM(id_usuario=2, id_rol=2, nombre="Estudiante de prueba", correo=correo,
+                          clave_hash=obtener_hasheador().hash(clave), activo=True))
+        db.flush()
+        onboarding.registrar_estado_primer_ingreso(db, id_usuario=2, verificado=False)
+
+    def interrumpir_envio(*_args, **_kwargs):
+        raise SMTPServerDisconnected("detalle privado")
+
+    override = client.app.dependency_overrides[obtener_remitente_codigo_primer_ingreso]
+    client.app.dependency_overrides[obtener_remitente_codigo_primer_ingreso] = lambda: onboarding.enviar_codigo_primer_ingreso_smtp
+    monkeypatch.setattr(onboarding, "configuracion_correo", lambda: SimpleNamespace(url_publica="http://127.0.0.1"))
+    monkeypatch.setattr(onboarding, "enviar_mensaje_smtp", interrumpir_envio)
+
+    ruta = "/api/v1/identity/auth/estudiantes/acceso"
+    respuesta = client.post(ruta, json={"correo": correo, "clave": clave})
+    assert respuesta.status_code == 503
+    assert respuesta.json()["detail"]["codigo"] == "CORREO_NO_DISPONIBLE"
+    assert "detalle privado" not in respuesta.text
+    assert "access_token" not in respuesta.json()
+    with fabrica() as db:
+        estado = db.scalar(select(VerificacionPrimerIngresoORM).where(VerificacionPrimerIngresoORM.id_usuario == 2))
+        assert estado.verificado is False and estado.codigo_hash is None and estado.expira_en is None
+
+    client.app.dependency_overrides[obtener_remitente_codigo_primer_ingreso] = override
+    siguiente = client.post(ruta, json={"correo": correo, "clave": clave})
+    assert siguiente.status_code == 200 and siguiente.json()["requiere_verificacion"]
+    assert len(correos) == 1
+
+
 def test_codigo_bloqueado_tras_max_intentos_o_vencimiento(entorno_onboarding):
     client, fabrica, _, correos = entorno_onboarding
     login_admin = client.post(
@@ -264,11 +301,23 @@ def test_codigo_bloqueado_tras_max_intentos_o_vencimiento(entorno_onboarding):
         == 401
     )
 
-    # Reenviar genera un nuevo código válido; probar también expiración temporal
+    # Ningún correo extra durante la pausa, incluso tras agotar los intentos.
+    respuesta_repetida = client.post(
+        "/api/v1/identity/auth/estudiantes/acceso",
+        json={"correo": "mateo.lim@unihumboldt.edu.co", "clave": "ClaveInicial2026!"},
+    )
+    assert respuesta_repetida.json()["requiere_verificacion"] is True
+    assert len(correos) == 1
+    with fabrica.begin() as s:
+        fila = s.scalar(select(VerificacionPrimerIngresoORM).where(VerificacionPrimerIngresoORM.id_usuario == uid))
+        fila.expira_en = datetime.now(UTC) + timedelta(minutes=13)
+
+    # Una vez transcurrida la pausa, el reenvío vuelve a habilitar la verificación.
     client.post(
         "/api/v1/identity/auth/estudiantes/acceso",
         json={"correo": "mateo.lim@unihumboldt.edu.co", "clave": "ClaveInicial2026!"},
     )
+    assert len(correos) == 2
     codigo_nuevo = correos[-1]["codigo"]
     with fabrica.begin() as s:
         fila = s.scalar(select(VerificacionPrimerIngresoORM).where(VerificacionPrimerIngresoORM.id_usuario == uid))

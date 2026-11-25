@@ -28,6 +28,7 @@ from tests.integration.test_participation_http_composition import (
 )
 from tests.integration.test_main_teacher_followup import observar_lectura
 from tests.integration.test_attempt_start import IngresoLaboratorio
+from tests.scheduling_mail_support import codigo_de_prueba
 
 PATH = '/scheduling/validar-ingreso'
 
@@ -78,7 +79,8 @@ def ingreso_main(integracion, monkeypatch):
             convocada = client.post(f'/scheduling/sesiones/{h.sesion}/convocatorias',headers=h.docente_headers,
                 json={'estudiante_id':str(h.uuid_estudiante)})
             assert convocada.status_code == 201, convocada.text
-            h.convocatoria = UUID(convocada.json()['convocatoria_id']); h.codigo = convocada.json()['codigo_acceso']
+            h.convocatoria = UUID(convocada.json()['convocatoria_id'])
+            h.codigo = codigo_de_prueba(h.sesiones, h.convocatoria)
             h.base = f'/api/v1/convocatorias/{h.convocatoria}'
             h.body = {'id_asignacion':h.asignacion,'codigo_acceso':h.codigo}
             login = client.post('/api/v1/identity/auth/estudiantes', json={

@@ -91,14 +91,12 @@ def despachar_correo_seguro(
         return
     if "PYTEST_CURRENT_TEST" in os.environ and enviar_correo_directo is _ENVIO_DIRECTO_REAL:
         return
-    if configuracion_correo() is None:
-        return
-
     def _enviar() -> None:
         try:
-            enviar_correo_directo(destinatario=correo, asunto=asunto, generar_cuerpo=generar_cuerpo)
+            if configuracion_correo() is not None:
+                enviar_correo_directo(destinatario=correo, asunto=asunto, generar_cuerpo=generar_cuerpo)
         except Exception as error:
-            logger.warning("Aviso de negocio no enviado a %s (%s)", correo, type(error).__name__)
+            logger.warning("Aviso de negocio no enviado (%s)", type(error).__name__)
 
     if background_tasks is not None:
         background_tasks.add_task(_enviar)

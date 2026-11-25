@@ -73,12 +73,12 @@ interface CriterioDraft {
         <div class="page-heading">
           <a mat-icon-button routerLink="/casos" aria-label="Volver a casos" title="Volver a casos"><mat-icon>arrow_back</mat-icon></a>
           <div>
-            <p class="eyebrow">Autoría Clínica</p>
+            <p class="eyebrow">Autoría clínica</p>
             <h2>{{ versionId ? 'Editar borrador del caso' : 'Nuevo caso de simulación' }}</h2>
             <p class="subtitle">Estructura clínica, escenarios, justificaciones teóricas y matriz de evaluación</p>
           </div>
         </div>
-        <div class="action-group">
+        <div class="action-group editor-actions" role="group" aria-label="Acciones del caso">
           <button mat-stroked-button type="button" (click)="guardar(false)" [disabled]="guardando()">
             <mat-icon>save</mat-icon> Guardar borrador
           </button>
@@ -89,7 +89,7 @@ interface CriterioDraft {
       </div>
 
       @if (errorDetalle()) {
-        <div class="error-banner">{{ errorDetalle() }}</div>
+        <div class="error-banner" role="alert">{{ errorDetalle() }}</div>
       }
 
       @if (cargando()) {
@@ -107,15 +107,15 @@ interface CriterioDraft {
               <input matInput [(ngModel)]="casoNombre" required />
             </mat-form-field>
             <mat-form-field appearance="outline">
-              <mat-label>Tiempo estimado máximo (min)</mat-label>
+              <mat-label>Duración máxima (min)</mat-label>
               <input matInput type="number" min="1" max="240" [(ngModel)]="tiempoEstimadoMin" required />
             </mat-form-field>
             <mat-form-field appearance="outline" class="span-3">
-              <mat-label>Contexto / Historia clínica o institucional</mat-label>
+              <mat-label>Contexto del caso</mat-label>
               <textarea matInput rows="3" [(ngModel)]="contextoHistoria" required></textarea>
             </mat-form-field>
             <mat-form-field appearance="outline" class="span-3">
-              <mat-label>Desarrollo situacional / Objetivos y rol del estudiante</mat-label>
+              <mat-label>Situación y rol del estudiante</mat-label>
               <textarea matInput rows="3" [(ngModel)]="desarrolloSituacional" required></textarea>
             </mat-form-field>
           </mat-card-content>
@@ -151,8 +151,8 @@ interface CriterioDraft {
               <mat-form-field appearance="outline">
                 <mat-label>Modo de cálculo</mat-label>
                 <mat-select [(ngModel)]="versionRegla">
-                  <mat-option value="PREGUNTAS_100_V1">Preguntas 100% Uniforme (PREGUNTAS_100_V1)</mat-option>
-                  <mat-option value="RUBRICA_V1">Rúbrica Ponderada por Criterios (RUBRICA_V1)</mat-option>
+                  <mat-option value="PREGUNTAS_100_V1">Preguntas con el mismo peso</mat-option>
+                  <mat-option value="RUBRICA_V1">Rúbrica ponderada por criterios</mat-option>
                 </mat-select>
               </mat-form-field>
             </div>
@@ -161,7 +161,8 @@ interface CriterioDraft {
               <div class="sub-box">
                 <div class="sub-head">
                   <strong class="mono cyan">CRITERIO #0{{ ci + 1 }}</strong>
-                  <button mat-icon-button color="warn" type="button" (click)="eliminarCriterio(ci)" [disabled]="criterios.length <= 1">
+                  <button mat-icon-button color="warn" type="button" (click)="eliminarCriterio(ci)"
+                          [attr.aria-label]="'Eliminar criterio ' + (ci + 1)" [disabled]="criterios.length <= 1">
                     <mat-icon>delete</mat-icon>
                   </button>
                 </div>
@@ -190,7 +191,9 @@ interface CriterioDraft {
                         <mat-label>Descriptor</mat-label>
                         <input matInput [(ngModel)]="niv.descriptor" />
                       </mat-form-field>
-                      <button mat-icon-button type="button" (click)="eliminarNivel(ci, ni)" [disabled]="crit.niveles.length <= 1">
+                      <button mat-icon-button type="button" (click)="eliminarNivel(ci, ni)"
+                              [attr.aria-label]="'Eliminar nivel ' + (ni + 1) + ' del criterio ' + (ci + 1)"
+                              [disabled]="crit.niveles.length <= 1">
                         <mat-icon>close</mat-icon>
                       </button>
                     </div>
@@ -221,13 +224,17 @@ interface CriterioDraft {
                 <div class="sub-head">
                   <strong class="mono green">ESCENARIO #0{{ ei + 1 }}</strong>
                   <div class="mini-actions">
-                    <button mat-icon-button type="button" (click)="moverEscenario(ei, -1)" [disabled]="ei === 0" title="Subir">
+                    <button mat-icon-button type="button" (click)="moverEscenario(ei, -1)"
+                            [attr.aria-label]="'Subir escenario ' + (ei + 1)" [disabled]="ei === 0" title="Subir">
                       <mat-icon>arrow_upward</mat-icon>
                     </button>
-                    <button mat-icon-button type="button" (click)="moverEscenario(ei, 1)" [disabled]="ei === escenarios.length - 1" title="Bajar">
+                    <button mat-icon-button type="button" (click)="moverEscenario(ei, 1)"
+                            [attr.aria-label]="'Bajar escenario ' + (ei + 1)"
+                            [disabled]="ei === escenarios.length - 1" title="Bajar">
                       <mat-icon>arrow_downward</mat-icon>
                     </button>
-                    <button mat-icon-button color="warn" type="button" (click)="eliminarEscenario(ei)" [disabled]="escenarios.length <= 1">
+                    <button mat-icon-button color="warn" type="button" (click)="eliminarEscenario(ei)"
+                            [attr.aria-label]="'Eliminar escenario ' + (ei + 1)" [disabled]="escenarios.length <= 1">
                       <mat-icon>delete</mat-icon>
                     </button>
                   </div>
@@ -243,7 +250,8 @@ interface CriterioDraft {
                     <div class="sub-head">
                       <span class="mono cyan">PREGUNTA {{ ei + 1 }}.{{ pi + 1 }}</span>
                       @if (esc.questions.length > 1) {
-                        <button mat-icon-button color="warn" type="button" (click)="eliminarPregunta(ei, pi)">
+                        <button mat-icon-button color="warn" type="button" (click)="eliminarPregunta(ei, pi)"
+                                [attr.aria-label]="'Eliminar pregunta ' + (pi + 1) + ' del escenario ' + (ei + 1)">
                           <mat-icon>close</mat-icon>
                         </button>
                       }
@@ -264,13 +272,14 @@ interface CriterioDraft {
                             <input matInput [(ngModel)]="op.texto" required />
                           </mat-form-field>
                           <button mat-icon-button color="warn" type="button" (click)="eliminarOpcion(ei, pi, oi)"
+                                  [attr.aria-label]="'Eliminar opción ' + (oi + 1) + ' de la pregunta ' + (pi + 1)"
                                   [disabled]="preg.options.length <= 2">
                             <mat-icon>delete_outline</mat-icon>
                           </button>
                         </div>
 
                         <mat-form-field appearance="outline" class="full-w">
-                          <mat-label>Justificación teórica / retroalimentación de esta opción</mat-label>
+                          <mat-label>Justificación de la opción</mat-label>
                           <textarea matInput rows="2" [(ngModel)]="op.justificacion" required></textarea>
                         </mat-form-field>
 
@@ -332,10 +341,13 @@ interface CriterioDraft {
       border: 1px solid var(--line);
       margin-bottom: 16px;
     }
-    .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
     .span-2 { grid-column: span 2; }
     .span-3 { grid-column: span 3; }
-    @media (max-width: 900px) { .form-grid { grid-template-columns: 1fr; } .span-2, .span-3 { grid-column: span 1; } }
+    @media (max-width: 900px) {
+      .form-grid { grid-template-columns: minmax(0, 1fr); }
+      .span-2, .span-3 { grid-column: span 1; }
+    }
     .full-w { width: 100%; }
     .row-2 { display: flex; gap: 12px; flex-wrap: wrap; }
     .sub-box, .escenario-box {
@@ -371,6 +383,9 @@ interface CriterioDraft {
     .ok-txt { color: var(--green); }
     .bad-txt { color: var(--coral); }
     @media (max-width: 680px) {
+      .editor-actions { width: 100%; }
+      .editor-actions button { flex: 1 1 10rem; padding-inline: 10px; }
+      .sub-head { flex-wrap: wrap; gap: 8px; }
       .row-2 mat-form-field,
       .nivel-item mat-form-field,
       .op-top mat-form-field,

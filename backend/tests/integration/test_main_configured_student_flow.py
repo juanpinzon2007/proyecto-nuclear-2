@@ -28,6 +28,7 @@ from tests.integration.cases.conftest import payload_valido as payload_original
 from tests.integration.test_consent_version_persistence import publicar, elegir
 from tests.unit.identity.test_consent_approval_attestation import escribir_paquete
 from tests.unit.participation.test_start_policy_file import archivo_politica, decision_lab
+from tests.scheduling_mail_support import codigo_de_prueba
 
 
 @pytest.fixture
@@ -78,13 +79,14 @@ def configurado(asignable, tmp_path, monkeypatch):
     get_settings.cache_clear()
     settings = get_settings()
     assert type(settings).__name__ == 'Settings' and settings.academic_runtime_scope == 'LABORATORIO'
+    codigo = codigo_de_prueba(a.h.sesiones, convocatoria['convocatoria_id'])
     login = a.h.cliente.post('/api/v1/identity/auth/estudiantes', json={
-        'correo': a.h.estudiante[1], 'codigo_convocatoria': convocatoria['codigo_acceso']})
+        'correo': a.h.estudiante[1], 'codigo_convocatoria': codigo})
     assert login.status_code == 200, login.text
     estudiante = {'Authorization': 'Bearer '+login.json()['access_token']}
     base = f'/api/v1/identity/convocatorias/{convocatoria["convocatoria_id"]}/asignaciones/{programada["id_asignacion"]}/consentimiento'
     yield SimpleNamespace(a=a, cliente=a.h.cliente, sesiones=a.h.sesiones, docente=a.auth,
-        estudiante=estudiante, codigo=convocatoria['codigo_acceso'], cid=convocatoria['convocatoria_id'],
+        estudiante=estudiante, codigo=codigo, cid=convocatoria['convocatoria_id'],
         sid=programada['id'], aid=programada['id_asignacion'], ausente=ausente['convocatoria_id'],
         consentimiento=base, politica_sha=huella)
     assert app.dependency_overrides == {}
@@ -219,8 +221,8 @@ def test_error_auditoria_revierte_inicio_con_proveedores_reales(configurado):
             conn.exec_driver_sql('SELECT 1/0')
     sa.event.listen(motor, 'after_cursor_execute', fallar)
     try:
-        # El límite ASGI devuelve 500 para fallos SQL inesperados. La UoW
-        # debe revertirlos y nunca presentarlos como una política ausente.
+        # El manejador de persistencia devuelve 503. La UoW debe revertir
+        # la operación y el cliente debe recibir un mensaje sin SQL interno.
         from fastapi.testclient import TestClient
         from app.main import app
         with TestClient(app, raise_server_exceptions=False) as cliente:
@@ -229,7 +231,8 @@ def test_error_auditoria_revierte_inicio_con_proveedores_reales(configurado):
                           id_consentimiento=consentimiento))
     finally:
         sa.event.remove(motor, 'after_cursor_execute', fallar)
-    assert respuesta.status_code == 500 and 'SQL' not in respuesta.text
+    assert respuesta.status_code == 503
+    assert respuesta.json() == {'detail': 'La operación no está disponible temporalmente.'}
     assert contar(h, P) == contar(h, I) == 0
     assert iniciar(h, consentimiento).status_code == 201
 

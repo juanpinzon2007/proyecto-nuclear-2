@@ -2,7 +2,7 @@
 
 import re
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, inspect, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -36,22 +36,23 @@ class RepositorioUsuariosSQLAlchemy:
         ))
 
     def _permisos_efectivos(self, id_usuario: int, id_rol: int) -> frozenset[str]:
-        efectivos = set(self._permisos_rol(id_rol))
-        try:
-            with self.sesion.begin_nested():
-                ajustes = self.sesion.execute(
-                    select(PermisoORM.codigo, UsuarioPermisoORM.concedido)
-                    .join(UsuarioPermisoORM, UsuarioPermisoORM.id_permiso == PermisoORM.id_permiso)
-                    .where(UsuarioPermisoORM.id_usuario == id_usuario)
-                ).all()
-            for codigo, concedido in ajustes:
-                if concedido:
-                    efectivos.add(codigo)
-                else:
-                    efectivos.discard(codigo)
-        except SQLAlchemyError:
-            # Permite ejecutar lecturas históricas previas a la migración 20261116 (tests de migración).
-            pass
+        with self.sesion.no_autoflush:
+            efectivos = set(self._permisos_rol(id_rol))
+            # Los fixtures históricos en SQLite pueden anteceder a los permisos individuales.
+            if self.sesion.get_bind().dialect.name == "sqlite" and not inspect(
+                self.sesion.connection()
+            ).has_table(UsuarioPermisoORM.__tablename__):
+                return frozenset(efectivos)
+            ajustes = self.sesion.execute(
+                select(PermisoORM.codigo, UsuarioPermisoORM.concedido)
+                .join(UsuarioPermisoORM, UsuarioPermisoORM.id_permiso == PermisoORM.id_permiso)
+                .where(UsuarioPermisoORM.id_usuario == id_usuario)
+            ).all()
+        for codigo, concedido in ajustes:
+            if concedido:
+                efectivos.add(codigo)
+            else:
+                efectivos.discard(codigo)
         return frozenset(efectivos)
 
     def _contexto(self, usuario: UsuarioORM) -> ContextoAcceso:
@@ -72,8 +73,9 @@ class RepositorioUsuariosSQLAlchemy:
         except ReglaIdentidadInvalida:
             return None
         try:
-            usuario = self.sesion.get(UsuarioORM, identificador, populate_existing=True)
-            return self._contexto(usuario) if usuario is not None else None
+            with self.sesion.no_autoflush:
+                usuario = self.sesion.get(UsuarioORM, identificador, populate_existing=True)
+                return self._contexto(usuario) if usuario is not None else None
         except SQLAlchemyError:
             raise IntegracionPendiente() from None
 

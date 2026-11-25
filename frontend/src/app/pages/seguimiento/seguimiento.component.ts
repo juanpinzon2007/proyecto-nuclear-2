@@ -245,7 +245,7 @@ import { ListaPaginada, etiquetaEstado } from '../../core/lista-paginada';
       border-left: 4px solid var(--green);
       background: rgba(0, 232, 148, 0.12);
     }
-    .nota-txt { color: var(--text); font-weight: 700; font-size: 14px !important; }
+    .nota-txt { color: var(--text); font-weight: 700; font-size: 14px !important; white-space: nowrap; }
     .passing-threshold { margin: 0; }
     .resultado-nota { font: 600 var(--type-meta) var(--body); white-space: nowrap; border-radius: 5px; }
     .seg-grid > * { min-width: 0; }
