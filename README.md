@@ -159,7 +159,9 @@ docker compose ps
 ```
 
 La API se publica en `127.0.0.1:8000` por defecto; `API_PORT` y `API_BIND_HOST`
-permiten configurarlo explícitamente para cada entorno. PostgreSQL solo es
+permiten configurarlo explícitamente para cada entorno. Para despliegue completo en un
+servidor VPS con migración previa automática, rotación de logs y proxy HTTPS, consulta
+[Guía de despliegue en VPS](docs/DESPLIEGUE_VPS.md) y `docker-compose.vps.yml`. PostgreSQL solo es
 accesible por la red interna de Compose y persiste en `postgres_data`.
 `down` conserva ese volumen. Cambiar variables de usuario o contraseña no cambia
 una base ya inicializada en el volumen. La API espera a que PostgreSQL esté

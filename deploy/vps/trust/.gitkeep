@@ -1,0 +1,2 @@
+# Directorio montado en solo lectura en /etc/sps/trust dentro de api y worker.
+# Deposita aquí únicamente manifiestos/políticas aprobadas para ACADEMIC_RUNTIME_SCOPE=PRODUCCION.

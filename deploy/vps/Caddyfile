@@ -1,0 +1,17 @@
+# Reverse proxy HTTPS automático con Caddy 2 para SPS en VPS.
+# Requiere apuntar el registro DNS A/AAAA de SPS_DOMAIN hacia la IP pública del VPS
+# y abrir los puertos 80/tcp y 443/tcp (y 443/udp opcional HTTP/3) en el firewall.
+
+{$SPS_DOMAIN:localhost} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	reverse_proxy frontend:80 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+	}
+}
