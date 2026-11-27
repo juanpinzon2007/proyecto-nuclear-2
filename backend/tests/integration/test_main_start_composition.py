@@ -170,10 +170,11 @@ def test_inicio_concurrente_y_rollback_real(main_preparada):
     engines={h.engine,get_engine()}
     for engine in engines:sa.event.listen(engine,'before_cursor_execute',fallo)
     try:
-        # 22012 es inesperado: RutaParticipacion lo propaga como 500 (contrato
-        # de test_lab_student_journey), no como dependencia/política ausente 503.
+        # La composición principal traduce SQLAlchemyError a la respuesta p?blica de persistencia.
         r=iniciar_main(h,cid)
-        assert r.status_code==500 and 'SELECT' not in r.text and 'postgresql' not in r.text
+        assert r.status_code==503
+        assert r.json()=={"detail":"La operación no está disponible temporalmente."}
+        assert r.headers["cache-control"]=="no-store"
     finally:
         for engine in engines:sa.event.remove(engine,'before_cursor_execute',fallo)
     assert cantidades(h)==([],[])
