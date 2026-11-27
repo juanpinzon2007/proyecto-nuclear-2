@@ -102,9 +102,14 @@ def test_recorrido_principal_historico_sin_dml_flush_commit(docente, estado, rec
     assert d['respuestas'][0]['id_pregunta'] == h.escenas[0]['preguntas'][0]['id']
     assert d['respuestas'][0]['retroalimentacion'] == ('Justificación teórica.' if estado=='cerrado' else None)
     assert d['feedback_docente'] == ('Valoración individual histórica LAB' if estado=='cerrado' else None)
+    assert 'nota_final' not in casos.text
+    assert all(fila['nota_final'] is None for fila in listado.json())
+    assert d['nota_final'] is None
+    assert d['respuestas'][0]['es_correcta'] is (True if estado=='cerrado' else None)
+    assert all('es_correcta' not in r.text for r in (casos, listado))
     for r in (casos,listado,detalle,repetida):
         assert r.headers['cache-control'] == 'no-store'
-        for prohibido in ('clave_hash','codigo_hash','nota_final','puntaje','es_correcta','rubrica_id',h.codigo):
+        for prohibido in ('clave_hash','codigo_hash','puntaje','rubrica_id',h.codigo):
             assert prohibido not in r.text
     assert h.escenas[1]['preguntas'][0]['id'] not in detalle.text
     if nueva_escena:
