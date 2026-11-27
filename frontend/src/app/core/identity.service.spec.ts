@@ -1,4 +1,4 @@
-﻿import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom, Observable } from 'rxjs';
@@ -53,8 +53,8 @@ it.each(operaciones)('%s %s conserva el cuerpo y entrega la respuesta', async (m
 });
 
 it('exporta el reporte con un filtro por estudiante y omite los filtros vacíos', async () => {
-  const filtros=Object.assign({formato:'pdf' as const,id_estudiante:[7,9],id_grupo:null,version_publicacion:undefined},{estado:''});
-  const respuesta=firstValueFrom(api.reporteSesion(id,{...filtros,estado:undefined}));
+  const filtros={formato:'pdf' as const,id_estudiante:[7,9],id_grupo:null,version_publicacion:undefined};
+  const respuesta=firstValueFrom(api.reporteSesion(id,filtros));
   const req=http.expectOne(r=>r.url===base+'seguimiento/sesiones/uno%2Fdos/reporte');
   expect(req.request.params.keys().sort()).toEqual(['formato','id_estudiante']);
   expect(req.request.params.getAll('id_estudiante')).toEqual(['7','9']);
