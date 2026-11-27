@@ -220,7 +220,7 @@ def test_upgrade_vacio_y_modelos_reflejados(conexion):
     # La revisión histórica conserva sus 22 tablas. El metadata actual agrega
     # P1-P3: comprobar coincidencia completa al alcanzar la cabeza actual.
     preparar_esquema_actual_aislado(conexion)
-    assert compare_metadata(MigrationContext.configure(conexion), registrar_modelos_integrados()) == []
+    assert compare_metadata(MigrationContext.configure(conexion), registrar_modelos_integrados(conexion.dialect.name)) == []
 
 
 def test_insertar_matricula_consentimiento_y_default_sin_politicas(bd):

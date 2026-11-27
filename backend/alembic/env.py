@@ -1,20 +1,17 @@
 
 from alembic import context
+from sqlalchemy.engine import make_url
 
 from app.core.config import get_settings
 from app.db.models import registrar_modelos_integrados
 from app.db.session import get_engine
 
 
-# Registrar los modelos ORM compartidos para Alembic.
-# Todos deben utilizar la misma Base declarativa.
-target_metadata = registrar_modelos_integrados()
-
-
 def run_migrations_offline() -> None:
+    url = get_settings().database_url
     context.configure(
-        url=get_settings().database_url,
-        target_metadata=target_metadata,
+        url=url,
+        target_metadata=registrar_modelos_integrados(make_url(url).get_backend_name()),
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
@@ -29,7 +26,7 @@ def run_migrations_online() -> None:
     if connection is not None:
         context.configure(
             connection=connection,
-            target_metadata=target_metadata,
+            target_metadata=registrar_modelos_integrados(connection.dialect.name),
         )
 
         with context.begin_transaction():
@@ -40,7 +37,7 @@ def run_migrations_online() -> None:
     with get_engine().connect() as connection:
         context.configure(
             connection=connection,
-            target_metadata=target_metadata,
+            target_metadata=registrar_modelos_integrados(connection.dialect.name),
         )
 
         with context.begin_transaction():

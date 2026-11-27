@@ -166,6 +166,9 @@ def test_migracion_preserva_respuestas_y_downgrade_solo_retira_su_guard():
             command.upgrade(config_alembic(s), PARENT)
             from tests.identity.academic_identity_support import columnas_convocatoria_para_fixture_historica
             columnas_convocatoria_para_fixture_historica(s)
+            from app.modules.identity.infrastructure.models import UsuarioPermisoORM
+            # El lector actual de identidad necesita esta tabla posterior a PARENT.
+            UsuarioPermisoORM.__table__.create(s, checkfirst=True)
             s.execute(sa.insert(RolORM), [dict(id_rol=1,nombre="DOCENTE"), dict(id_rol=2,nombre="ESTUDIANTE")])
         c = preparar_simulacion.__wrapped__(e)
         responder(c, 0)

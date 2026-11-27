@@ -25,7 +25,9 @@ def test_emite_y_verifica_identidad_y_convocatoria(tokens):
     assert "roles" not in payload and "permisos" not in payload and "correo" not in payload
     assert "codigo_convocatoria" not in payload
     assert payload["exp"] - payload["iat"] == 900
-    assert tokens.emitir("estudiante-1") != tokens.emitir("estudiante-1")
+    segundo = tokens.emitir("estudiante-1", "convocatoria-1")
+    claims = jwt.decode(segundo, CLAVE, algorithms=["HS256"], audience="sps-test-client", issuer="sps-test")
+    assert claims["jti"] != payload["jti"]
 
 
 @pytest.mark.parametrize("campo", ["sub", "iss", "aud", "exp", "iat", "nbf", "jti", "token_type"])

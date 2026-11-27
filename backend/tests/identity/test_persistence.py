@@ -50,19 +50,19 @@ def base_aislada(motor, revision="head"):
         def activar_fk(conexion, _):
             conexion.execute("PRAGMA foreign_keys=ON")
         administrador = None
-        esquema = None
+        base_temporal = None
     else:
         url = os.getenv("SPS_IDENTITY_TEST_URL")
         if not url:
             pytest.skip("SPS_IDENTITY_TEST_URL no configurada; no se usa la BD del proyecto.")
-        administrador = create_engine(url)
+        administrador = create_engine(url, isolation_level="AUTOCOMMIT")
         if not administrador.url.database.startswith("sps_identity_test") or administrador.url.host not in {"localhost", "127.0.0.1"}:
             administrador.dispose()
             pytest.fail("La prueba requiere una BD local aislada sps_identity_test*.")
-        esquema = "sps_identity_" + uuid4().hex
-        with administrador.begin() as conexion:
-            conexion.execute(text(f'CREATE SCHEMA "{esquema}"'))
-        engine = create_engine(url, connect_args={"options": f"-csearch_path={esquema}"})
+        base_temporal = "sps_identity_test_" + uuid4().hex
+        with administrador.connect() as conexion:
+            conexion.execute(text(f'CREATE DATABASE "{base_temporal}"'))
+        engine = create_engine(administrador.url.set(database=base_temporal))
     try:
         with engine.begin() as conexion:
             if motor == "sqlite" and revision == "head":
@@ -73,8 +73,8 @@ def base_aislada(motor, revision="head"):
     finally:
         engine.dispose()
         if administrador is not None:
-            with administrador.begin() as conexion:
-                conexion.execute(text(f'DROP SCHEMA "{esquema}" CASCADE'))
+            with administrador.connect() as conexion:
+                conexion.execute(text(f'DROP DATABASE "{base_temporal}"'))
             administrador.dispose()
 
 
@@ -133,6 +133,8 @@ def test_migraciones_integradas_upgrade_downgrade_crean_ambos_modulos(bd):
     from app.db.models import registrar_modelos_integrados
     esperadas = set(registrar_modelos_integrados().tables)
     assert {"usuario", "rol", "permiso", "rol_permiso", "caso", "version_caso", "rubrica"} <= esperadas
+    if bd.dialect.name == "postgresql":
+        esperadas.add("auditoria_trazabilidad_global")
     assert set(inspect(bd).get_table_names()) == esperadas | {"alembic_version"}
     with bd.begin() as conexion:
         if conexion.dialect.name=="sqlite":

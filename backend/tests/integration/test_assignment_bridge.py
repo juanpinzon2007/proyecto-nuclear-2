@@ -90,7 +90,7 @@ def test_metadata_SQLite_y_downgrade_sin_generacion_ficticia():
             command.upgrade(config_alembic(c), HEAD)
             assert len(registrar_modelos_integrados().tables) == 45
             preparar_esquema_actual_aislado(c)
-            assert compare_metadata(MigrationContext.configure(c), registrar_modelos_integrados()) == []
+            assert compare_metadata(MigrationContext.configure(c), registrar_modelos_integrados(c.dialect.name)) == []
             identificador = uuid4()
             c.execute(CasoModel.__table__.insert().values(id=identificador, docente_creador_id=uuid4()))
             assert c.scalar(sa.select(CasoModel.id_caso).where(CasoModel.id == identificador)) is None
@@ -114,7 +114,7 @@ def test_upgrade_legado_sin_backfill_y_downgrade_controlado():
             assert c.scalar(sa.select(CasoModel.id_caso).where(CasoModel.id == identificador)) is None
             assert c.scalar(sa.text("SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal")) == 19
             preparar_esquema_actual_aislado(c)
-            assert compare_metadata(MigrationContext.configure(c), registrar_modelos_integrados()) == []
+            assert compare_metadata(MigrationContext.configure(c), registrar_modelos_integrados(c.dialect.name)) == []
             command.downgrade(config_alembic(c), PARENT)
             assert c.scalar(sa.select(CasoModel.docente_creador_id).where(CasoModel.id == identificador)) == docente
             assert c.scalar(sa.text("SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal")) == 18

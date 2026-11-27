@@ -66,6 +66,7 @@ class BorradorDecisionIntentoModel(Base):
 
     __tablename__ = "borrador_decision_intento"
     __table_args__ = (
+        Index("ix_borrador_intento", "id_intento"),
         ForeignKeyConstraint(
             ["id_opcion", "id_decision"],
             ["opcion_respuesta.id", "opcion_respuesta.pregunta_id"],
@@ -87,6 +88,7 @@ class HistorialCambioDecisionModel(Base):
 
     __tablename__ = "historial_cambio_decision"
     __table_args__ = (
+        Index("ix_historial_cambio_intento", "id_intento"),
         ForeignKeyConstraint(
             ["id_opcion_nueva", "id_decision"],
             ["opcion_respuesta.id", "opcion_respuesta.pregunta_id"],

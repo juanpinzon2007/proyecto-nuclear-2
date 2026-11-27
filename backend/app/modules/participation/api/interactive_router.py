@@ -65,7 +65,7 @@ from app.modules.scheduling.infrastructure.models import ConvocatoriaModel, Sesi
 router = APIRouter(prefix="/simulacion", tags=["Simulacion Interactiva"])
 
 BaseDatos = Annotated[Session, Depends(get_db)]
-FabricaSesion = Annotated[sessionmaker[Session], Depends(get_session_factory)]
+FabricaSesion = Annotated[sessionmaker, Depends(get_session_factory)]
 EstudianteActual = Annotated[ContextoAcceso, Depends(obtener_estudiante_actual)]
 EstudianteUUID = Annotated[UUID, Depends(obtener_estudiante_scheduling)]
 Fechas = Annotated[FechasPersistencia, Depends(obtener_fechas_escenario)]
@@ -263,7 +263,7 @@ def cerrar_intento_y_evaluar(
     intento: IntentoModel,
     usuario: ContextoAcceso,
     fechas: FechasPersistencia,
-    crear_sesion: sessionmaker[Session],
+    crear_sesion: sessionmaker,
     forzar_vencido: bool = False,
     permitir_parcial: bool = True,
 ) -> ResultadoIntentoModel | None:

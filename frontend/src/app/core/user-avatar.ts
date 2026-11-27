@@ -65,7 +65,7 @@ export function inferirGeneroUsuario(datos: DatosAvatarUsuario): 'F' | 'M' {
     return 'M';
   }
 
-  const localCorreo = correo.split('@')[0] ?? '';
+  const localCorreo = correo.split('@', 1)[0];
   const tokensCorreo = localCorreo.split(/[^a-z]+/).filter((t) => t.length >= 2);
   for (const tok of tokensCorreo) {
     if (NOMBRES_FEMENINOS.has(tok)) return 'F';

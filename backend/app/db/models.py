@@ -16,7 +16,7 @@ def validar_referencias(metadata: MetaData) -> None:
             _ = referencia.column
 
 
-def registrar_modelos_integrados() -> MetaData:
+def registrar_modelos_integrados(dialecto: str | None = None) -> MetaData:
     # Modulos con migraciones integradas:
     # Identity, Cases y Scheduling.
     # Participation integra estructuras; sus escritores continúan cerrados.
@@ -38,4 +38,7 @@ def registrar_modelos_integrados() -> MetaData:
     from app.modules.identity.infrastructure.academic_models import PermisoIntentoExtraORM, RetroalimentacionDocenteORM  # noqa: F401
 
     validar_referencias(Base.metadata)
+    if dialecto == "postgresql":
+        from app.db.postgresql_metadata import esquema_postgresql
+        return esquema_postgresql(Base.metadata)
     return Base.metadata

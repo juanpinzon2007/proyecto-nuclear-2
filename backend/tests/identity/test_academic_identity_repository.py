@@ -162,7 +162,7 @@ def test_migracion_aditiva_ciclo_y_datos_previos(cuentas_identidades):
         assert script.get_revision("20261102_assignment_bridge").down_revision == "20261102_cases_history_guard"
         assert script.get_revision("20261102_cases_history_guard").down_revision == "20261101_er28_base_academica"
         assert script.get_revision("20261101_er28_base_academica").down_revision == REVISION
-        assert compare_metadata(MigrationContext.configure(conexion), registrar_modelos_integrados()) == []
+        assert compare_metadata(MigrationContext.configure(conexion), registrar_modelos_integrados(conexion.dialect.name)) == []
         tablas = [t for t in registrar_modelos_integrados().sorted_tables if t.name != "identidad_academica"]
         antes = {t.name: conexion.execute(select(t).order_by(*t.primary_key.columns)).all() for t in tablas}
         if conexion.dialect.name == "sqlite": retirar_ddl_resultados_sqlite(conexion)

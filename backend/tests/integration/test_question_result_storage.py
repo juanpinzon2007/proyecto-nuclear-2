@@ -168,7 +168,7 @@ def test_vencido_sin_respuestas_no_crea_selecciones(crear_registro):
 
 
 def test_ambito_tecnico_no_depende_de_nombre_de_base_lab(crear_registro,pg_resultados):
-    from app.modules.identity.infrastructure.models import RolORM
+    from app.modules.identity.infrastructure.models import RolORM, UsuarioPermisoORM
     nombre='sps_preguntas_lab_'+uuid4().hex
     # Base nueva dentro del CONTENEDOR TEMPORAL PROPIO del fixture. No se usa
     # ninguna conexión de .env ni se toca una base externa o preexistente.
@@ -178,6 +178,7 @@ def test_ambito_tecnico_no_depende_de_nombre_de_base_lab(crear_registro,pg_resul
     try:
         with motor.begin() as s:
             command.upgrade(config_alembic(s),HEAD)
+            UsuarioPermisoORM.__table__.create(s, checkfirst=True)
             s.execute(sa.insert(RolORM),[dict(id_rol=1,nombre='DOCENTE'),dict(id_rol=2,nombre='ESTUDIANTE')])
         c=crear_registro(motor=motor);cerrar(c);r=guardar(c)
         assert leer(c)==r and not r.oficial
@@ -287,8 +288,9 @@ def test_upgrade_downgrade_vacio_y_metadata_real():
             anteriores=set(sa.inspect(s).get_table_names())
             command.upgrade(config_alembic(s),HEAD)
             assert set(sa.inspect(s).get_table_names())-anteriores=={G.__tablename__,Q.__tablename__,C.__tablename__}
-            from tests.identity.academic_identity_support import omitir_publicacion_futura
-            assert compare_metadata(MigrationContext.configure(s,opts={"include_object":omitir_publicacion_futura}),registrar_modelos_integrados())==[]
+            from tests.identity.academic_identity_support import omitir_publicacion_futura, verificar_diferencias_posteriores_a_resultados
+            diferencias = compare_metadata(MigrationContext.configure(s,opts={"include_object":omitir_publicacion_futura}),registrar_modelos_integrados())
+            verificar_diferencias_posteriores_a_resultados(diferencias)
             command.downgrade(config_alembic(s),PARENT)
             assert set(sa.inspect(s).get_table_names())==anteriores
             command.upgrade(config_alembic(s),HEAD)
@@ -303,12 +305,13 @@ def test_downgrade_con_resultados_rechazado_sin_perdida(crear_registro):
 
 
 def test_upgrade_y_downgrade_preservan_resultado_del_motor_anterior():
-    from app.modules.identity.infrastructure.models import RolORM
+    from app.modules.identity.infrastructure.models import RolORM, UsuarioPermisoORM
     from tests.integration.test_evaluation_feedback import cerrar_fixture
     from tests.integration.test_evaluation_result_storage import evaluar,consultar
     with motor_postgresql_desechable() as e:
         with e.begin() as s:
             command.upgrade(config_alembic(s),PARENT)
+            UsuarioPermisoORM.__table__.create(s, checkfirst=True)
             s.execute(sa.insert(RolORM),[dict(id_rol=1,nombre='DOCENTE'),dict(id_rol=2,nombre='ESTUDIANTE')])
         c=cerrar_fixture(contexto(e),opcion=0);c.politica_id='compatibilidad-'+uuid4().hex
         anterior=evaluar(c)

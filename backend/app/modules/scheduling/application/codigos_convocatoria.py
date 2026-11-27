@@ -32,12 +32,12 @@ def hash_codigo_numerico(codigo: str, estudiante_id: UUID) -> str:
 
 
 def huellas_de_consulta(codigo: str, estudiante_id: UUID) -> tuple[str, ...]:
-    anterior = hash_codigo(codigo)
+    huellas = [hash_codigo(codigo)]
     if len(codigo) == 6 and codigo.isascii() and codigo.isdecimal():
         clave = _clave_codigos()
         if clave is not None:
-            return _huella_numerica(codigo, estudiante_id, clave), anterior
-    return (anterior,)
+            huellas.insert(0, _huella_numerica(codigo, estudiante_id, clave))
+    return tuple(huellas)
 
 
 def coincide_codigo_convocatoria(codigo: str, guardado: str, estudiante_id: UUID) -> bool:

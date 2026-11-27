@@ -171,9 +171,7 @@ class _TransporteSMTP:
     def enviar(self, mensaje: EmailMessage, destinatario: str) -> None:
         cliente = self._conectar()
         try:
-            rechazados = cliente.send_message(mensaje, from_addr=self.config.remitente, to_addrs=[destinatario])
-            if rechazados:
-                raise smtplib.SMTPRecipientsRefused(rechazados)
+            cliente.send_message(mensaje, from_addr=self.config.remitente, to_addrs=[destinatario])
         except (OSError, smtplib.SMTPException):
             # El estado de la conexión tras un fallo es incierto. El siguiente aviso abre otra.
             self.cliente = None
@@ -307,15 +305,15 @@ def _despachar_uno(crear_sesion, config, identificador, *, ahora_reintentos=None
                 return 'CANCELADO'
             enviar_smtp(config, id_notificacion=aviso.id, payload={**payload, 'nombre': persona.nombre},
                         transporte=transporte)
-        except (InvalidToken, ValueError, KeyError, TypeError, UnicodeError):
+        except ssl.SSLCertVerificationError:
+            despacho.estado = 'REINTENTAR'
+            despacho.ultimo_error = 'SMTP_CERTIFICADO_NO_VALIDADO'
+        except (InvalidToken, ValueError, KeyError, TypeError):
             despacho.estado = 'REINTENTAR'
             despacho.ultimo_error = 'PAYLOAD_NO_VERIFICABLE'
         except smtplib.SMTPAuthenticationError:
             despacho.estado = 'REINTENTAR'
             despacho.ultimo_error = 'SMTP_AUTENTICACION_RECHAZADA'
-        except ssl.SSLCertVerificationError:
-            despacho.estado = 'REINTENTAR'
-            despacho.ultimo_error = 'SMTP_CERTIFICADO_NO_VALIDADO'
         except (OSError, smtplib.SMTPException):
             despacho.estado = 'REINTENTAR'
             despacho.ultimo_error = 'SMTP_NO_CONFIRMADO'

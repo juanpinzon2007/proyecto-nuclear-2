@@ -19,6 +19,8 @@ def preparar(secretos, stack, *, evaluar=True, incluir_abierto=True):
     from app.modules.identity.infrastructure.credentials import obtener_hasheador
     from app.modules.scheduling.infrastructure.models import ConvocatoriaModel as C
     from app.modules.scheduling.domain.access_codes import hash_codigo
+    from tests.conftest import cola_convocatorias
+    stack.enter_context(lab.fixture(cola_convocatorias))
     engine=stack.enter_context(lab.fixture(pg_resultados))
     patch=pytest.MonkeyPatch();stack.callback(patch.undo)
     c=crear_registro.__wrapped__(engine,patch)(criterios=2)

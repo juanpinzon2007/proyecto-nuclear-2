@@ -55,7 +55,8 @@ def test_docente_consulta_solo_su_ambito_con_intentos_y_referencias_exactas(segu
     assert d['respuestas'][0]['id_intento']==str(h.ik)
     assert d['respuestas'][0]['retroalimentacion'] is None
     assert d['version_caso_id']==str(h.version) and d['id_sesion']==str(h.sesion)
-    assert 'nota_final' not in d and h.codigo not in detalle.text
+    assert d['nota_final'] is None and fila['nota_final'] is None
+    assert d['respuestas'][0]['es_correcta'] is None and h.codigo not in detalle.text
 
 
 def test_feedback_se_crea_edita_y_recupera_sin_duplicar_desde_otra_sesion(seguimiento):
@@ -138,7 +139,7 @@ def test_detalle_cerrado_usa_explicacion_historica_y_no_abre_notas_reportes(segu
     r=h.client.get(h.detalle,headers=h.a.headers);assert r.status_code==200,r.text
     assert r.json()['respuestas'][0]['retroalimentacion']=='Justificación teórica.'
     assert r.json()['intentos'][0]['estado']=='FINALIZADO'
-    assert 'nota_final' not in r.text
+    assert r.json()['nota_final'] is None and r.json()['modalidad'] is None
     assert h.client.get(f'{BASE}/sesiones/{h.sesion}/reporte',headers=h.a.headers).status_code==503
     assert h.client.get(h.detalle,headers=h.headers).status_code==403
 

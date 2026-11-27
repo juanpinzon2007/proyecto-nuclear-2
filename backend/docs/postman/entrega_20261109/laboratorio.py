@@ -32,7 +32,9 @@ def preparar(secretos,stack):
             for o in q['options']:o['valoraciones']={'Análisis':100 if o['esCorrecta'] else 0}
     # Solo datos docentes sintéticos: caso/grafo/publicación/programación/convocatoria
     # se ejecutan mediante las rutas reales ya usadas por la fixture integral.
-    h=stack.enter_context(lab.fixture(recorrido_lab,sesiones,payload,patch,lambda *a:None))
+    from tests.conftest import cola_convocatorias
+    cola = stack.enter_context(lab.fixture(cola_convocatorias))
+    h=stack.enter_context(lab.fixture(recorrido_lab,sesiones,payload,patch,lambda *a:None,cola))
     with sesiones.begin() as s:
         principal=s.get(S,h.sesion)
         profesor=s.get(U,s.get(G,s.get(A,h.aid).id_grupo).id_profesor)

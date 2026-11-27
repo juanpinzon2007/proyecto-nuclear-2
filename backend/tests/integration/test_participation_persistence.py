@@ -124,7 +124,7 @@ def intento(c, pk, **cambios):
 def test_metadata_reflejado_y_PK_FK_duracion_obligatoria(datos):
     with datos.engine.connect() as s:
         assert len(registrar_modelos_integrados().tables) == 45
-        assert compare_metadata(MigrationContext.configure(s),registrar_modelos_integrados()) == []
+        assert compare_metadata(MigrationContext.configure(s),registrar_modelos_integrados(s.dialect.name)) == []
         assert len(sa.inspect(s).get_foreign_keys("participacion")) == 4
         assert len(sa.inspect(s).get_foreign_keys("intento")) == 3
         assert not I.c.duracion_concedida_segundos.nullable
@@ -230,7 +230,7 @@ def test_contexto_e_identidades_historicas_protegidos(datos_pg,objetivo):
             else:
                 # Incluir la nueva dependencia permite llegar al guard histórico,
                 # en vez de detenerse antes por la prohibición FK de TRUNCATE.
-                s.exec_driver_sql("TRUNCATE intento, paso_simulacion, resultado_intento, resultado_criterio, resultado_calculo_preguntas, resultado_pregunta, resultado_criterio_exacto, resultado_participacion")
+                s.exec_driver_sql("TRUNCATE intento, borrador_decision_intento, historial_cambio_decision, paso_simulacion, resultado_intento, resultado_criterio, resultado_calculo_preguntas, resultado_pregunta, resultado_criterio_exacto, resultado_participacion")
 
 
 def test_duracion_microsegundos_y_vencimiento_no_cambian_al_reprogramar(datos_pg):
@@ -316,10 +316,12 @@ def test_repeatable_read_cierra_ante_snapshot_antiguo(datos_pg):
 def test_downgrade_rechaza_datos_historicos(datos_pg):
     pk=participacion(datos_pg); intento(datos_pg,pk)
     with datos_pg.engine.begin() as s:
+        revision_inicial = s.scalar(sa.text("SELECT version_num FROM alembic_version"))
+        assert revision_inicial
         with pytest.raises(RuntimeError,match="datos historicos"):
             with s.begin_nested():
                 command.downgrade(config_alembic(s),PARENT)
-        assert s.scalar(sa.text("SELECT version_num FROM alembic_version"))=="20261110_durable_mail"
+        assert s.scalar(sa.text("SELECT version_num FROM alembic_version")) == revision_inicial
 
 
 def test_upgrade_downgrade_vacio_preserva_protecciones_anteriores():

@@ -68,7 +68,7 @@ function dirigirTribunalComite(ctx: ContextoNarrativoEscena): ResultadoDireccion
   const esDecano = esConfrontacionDecano(texto);
 
   if (esDecano) {
-    const miradaProtag: DireccionMirada = lanzada ? 'izquierda' : armada ? 'izquierda' : 'izquierda';
+    const miradaProtag: DireccionMirada = 'izquierda';
     const actores: ConfiguracionActor[] = [
       {
         id: 'consejero-fondo-1',

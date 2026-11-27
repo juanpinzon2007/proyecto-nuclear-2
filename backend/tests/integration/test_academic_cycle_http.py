@@ -191,12 +191,14 @@ def test_migracion_real_subida_bajada_y_metadata_sin_filtro():
             command.upgrade(config_alembic(s),'20261107_question_results')
             anteriores=set(sa.inspect(s).get_table_names())
             command.upgrade(config_alembic(s),'head')
-            assert set(sa.inspect(s).get_table_names())-anteriores=={'ausencia_academica','publicacion_evaluacion','resultado_participacion','despacho_correo'}
-            assert compare_metadata(MigrationContext.configure(s),registrar_modelos_integrados())==[]
+            assert set(sa.inspect(s).get_table_names())-anteriores=={'ausencia_academica','publicacion_evaluacion','resultado_participacion','despacho_correo',
+                'historial_cambio_decision','verificacion_primer_ingreso','auditoria_trazabilidad_global',
+                'recuperacion_contrasena','usuario_permiso','borrador_decision_intento'}
+            assert compare_metadata(MigrationContext.configure(s),registrar_modelos_integrados(s.dialect.name))==[]
             command.downgrade(config_alembic(s),'20261107_question_results')
             assert set(sa.inspect(s).get_table_names())==anteriores
             command.upgrade(config_alembic(s),'head')
-            assert compare_metadata(MigrationContext.configure(s),registrar_modelos_integrados())==[]
+            assert compare_metadata(MigrationContext.configure(s),registrar_modelos_integrados(s.dialect.name))==[]
 
 
 def test_downgrade_rechaza_perdida_de_publicacion(docente_http):
