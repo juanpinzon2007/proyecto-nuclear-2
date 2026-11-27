@@ -133,6 +133,8 @@ def test_migraciones_integradas_upgrade_downgrade_crean_ambos_modulos(bd):
     from app.db.models import registrar_modelos_integrados
     esperadas = set(registrar_modelos_integrados().tables)
     assert {"usuario", "rol", "permiso", "rol_permiso", "caso", "version_caso", "rubrica"} <= esperadas
+    if bd.dialect.name == "postgresql":
+        esperadas.add("auditoria_trazabilidad_global")
     assert set(inspect(bd).get_table_names()) == esperadas | {"alembic_version"}
     with bd.begin() as conexion:
         if conexion.dialect.name=="sqlite":
