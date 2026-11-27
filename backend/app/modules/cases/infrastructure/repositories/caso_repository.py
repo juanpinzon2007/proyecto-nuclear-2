@@ -486,16 +486,17 @@ class CasoRepository(ICasoRepository):
     @contextmanager
     def _transaccion(self) -> Iterator[None]:
         """Commit al salir sin errores; rollback ante cualquier excepción."""
+        confirmado = False
         try:
             with self._session.no_autoflush:
                 yield
             self._session.commit()
+            confirmado = True
         except SQLAlchemyError as exc:
-            self._session.rollback()
             raise ErrorPersistenciaCaso("No se pudo guardar el caso.") from exc
-        except Exception:
-            self._session.rollback()
-            raise
+        finally:
+            if not confirmado:
+                self._session.rollback()
 
     # --- mapeo ORM -> dominio -------------------------------------------------
 

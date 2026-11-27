@@ -118,7 +118,7 @@ BaseDatos = Annotated[
 ]
 
 FabricaSesion = Annotated[
-    sessionmaker[Session],
+    sessionmaker,
     Depends(get_session_factory),
 ]
 
