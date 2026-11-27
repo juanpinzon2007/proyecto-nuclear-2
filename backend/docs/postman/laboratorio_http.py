@@ -38,6 +38,8 @@ def settings_lab():
         if k.startswith(('POSTGRES_','IDENTITY_','PARTICIPATION_','SCHEDULING_MAIL_')) or k in (
             'DATABASE_URL','TEST_DATABASE_URL','SPS_IDENTITY_TEST_URL','SPS_PERSISTENCE_LAB_URL'):
             del os.environ[k]
+    from cryptography.fernet import Fernet
+    os.environ['SCHEDULING_MAIL_ENCRYPTION_KEY']=Fernet.generate_key().decode()
     os.environ['SPS_TEST_IDENTITY_MAPPING_DOCKER']='1'
     from app.core.config import Settings,get_settings
     Settings.model_config['env_file']=None
@@ -73,7 +75,9 @@ def preparar(secretos, stack):
     from tests.integration.test_lab_student_journey import recorrido_lab
     sesiones=stack.enter_context(fixture(pg_autoria))
     patch=pytest.MonkeyPatch();stack.callback(patch.undo)
-    h=stack.enter_context(fixture(recorrido_lab,sesiones,payload_valido.__wrapped__(),patch,lambda *a:None))
+    from tests.conftest import cola_convocatorias
+    cola = stack.enter_context(fixture(cola_convocatorias))
+    h=stack.enter_context(fixture(recorrido_lab,sesiones,payload_valido.__wrapped__(),patch,lambda *a:None,cola))
     # Solo la DB propia recién creada. Claves/códigos elegidos por el operador
     # sustituyen los aleatorios de esa fixture; únicamente se guardan hashes.
     with sesiones.begin() as s:

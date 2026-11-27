@@ -1,5 +1,5 @@
 """Ejecuta una carpeta RF con PG17 NUEVO; o prepara su Environment privado para Desktop."""
-from contextlib import contextmanager, ExitStack
+from contextlib import contextmanager, ExitStack, nullcontext
 from copy import deepcopy
 from datetime import timedelta,datetime,timezone
 import argparse,json,os,secrets,subprocess,sys,shutil
@@ -31,19 +31,22 @@ def preparar_correo(p, stack):
  values = dict(scheduling_mail_enabled=True, scheduling_mail_host='127.0.0.1',
   scheduling_mail_port=port, scheduling_mail_tls='LAB_LOOPBACK',
   scheduling_mail_from='nuclear@universidad.test', scheduling_mail_public_url='http://127.0.0.1/simulador',
-  scheduling_mail_encryption_key=SecretStr(Fernet.generate_key().decode()),
+  scheduling_mail_encryption_key=settings.scheduling_mail_encryption_key,
   scheduling_mail_username=None, scheduling_mail_password=None)
  for name, value in values.items():
   patch.setattr(settings, name, value)
+ from app.modules.scheduling.infrastructure.mail_delivery import despachar_pendientes
+ despachar_pendientes(p.contexto.sesiones)
+ capture.mensajes.clear()
  p.contexto.correo_lab = capture
 
 
 def comprobar_correo(p, fase):
  """Verifica entrega al capturador y devuelve exclusivamente datos no secretos."""
- from email import message_from_bytes
+ from email import message_from_bytes, policy
  from cryptography.fernet import Fernet
  import sqlalchemy as sa
- from app.modules.scheduling.domain.access_codes import coincide_codigo
+ from app.modules.scheduling.application.codigos_convocatoria import coincide_codigo_convocatoria
  from app.modules.scheduling.infrastructure.mail_delivery import configuracion_correo, despachar_pendientes
  from app.modules.scheduling.infrastructure.mail_models import DespachoCorreoModel as Mail
  from app.modules.scheduling.infrastructure.models import ConvocatoriaModel as C, NotificacionModel as N
@@ -51,12 +54,13 @@ def comprobar_correo(p, fase):
  from app.modules.identity.infrastructure.models import UsuarioORM as U
  h = p.contexto
  assert fase in (1, 2)
- assert despachar_pendientes(h.sesiones) == ['ACEPTADO_PROVEEDOR']
+ if len(h.correo_lab.mensajes) < fase:
+  assert despachar_pendientes(h.sesiones) == ['ACEPTADO_PROVEEDOR']
  assert len(h.correo_lab.mensajes) == fase
  config = configuracion_correo()
  with h.sesiones() as s:
   for recipients, raw in h.correo_lab.mensajes:
-   message = message_from_bytes(raw)
+   message = message_from_bytes(raw, policy=policy.default)
    notification_id = UUID(message['Message-ID'].split('@', 1)[0].lstrip('<'))
    aviso = s.get(N, notification_id)
    despacho = s.get(Mail, notification_id)
@@ -64,13 +68,13 @@ def comprobar_correo(p, fase):
    payload = json.loads(Fernet(config.clave).decrypt(despacho.payload_cifrado))
    correo = s.scalar(sa.select(U.correo).join(IA, IA.id_usuario == U.id_usuario).where(
     IA.sistema == 'SCHEDULING', IA.id_academico == convocatoria.estudiante_id))
-   body = message.get_payload(decode=True).decode('utf-8')
+   body = message.get_body(preferencelist=('plain',)).get_content()
    assert recipients == (correo,) and payload['correo'] == correo
    assert despacho.estado == 'ACEPTADO_PROVEEDOR' and despacho.intentos == 1
    assert config.url_publica in body and payload['mensaje'] in body
    assert payload['caso'] in body and payload['inicio'] in body
    if aviso.tipo == 'CONVOCATORIA':
-    assert payload['codigo'] in body and coincide_codigo(payload['codigo'], convocatoria.codigo_hash)
+    assert payload['codigo'] in body and coincide_codigo_convocatoria(payload['codigo'], convocatoria.codigo_hash, convocatoria.estudiante_id)
    else:
     assert aviso.tipo == 'CONVOCATORIA_RETIRADA' and payload['codigo'] is None
     assert 'Código individual:' not in body and convocatoria.estado == 'RETIRADA'
@@ -79,6 +83,26 @@ def comprobar_correo(p, fase):
  return dict(fase=fase, aceptados_por_capturador=fase, destinatarios_sql_verificados=True,
   codigo_individual_verificado=True, mensaje_y_url_verificados=True, replay_sin_duplicados=True,
   alcance='SMTP TCP local de laboratorio; recepción externa no acreditada')
+
+
+def buzon_local(p, stack, env):
+ from email import message_from_bytes, policy
+ from fastapi import FastAPI, Header, HTTPException
+ from fastapi.responses import JSONResponse
+ app = FastAPI(openapi_url=None)
+ clave = secrets.token_urlsafe(32)
+ @app.post('/leer')
+ def leer(authorization: str = Header(default='')):
+  if not secrets.compare_digest(authorization, 'Bearer ' + clave):
+   raise HTTPException(403)
+  comprobar_correo(p, 1)
+  _, raw = p.contexto.correo_lab.mensajes[0]
+  body = message_from_bytes(raw, policy=policy.default).get_body(preferencelist=('plain',)).get_content()
+  codigo = next(line.partition(':')[2].strip() for line in body.splitlines() if line.startswith('Código individual:'))
+  return JSONResponse({'codigo': codigo}, headers={'Cache-Control': 'no-store'})
+ port = desktop.lab.serve(app, 0, stack)
+ setval(env, 'buzon_lab', f'http://127.0.0.1:{port}/leer')
+ setval(env, 'clave_buzon_lab', clave)
 
 
 @contextmanager
@@ -93,8 +117,11 @@ def preparar(rf):
    h.c.rf_ausente=otro_convocado(h.c);cerrar_sesion_fixture(h.c)
    r['convocatoria_id']=str(h.c.datos['convocatoria_id'])
    return h,r
-  desktop.reportes.preparar=preparar_ausencia
- with desktop.preparar(c['modo']) as p, ExitStack() as stack:
+  from unittest.mock import patch
+  ajuste = patch.object(desktop.reportes, "preparar", preparar_ausencia)
+ else:
+  ajuste = nullcontext()
+ with ajuste, desktop.preparar(c['modo']) as p, ExitStack() as stack:
   if c['modo'] == 'principal':
    from activar_main import activar
    p.contexto.configuracion_main = activar(p, stack)
@@ -165,6 +192,8 @@ def preparar(rf):
        fecha_limite_ingreso=(h.ahora+timedelta(minutes=40)).isoformat(),
        tiempo_maximo_minutos=30, lugar='Aula sintética RF', mensaje_personalizado='Convocatoria académica sintética RF',
        grupo_id=a.id_grupo, estudiantes_ids=estudiantes), ensure_ascii=False))
+  if rf in ('RF-20','RF-21'):
+   buzon_local(p, stack, env)
   p.environment.write_text(json.dumps(env,ensure_ascii=False,indent=2),encoding='utf-8')
   master=p.carpeta/'Proyecto_Nuclear_27RF.postman_collection.json'
   with master.open('xb') as f:f.write((OUT/'Proyecto_Nuclear_27RF.postman_collection.json').read_bytes())
