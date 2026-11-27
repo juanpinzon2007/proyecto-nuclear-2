@@ -253,11 +253,13 @@ def test_upgrade_downgrade_vacio_exclusivamente_PG():
 
 
 def inicializar(e,revision):
-    from app.modules.identity.infrastructure.models import RolORM
+    from app.modules.identity.infrastructure.models import RolORM, UsuarioPermisoORM
     with e.begin() as s:
         command.upgrade(config_alembic(s),revision)
         from tests.identity.academic_identity_support import columnas_convocatoria_para_fixture_historica
         columnas_convocatoria_para_fixture_historica(s)
+        # El repositorio actual consulta permisos individuales, posteriores a esta revisi?n.
+        UsuarioPermisoORM.__table__.create(s, checkfirst=True)
         s.execute(sa.insert(RolORM),[dict(id_rol=1,nombre="DOCENTE"),dict(id_rol=2,nombre="ESTUDIANTE")])
 
 
