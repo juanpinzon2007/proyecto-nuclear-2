@@ -53,3 +53,37 @@ it.each(tonos)('muestra el icono del tono %s y valida la respuesta', (tono,icono
     expect(cerrar).toHaveBeenCalledWith('motivo');
   }
 });
+
+it.each(['confirm','prompt','prompt personalizado'])('permite operar el diálogo visible %s',async variante=>{
+  const prompt=variante!=='confirm';
+  const personalizado=variante==='prompt personalizado';
+  const cerrar=vi.fn();
+  TestBed.configureTestingModule({imports:[NeuroDialogComponent],providers:[
+    {provide:MAT_DIALOG_DATA,useValue:{...opciones,modo:prompt?'prompt':'confirm',tono:prompt?'warn':'cyan',
+      etiquetaCampo:personalizado?'Detalle':undefined,placeholder:personalizado?'Indica el motivo':undefined}},
+    {provide:MatDialogRef,useValue:{close:cerrar}},
+  ]});
+  const fixture=TestBed.createComponent(NeuroDialogComponent);
+  fixture.detectChanges();
+  await fixture.whenStable();
+  const elemento:HTMLElement=fixture.nativeElement;
+  expect(elemento.querySelector('h2')?.textContent).toContain(basico.titulo);
+  const [cancelar,aceptar]=Array.from(elemento.querySelectorAll('button'));
+  cancelar.click();
+  expect(cerrar).toHaveBeenCalledWith(prompt?null:false);
+  cerrar.mockClear();
+  aceptar.click();
+  fixture.detectChanges();
+  const campo=elemento.querySelector('textarea');
+  if(prompt){
+    expect(elemento.querySelector('.nd-err')?.textContent).toContain('Debes ingresar un texto');
+    expect(campo?.placeholder).toBe(personalizado?'Indica el motivo':'Escribe aquí...');
+    campo!.value=' justificación ';
+    campo!.dispatchEvent(new Event('input'));
+    campo!.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',ctrlKey:true,bubbles:true}));
+    expect(cerrar).toHaveBeenCalledWith('justificación');
+  }else{
+    expect(campo).toBeNull();
+    expect(cerrar).toHaveBeenCalledWith(true);
+  }
+});
