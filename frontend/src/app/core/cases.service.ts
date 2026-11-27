@@ -77,6 +77,10 @@ export class CasesService {
     if (!detalle.escenarios.length || !detalle.escenarios.every((e) => e.preguntas.length === 1)) {
       return null;
     }
+    return this.grafoDeEscenariosValidados(detalle);
+  }
+
+  private grafoDeEscenariosValidados(detalle: CasoDetalleResponse): GrafoSolicitud {
     const transiciones: TransicionSolicitud[] = [];
     detalle.escenarios.forEach((esc, idx) => {
       const siguiente = detalle.escenarios[idx + 1];
@@ -105,10 +109,8 @@ export class CasesService {
         e.preguntas.some((p) => p.opciones.some((o) => !o.tipo)),
       );
       if (!tieneInicial || transPendientes) {
-        const lineal = this.construirGrafoLineal(detalle);
-        if (lineal) {
-          await firstValueFrom(this.guardarGrafo(versionId, lineal));
-        }
+        const lineal = this.grafoDeEscenariosValidados(detalle);
+        await firstValueFrom(this.guardarGrafo(versionId, lineal));
       }
     }
     return firstValueFrom(this.publicar(versionId));
