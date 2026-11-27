@@ -1,6 +1,7 @@
 """Revisión real, DML y HTTP solo sobre PostgreSQL nuevo y desechable."""
 import importlib.util
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -79,7 +80,16 @@ def test_HTTP_Cases_y_Scheduling_con_head_PostgreSQL_real():
                 assert c.scalar(text("SELECT current_database()"))=="sps_test"
                 assert inspect(c).get_table_names()==[]
                 command.upgrade(config_alembic(c),"head")
-                assert c.scalar(text("SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal"))==74
+                activos = c.execute(text("""
+                    SELECT t.tgname, r.relname FROM pg_trigger t
+                    JOIN pg_class r ON r.oid = t.tgrelid
+                    JOIN pg_namespace n ON n.oid = r.relnamespace
+                    WHERE n.nspname = 'public' AND NOT t.tgisinternal AND t.tgenabled = 'O'
+                """)).all()
+                esperados = re.findall(r"CREATE TRIGGER (\w+) [^\n]+? ON public\.(\w+)",
+                                        (LAB/"protecciones.sql").read_text(encoding="utf-8"))
+                assert esperados and set(esperados) <= set(activos)
+                assert len(activos) == 115
             safe=os.environ.copy()
             for n in ('SPS_IDENTITY_TEST_URL','SPS_PERSISTENCE_LAB_URL'):safe.pop(n,None)
             safe.update(TEST_DATABASE_URL=url.render_as_string(hide_password=False),SPS_TEST_POSTGRESQL="0",

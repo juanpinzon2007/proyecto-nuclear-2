@@ -23,7 +23,7 @@ from unittest.mock import Mock
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, create_engine, text
+from sqlalchemy import Engine, create_engine, inspect, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool, StaticPool
@@ -85,11 +85,19 @@ def _terminar_sesiones_huerfanas(engine: Engine) -> None:
 def _engine_con_esquema() -> Generator[Engine, None, None]:
     """Crea el esquema una vez por sesión y lo elimina al final."""
     eng = _crear_engine()
-    Base.metadata.create_all(eng)
-    yield eng
-    _terminar_sesiones_huerfanas(eng)
-    Base.metadata.drop_all(eng)
-    eng.dispose()
+    try:
+        existentes = set(inspect(eng).get_table_names())
+        propias = [tabla for tabla in Base.metadata.sorted_tables if tabla.name not in existentes]
+        Base.metadata.create_all(eng, tables=propias)
+        try:
+            yield eng
+        finally:
+            if propias:
+                if not existentes:
+                    _terminar_sesiones_huerfanas(eng)
+                Base.metadata.drop_all(eng, tables=propias)
+    finally:
+        eng.dispose()
 
 
 @pytest.fixture

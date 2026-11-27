@@ -331,8 +331,8 @@ def main(*, revision_guard=None):
         support.docker=original_docker
         ev['cleanup']=[]
         for cid in owned:
-            p=subprocess.run(['docker','inspect','--format','{{.Id}}',cid],capture_output=True,text=True,timeout=10)
-            removed=p.returncode!=0 and 'No such' in p.stderr
+            p=subprocess.run(['docker','container','ls','-aq','--no-trunc','--filter',f'id={cid}'],capture_output=True,text=True,timeout=10)
+            removed=p.returncode==0 and not p.stdout.strip()
             ev['cleanup'].append({'id':cid,'removed_verified':removed})
             if not removed:ev['status']='failed';failure=failure or RuntimeError('Limpieza no comprobada')
         dest=HERE/('evidencia_'+runid+'.json')
