@@ -288,8 +288,9 @@ def test_upgrade_downgrade_vacio_y_metadata_real():
             anteriores=set(sa.inspect(s).get_table_names())
             command.upgrade(config_alembic(s),HEAD)
             assert set(sa.inspect(s).get_table_names())-anteriores=={G.__tablename__,Q.__tablename__,C.__tablename__}
-            from tests.identity.academic_identity_support import omitir_publicacion_futura
-            assert compare_metadata(MigrationContext.configure(s,opts={"include_object":omitir_publicacion_futura}),registrar_modelos_integrados())==[]
+            from tests.identity.academic_identity_support import omitir_publicacion_futura, verificar_diferencias_posteriores_a_resultados
+            diferencias = compare_metadata(MigrationContext.configure(s,opts={"include_object":omitir_publicacion_futura}),registrar_modelos_integrados())
+            verificar_diferencias_posteriores_a_resultados(diferencias)
             command.downgrade(config_alembic(s),PARENT)
             assert set(sa.inspect(s).get_table_names())==anteriores
             command.upgrade(config_alembic(s),HEAD)

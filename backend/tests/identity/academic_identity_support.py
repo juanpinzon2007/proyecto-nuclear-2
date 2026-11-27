@@ -101,6 +101,21 @@ def columnas_publicacion_para_fixture_historica(conexion):
             if nombre not in existentes:ops.add_column(tabla,sa.Column(nombre,tipo,nullable=True))
 
 
+def verificar_diferencias_posteriores_a_resultados(diferencias):
+    """Exige las incorporaciones de noviembre 16-19 al comparar con el ORM actual."""
+    esperadas = [
+        ("add_table", "recuperacion_contrasena"),
+        ("add_table", "usuario_permiso"),
+        ("add_table", "verificacion_primer_ingreso"),
+        ("add_table", "borrador_decision_intento"),
+        ("add_index", "ix_borrador_intento"),
+        ("add_table", "historial_cambio_decision"),
+        ("add_index", "ix_historial_cambio_intento"),
+    ]
+    assert all(len(op) == 2 and op[0] in {"add_table", "add_index"} for op in diferencias), diferencias
+    assert sorted((tipo, objeto.name) for tipo, objeto in diferencias) == sorted(esperadas)
+
+
 def omitir_publicacion_futura(objeto,nombre,tipo,reflejado,comparado):
     if tipo=='table' and nombre in {'ausencia_academica','publicacion_evaluacion','resultado_participacion','despacho_correo'}:return False
     nuevas={'mostrar_resultados_provisionales','visibilidad_docente_id','visibilidad_actualizada_en','publicacion_evaluacion_id'}
