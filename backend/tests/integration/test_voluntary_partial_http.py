@@ -149,7 +149,9 @@ def test_upgrade_downgrade_preserva_v1_y_bloquea_perdida_v2(crear_registro):
     with motor_postgresql_desechable() as e:
         with e.begin() as s:
             command.upgrade(config_alembic(s),PARENT)
-            from app.modules.identity.infrastructure.models import RolORM
+            from app.modules.identity.infrastructure.models import RolORM, UsuarioPermisoORM
+            # El lector de identidad actual consulta los permisos individuales.
+            UsuarioPermisoORM.__table__.create(s, checkfirst=True)
             s.execute(sa.insert(RolORM),[dict(id_rol=1,nombre='DOCENTE'),dict(id_rol=2,nombre='ESTUDIANTE')])
             original=s.scalar(sa.text("SELECT pg_get_functiondef('public.fp8_cabecera(jsonb)'::regprocedure)"))
         c=crear_registro(motor=e);cerrar(c,respondidas=3);anterior=guardar(c)
